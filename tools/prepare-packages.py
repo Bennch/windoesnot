@@ -23,7 +23,7 @@ output.mkdir(parents=True)
 prefix = 'windoesnot-' + args.version
 archive = output / (prefix + '.tar.gz')
 excluded = {'__pycache__', '.git', 'import-manifest.json', 'settings.txt', 'state.lua', 'host.lua', 'geometry.lua', 'calendar_notes.json', 'copilot-state.json', 'icons.json', 'icon-map.json', 'state.json', 'state.lock'}
-included = ['desktop', 'packaging/LICENSE-NOTES.md', 'packaging/version.json', 'tools/build-components.sh', 'tools/check-plugin-symbols.py']
+included = ['desktop', 'packaging/LICENSE-NOTES.md', 'packaging/version.json', 'packaging/changelog.json', 'tools/build-components.sh', 'tools/check-plugin-symbols.py']
 files = {}
 with tarfile.open(archive, 'w:gz', dereference=False) as stream:
     for name in included:

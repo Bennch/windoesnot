@@ -3,7 +3,7 @@
   "releases": [
     {
       "version": "0.1.0-16",
-      "unreleased": true,
+      "date": "2026-10-23",
       "de": [
         "Der KI-Assistent heißt jetzt Does und hat ein eigenes Symbol.",
         "Ein gelöstes Does-Fenster lässt sich nach dem Schließen wieder öffnen.",
