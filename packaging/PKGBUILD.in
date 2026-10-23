@@ -5,7 +5,7 @@ pkgver=@VERSION@
 pkgrel=@RELEASE@
 pkgdesc='WinDoesNot Hyprland/Quickshell desktop (development build)'
 arch=('x86_64')
-license=('custom:WinDoesNot-collection')
+license=('GPL-3.0-or-later' 'MIT' 'BSD-3-Clause')
 makedepends=(gcc make cmake ninja pkgconf binutils wayland-protocols hyprland quickshell qt6-base qt6-declarative qtermwidget wayland cairo pango glib2 librsvg json-c libxkbcommon python)
 options=('!strip' '!debug' '!lto')
 source=("windoesnot-${pkgver}.tar.gz")
@@ -18,6 +18,8 @@ build() {
 
 _license() {
     install -Dm644 "$srcdir/windoesnot-$pkgver/packaging/LICENSE-NOTES.md" "$pkgdir/usr/share/licenses/$pkgname/LICENSE-NOTES.md"
+    install -Dm644 "$srcdir/windoesnot-$pkgver/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm644 "$srcdir/windoesnot-$pkgver/THIRD-PARTY.md" "$pkgdir/usr/share/licenses/$pkgname/THIRD-PARTY.md"
 }
 
 package_windoesnot-desktop() {

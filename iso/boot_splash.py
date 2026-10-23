@@ -6,16 +6,19 @@ import shutil
 import subprocess
 
 KERNEL_PARAMS=['quiet','splash','loglevel=3','systemd.show_status=error','rd.systemd.show_status=error','udev.log_level=3','rd.udev.log_level=3']
+SERIAL_PARAM='plymouth.ignore-serial-consoles'
 
 def quiet_commandline(line):
     words=line.split()
     keys={word.split('=',1)[0] for word in KERNEL_PARAMS}
-    words=[word for word in words if word.split('=',1)[0] not in keys]
+    words=[word for word in words if word.split('=',1)[0] not in keys and word!=SERIAL_PARAM]
     # Keep serial diagnostics available but put tty0 last so /dev/console and
     # failed-boot diagnostics appear on the physical screen too.
     if 'console=tty0' in words:
         words.remove('console=tty0');words.append('console=tty0')
-    return ' '.join(words+KERNEL_PARAMS)
+    # Plymouth falls back to its text view when any console= is serial.
+    extra=[SERIAL_PARAM] if any(word.startswith('console=ttyS') for word in words) else []
+    return ' '.join(words+KERNEL_PARAMS+extra)
 
 def add_hook(text):
     def replace(match):

@@ -114,7 +114,9 @@ def main():
     shutil.copytree(ROOT / 'tools', payload / 'tools', ignore=shutil.ignore_patterns('__pycache__','import-desktop.py'))
     shutil.copytree(ROOT / 'iso', payload / 'iso', ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
     shutil.copytree(ROOT / 'packaging', payload / 'packaging')
-    store = stage_store(pins['windoesnot-store'], payload / 'store')
+    for name in ['LICENSE', 'THIRD-PARTY.md']:
+        shutil.copy2(ROOT / name, payload / name)
+    store =stage_store(pins['windoesnot-store'], payload / 'store')
     shutil.copytree(args.sources_root/'cachyos-calamares',payload/'vendor/calamares',ignore=shutil.ignore_patterns('.git','__pycache__','build'))
     # Keep the upstream checkout untouched; add our modules only to the generated build copy.
     shutil.copytree(ROOT / 'iso/modules', payload / 'vendor/calamares/src/modules', dirs_exist_ok=True)

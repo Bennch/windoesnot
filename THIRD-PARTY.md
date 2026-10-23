@@ -1,0 +1,36 @@
+# Third-party components
+
+WinDoesNot's own code is licensed under the GPL-3.0-or-later ([LICENSE](LICENSE)).
+The following bundled or adapted components keep their original licenses.
+
+| Component | Path | Origin | License |
+|---|---|---|---|
+| snappy-switcher (patched) | `desktop/vendor/snappy-switcher/`, `desktop/patches/` | [OpalAayan/snappy-switcher](https://github.com/OpalAayan/snappy-switcher) 2.1.2 | GPL-3.0 |
+| hyprbars (modified) | `desktop/plugins/hyprbars/` | [hyprwm/hyprland-plugins](https://github.com/hyprwm/hyprland-plugins) | BSD-3-Clause |
+| hyprdrag (modified) | `desktop/plugins/hyprdrag/` | [yz778/hyprdrag](https://github.com/yz778/hyprdrag) | MIT |
+| Win11 icon theme (dark) | `desktop/config/quickshell/default/img/Win11-dark/` | [yeyushengfan258/Win11-icon-theme](https://github.com/yeyushengfan258/Win11-icon-theme) | GPL-3.0 ([COPYING](desktop/config/quickshell/default/img/Win11-dark/COPYING)); partly based on [Yaru](https://github.com/ubuntu/yaru) |
+| SDDM theme layout | `desktop/share/sddm/themes/windoesnot/Main.qml` | SDDM 0.21.0 “Maldives” theme by Abdurrahman AVCI | MIT (notice kept in the file) |
+| Wayland protocol files | `desktop/vendor/snappy-switcher/protocol/` | wlroots | MIT (notice in each file) |
+| WinDoesNot interface icons | `desktop/config/quickshell/default/img/project/` | original work for this project | MIT ([README](desktop/config/quickshell/default/img/project/README.md)) |
+
+The CachyOS live ISO profile and Calamares installer are not stored here. They are
+fetched at the commits pinned in [`sources.json`](sources.json) and modified at build
+time; their licenses apply to the generated image.
+
+## Open review
+
+The following material still needs a provenance and license review before a public
+release:
+
+- **Weather icons and animations** in
+  `desktop/config/quickshell/default/widgets/weather/google-weather-icons-main/`.
+  The collection's own README states that the icons belong to Google; no
+  redistribution license is given. They are planned to be replaced with freely
+  licensed icons.
+- **Application icons** in `desktop/config/quickshell/default/img/scalable/` collected
+  from various icon themes and applications.
+- The **workspace overview** (`desktop/config/quickshell/overview/`): origin to be
+  documented.
+
+If you hold rights to any of this material and want it credited differently or
+removed, please open an issue.

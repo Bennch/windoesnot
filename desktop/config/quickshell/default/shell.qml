@@ -635,7 +635,8 @@ PanelWindow {
             var iconPos = iconItem.mapToItem(panelWindow.contentItem, 0, 0)
             px = Math.round(iconPos.x + iconItem.width / 2 - popupW / 2)
             px = Math.max(4, Math.min(monW - popupW - 4, px))
-            py = monH - 45 - popupH
+            // Same bottom anchor as display_geometry.py; never above the screen edge.
+            py = Math.max(0, monH - 45 - Math.min(popupH, monH - 45 - 16))
         } else {
             // Unpinned mode - center of screen or use current workspace
             px = Math.round((monW - popupW) / 2)

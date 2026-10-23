@@ -7,7 +7,7 @@ import unittest
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'iso'))
-from boot_splash import add_hook,quiet_commandline,KERNEL_PARAMS,stage
+from boot_splash import add_hook,quiet_commandline,KERNEL_PARAMS,SERIAL_PARAM,stage
 
 class BootPresentation(unittest.TestCase):
     def test_systemd_and_udev_initramfs(self):
@@ -24,6 +24,9 @@ class BootPresentation(unittest.TestCase):
             self.assertIn(option,result.split())
         self.assertLess(result.index('console=ttyS0'),result.index('console=tty0'))
         self.assertNotIn('loglevel=7',result)
+        # A serial console must not switch Plymouth to its text view.
+        self.assertEqual(result.split().count(SERIAL_PARAM),1)
+        self.assertNotIn(SERIAL_PARAM,quiet_commandline('root=UUID=test console=tty0').split())
     def test_no_running_host_staging(self):
         with self.assertRaises(ValueError):stage('/','missing','missing')
     def test_staged_graphics_and_nonrecursive_error_handler(self):

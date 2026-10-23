@@ -32,7 +32,7 @@ def window_rules(monitor, settings):
         'mediaplayer-config': (853, 500, 'top'),
         'colorpalette-config': (400, 480, 'center'),
         'search-config': (640, 480, 'center'),
-        'copilot-config-pinned': (1100, 760, 'center'),
+        'copilot-config-pinned': (1100, 760, 'bottom'),
     }
     rules = {}
     for name, (desired_w, desired_h, anchor) in sizes.items():
