@@ -8,13 +8,15 @@
         "Der KI-Assistent heißt jetzt Does und hat ein eigenes Symbol.",
         "Ein gelöstes Does-Fenster lässt sich nach dem Schließen wieder öffnen.",
         "Die Update-Seite der Einstellungen zeigt echte Daten: WinDoesNot-Neuerungen, Systemupdates, Arch-Neuigkeiten und ob ein Neustart nötig ist.",
-        "Backups: Die Passwortabfrage erscheint direkt in den Einstellungen; die Snapshot-Liste braucht kein Passwort mehr."
+        "Backups: Die Passwortabfrage erscheint direkt in den Einstellungen; die Snapshot-Liste braucht kein Passwort mehr.",
+        "AUR lässt sich gemeinsam in Store und Desktop-Einstellungen schalten; Updates und Suchergebnisse folgen der Auswahl."
       ],
       "en": [
         "The AI assistant is now called Does and has its own icon.",
         "A detached Does window opens again after it was closed.",
         "The settings update page shows real data: WinDoesNot changes, system updates, Arch news and whether a restart is needed.",
-        "Backups: the password prompt appears inside the settings; listing snapshots no longer asks for a password."
+        "Backups: the password prompt appears inside the settings; listing snapshots no longer asks for a password.",
+        "AUR can be toggled consistently from the Store and desktop settings; updates and search results follow the preference."
       ]
     },
     {

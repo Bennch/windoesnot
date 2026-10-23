@@ -1,4 +1,11 @@
 var strings = {
+    "updates.aurTitle": "Zusätzliche Programme aus dem AUR",
+    "updates.aurHint": "Aktiviert AUR-Suche, Installationen und Updates im Store. Diese Pakete werden von der Community gepflegt. Auf neuen Systemen ausgeschaltet.",
+    "updates.aurNoHelper": "Zum Verwenden fehlt ein AUR-Helfer (paru oder yay). Es wird nichts automatisch installiert.",
+    "updates.aurReadFailed": "AUR-Einstellung konnte nicht gelesen werden.",
+    "updates.aurSaveFailed": "AUR-Einstellung konnte nicht gespeichert werden.",
+    "updates.aurCheckFailed": "AUR-Updates konnten nicht vollständig geprüft werden. Bitte später erneut versuchen.",
+
     "backups.timerInactive": "Der Zeitgeber ist derzeit nicht aktiv. Anwenden aktiviert den gespeicherten Plan.",
     "backups.cancelled": "Freigabe abgebrochen. Es wurde nichts geändert.",
     "backups.scheduleCustom": "Ein bestehender Aufbewahrungsbereich wird beim Anwenden durch die angezeigte Anzahl ersetzt.",

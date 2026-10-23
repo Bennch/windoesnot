@@ -1,3 +1,5 @@
+> **Aktuell (Codex, 23.10. abends):** AUR-/Updater-Block fertig und auf dem Host aktiviert. [AUR-UPDATER.md](docs/AUR-UPDATER.md). Store lokal `5b627db`, Release-Pin angepasst, 47 Tests + QML-Integration bestanden. Kein Push/ISO-Bau/Systemupdate. Ältere Store-Pins unten sind überholt.
+
 > **Neueste Übergabe (Claude, 23.10. Mittag): [docs/HANDOFF-CLAUDE-20261023.md](docs/HANDOFF-CLAUDE-20261023.md)** — Store, Does, Update-Seite, Host-Stand, Rückwege, offene Punkte.
 
 # Aktuelle Pause — 23.10.2026: Backup-/Auth-Integration auf Host aktiv

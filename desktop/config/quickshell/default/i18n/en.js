@@ -1,4 +1,11 @@
 var strings = {
+    "updates.aurTitle": "Additional apps from the AUR",
+    "updates.aurHint": "Enables AUR search, installations and updates in the Store. These packages are maintained by the community. Off on new systems.",
+    "updates.aurNoHelper": "An AUR helper (paru or yay) is required. Nothing is installed automatically.",
+    "updates.aurReadFailed": "Could not read the AUR preference.",
+    "updates.aurSaveFailed": "Could not save the AUR preference.",
+    "updates.aurCheckFailed": "AUR updates could not be fully checked. Please try again later.",
+
     "backups.timerInactive": "The timer is currently inactive. Apply activates the saved schedule.",
     "backups.cancelled": "Authorization cancelled. Nothing was changed.",
     "backups.scheduleCustom": "Applying replaces an existing retention range with the displayed count.",

@@ -18,6 +18,27 @@ Column {
 
     property var status: null
     property bool checking: false
+    property bool settingAur: false
+    property bool aurEnabled: false
+    property bool aurAvailable: false
+    property string actionError: ""
+    property bool pendingCheck: false
+    property bool acceptStatusResult: true
+
+    function setAur(enabled) {
+        if (settingAur) return
+        settingAur = true
+        actionError = ""
+        // Let an in-flight check finish, but discard its outdated AUR state.
+        acceptStatusResult = false
+        aurSetProc.command = ["sh", "-c", 'command -v windoesnot-store >/dev/null || exit 127; exec windoesnot-store --set-aur "$1"', "sh", enabled ? "true" : "false"]
+        aurSetProc.running = true
+    }
+
+    function readAurStatus() {
+        if (!aurReadProc.running && !settingAur) aurReadProc.running = true
+    }
+
     property bool storeMissing: false
     readonly property int updateCount: status ? status.updates.length : 0
     readonly property bool needsAttention: status && (updateCount > 0 || status.reboot || status.relogin)
@@ -30,7 +51,8 @@ Column {
     spacing: 20
 
     function check(refresh) {
-        if (checking) return
+        if (checking || settingAur) { pendingCheck = true; return }
+        acceptStatusResult = true
         checking = true
         // Via sh: a missing store binary then ends with 127 instead of never
         // reporting an exit.
@@ -44,14 +66,56 @@ Column {
         return Qt.formatTime(date, "HH:mm")
     }
 
-    Component.onCompleted: check(false)
+    Component.onCompleted: { readAurStatus(); check(false) }
+    Timer {
+        interval: 3000
+        repeat: true
+        running: updatesPage.visible && (!settingsMenu || settingsMenu.visible)
+        onTriggered: updatesPage.readAurStatus()
+    }
+    Process {
+        id: aurReadProc
+        command: ["sh", "-c", "command -v windoesnot-store >/dev/null || exit 127; exec windoesnot-store --aur-status-json"]
+        stdout: StdioCollector { id: aurReadOutput }
+        onExited: (code) => {
+            if (code !== 0 || settingAur) return
+            try {
+                const data = JSON.parse(aurReadOutput.text)
+                const changed = aurEnabled !== data.aur_enabled
+                aurEnabled = data.aur_enabled
+                aurAvailable = data.aur_available
+                if (changed && status) {
+                    acceptStatusResult = false
+                    check(false)
+                }
+            } catch (error) { actionError = Lang.get("updates.aurReadFailed", _lang) }
+        }
+    }
+    Process {
+        id: aurSetProc
+        stdout: StdioCollector { id: aurSetOutput }
+        stderr: StdioCollector { id: aurSetError }
+        onExited: (code) => {
+            settingAur = false
+            if (code === 0) {
+                try { aurEnabled = JSON.parse(aurSetOutput.text).aur_enabled }
+                catch (error) { actionError = Lang.get("updates.aurSaveFailed", _lang) }
+            } else { actionError = Lang.get("updates.aurSaveFailed", _lang) + " " + aurSetError.text.trim() }
+            readAurStatus()
+            check(false)
+        }
+    }
+
 
     Process {
         id: statusProc
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
+                    if (!updatesPage.acceptStatusResult) return
                     updatesPage.status = JSON.parse(text)
+                    updatesPage.aurEnabled = updatesPage.status.aur_enabled === true
+                    updatesPage.aurAvailable = updatesPage.status.aur_available === true
                     updatesPage.storeMissing = false
                 } catch (e) {
                     console.log("[Updates] no status:", e)
@@ -61,6 +125,7 @@ Column {
         onExited: function(code) {
             updatesPage.checking = false
             if (code !== 0 && !updatesPage.status) updatesPage.storeMissing = true
+            if (pendingCheck && !settingAur) { pendingCheck = false; Qt.callLater(function() { check(false) }) }
         }
     }
 
@@ -129,6 +194,64 @@ Column {
         }
     }
 
+    // Same switch and spacing as the optional-app controls in AppsCategory.
+    Rectangle {
+        width: parent.width
+        height: aurContent.implicitHeight + 32
+        radius: settingsMenu.borderRadius
+        color: cardColor
+        border.width: 1
+        border.color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
+        Row {
+            id: aurContent
+            x: 16; y: 16; width: parent.width - 32
+            spacing: 15
+            Column {
+                width: parent.width - 75
+                spacing: 6
+                Text { text: Lang.get("updates.aurTitle", _lang); color: textColor; font.pixelSize: 14; font.bold: true }
+                Text {
+                    width: parent.width; wrapMode: Text.WordWrap
+                    text: Lang.get("updates.aurHint", _lang)
+                    color: subColor; font.pixelSize: 12
+                }
+                Text {
+                    width: parent.width; wrapMode: Text.WordWrap
+                    visible: aurEnabled && !aurAvailable
+                    text: Lang.get("updates.aurNoHelper", _lang)
+                    color: warnColor; font.pixelSize: 12
+                }
+                Text {
+                    width: parent.width; wrapMode: Text.WordWrap
+                    visible: actionError.length > 0 || (status && !!status.aur_error)
+                    text: actionError || Lang.get("updates.aurCheckFailed", _lang)
+                    color: warnColor; font.pixelSize: 12
+                }
+            }
+            Rectangle {
+                objectName: "aurSwitch"
+                width: 60; height: 32; radius: 16
+                anchors.verticalCenter: parent.verticalCenter
+                color: aurEnabled ? accent : (settingsMenu.darkMode ? "#3a3a3a" : "#c0c0c0")
+                opacity: settingAur || storeMissing ? 0.5 : 1
+                Behavior on color { ColorAnimation { duration: 150 } }
+                Rectangle {
+                    width: 24; height: 24; radius: 12
+                    color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
+                    x: aurEnabled ? parent.width - width - 4 : 4
+                    anchors.verticalCenter: parent.verticalCenter
+                    Behavior on x { NumberAnimation { duration: 150 } }
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    enabled: !settingAur && !storeMissing
+                    cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    onClicked: setAur(!aurEnabled)
+                }
+            }
+        }
+    }
+
     // === Status card ===
     Rectangle {
         width: parent.width
@@ -167,7 +290,7 @@ Column {
                     text: storeMissing ? Lang.get("updates.storeMissing", _lang)
                         : !status ? Lang.get("updates.checking", _lang)
                         : updateCount > 0 ? Lang.get("updates.available", _lang).replace("{}", updateCount)
-                        : Lang.get("updates.upToDate", _lang)
+                        : status && status.aur_error ? Lang.get("updates.aurCheckFailed", _lang) : Lang.get("updates.upToDate", _lang)
                     font.pixelSize: 15; font.bold: true
                     color: textColor
                 }
@@ -256,7 +379,7 @@ Column {
                 required property var modelData
                 width: updatesPage.width
                 elide: Text.ElideRight
-                text: modelData.name + "   " + modelData.old + " → " + modelData.new
+                text: modelData.name + (modelData.source === "aur" ? " (AUR)" : "") + "   " + modelData.old + " → " + modelData.new
                 font.pixelSize: 12
                 font.family: "monospace"
                 color: subColor
