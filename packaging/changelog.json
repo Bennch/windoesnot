@@ -2,6 +2,24 @@
   "comment": "WinDoesNot changes per desktop package release, newest first. Shown in Settings > Updates; entries marked unreleased are never offered as an update.",
   "releases": [
     {
+      "version": "0.1.0-17",
+      "date": "2026-10-23",
+      "de": [
+        "Updates in einfacher Sprache: ein Knopf für alles, getrennt nach WinDoesNot, Programmen und System, mit Hinweis auf Neustart.",
+        "„Jetzt aktualisieren“ öffnet direkt den Store mit allen Updates und wichtigen Arch-Hinweisen.",
+        "Backups heißen jetzt Wiederherstellungspunkte und erklären, was gesichert wird und was nicht.",
+        "Does sitzt angeheftet direkt über der Taskleiste und lässt sich nach dem Lösen wieder normal schließen.",
+        "Der Anmeldebildschirm zeigt die richtige Tastaturbelegung; der Startbildschirm zeigt das Logo auch beim Live-System."
+      ],
+      "en": [
+        "Updates in plain language: one button for everything, grouped into WinDoesNot, programs and system, with restart hints.",
+        "“Update now” opens the Store with all updates and important Arch notices right away.",
+        "Backups are now called restore points and explain what is and is not saved.",
+        "Does sits pinned right above the taskbar and closes normally again after detaching.",
+        "The login screen shows the correct keyboard layout; the live system shows the boot logo."
+      ]
+    },
+    {
       "version": "0.1.0-16",
       "date": "2026-10-23",
       "de": [
