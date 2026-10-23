@@ -37,7 +37,9 @@ def parse_snapshots(raw):
         number = str(row.get('number', row.get('#', ''))).rstrip('*+-')
         if number.isdecimal() and int(number) > 0:
             result.append({'id': number, 'date': str(row.get('date', '')),
-                           'description': str(row.get('description', ''))})
+                           'description': str(row.get('description', '')),
+                           'type': str(row.get('type', '')),
+                           'cleanup': str(row.get('cleanup', ''))})
     return sorted(result, key=lambda row: int(row['id']), reverse=True)
 
 
@@ -54,7 +56,7 @@ def status():
         schedule[period] = value
     return {'ready': True, 'live': False,
             'snapshots': parse_snapshots(run('/usr/bin/snapper', '--no-dbus', '--jsonout',
-                '--iso', '-c', 'root', 'list', '--columns', 'number,date,description')),
+                '--iso', '-c', 'root', 'list', '--columns', 'number,type,date,description,cleanup')),
             'schedule': schedule, 'timeline': values.get('TIMELINE_CREATE') == 'yes',
             'timerActive': subprocess.run(['/usr/bin/systemctl', 'is-active', '--quiet',
                 'snapper-timeline.timer'], env=ENV).returncode == 0}

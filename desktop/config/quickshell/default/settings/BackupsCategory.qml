@@ -19,6 +19,8 @@ Item {
     property bool confirmDeleteVisible: false
     property string deleteCandidateId: ""
     property string deleteCandidateDate: ""
+    property string deleteCandidateName: ""
+    property bool deleteCandidateImportant: false
 
     // Schedule state
     property bool monthlyEnabled: false
@@ -42,13 +44,28 @@ Item {
         return isNaN(date.getTime()) ? value : date.toLocaleString(Qt.locale(_lang), "dd.MM.yyyy HH:mm")
     }
 
+    function pointKind(snapshot) {
+        const description = String(snapshot.description || "").toLowerCase()
+        if (description === "windoesnot installation") return "installedPoint"
+        if (description === "manual-quickshell") return "manualPoint"
+        const update = /pacman|yay|paru|update|upgrade/.test(description)
+        if (snapshot.type === "pre") return update ? "beforeUpdate" : "beforeChange"
+        if (snapshot.type === "post") return update ? "afterUpdate" : "afterChange"
+        if (snapshot.cleanup === "timeline" || description === "timeline") return "automaticPoint"
+        return "otherPoint"
+    }
+    function pointName(kind, date) {
+        return Lang.get("backups." + kind, _lang).replace("%1", date)
+    }
+
     function acceptStatus(data, updateSchedule) {
         backupsReady = data.ready === true
         liveSession = data.live === true
         if (!backupsReady) return
         snapshotModel.clear()
         for (const snapshot of data.snapshots)
-            snapshotModel.append({snapshotId: snapshot.id, date: formatDateTime(snapshot.date)})
+            snapshotModel.append({snapshotId: snapshot.id, date: formatDateTime(snapshot.date),
+                kind: pointKind(snapshot), important: pointKind(snapshot) === "installedPoint"})
         timelineActive = data.timeline && data.timerActive
         timelineConfigured = data.timeline
         if (updateSchedule) {
@@ -121,7 +138,7 @@ Item {
         id: unavailableNotice
         visible: !backupsReady
         width: parent.width
-        text: Lang.get(liveSession ? "backups.liveDisabled" : "backups.unavailable", _lang) + (statusText ? "\n" + statusText : "")
+        text: Lang.get(liveSession ? "backups.liveNotice" : "backups.unavailablePlain", _lang) + (statusText ? "\n" + statusText : "")
         color: settingsMenu.darkMode ? "#aaa" : "#555"
         font.pixelSize: 14
         wrapMode: Text.WordWrap
@@ -135,26 +152,23 @@ Item {
         spacing: 25
 
     // === Header with Create Button ===
-    Row {
+    Item {
         width: parent.width
         height: 40
-        spacing: 15
 
         Text {
-            text: Lang.get("backups.snapshotsTitle", _lang)
+            text: Lang.get("backups.restoreTitle", _lang)
             font.pixelSize: 18
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
+            width: parent.width - 175
+            elide: Text.ElideRight
             height: parent.height
             verticalAlignment: Text.AlignVCenter
         }
 
-        Item {
-            width: parent.width - 360
-            height: parent.height
-        }
-
         Rectangle {
+            anchors.right: parent.right
             width: 160
             height: 36
             radius: 6
@@ -177,7 +191,7 @@ Item {
                 }
 
                 Text {
-                    text: busy ? (_lang === "de" ? "Läuft..." : "Running...") : Lang.get("backups.create", _lang)
+                    text: busy ? (_lang === "de" ? "Läuft..." : "Running...") : Lang.get("backups.createPoint", _lang)
                     color: "#fff"
                     font.pixelSize: 13
                     font.bold: true
@@ -194,6 +208,14 @@ Item {
                 onClicked: createSnapshot()
             }
         }
+    }
+
+    Text {
+        width: parent.width
+        text: Lang.get("backups.scopePlain", _lang) + "\n\n" + Lang.get("backups.restoreUnavailable", _lang)
+        color: settingsMenu.darkMode ? "#bbb" : "#555"
+        font.pixelSize: 13
+        wrapMode: Text.WordWrap
     }
 
     // Error message bar (only when error occurs)
@@ -222,7 +244,7 @@ Item {
     // === Snapshot List ===
     Rectangle {
         width: parent.width
-        height: 400
+        height: Math.min(340, Math.max(120, snapshotModel.count * 76 + 41))
         radius: settingsMenu.borderRadius
         color: settingsMenu.darkMode ? "#1a1a1a" : "#fff"
         border.width: 1
@@ -249,7 +271,7 @@ Item {
 
                     Text {
                         width: parent.width - 60
-                        text: Lang.get("backups.columnDate", _lang)
+                        text: Lang.get("backups.restoreTitle", _lang)
                         color: settingsMenu.darkMode ? "#bbb" : "#555"
                         font.pixelSize: 11
                         font.bold: true
@@ -281,7 +303,7 @@ Item {
 
                 delegate: Rectangle {
                     width: snapshotList.width
-                    height: 48
+                    height: 76
                     color: index % 2 === 0
                         ? (settingsMenu.darkMode ? "#1e1e1e" : "#fafafa")
                         : (settingsMenu.darkMode ? "#1a1a1a" : "#fff")
@@ -292,14 +314,29 @@ Item {
                         x: 20
                         spacing: 0
 
-                        Text {
+                        Column {
                             width: parent.width - 60
-                            text: model.date
-                            color: settingsMenu.darkMode ? "#ddd" : "#333"
-                            font.pixelSize: 13
-                            verticalAlignment: Text.AlignVCenter
-                            height: parent.height
-                            elide: Text.ElideRight
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 3
+                            Text {
+                                width: parent.width
+                                text: pointName(model.kind, model.date)
+                                color: settingsMenu.darkMode ? "#eee" : "#222"
+                                font.pixelSize: 13; font.bold: model.important
+                                elide: Text.ElideRight
+                            }
+                            Text {
+                                text: model.date
+                                color: settingsMenu.darkMode ? "#aaa" : "#555"
+                                font.pixelSize: 12
+                            }
+                            Text {
+                                width: parent.width
+                                visible: model.important
+                                text: Lang.get("backups.importantPoint", _lang)
+                                color: settingsMenu.accentColor
+                                font.pixelSize: 11; elide: Text.ElideRight
+                            }
                         }
 
                         Item {
@@ -327,7 +364,10 @@ Item {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
+                                    enabled: !busy
                                     onClicked: {
+                                        deleteCandidateName = pointName(model.kind, model.date)
+                                        deleteCandidateImportant = model.important
                                         deleteCandidateId = model.snapshotId
                                         deleteCandidateDate = model.date
                                         confirmDeleteVisible = true
@@ -338,23 +378,18 @@ Item {
                     }
                 }
 
+                Text {
+                    anchors.centerIn: parent
+                    visible: snapshotModel.count === 0 && !busy
+                    text: Lang.get("backups.emptyPoints", _lang)
+                    color: settingsMenu.darkMode ? "#aaa" : "#555"
+                    font.pixelSize: 13
+                }
+
                 ScrollIndicator.vertical: ScrollIndicator {}
             }
 
-            // Empty state
-            Item {
-                width: parent.width
-                height: parent.height - 41
-                visible: snapshotModel.count === 0 && !busy
 
-                Text {
-                    x: (parent.width - width) / 2
-                    y: (parent.height - height) / 2
-                    text: Lang.get("backups.noData", _lang)
-                    color: settingsMenu.darkMode ? "#666" : "#999"
-                    font.pixelSize: 14
-                }
-            }
         }
     }
 
@@ -364,7 +399,7 @@ Item {
         spacing: 15
 
         Text {
-            text: Lang.get("backups.scheduleTitle", _lang)
+            text: Lang.get("backups.schedulePlain", _lang)
             font.pixelSize: 18
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
@@ -372,7 +407,7 @@ Item {
 
         Text {
             width: parent.width
-            text: Lang.get("backups.scheduleHint", _lang) + (timelineConfigured && !timelineActive ? "\n" + Lang.get("backups.timerInactive", _lang) : "") + (customRetention ? "\n" + Lang.get("backups.scheduleCustom", _lang) : "")
+            text: Lang.get("backups.scheduleExplanation", _lang) + (timelineConfigured && !timelineActive ? "\n" + Lang.get("backups.automaticInactive", _lang) : "") + (customRetention ? "\n" + Lang.get("backups.customCounts", _lang) : "")
             wrapMode: Text.WordWrap
             color: settingsMenu.darkMode ? "#aaaaaa" : "#555555"
             font.pixelSize: 12
@@ -408,7 +443,7 @@ Item {
                         Item { width: 30; height: parent.height }
                         Text {
                             width: 100
-                            text: Lang.get("backups.frequency", _lang)
+                            text: Lang.get("backups.period", _lang)
                             color: settingsMenu.darkMode ? "#bbb" : "#555"
                             font.pixelSize: 11
                             font.bold: true
@@ -421,7 +456,7 @@ Item {
 
                             Text {
                                 anchors.right: parent.right
-                                text: Lang.get("backups.retention", _lang)
+                                text: Lang.get("backups.keepQuestion", _lang)
                                 color: settingsMenu.darkMode ? "#bbb" : "#555"
                                 font.pixelSize: 11
                                 font.bold: true
@@ -491,7 +526,7 @@ Item {
 
                             Text {
                                 width: 100
-                                text: Lang.get(modelData.nameKey, _lang) + (modelData.star ? " *" : "")
+                                text: Lang.get(modelData.nameKey, _lang)
                                 color: settingsMenu.darkMode ? "#ddd" : "#333"
                                 font.pixelSize: 13
                                 verticalAlignment: Text.AlignVCenter
@@ -601,7 +636,7 @@ Item {
 
         Text {
             width: parent.width
-            text: Lang.get("backups.authHint", _lang)
+            text: Lang.get("backups.permissionPlain", _lang)
             color: settingsMenu.darkMode ? "#888" : "#777"
             font.pixelSize: 11
             wrapMode: Text.WordWrap
@@ -610,25 +645,20 @@ Item {
     }  // End contentColumn
 
     // === Confirm Delete Dialog ===
-    Rectangle {
+    Popup {
+        parent: Overlay.overlay
         visible: confirmDeleteVisible
-        width: parent.width
-        height: Math.max(500, parent.height)
-        x: 0
-        y: 0
-        color: "#40000000"
-        z: 100
+        modal: true
+        focus: true
+        closePolicy: Popup.CloseOnEscape
+        onClosed: confirmDeleteVisible = false
+        width: Math.min(450, parent ? parent.width - 24 : 450)
+        height: dialogContent.height + 40
+        anchors.centerIn: parent
+        padding: 0
+        background: Item {}
 
-        MouseArea {
-            anchors.fill: parent
-            onClicked: confirmDeleteVisible = false
-        }
-
-        Rectangle {
-            width: Math.min(450, parent.width - 24)
-            height: dialogContent.height + 40
-            x: (parent.width - width) / 2
-            y: (parent.height - height) / 2
+        contentItem: Rectangle {
             radius: settingsMenu.borderRadius
             color: settingsMenu.darkMode ? "#222" : "#fff"
             border.width: 1
@@ -642,7 +672,7 @@ Item {
                 spacing: 20
 
                 Text {
-                    text: Lang.get("backups.confirmDeleteTitle", _lang)
+                    text: Lang.get("backups.deletePointTitle", _lang)
                     font.pixelSize: 18
                     font.bold: true
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
@@ -650,9 +680,8 @@ Item {
 
                 Text {
                     width: parent.width
-                    text: (_lang === "de"
-                        ? "Möchten Sie den Snapshot vom "
-                        : "Do you want to delete the snapshot from ") + deleteCandidateDate + "?"
+                    text: Lang.get("backups.deletePointText", _lang).replace("%1", deleteCandidateName).replace("%2", deleteCandidateDate)
+                        + (deleteCandidateImportant ? "\n\n" + Lang.get("backups.deleteInstallationWarning", _lang) : "")
                     wrapMode: Text.WordWrap
                     color: settingsMenu.darkMode ? "#ccc" : "#444"
                     font.pixelSize: 13
@@ -696,7 +725,7 @@ Item {
 
                         Text {
                             anchors.centerIn: parent
-                            text: Lang.get("apps.delete", _lang)
+                            text: Lang.get("backups.deletePoint", _lang)
                             color: "#fff"
                             font.pixelSize: 13
                             font.bold: true

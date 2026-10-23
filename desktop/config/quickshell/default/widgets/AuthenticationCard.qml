@@ -55,7 +55,12 @@ Rectangle {
         }
         Text {
             width: parent.width
-            text: card.flow ? card.flow.message : ""
+            text: !card.flow ? "" : card.flow.actionId === "org.windoesnot.snapshots.create"
+                ? Lang.get("auth.createPoint", card.language)
+                : card.flow.actionId === "org.windoesnot.snapshots.delete"
+                    ? Lang.get("auth.deletePoint", card.language)
+                    : card.flow.actionId === "org.windoesnot.snapshots.schedule"
+                        ? Lang.get("auth.schedulePoints", card.language) : card.flow.message
             color: card.foreground; wrapMode: Text.WordWrap; font.pixelSize: 13
             textFormat: Text.PlainText
         }
@@ -123,7 +128,9 @@ Rectangle {
             objectName: "authenticationResponse"
             width: parent.width; height: 40
             enabled: card.responding
-            placeholderText: card.flow ? card.flow.inputPrompt : Lang.get("auth.wait", card.language)
+            placeholderText: !card.responding ? Lang.get("auth.wait", card.language)
+                : (!card.flow.responseVisible || /^password\s*:/i.test(card.flow.inputPrompt))
+                    ? Lang.get("auth.passwordPlaceholder", card.language) : card.flow.inputPrompt
             echoMode: card.flow && card.flow.responseVisible ? TextInput.Normal : TextInput.Password
             inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
             selectByMouse: false

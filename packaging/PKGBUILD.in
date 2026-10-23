@@ -24,7 +24,7 @@ _license() {
 
 package_windoesnot-desktop() {
     pkgdesc='WinDoesNot desktop code and new-user defaults'
-    depends=("windoesnot-tools=$pkgver-$pkgrel" "windoesnot-plugins=$pkgver-$pkgrel" "windoesnot-components=$pkgver-$pkgrel" quickshell hyprland hyprpaper hyprpicker hyprlock hypridle hyprshot ghostty nautilus python-gobject python-cairo python-evdev python-requests python-websockets qt6-5compat qt6-svg qt6-multimedia qt6-wayland qt6-declarative gtk4-layer-shell adw-gtk-theme swaync wl-clipboard wl-clip-persist cliphist jq libnotify grim slurp xdg-desktop-portal-hyprland xdg-desktop-portal-gtk xdg-user-dirs ttf-jetbrains-mono-nerd ttf-nerd-fonts-symbols noto-fonts-emoji fish polkit-gnome network-manager-applet nm-connection-editor pavucontrol blueman)
+    depends=("windoesnot-tools=$pkgver-$pkgrel" "windoesnot-plugins=$pkgver-$pkgrel" "windoesnot-components=$pkgver-$pkgrel" quickshell hyprland hyprpaper hyprpicker hyprlock hypridle hyprshot ghostty nautilus xorg-setxkbmap python-gobject python-cairo python-evdev python-requests python-websockets qt6-5compat qt6-svg qt6-multimedia qt6-wayland qt6-declarative gtk4-layer-shell adw-gtk-theme swaync wl-clipboard wl-clip-persist cliphist jq libnotify grim slurp xdg-desktop-portal-hyprland xdg-desktop-portal-gtk xdg-user-dirs ttf-jetbrains-mono-nerd ttf-nerd-fonts-symbols noto-fonts-emoji fish polkit-gnome network-manager-applet nm-connection-editor pavucontrol blueman)
     cd "$srcdir/windoesnot-$pkgver"
     install -d "$pkgdir/usr/share/windoesnot/desktop"
     cp -a desktop/config desktop/defaults "$pkgdir/usr/share/windoesnot/desktop/"

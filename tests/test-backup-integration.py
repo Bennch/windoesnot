@@ -47,6 +47,20 @@ class Boundaries(unittest.TestCase):
                 {'number': 10, 'date': '2026-10-23 11:00:00'}]
         self.assertEqual([x['id'] for x in backend.parse_snapshots(json.dumps({'root': rows}))], ['10', '9'])
 
+    def test_list_preserves_classification_metadata(self):
+        rows = [
+            {'number': 1, 'description': 'WinDoesNot installation', 'type': 'single', 'cleanup': ''},
+            {'number': 2, 'description': 'pacman -Syu', 'type': 'pre', 'cleanup': 'number'},
+            {'number': 3, 'description': 'timeline', 'type': 'single', 'cleanup': 'timeline'},
+        ]
+        result = backend.parse_snapshots(json.dumps({'root': rows}))
+        self.assertEqual(result[0]['cleanup'], 'timeline')
+        self.assertEqual(result[1]['type'], 'pre')
+        self.assertEqual(result[2]['description'], 'WinDoesNot installation')
+        # Old listings without the additional columns remain readable.
+        old = backend.parse_snapshots('[{"number": 9}]')[0]
+        self.assertEqual((old['type'], old['cleanup']), ('', ''))
+
     def test_guard_restores_fallback_when_its_shell_exits(self):
         with tempfile.TemporaryDirectory(prefix='wdn-auth-guard-test-') as temporary:
             directory = Path(temporary)

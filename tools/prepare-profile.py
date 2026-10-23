@@ -140,7 +140,7 @@ def main():
     write(a / 'etc/skel/.bash_profile', 'if [[ $(tty) == /dev/tty1 && -z ${WAYLAND_DISPLAY:-} && $(id -un) == liveuser ]]; then\n    mkdir -p "$HOME/.local/state/windoesnot"\n    windoesnot-session >"$HOME/.local/state/windoesnot/live-session.log" 2>&1\n    session_status=$?\n    if (( session_status != 0 )); then cat "$HOME/.local/state/windoesnot/live-session.log"; read -r -p "Desktop start failed. Press Enter to return to login."; fi\n    exit "$session_status"\nfi\n[[ -f ~/.bashrc ]] && . ~/.bashrc\n')
     write(a / 'etc/skel/.hushlogin', '')
     write(a / 'etc/systemd/system/getty@tty1.service.d/autologin.conf', '[Service]\nExecStart=\nExecStart=-/usr/bin/agetty --noreset --noclear --noissue --skip-login --autologin liveuser - ${TERM}\n')
-    write(a / 'etc/sddm.conf.d/windoesnot.conf', '[General]\nDisplayServer=x11\n[Theme]\nCurrent=windoesnot\n[Wayland]\nSessionDir=/usr/share/windoesnot/wayland-sessions\n[Autologin]\nSession=windoesnot.desktop\n')
+    write(a / 'etc/sddm.conf.d/windoesnot.conf', '[General]\nDisplayServer=x11\n[X11]\nDisplayCommand=/usr/share/sddm/themes/windoesnot/Xsetup\n[Theme]\nCurrent=windoesnot\n[Wayland]\nSessionDir=/usr/share/windoesnot/wayland-sessions\n[Autologin]\nSession=windoesnot.desktop\n')
     # Explicit mode selection keeps the same native ABI in both installation paths.
     launch=(ROOT / 'iso/windoesnot-installer').read_text()
     write(a / 'usr/local/bin/windoesnot-installer', launch, True)

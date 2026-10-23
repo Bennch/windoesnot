@@ -1,0 +1,13 @@
+#!/bin/sh
+# Preserve SDDM's upstream (or administrator-customized) display setup.
+if [ -x /usr/share/sddm/scripts/Xsetup ]; then
+    /usr/share/sddm/scripts/Xsetup "$@"
+fi
+# Xorg may retain an initial US core-keyboard map until the first device key
+# event. Apply the server's existing rules, layout(s), variant(s) and options
+# before the greeter reads them. No layout is hardcoded and no keys are sent.
+if ! /usr/bin/setxkbmap; then
+    printf '%s\n' 'WinDoesNot: could not initialize the greeter keyboard map' >&2
+fi
+# A keyboard-query failure must not prevent the login screen from starting.
+exit 0
