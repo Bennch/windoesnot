@@ -1,0 +1,37 @@
+{
+  "options": {},
+  "rules": {},
+  "buttons": [
+    {
+      "bg_color": "rgba(00000000)",
+      "size": 35,
+      "icon": "🞨",
+      "action": "windoesnot-hyprctl dispatch killactive",
+      "fg_color": "rgba(ffffffFF)"
+    },
+    {
+      "bg_color": "rgba(00000000)",
+      "size": 25,
+      "icon": "◻",
+      "action": "windoesnot-hyprctl dispatch fullscreen 1",
+      "fg_color": "rgba(ccccccFF)"
+    },
+    {
+      "bg_color": "rgba(00000000)",
+      "size": 30,
+      "icon": "⎯",
+      "action": "windoesnot-hyprctl dispatch movetoworkspacesilent special:minimized",
+      "fg_color": "rgba(ccccccFF)"
+    }
+  ],
+  "monitors": [
+    {
+      "output": "",
+      "mode": "preferred",
+      "position": "auto",
+      "scale": 1
+    }
+  ],
+  "primary_monitor": "",
+  "window_mode": "tiling"
+}

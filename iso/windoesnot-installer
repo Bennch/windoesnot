@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+[[ -f /etc/windoesnot-image-build ]] || { echo 'Installer is available in the live system only.' >&2; exit 1; }
+mode=offline
+read -r -a boot_arguments < /proc/cmdline
+for argument in "${boot_arguments[@]}"; do
+    case "$argument" in
+        windoesnot.install=online) mode=online;;
+        windoesnot.install=offline) mode=offline;;
+    esac
+done
+case "${1:-}" in
+    --online) mode=online; shift;;
+    --offline) mode=offline; shift;;
+esac
+configuration=/etc/windoesnot-calamares
+[[ $mode != online ]] || configuration+=/online
+ui_locale=$(/usr/bin/python3 /usr/share/windoesnot/iso/live-language.py --read-preference)
+exec pkexec /usr/bin/env LANG="$ui_locale" LANGUAGE="${ui_locale%%_*}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:?}" WAYLAND_DISPLAY="${WAYLAND_DISPLAY:?}" QT_QPA_PLATFORM=wayland /usr/bin/calamares -c "$configuration" "$@"

@@ -1,0 +1,47 @@
+{
+  "comment": "WinDoesNot changes per desktop package release, newest first. Shown in Settings > Updates; entries marked unreleased are never offered as an update.",
+  "releases": [
+    {
+      "version": "0.1.0-16",
+      "unreleased": true,
+      "de": [
+        "Der KI-Assistent heißt jetzt Does und hat ein eigenes Symbol.",
+        "Ein gelöstes Does-Fenster lässt sich nach dem Schließen wieder öffnen.",
+        "Die Update-Seite der Einstellungen zeigt echte Daten: WinDoesNot-Neuerungen, Systemupdates, Arch-Neuigkeiten und ob ein Neustart nötig ist.",
+        "Backups: Die Passwortabfrage erscheint direkt in den Einstellungen; die Snapshot-Liste braucht kein Passwort mehr."
+      ],
+      "en": [
+        "The AI assistant is now called Does and has its own icon.",
+        "A detached Does window opens again after it was closed.",
+        "The settings update page shows real data: WinDoesNot changes, system updates, Arch news and whether a restart is needed.",
+        "Backups: the password prompt appears inside the settings; listing snapshots no longer asks for a password."
+      ]
+    },
+    {
+      "version": "0.1.0-15",
+      "date": "2026-10-23",
+      "de": [
+        "Das Terminal im KI-Panel lädt wieder.",
+        "Neue Benutzer sehen schon bei der ersten Anmeldung die richtigen Symbole.",
+        "Kein Hyprland-Spruch mehr im Hintergrund und keine Hyprland-Update-Meldung nach Updates."
+      ],
+      "en": [
+        "The terminal in the AI panel loads again.",
+        "New users get the right icons from their first login.",
+        "No Hyprland splash text in the background and no Hyprland update notice after upgrades."
+      ]
+    },
+    {
+      "version": "0.1.0-14",
+      "date": "2026-10-22",
+      "de": [
+        "Der WinDoesNot Store hat eine feste Schaltfläche in der Taskleiste (in den Einstellungen abschaltbar).",
+        "Während der Sitzung installierte Programme bekommen sofort ihr Symbol in der Taskleiste."
+      ],
+      "en": [
+        "The WinDoesNot Store has a fixed taskbar button (can be turned off in the settings).",
+        "Programs installed during a session get their taskbar icon right away."
+      ]
+    }
+  ]
+}

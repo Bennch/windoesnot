@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN" "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+<vendor>WinDoesNot</vendor>
+<action id="org.windoesnot.snapshots.status">
+  <description>View system restore points</description><description xml:lang="de">System-Sicherungspunkte anzeigen</description>
+  <message>Authentication is required: View system restore points</message>
+  <message xml:lang="de">Bitte bestätigen: System-Sicherungspunkte anzeigen</message>
+  <icon_name>system-lock-screen</icon_name>
+  <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>yes</allow_active></defaults>
+  <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/snapshots.py</annotate>
+  <annotate key="org.freedesktop.policykit.exec.argv1">status</annotate>
+</action>
+<action id="org.windoesnot.snapshots.create">
+  <description>Create a system restore point</description><description xml:lang="de">System-Sicherungspunkt erstellen</description>
+  <message>Authentication is required: Create a system restore point</message>
+  <message xml:lang="de">Bitte bestätigen: System-Sicherungspunkt erstellen</message>
+  <icon_name>system-lock-screen</icon_name>
+  <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin</allow_active></defaults>
+  <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/snapshots.py</annotate>
+  <annotate key="org.freedesktop.policykit.exec.argv1">create</annotate>
+</action>
+<action id="org.windoesnot.snapshots.delete">
+  <description>Delete a system restore point</description><description xml:lang="de">System-Sicherungspunkt löschen</description>
+  <message>Authentication is required: Delete a system restore point</message>
+  <message xml:lang="de">Bitte bestätigen: System-Sicherungspunkt löschen</message>
+  <icon_name>system-lock-screen</icon_name>
+  <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin</allow_active></defaults>
+  <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/snapshots.py</annotate>
+  <annotate key="org.freedesktop.policykit.exec.argv1">delete</annotate>
+</action>
+<action id="org.windoesnot.snapshots.schedule">
+  <description>Change the snapshot schedule</description><description xml:lang="de">Zeitplan für Sicherungspunkte ändern</description>
+  <message>Authentication is required: Change the snapshot schedule</message>
+  <message xml:lang="de">Bitte bestätigen: Zeitplan für Sicherungspunkte ändern</message>
+  <icon_name>system-lock-screen</icon_name>
+  <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin</allow_active></defaults>
+  <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/snapshots.py</annotate>
+  <annotate key="org.freedesktop.policykit.exec.argv1">schedule</annotate>
+</action>
+</policyconfig>

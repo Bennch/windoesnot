@@ -1,0 +1,10 @@
+#!/usr/bin/bash
+# Only a failed boot job while Plymouth is active reveals the console.
+set -eu
+/usr/bin/plymouth --ping >/dev/null 2>&1 || exit 0
+/usr/bin/plymouth hide-splash || true
+/usr/bin/plymouth quit || true
+{
+    printf '\nWinDoesNot: Startfehler / boot failure: %s\n\n' "${1:-unknown}"
+    /usr/bin/journalctl --boot --unit="${1:-unknown}" --no-pager --lines=25 --output=short-monotonic || true
+} > /dev/console 2>&1

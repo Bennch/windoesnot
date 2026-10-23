@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="auto">
+  <defs>
+    <!-- Glass gradient -->
+    <linearGradient id="tileGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f4f9ff" stop-opacity="0.95"/>
+      <stop offset="50%" stop-color="#cfe4ff" stop-opacity="0.92"/>
+      <stop offset="100%" stop-color="#82baff" stop-opacity="0.9"/>
+    </linearGradient>
+
+    <!-- Slightly brighter variant for the top-left tile -->
+    <linearGradient id="tileGradHighlight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.98"/>
+      <stop offset="70%" stop-color="#d6ecff" stop-opacity="0.93"/>
+      <stop offset="100%" stop-color="#9fccff" stop-opacity="0.9"/>
+    </linearGradient>
+
+    <!-- Soft shadow -->
+    <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000000" flood-opacity="0.15"/>
+    </filter>
+
+    <!-- Glass inner light -->
+    <filter id="innerLight" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
+      <feSpecularLighting in="blur" surfaceScale="2" specularConstant="0.8" specularExponent="25" lighting-color="#ffffff" result="spec">
+        <fePointLight x="-200" y="-150" z="200"/>
+      </feSpecularLighting>
+      <feComposite in="spec" in2="SourceAlpha" operator="in" result="specOut"/>
+      <feComposite in="SourceGraphic" in2="specOut" operator="arithmetic" k1="0" k2="1" k3="1" k4="0"/>
+    </filter>
+  </defs>
+
+  <!-- Windows 12 style glass tiles -->
+  <g transform="translate(80,80)" filter="url(#softShadow)">
+    <!-- Top-left tile (slightly offset and brighter) -->
+    <rect x="-4" y="-6" width="125" height="125" rx="12" ry="12"
+          fill="url(#tileGradHighlight)" filter="url(#innerLight)"/>
+    <!-- Top-right tile -->
+    <rect x="140" y="0" width="110" height="115" rx="10" ry="10"
+          fill="url(#tileGrad)" filter="url(#innerLight)"/>
+    <!-- Bottom-left tile -->
+    <rect x="0" y="140" width="122" height="115" rx="10" ry="10"
+          fill="url(#tileGrad)" filter="url(#innerLight)"/>
+    <!-- Bottom-right tile -->
+    <rect x="142" y="142" width="108" height="110" rx="10" ry="10"
+          fill="url(#tileGrad)" filter="url(#innerLight)"/>
+  </g>
+</svg>

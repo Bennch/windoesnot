@@ -1,0 +1,20 @@
+--- a/src/hyprland.c
++++ b/src/hyprland.c
+@@ -304,7 +304,16 @@
+   if (!address)
+     return;
+   char cmd[256];
+-  snprintf(cmd, sizeof(cmd), "dispatch focuswindow address:%s", address);
++  /* Only compositor-supplied hexadecimal addresses enter the Lua literal. */
++  if (strlen(address) > 24 || strspn(address, "0123456789abcdefABCDEFx") != strlen(address))
++    return;
++  char *probe = hyprland_request("eval return true");
++  int lua_config = probe && strncmp(probe, "ok", 2) == 0;
++  free(probe);
++  if (lua_config)
++    snprintf(cmd, sizeof(cmd), "eval return hl.dispatch(hl.dsp.focus({window=\"address:%s\"}))", address);
++  else
++    snprintf(cmd, sizeof(cmd), "dispatch focuswindow address:%s", address);
+   char *resp = hyprland_request(cmd);
+   if (resp)
+     free(resp);

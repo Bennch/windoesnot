@@ -1,0 +1,4 @@
+# Installed for the in-image store build only, removed again by
+# tools/build-image-packages.sh before the image is packed.
+rust
+clang

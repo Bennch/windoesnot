@@ -1,0 +1,12 @@
+[SddmGreeterTheme]
+Name=WinDoesNot
+Description=WinDoesNot login
+Author=lichtauf.me
+License=MIT
+Type=sddm-theme
+Version=0.1
+MainScript=Main.qml
+ConfigFile=theme.conf
+Theme-Id=windoesnot
+Theme-API=2.0
+QtVersion=6

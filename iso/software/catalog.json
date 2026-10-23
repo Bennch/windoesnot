@@ -1,0 +1,389 @@
+{
+  "schema_version": 1,
+  "categories": [
+    {
+      "id": "internet",
+      "name": {
+        "de": "Internet",
+        "en": "Internet"
+      }
+    },
+    {
+      "id": "office",
+      "name": {
+        "de": "Büro",
+        "en": "Office"
+      }
+    },
+    {
+      "id": "media",
+      "name": {
+        "de": "Musik und Videos",
+        "en": "Music and video"
+      }
+    },
+    {
+      "id": "creative",
+      "name": {
+        "de": "Kreativ",
+        "en": "Creative"
+      }
+    },
+    {
+      "id": "games",
+      "name": {
+        "de": "Spiele",
+        "en": "Games"
+      }
+    },
+    {
+      "id": "development",
+      "name": {
+        "de": "Entwicklung",
+        "en": "Development"
+      }
+    },
+    {
+      "id": "tools",
+      "name": {
+        "de": "Werkzeuge",
+        "en": "Tools"
+      }
+    },
+    {
+      "id": "devices",
+      "name": {
+        "de": "Drucker und Scanner",
+        "en": "Printers and scanners"
+      }
+    }
+  ],
+  "profiles": [
+    {
+      "id": "minimal",
+      "name": {
+        "de": "Nur Grundausstattung",
+        "en": "Essential apps only"
+      },
+      "selected": [
+        "firefox"
+      ]
+    },
+    {
+      "id": "recommended",
+      "name": {
+        "de": "Empfohlene Auswahl",
+        "en": "Recommended selection"
+      },
+      "selected": [
+        "firefox",
+        "libreoffice",
+        "vlc",
+        "archives"
+      ]
+    },
+    {
+      "id": "gaming",
+      "name": {
+        "de": "Spielen",
+        "en": "Gaming"
+      },
+      "selected": [
+        "firefox",
+        "steam",
+        "lutris",
+        "vlc"
+      ]
+    },
+    {
+      "id": "creative",
+      "name": {
+        "de": "Kreativ arbeiten",
+        "en": "Creative work"
+      },
+      "selected": [
+        "firefox",
+        "gimp",
+        "obs",
+        "vlc",
+        "archives"
+      ]
+    },
+    {
+      "id": "development",
+      "name": {
+        "de": "Entwickeln",
+        "en": "Development"
+      },
+      "selected": [
+        "firefox",
+        "geany",
+        "git",
+        "archives"
+      ]
+    }
+  ],
+  "apps": [
+    {
+      "id": "firefox",
+      "name": {
+        "de": "Firefox",
+        "en": "Firefox"
+      },
+      "category": "internet",
+      "packages": [
+        "firefox"
+      ],
+      "description": {
+        "de": "Webbrowser für Webseiten, Videos und Web-Apps.",
+        "en": "Web browser for websites, videos and web apps."
+      },
+      "required": true,
+      "localizations": {
+        "de": [
+          "firefox-i18n-de"
+        ]
+      }
+    },
+    {
+      "id": "thunderbird",
+      "name": {
+        "de": "Thunderbird",
+        "en": "Thunderbird"
+      },
+      "category": "internet",
+      "packages": [
+        "thunderbird"
+      ],
+      "description": {
+        "de": "E-Mails, Kontakte und Kalender an einem Ort.",
+        "en": "Email, contacts and calendars in one place."
+      },
+      "required": false,
+      "localizations": {
+        "de": [
+          "thunderbird-i18n-de"
+        ]
+      }
+    },
+    {
+      "id": "libreoffice",
+      "name": {
+        "de": "LibreOffice",
+        "en": "LibreOffice"
+      },
+      "category": "office",
+      "packages": [
+        "libreoffice-fresh"
+      ],
+      "description": {
+        "de": "Texte, Tabellen und Präsentationen bearbeiten.",
+        "en": "Create documents, spreadsheets and presentations."
+      },
+      "required": false,
+      "localizations": {
+        "de": [
+          "libreoffice-fresh-de",
+          "hunspell-de"
+        ]
+      }
+    },
+    {
+      "id": "keepassxc",
+      "name": {
+        "de": "KeePassXC",
+        "en": "KeePassXC"
+      },
+      "category": "office",
+      "packages": [
+        "keepassxc"
+      ],
+      "description": {
+        "de": "Passwörter in einer verschlüsselten lokalen Datenbank verwalten.",
+        "en": "Manage passwords in an encrypted local database."
+      },
+      "required": false
+    },
+    {
+      "id": "vlc",
+      "name": {
+        "de": "VLC",
+        "en": "VLC"
+      },
+      "category": "media",
+      "packages": [
+        "vlc"
+      ],
+      "description": {
+        "de": "Musik und Videos in vielen Formaten abspielen.",
+        "en": "Play music and videos in many formats."
+      },
+      "required": false
+    },
+    {
+      "id": "gimp",
+      "name": {
+        "de": "GIMP",
+        "en": "GIMP"
+      },
+      "category": "creative",
+      "packages": [
+        "gimp"
+      ],
+      "description": {
+        "de": "Fotos bearbeiten und Grafiken gestalten.",
+        "en": "Edit photos and create graphics."
+      },
+      "required": false
+    },
+    {
+      "id": "obs",
+      "name": {
+        "de": "OBS Studio",
+        "en": "OBS Studio"
+      },
+      "category": "creative",
+      "packages": [
+        "obs-studio"
+      ],
+      "description": {
+        "de": "Bildschirm aufnehmen und Live-Streams erstellen.",
+        "en": "Record your screen and create live streams."
+      },
+      "required": false
+    },
+    {
+      "id": "steam",
+      "name": {
+        "de": "Steam",
+        "en": "Steam"
+      },
+      "category": "games",
+      "packages": [
+        "steam",
+        "lib32-vulkan-virtio"
+      ],
+      "description": {
+        "de": "Spielebibliothek und Spieleinstallation. Spiele benötigen eigene Downloads.",
+        "en": "Game library and game installation. Games require separate downloads."
+      },
+      "required": false
+    },
+    {
+      "id": "lutris",
+      "name": {
+        "de": "Lutris",
+        "en": "Lutris"
+      },
+      "category": "games",
+      "packages": [
+        "lutris"
+      ],
+      "description": {
+        "de": "Spiele aus verschiedenen Quellen verwalten.",
+        "en": "Manage games from different sources."
+      },
+      "required": false
+    },
+    {
+      "id": "geany",
+      "name": {
+        "de": "Geany",
+        "en": "Geany"
+      },
+      "category": "development",
+      "packages": [
+        "geany"
+      ],
+      "description": {
+        "de": "Schlanker Editor für Programmcode und Projekte.",
+        "en": "Lightweight editor for code and projects."
+      },
+      "required": false
+    },
+    {
+      "id": "git",
+      "name": {
+        "de": "Git",
+        "en": "Git"
+      },
+      "category": "development",
+      "packages": [
+        "git"
+      ],
+      "description": {
+        "de": "Änderungen an Code und Projekten versionieren.",
+        "en": "Track changes in code and projects."
+      },
+      "required": false
+    },
+    {
+      "id": "archives",
+      "name": {
+        "de": "Archivverwaltung",
+        "en": "Archive Manager"
+      },
+      "category": "tools",
+      "packages": [
+        "file-roller"
+      ],
+      "description": {
+        "de": "ZIP-Dateien und andere Archive öffnen und erstellen.",
+        "en": "Open and create ZIP files and other archives."
+      },
+      "required": false
+    },
+    {
+      "id": "usb-writer",
+      "name": {
+        "de": "USB-Startmedium",
+        "en": "Bootable USB"
+      },
+      "category": "tools",
+      "packages": [
+        "impression"
+      ],
+      "description": {
+        "de": "ISO-Abbilder auf USB-Sticks schreiben, etwa für WinDoesNot.",
+        "en": "Write ISO images to USB drives, for example WinDoesNot."
+      },
+      "required": false
+    },
+    {
+      "id": "printing",
+      "name": {
+        "de": "Drucker einrichten",
+        "en": "Printer Settings"
+      },
+      "category": "devices",
+      "packages": [
+        "system-config-printer",
+        "cups"
+      ],
+      "description": {
+        "de": "Drucker hinzufügen und Druckaufträge verwalten.",
+        "en": "Add printers and manage print jobs."
+      },
+      "required": false,
+      "services": [
+        "cups.service"
+      ]
+    },
+    {
+      "id": "scanning",
+      "name": {
+        "de": "Dokumente scannen",
+        "en": "Document Scanner"
+      },
+      "category": "devices",
+      "packages": [
+        "simple-scan"
+      ],
+      "description": {
+        "de": "Papierdokumente mit einem unterstützten Scanner digitalisieren.",
+        "en": "Digitise paper documents with a supported scanner."
+      },
+      "required": false
+    }
+  ]
+}

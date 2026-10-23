@@ -1,0 +1,31 @@
+title-text: ""
+desktop-color: "#141414"
+terminal-font: "Unifont Regular 16"
++ image {
+  left = 50%-240
+  top = 5%
+  width = 480
+  height = 90
+  file = "windoesnot-logo-hell.png"
+}
++ boot_menu {
+  left = 8%
+  top = 30%
+  width = 84%
+  height = 56%
+  item_font = "Unifont Regular 16"
+  item_color = "#f4f1eb"
+  selected_item_color = "#fe6f2d"
+  item_height = 24
+  item_spacing = 4
+  scrollbar = false
+}
++ label {
+  left = 8%
+  top = 92%
+  width = 84%
+  height = 24
+  color = "#bbbbbb"
+  align = "center"
+  text = "@KEYMAP_SHORT@"
+}

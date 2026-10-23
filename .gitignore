@@ -1,0 +1,29 @@
+# Sub-repositories
+/store/
+/website/
+/upstream/
+
+# Build artifacts & outputs
+/build/
+/out/
+/vm/
+*.iso
+*.qcow2
+
+# Logs and runtime checks
+/*.log
+/checks/*
+!/checks/.gitkeep
+/private-backups/
+
+# Compiler and cache artifacts
+**/__pycache__/
+**/*.pyc
+**/CMakeFiles/
+**/CMakeCache.txt
+**/*.o
+**/*.so
+
+# Host specific manifests & secrets
+/desktop/import-manifest.json
+.env

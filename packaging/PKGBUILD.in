@@ -1,0 +1,84 @@
+# Generated local source archive; distribution is intentionally not configured yet.
+pkgbase=windoesnot
+pkgname=(windoesnot-desktop windoesnot-tools windoesnot-plugins windoesnot-components)
+pkgver=@VERSION@
+pkgrel=@RELEASE@
+pkgdesc='WinDoesNot Hyprland/Quickshell desktop (development build)'
+arch=('x86_64')
+license=('custom:WinDoesNot-collection')
+makedepends=(gcc make cmake ninja pkgconf binutils wayland-protocols hyprland quickshell qt6-base qt6-declarative qtermwidget wayland cairo pango glib2 librsvg json-c libxkbcommon python)
+options=('!strip' '!debug' '!lto')
+source=("windoesnot-${pkgver}.tar.gz")
+sha256sums=('@SHA256@')
+
+build() {
+    cd "$srcdir/windoesnot-$pkgver"
+    ./tools/build-components.sh "$srcdir/components"
+}
+
+_license() {
+    install -Dm644 "$srcdir/windoesnot-$pkgver/packaging/LICENSE-NOTES.md" "$pkgdir/usr/share/licenses/$pkgname/LICENSE-NOTES.md"
+}
+
+package_windoesnot-desktop() {
+    pkgdesc='WinDoesNot desktop code and new-user defaults'
+    depends=("windoesnot-tools=$pkgver-$pkgrel" "windoesnot-plugins=$pkgver-$pkgrel" "windoesnot-components=$pkgver-$pkgrel" quickshell hyprland hyprpaper hyprpicker hyprlock hypridle hyprshot ghostty nautilus python-gobject python-cairo python-evdev python-requests python-websockets qt6-5compat qt6-svg qt6-multimedia qt6-wayland qt6-declarative gtk4-layer-shell adw-gtk-theme swaync wl-clipboard wl-clip-persist cliphist jq libnotify grim slurp xdg-desktop-portal-hyprland xdg-desktop-portal-gtk xdg-user-dirs ttf-jetbrains-mono-nerd ttf-nerd-fonts-symbols noto-fonts-emoji fish polkit-gnome network-manager-applet nm-connection-editor pavucontrol blueman)
+    cd "$srcdir/windoesnot-$pkgver"
+    install -d "$pkgdir/usr/share/windoesnot/desktop"
+    cp -a desktop/config desktop/defaults "$pkgdir/usr/share/windoesnot/desktop/"
+    printf '%s\n' "$pkgver-$pkgrel" > "$pkgdir/usr/share/windoesnot/desktop/config/windoesnot-release"
+    printf '%s\n' "$pkgver-$pkgrel" > "$pkgdir/usr/share/windoesnot/VERSION"
+    # What changed per release; Settings > Updates shows it.
+    install -Dm644 packaging/changelog.json "$pkgdir/usr/share/windoesnot/changelog.json"
+    install -Dm644 desktop/share/wayland-sessions/windoesnot.desktop "$pkgdir/usr/share/wayland-sessions/windoesnot.desktop"
+    install -Dm644 desktop/share/wayland-sessions/windoesnot.desktop "$pkgdir/usr/share/windoesnot/wayland-sessions/windoesnot.desktop"
+    install -Dm644 desktop/share/applications/windoesnot-settings.desktop "$pkgdir/usr/share/applications/windoesnot-settings.desktop"
+    install -d "$pkgdir/usr/share/icons/Win11"
+    cp -a desktop/config/quickshell/default/img/Win11-dark/. "$pkgdir/usr/share/icons/Win11/"
+    install -d "$pkgdir/usr/share/windoesnot/branding"
+    install -m644 desktop/config/quickshell/default/img/brand/*.png "$pkgdir/usr/share/windoesnot/branding/"
+    for size in 16 32 48 64 128 256 512 1024; do
+        install -Dm644 "desktop/config/quickshell/default/img/brand/windoesnot-icon-$size.png" "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/windoesnot.png"
+    done
+    install -d "$pkgdir/usr/share/sddm/themes/windoesnot" "$pkgdir/usr/share/grub/themes/windoesnot"
+    cp -a desktop/share/sddm/themes/windoesnot/. "$pkgdir/usr/share/sddm/themes/windoesnot/"
+    cp -a desktop/share/grub/themes/windoesnot/. "$pkgdir/usr/share/grub/themes/windoesnot/"
+    _license
+}
+
+package_windoesnot-tools() {
+    pkgdesc='WinDoesNot session, layout, settings and user-code migration tools'
+    depends=(python python-evdev python-gobject python-cairo hyprland polkit)
+    cd "$srcdir/windoesnot-$pkgver"
+    install -d "$pkgdir/usr/bin"
+    for command in desktop/bin/*; do
+        install -m755 "$command" "$pkgdir/usr/bin/$(basename "$command")"
+    done
+    install -Dm755 desktop/lib/windoesnot/snapshots.py "$pkgdir/usr/lib/windoesnot/snapshots.py"
+    install -Dm644 desktop/share/polkit-1/actions/org.windoesnot.snapshots.policy "$pkgdir/usr/share/polkit-1/actions/org.windoesnot.snapshots.policy"
+    install -Dm644 desktop/share/systemd/system/windoesnot-super-tap@.service "$pkgdir/usr/lib/systemd/system/windoesnot-super-tap@.service"
+    _license
+}
+
+package_windoesnot-plugins() {
+    pkgdesc='WinDoesNot hyprbars and hyprdrag built for a specific Hyprland package'
+    depends=("hyprland=$(pacman -Q hyprland | cut -d' ' -f2)" "libstdc++=$(pacman -Q libstdc++ | cut -d' ' -f2)")
+    install -d "$pkgdir/usr/lib/windoesnot/plugins"
+    install -m755 "$srcdir/components/plugins/"*.so "$pkgdir/usr/lib/windoesnot/plugins/"
+    install -Dm644 "$srcdir/components/BUILD-PACKAGES.txt" "$pkgdir/usr/share/windoesnot/plugins-build.txt"
+    install -Dm644 "$srcdir/components/NATIVE-FLAGS.txt" "$pkgdir/usr/share/windoesnot/plugins-flags.txt"
+    _license
+}
+
+package_windoesnot-components() {
+    pkgdesc='WinDoesNot embedded terminal and patched Snappy window switcher'
+    depends=("qt6-base=$(pacman -Q qt6-base | cut -d' ' -f2)" "qtermwidget=$(pacman -Q qtermwidget | cut -d' ' -f2)" qt6-declarative wayland cairo pango libxkbcommon glib2 librsvg json-c)
+    conflicts=(snappy-switcher snappy-switcher-git)
+    provides=(snappy-switcher=2.1.2)
+    install -d "$pkgdir/usr/lib/windoesnot/LocalTerminal"
+    cp -a "$srcdir/components/LocalTerminal/." "$pkgdir/usr/lib/windoesnot/LocalTerminal/"
+    install -Dm755 "$srcdir/components/bin/snappy-switcher" "$pkgdir/usr/bin/snappy-switcher"
+    install -Dm644 "$srcdir/components/BUILD-PACKAGES.txt" "$pkgdir/usr/share/windoesnot/components-build.txt"
+    install -Dm644 "$srcdir/components/NATIVE-FLAGS.txt" "$pkgdir/usr/share/windoesnot/components-flags.txt"
+    _license
+}

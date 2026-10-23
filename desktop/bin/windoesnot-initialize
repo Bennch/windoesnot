@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+"""Create missing desktop defaults, preserving every existing user file."""
+import argparse
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--adopt-system', action='store_true', help='Adopt installer choices for a newly installed account')
+args = parser.parse_args()
+home = Path.home()
+config = Path(os.environ.get('XDG_CONFIG_HOME', home / '.config'))
+choices = [Path(os.environ.get('WINDOESNOT_SOURCE', '/usr/share/windoesnot')), home / '.local/share/windoesnot']
+source = next((p for p in choices if (p / 'desktop/defaults').is_dir()), None)
+if source is None:
+    if (config / 'hypr/lua/state.lua').is_file():
+        sys.exit(0)
+    sys.exit('WinDoesNot desktop sources are missing')
+
+# Package-managed code is refreshed only before session startup. Never run user
+# migration from a root pacman hook or overwrite an already running shell.
+if (source / 'VERSION').is_file():
+    subprocess.run(['/usr/bin/windoesnot-desktop-sync', '--source', str(source)], check=True)
+
+def missing_tree(origin, target):
+    for item in origin.rglob('*'):
+        if item.is_dir():
+            continue
+        dest = target / item.relative_to(origin)
+        if dest.exists() or dest.is_symlink():
+            continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(item, dest)
+
+missing_tree(source / 'desktop/config', config)
+missing_tree(source / 'desktop/defaults/config', config)
+# Literal $HOME entries stay portable when initializing /etc/skel.
+for directory in ['Desktop','Downloads','Templates','Public','Documents','Music','Pictures','Videos']:
+    (home / directory).mkdir(exist_ok=True)
+sys.path.insert(0, str(config / 'hypr/lua/bin'))
+from hypr_state import encode, read_state, atomic_write
+from system_defaults import system_defaults
+defaults = system_defaults()
+state_path = config / 'hypr/lua/state.lua'
+if not state_path.exists() or args.adopt_system:
+    state = read_state(config / 'hypr/lua') if state_path.exists() else json.loads((source / 'desktop/defaults/hypr-state.json').read_text())
+    state['options'].update(defaults['options'])
+    atomic_write(state_path, encode(state))
+settings_path = config / 'quickshell/default/settings.txt'
+if not settings_path.exists() or args.adopt_system:
+    settings = dict(line.split('=', 1) for line in settings_path.read_text().splitlines() if '=' in line) if settings_path.exists() else {}
+    settings.update(defaults['settings'])
+    settings_path.write_text(''.join(f'{key}={value}\n' for key, value in settings.items()))
+for name in ['hyprbars', 'hyprdrag']:
+    dest = config / f'hypr/plugins/{name}.so'
+    origin = Path(f'/usr/lib/windoesnot/plugins/{name}.so')
+    if not dest.exists() and origin.exists():
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.symlink_to(origin)
+module = config / 'quickshell/default/widgets/terminalmodule/LocalTerminal'
+if Path('/usr/lib/windoesnot/LocalTerminal').is_dir():
+    missing_tree(Path('/usr/lib/windoesnot/LocalTerminal'), module)

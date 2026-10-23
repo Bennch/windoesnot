@@ -1,0 +1,1 @@
+Presentation adapted from SDDM 0.21.0 Maldives Main.qml by Abdurrahman AVCI (2013). Its MIT notice is retained in Main.qml. No upstream background, rectangle image or theme artwork is included. Authentication, session selection, keyboard layout, power controls and translations use SddmComponents. New WinDoesNot PNGs are installed separately under /usr/share/windoesnot/branding.

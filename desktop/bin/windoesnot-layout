@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+"""Refresh Lua geometry at login and after display/config changes."""
+import argparse
+import fcntl
+import json
+import os
+from pathlib import Path
+import socket
+import subprocess
+import sys
+import time
+
+config = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config'))
+root = config / 'hypr/lua'
+sys.path.insert(0, str(root / 'bin'))
+from hypr_state import read_state, atomic_write
+from hypr_bridge import lua, dispatch, checked_run, require_ok
+from display_geometry import window_rules
+
+
+def refresh():
+    result = subprocess.run(['/usr/bin/hyprctl', 'monitors', '-j'], capture_output=True, text=True)
+    if result.returncode:
+        return
+    try:
+        monitors = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return
+    if not monitors:
+        return
+    settings_path = config / 'quickshell/default/settings.txt'
+    settings = {}
+    if settings_path.exists():
+        settings = dict(line.split('=', 1) for line in settings_path.read_text().splitlines() if '=' in line)
+    state = read_state(root)
+    preferred = settings.get('primaryMonitor') or state.get('primary_monitor')
+    primary = next((m for m in monitors if m['name'] == preferred), None)
+    primary = primary or next((m for m in monitors if m.get('focused')), monitors[0])
+    geometry = window_rules(primary, settings)
+    content = '-- Generated from current monitor geometry; do not edit.\nreturn ' + lua(geometry) + '\n'
+    path = root / 'geometry.lua'
+    if path.exists() and path.read_text() == content:
+        return
+    atomic_write(path, content)
+    subprocess.run(['/usr/bin/hyprctl', 'reload'], check=True, capture_output=True)
+    # Static placement rules only affect the next map. Also fit already-open
+    # shell windows after a scale/orientation change, in global logical pixels.
+    titles = {'quickshell-' + name: name + '-config' for name in
+              ['startmenu','settings','calendar','audio','bluetooth','network','docker','ollama','mediaplayer','colorpalette','search']}
+    titles['quickshell-copilot-pinned'] = 'copilot-config-pinned'
+    clients = json.loads(subprocess.check_output(['/usr/bin/hyprctl','clients','-j'], text=True))
+    for client in clients:
+        rule = geometry['rules'].get(titles.get(client.get('title')))
+        if not rule:
+            continue
+        selector = 'address:' + client['address']
+        w, h = rule['size']
+        x, y = rule['move']
+        commands = [('resizewindowpixel', f'exact {w} {h},{selector}'),
+                    ('movewindowpixel', f'exact {primary["x"] + x} {primary["y"] + y},{selector}')]
+        for name, arguments in commands:
+            require_ok(checked_run(['eval', 'return hl.dispatch(' + dispatch(name, arguments) + ')']))
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--watch', action='store_true')
+    args = parser.parse_args()
+    runtime = Path(os.environ['XDG_RUNTIME_DIR'])
+    signature = os.environ['HYPRLAND_INSTANCE_SIGNATURE']
+    with (runtime / 'windoesnot-layout.lock').open('a') as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return
+        refresh()
+        if not args.watch:
+            return
+        connection = socket.socket(socket.AF_UNIX)
+        connection.connect(str(runtime / 'hypr' / signature / '.socket2.sock'))
+        stream = connection.makefile('r')
+        for event in stream:
+            if event.split('>>', 1)[0] in {'monitoradded','monitoraddedv2','monitorremoved','monitorremovedv2','configreloaded'}:
+                # The compositor may need a moment to settle output/reservation state.
+                time.sleep(0.15)
+                refresh()
+
+if __name__ == '__main__':
+    main()

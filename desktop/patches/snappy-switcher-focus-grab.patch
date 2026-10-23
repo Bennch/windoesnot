@@ -1,0 +1,106 @@
+--- a/src/main.c
++++ b/src/main.c
+@@ -265,6 +265,10 @@
+   if (config && config->follow_monitor) {
+     destroy_panel();
+   } else {
++    zwlr_layer_surface_v1_set_keyboard_interactivity(layer_surface, 0);
++    /* Force a fresh configure on the next show, even if its card count and
++     * dimensions are unchanged. Otherwise no buffer is attached on remap. */
++    zwlr_layer_surface_v1_set_size(layer_surface, 1, 1);
+     wl_surface_attach(surface, NULL, 0, 0);
+     wl_surface_commit(surface);
+     wl_display_flush(display);
+@@ -272,7 +276,7 @@
+   }
+ }
+ 
+-static void show_switcher(void) {
++static void show_switcher(bool accept_if_alt_released) {
+   LOG("Showing switcher...");
+ 
+   if (config && config->follow_monitor && !surface) {
+@@ -285,7 +289,7 @@
+     return;
+   }
+ 
+-  input_reset_alt_state();
++  input_reset_alt_state(accept_if_alt_released);
+ 
+   app_state_free(&app_state);
+   app_state_init(&app_state);
+@@ -317,7 +321,17 @@
+   if (visible && app_state.count > 0 && backend) {
+     WindowInfo *win = &app_state.windows[app_state.selected_index];
+     LOG("Switching to: %s (using %s backend)", win->title, backend->get_name());
+-    backend->activate_window(win->address);
++    /* Release the exclusive layer keyboard grab before requesting focus.
++     * Hyprland's typed focus action respects that grab. A roundtrip makes the
++     * release visible to the compositor before the separate IPC request. */
++    char *address = strdup(win->address);
++    hide_switcher();
++    wl_display_roundtrip(display);
++    if (address) {
++      backend->activate_window(address);
++      free(address);
++    }
++    return;
+   }
+   hide_switcher();
+ }
+@@ -337,13 +351,13 @@
+     if (visible)
+       hide_switcher();
+     else
+-      show_switcher();
++      show_switcher(false);
+     return;
+   }
+ 
+   /* Navigation */
+   if (!visible)
+-    show_switcher();
++    show_switcher(strcmp(cmd, CMD_NEXT) == 0 || strcmp(cmd, CMD_PREV) == 0);
+   else {
+     int dir = 0;
+     if (strcmp(cmd, CMD_NEXT) == 0)
+--- a/src/input.c
++++ b/src/input.c
+@@ -27,9 +27,9 @@
+ alt_release_callback_t on_escape = NULL;
+ static AppState *app_state = NULL;
+ 
+-void input_reset_alt_state(void) {
++void input_reset_alt_state(bool accept_if_released) {
+   alt_pressed = true;
+-  ignore_first_release = true;
++  ignore_first_release = !accept_if_released;
+   LOG("Alt state reset");
+ }
+ 
+@@ -164,11 +164,12 @@
+     return;
+   }
+ 
+-  if (alt_pressed && !alt_now) {
++  bool released = alt_pressed && !alt_now;
++  alt_pressed = alt_now;
++  if (released) {
+     if (on_alt_release)
+       on_alt_release();
+   }
+-  alt_pressed = alt_now;
+ }
+ 
+ static void keyboard_repeat_info(void *data, struct wl_keyboard *keyboard,
+--- a/src/input.h
++++ b/src/input.h
+@@ -14,7 +14,7 @@
+ extern alt_release_callback_t on_escape;
+ 
+ /* Reset Alt state (call when switcher shows to avoid stale detection) */
+-void input_reset_alt_state(void);
++void input_reset_alt_state(bool accept_if_released);
+ 
+ /* Get keyboard listener for Wayland seat */
+ const struct wl_keyboard_listener *get_keyboard_listener(void);

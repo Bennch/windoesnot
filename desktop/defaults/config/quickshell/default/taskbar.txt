@@ -1,0 +1,3 @@
+Firefox|firefox|firefox
+Files|nautilus|org.gnome.Nautilus
+Ghostty|ghostty|com.mitchellh.ghostty
