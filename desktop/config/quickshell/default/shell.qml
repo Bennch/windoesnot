@@ -6367,7 +6367,7 @@ FloatingWindow {
     implicitWidth: 1100
     implicitHeight: 760
     color: "transparent"
-    title: copilotLoader.item ? (copilotLoader.item.isPinned ? "quickshell-copilot-pinned" : "quickshell-copilot") : "quickshell-copilot"
+    title: copilotLoader.item ? (copilotLoader.item.isPinned ? "quickshell-does-pinned" : "quickshell-does") : "quickshell-does"
     screen: {
         for (var i = 0; i < Quickshell.screens.length; i++) {
             if (Quickshell.screens[i].name === settingsMenu.primaryMonitor)

@@ -2642,8 +2642,8 @@ Item {
             console.log("[CopilotPanel] Applying pin state after window map...")
 
             // Build command based on current state
-            var baseCmd = "addr=$(windoesnot-hyprctl clients -j | jq -r '.[] | select(.title == \"quickshell-copilot\") | .address'); " +
-                "[[ -z \"$addr\" ]] && { echo \"Window not found, waiting...\"; sleep 0.2; addr=$(windoesnot-hyprctl clients -j | jq -r '.[] | select(.title == \"quickshell-copilot\") | .address'); }; " +
+            var baseCmd = "addr=$(windoesnot-hyprctl clients -j | jq -r '.[] | select(.title | test(\"^quickshell-(does|copilot)\")) | .address'); " +
+                "[[ -z \"$addr\" ]] && { echo \"Window not found, waiting...\"; sleep 0.2; addr=$(windoesnot-hyprctl clients -j | jq -r '.[] | select(.title | test(\"^quickshell-(does|copilot)\")) | .address'); }; " +
                 "echo \"Window address: $addr\"; "
 
             if (isPinned) {
