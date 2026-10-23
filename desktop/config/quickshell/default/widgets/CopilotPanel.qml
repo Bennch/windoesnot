@@ -2654,7 +2654,9 @@ Item {
                     "windoesnot-hyprctl dispatch resizewindowpixel exact 1100 760,address:$addr; " +
                     "isPinned=$(windoesnot-hyprctl clients -j | jq -r \".[] | select(.address == \\\"$addr\\\") | .pinned\"); " +
                     "[[ \"$isPinned\" == \"false\" ]] && windoesnot-hyprctl dispatch pin address:$addr; " +
-                    "windoesnot-hyprctl dispatch setprop address:$addr stay_focused 1; " +
+                    // No stay_focused: it keeps pointer input away from the taskbar,
+                    // so Does could no longer be closed from its own icon.
+                    "windoesnot-hyprctl dispatch setprop address:$addr stay_focused 0; " +
                     "echo \"Done: pinned popup mode (position set by posProc or kept from previous state)\""
 
                 applyPinStateProc.command = ["bash", "-c", baseCmd + cmd]
@@ -2666,7 +2668,7 @@ Item {
                     "isPinned=$(windoesnot-hyprctl clients -j | jq -r \".[] | select(.address == \\\"$addr\\\") | .pinned\"); " +
                     "[[ \"$isPinned\" == \"true\" ]] && windoesnot-hyprctl dispatch pin address:$addr; " +
                     "echo \"Removing nodecorate rule...\"; " +
-                    "windoesnot-hyprctl dispatch setprop address:$addr stay_focused unset; " +
+                    "windoesnot-hyprctl dispatch setprop address:$addr stay_focused 0; " +
                     "isFloating=$(windoesnot-hyprctl clients -j | jq -r \".[] | select(.address == \\\"$addr\\\") | .floating\"); " +
                     "[[ \"$isFloating\" == \"true\" ]] && windoesnot-hyprctl dispatch togglefloating address:$addr; " +
                     "workspace=$(windoesnot-hyprctl activeworkspace -j | jq -r '.id'); " +
