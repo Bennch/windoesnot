@@ -92,7 +92,7 @@ assert yaml.safe_load((cal / 'modules/users.conf').read_text())['hostname']['tem
 for filename in branding['images'].values():
     assert (cal / 'branding/windoesnot' / filename).is_file(), filename
 assert 'Current=windoesnot' in (a / 'etc/sddm.conf.d/windoesnot.conf').read_text()
-assert (a / 'usr/share/windoesnot/desktop/share/sddm/themes/windoesnot/Main.qml').is_file()
+assert (a / 'usr/share/windoesnot/desktop/share/sddm/themes/windoesnot/src/Main.qml').is_file()
 assert (p / 'grub/themes/windoesnot/theme.txt').is_file()
 assert (p / 'grub/themes/windoesnot/windoesnot-logo-hell.png').is_file()
 assert 'set theme="(${root})/boot/grub/themes/windoesnot/theme.txt"' in (p / 'grub/grub.cfg').read_text()

@@ -71,3 +71,4 @@ zstd
 appstream
 archlinux-appstream-data
 pacman-contrib
+qt6-multimedia-ffmpeg

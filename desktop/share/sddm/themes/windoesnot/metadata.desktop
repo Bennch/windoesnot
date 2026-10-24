@@ -1,12 +1,13 @@
 [SddmGreeterTheme]
 Name=WinDoesNot
-Description=WinDoesNot login
-Author=lichtauf.me
+Description=WinDoesNot login screen, based on thyx by rccyx
+Author=WinDoesNot; thyx by rccyx
+Website=https://windoesnot.me
 License=MIT
 Type=sddm-theme
-Version=0.1
-MainScript=Main.qml
+Version=1.0
 ConfigFile=theme.conf
+MainScript=src/Main.qml
 Theme-Id=windoesnot
 Theme-API=2.0
 QtVersion=6

@@ -57,6 +57,9 @@ package_windoesnot-desktop() {
     done
     install -d "$pkgdir/usr/share/sddm/themes/windoesnot" "$pkgdir/usr/share/grub/themes/windoesnot"
     cp -a desktop/share/sddm/themes/windoesnot/. "$pkgdir/usr/share/sddm/themes/windoesnot/"
+    # The greeter only sees system fonts; thyx's Plus Jakarta Sans (OFL) is installed for it.
+    install -d "$pkgdir/usr/share/fonts/windoesnot"
+    install -m644 desktop/share/sddm/themes/windoesnot/fonts/*.ttf "$pkgdir/usr/share/fonts/windoesnot/"
     cp -a desktop/share/grub/themes/windoesnot/. "$pkgdir/usr/share/grub/themes/windoesnot/"
     _license
 }
