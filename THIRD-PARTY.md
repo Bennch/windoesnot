@@ -20,23 +20,19 @@ The CachyOS live ISO profile and Calamares installer are not stored here. They a
 fetched at the commits pinned in [`sources.json`](sources.json) and modified at build
 time; their licenses apply to the generated image.
 
-## Open review
+## Additional desktop assets
 
-The following material still needs a provenance and license review before a public
-release:
+The project maintainer confirms MIT licensing for the following supplied assets:
 
-- **Default wallpaper** `desktop/share/backgrounds/windoesnot/windoesnot-fire.jpg`:
-  source and license still to be confirmed. If that is not possible, it is replaced by one
-  of the generated wallpapers.
-- **Weather icons and animations** in
-  `desktop/config/quickshell/default/widgets/weather/google-weather-icons-main/`.
-  The collection's own README states that the icons belong to Google; no
-  redistribution license is given. They are planned to be replaced with freely
-  licensed icons.
-- **Application icons** in `desktop/config/quickshell/default/img/scalable/` collected
-  from various icon themes and applications.
-- The **workspace overview** (`desktop/config/quickshell/overview/`): origin to be
-  documented.
+| Material | Path | License information |
+|---|---|---|
+| Fire wallpaper | `desktop/share/backgrounds/windoesnot/windoesnot-fire.jpg` | MIT, confirmed by the maintainer |
+| Weather icon and animation collection | `desktop/config/quickshell/default/widgets/weather/google-weather-icons-main/` | MIT, confirmed by the maintainer; the collection credits Google |
+| Collected application icons | `desktop/config/quickshell/default/img/scalable/` | MIT, confirmed by the maintainer; application names and marks remain with their owners |
+| Workspace overview | `desktop/config/quickshell/overview/` | MIT, confirmed by the maintainer |
+
+This records the maintainer's license information; original embedded notices are
+retained. It does not replace the licenses of the other components listed above.
 
 If you hold rights to any of this material and want it credited differently or
 removed, please open an issue.

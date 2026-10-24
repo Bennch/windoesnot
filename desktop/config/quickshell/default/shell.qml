@@ -4832,7 +4832,6 @@ FloatingWindow {
         windows: [networkWindow]
         active: networkWindow.visible
         onCleared: networkWindow.visible = false
-        nearbyWindow.visible = false
     }
 
     onVisibleChanged: {

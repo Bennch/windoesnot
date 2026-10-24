@@ -16,9 +16,9 @@ built on [CachyOS](https://cachyos.org), [Hyprland](https://hypr.land) and
 </div>
 
 > [!WARNING]
-> **Development preview.** There is no public ISO download yet. The live system and
-> installer are tested in virtual machines; tests on real hardware are still open.
-> Expect rough edges and breaking changes.
+> **First public preview: 0.1.0-18.** [Download the ISO](https://windoesnot.me/en/download/).
+> The live system and installer are tested in UEFI virtual machines; tests on real
+> hardware are still open. Expect rough edges and breaking changes.
 
 ## What it is
 
@@ -70,7 +70,7 @@ Arch news shown before system updates.
 | Live boot, offline/online install, all four bootloaders | Tested in QEMU (UEFI) |
 | Signed component updates | Tested privately in a VM; no public update channel yet |
 | Real hardware, BIOS boot, Secure Boot, multi-monitor | **Not tested yet** |
-| Public ISO download | **Not available yet** — releases will be published on [SourceForge](https://sourceforge.net/projects/windoesnot/files/) |
+| Public ISO download | [0.1.0-18 on SourceForge](https://sourceforge.net/projects/windoesnot/files/0.1.0-18/) · [SHA256](https://sourceforge.net/projects/windoesnot/files/0.1.0-18/windoesnot-2026.10.24-x86_64.iso.sha256/download) |
 
 ## Building
 

@@ -16,8 +16,8 @@ und [Quickshell](https://quickshell.org).
 </div>
 
 > [!WARNING]
-> **Entwicklungsvorschau.** Es gibt noch keinen öffentlichen ISO-Download. Live-System
-> und Installer sind in virtuellen Maschinen getestet; Tests auf echter Hardware stehen
+> **Erste öffentliche Vorschau: 0.1.0-18.** [ISO herunterladen](https://windoesnot.me/download/).
+> Live-System und Installer sind in UEFI-VMs getestet; Tests auf echter Hardware stehen
 > noch aus. Mit Ecken, Kanten und größeren Änderungen ist zu rechnen.
 
 ## Worum es geht
@@ -71,7 +71,7 @@ Arch-News vor dem Systemupdate.
 | Live-Start, Offline-/Online-Installation, alle vier Bootloader | In QEMU (UEFI) getestet |
 | Signierte Komponentenupdates | Privat in einer VM getestet; noch kein öffentlicher Updatekanal |
 | Echte Hardware, BIOS-Start, Secure Boot, mehrere Monitore | **Noch nicht getestet** |
-| Öffentlicher ISO-Download | **Noch nicht verfügbar** – Releases erscheinen auf [SourceForge](https://sourceforge.net/projects/windoesnot/files/) |
+| Öffentlicher ISO-Download | [0.1.0-18 auf SourceForge](https://sourceforge.net/projects/windoesnot/files/0.1.0-18/) · [SHA256](https://sourceforge.net/projects/windoesnot/files/0.1.0-18/windoesnot-2026.10.24-x86_64.iso.sha256/download) |
 
 ## Bauen
 

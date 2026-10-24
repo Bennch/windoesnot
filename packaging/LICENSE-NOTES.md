@@ -8,7 +8,7 @@ THIRD-PARTY.md: snappy-switcher (GPL-3.0), hyprbars (BSD-3-Clause), Win11-dark
 icons (GPL-3.0), the SDDM theme layout (MIT) and the WinDoesNot interface icons
 (MIT). Imported material is not relicensed.
 
-Not yet cleared for a public release: the weather icons under
-config/quickshell/default/widgets/weather/ and part of the collected application
-icons. See THIRD-PARTY.md, "Open review". No packages are uploaded by the build
-scripts.
+Additional supplied wallpapers, weather artwork, collected application icons
+and the workspace overview are MIT according to the project maintainer. See
+THIRD-PARTY.md for attribution and the license information for each component.
+The SDDM video retains the Pexels license and its font retains SIL OFL 1.1.
