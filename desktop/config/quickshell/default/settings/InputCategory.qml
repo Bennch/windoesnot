@@ -10,140 +10,13 @@ Column {
     width: parent.width
     spacing: 30
 
-    // === UI LANGUAGE ===
-    Column {
-        width: parent.width
-        spacing: 20
-
-        Text {
-            text: Lang.get("input.uiLanguage", _lang)
-            font.pixelSize: 18
-            font.bold: true
-            color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-        }
-
-        Column {
-            width: parent.width
-            spacing: 10
-
-            Text {
-                text: Lang.get("input.uiLanguageDesc", _lang)
-                font.pixelSize: 12
-                color: settingsMenu.darkMode ? "#666" : "#888"
-            }
-
-            ComboBox {
-                id: uiLanguageComboBox
-                width: 250
-                height: 40
-
-                model: ListModel {
-                    ListElement { value: "de"; text: "Deutsch" }
-                    ListElement { value: "en"; text: "English" }
-                }
-
-                textRole: "text"
-
-                // Compute currentIndex based on settingsMenu.uiLanguage
-                currentIndex: {
-                    if (!settingsMenu) return 0
-                    for (var i = 0; i < model.count; i++) {
-                        if (model.get(i).value === settingsMenu.uiLanguage) {
-                            return i
-                        }
-                    }
-                    return 0
-                }
-
-                onActivated: {
-                    if (settingsMenu) {
-                        var newLang = model.get(currentIndex).value
-                        Lang.setCurrent(newLang)
-                        settingsMenu.uiLanguage = newLang
-                    }
-                }
-
-                background: Rectangle {
-                    color: uiLanguageComboBox.pressed ? (settingsMenu.darkMode ? "#1a1a1a" : "#e0e0e0") : (settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0")
-                    border.color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
-                    border.width: 1
-                    radius: 6
-                }
-
-                contentItem: Text {
-                    leftPadding: 12
-                    rightPadding: uiLanguageComboBox.indicator.width + uiLanguageComboBox.spacing
-                    text: uiLanguageComboBox.displayText
-                    font.pixelSize: 13
-                    color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                    verticalAlignment: Text.AlignVCenter
-                    elide: Text.ElideRight
-                }
-
-                indicator: Text {
-                    x: uiLanguageComboBox.width - width - 12
-                    y: uiLanguageComboBox.topPadding + (uiLanguageComboBox.availableHeight - height) / 2
-                    text: "\u25BC"
-                    font.pixelSize: 10
-                    color: settingsMenu.darkMode ? "#999" : "#666"
-                }
-
-                popup: Popup {
-                    y: uiLanguageComboBox.height + 2
-                    width: uiLanguageComboBox.width
-                    implicitHeight: Math.min(contentItem.implicitHeight, 300)
-                    padding: 1
-
-                    contentItem: ListView {
-                        clip: true
-                        implicitHeight: contentHeight
-                        model: uiLanguageComboBox.popup.visible ? uiLanguageComboBox.delegateModel : null
-                        currentIndex: uiLanguageComboBox.highlightedIndex
-
-                        ScrollIndicator.vertical: ScrollIndicator { }
-                    }
-
-                    background: Rectangle {
-                        color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
-                        border.color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
-                        border.width: 1
-                        radius: 6
-                    }
-                }
-
-                delegate: ItemDelegate {
-                    width: uiLanguageComboBox.width - 2
-                    contentItem: Text {
-                        text: model.text
-                        color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                        font.pixelSize: 12
-                        elide: Text.ElideRight
-                        verticalAlignment: Text.AlignVCenter
-                        leftPadding: 12
-                    }
-                    highlighted: uiLanguageComboBox.highlightedIndex === index
-                    background: Rectangle {
-                        color: highlighted ? settingsMenu.accentColor : (parent.hovered ? (settingsMenu.darkMode ? "#333" : "#e5e5e5") : "transparent")
-                        radius: 4
-                    }
-                }
-            }
-        }
-    }
-
-    Rectangle {
-        width: parent.width
-        height: 1
-        color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
-    }
-
     // === SYSTEMSPRACHE ===
     Column {
         width: parent.width
         spacing: 20
 
         Text {
-            text: Lang.get("input.systemLanguage", _lang)
+            text: Lang.get("input.languageTitle", _lang)
             font.pixelSize: 18
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
@@ -184,20 +57,16 @@ Column {
 
                 textRole: "text"
 
-                onModelChanged: {
-                    if (model && model.count > 0 && settingsMenu) {
-                        for (var i = 0; i < model.count; i++) {
-                            if (model.get(i).value === settingsMenu.systemLocale) {
-                                currentIndex = i
-                                return
-                            }
-                        }
+                currentIndex: {
+                    if (!model || !settingsMenu) return -1
+                    for (var i = 0; i < model.count; i++) {
+                        if (model.get(i).value === settingsMenu.systemLocale) return i
                     }
+                    return -1
                 }
-
-                onActivated: {
-                    settingsMenu.systemLocale = model.get(currentIndex).value
-                }
+                displayText: currentIndex >= 0 ? model.get(currentIndex).text : settingsMenu.systemLocale
+                enabled: !settingsMenu.localeChangeBusy
+                onActivated: settingsMenu.selectLanguage(model.get(currentIndex).value)
 
                 background: Rectangle {
                     color: localeComboBox.pressed ? (settingsMenu.darkMode ? "#1a1a1a" : "#e0e0e0") : (settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0")
@@ -266,7 +135,27 @@ Column {
             }
 
             Text {
-                text: Lang.get("input.restartRequired", _lang)
+                width: parent.width
+                wrapMode: Text.WordWrap
+                visible: settingsMenu.systemLocale.split(/[_ .@-]/)[0] !== "de"
+                    && settingsMenu.systemLocale.split(/[_ .@-]/)[0] !== "en"
+                text: Lang.get("input.languageFallback", _lang)
+                font.pixelSize: 13
+                color: settingsMenu.darkMode ? "#bbb" : "#555"
+            }
+            Text {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                visible: settingsMenu.localeChangeFailed
+                text: Lang.get("input.languageFailed", _lang)
+                font.pixelSize: 13
+                color: settingsMenu.darkMode ? "#bbb" : "#555"
+            }
+
+            Text {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                text: Lang.get("input.languageEffect", _lang)
                 font.pixelSize: 11
                 color: settingsMenu.darkMode ? "#999" : "#666"
                 font.italic: true

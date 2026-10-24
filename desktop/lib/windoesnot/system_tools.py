@@ -94,7 +94,10 @@ def packages():
 
 def repository_packages(names):
     # Local sync database only. Missing variants must not trigger a database refresh.
-    raw = query('/usr/bin/pacman', '-Si', '--', *names, allowed=(0, 1))
+    # pacman returns the number of missing targets, not a fixed error code.
+    # Query individually so an offline install or missing variant stays usable.
+    raw = '\n'.join(query('/usr/bin/pacman', '-Si', '--', name, allowed=(0, 1))
+                    for name in names)
     result = {}; current = None
     for line in raw.splitlines():
         key, separator, value = line.partition(':')
@@ -201,6 +204,7 @@ def kernel_status():
                      'selectable': name in KERNELS})
     return {'live': Path('/etc/windoesnot-image-build').exists(), 'setup': read_setup(),
             'cpuLevel': cpu_level(), 'repositories': optimized, 'drivers': drivers,
+            'catalogAvailable': bool(repo),
             'nvidia': nvidia, 'release': release, 'running': running,
             'kernels': rows, 'bootloader': bootloader(), 'scx': scx_status()}
 

@@ -181,6 +181,11 @@ FloatingWindow {
     // System language & region
     property string systemLocale: Quickshell.env("LANG") || "en_US.UTF-8"
 
+    property bool localeChangeBusy: false
+    property bool localeChangeFailed: false
+    property string pendingSystemLocale: ""
+    property string previousUiLanguage: ""
+
     // Date & Time settings
     property string timeZone: "UTC"
     property bool use24HourFormat: true
@@ -479,7 +484,10 @@ FloatingWindow {
                 _systemLocalesModel.clear()
                 for (var i = 0; i < locales.length; i++) {
                     var locale = locales[i].trim()
-                    _systemLocalesModel.append({value: locale, text: locale})
+                    var info = Qt.locale(locale)
+                    var label = info.nativeLanguageName || locale
+                    if (info.nativeTerritoryName) label += " (" + info.nativeTerritoryName + ")"
+                    _systemLocalesModel.append({value: locale, text: label})
                 }
                 console.log("Loaded", _systemLocalesModel.count, "system locales")
             }
@@ -787,13 +795,8 @@ FloatingWindow {
 
     Process {
         id: localeProc
-        command: ["bash", "-c", ""]
         running: false
-        onRunningChanged: {
-            if (!running) {
-                console.log("System locale updated")
-            }
-        }
+        onExited: (code) => settingsMenu.finishLanguageChange(code)
     }
 
     Process {
@@ -1613,10 +1616,7 @@ FloatingWindow {
     }
 
     onSystemLocaleChanged: {
-        if (!isLoadingSettings) {
-            saveSettings()
-            updateSystemLocale()
-        }
+        if (!isLoadingSettings) saveSettings()
     }
 
     onTimeZoneChanged: {
@@ -1843,12 +1843,29 @@ FloatingWindow {
         })
     }
 
-    function updateSystemLocale() {
-        console.log("Updating system locale to:", systemLocale)
+    function selectLanguage(locale) {
+        if (localeChangeBusy) return
+        pendingSystemLocale = locale
+        previousUiLanguage = uiLanguage
+        const language = locale.split(/[_ .@-]/)[0]
+        uiLanguage = language === "de" ? "de" : "en"
+        updateSystemLocale()
+    }
 
-        var cmd = "localectl set-locale LANG=" + systemLocale
-        localeProc.command = ["bash", "-c", cmd]
+    function updateSystemLocale() {
+        localeChangeBusy = true
+        localeChangeFailed = false
+        fileDialogOpen = true
+        localeProc.command = ["localectl", "set-locale", "LANG=" + pendingSystemLocale]
         localeProc.running = true
+    }
+
+    function finishLanguageChange(code) {
+        localeChangeBusy = false
+        fileDialogOpen = false
+        localeChangeFailed = code !== 0
+        if (code === 0) systemLocale = pendingSystemLocale
+        else uiLanguage = previousUiLanguage
     }
 
     function updateTimeZone() {

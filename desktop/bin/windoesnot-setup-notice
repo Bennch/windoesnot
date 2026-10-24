@@ -5,7 +5,6 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
-import time
 
 RECORD = Path('/var/lib/windoesnot/system-setup.json')
 PROFILES = {
@@ -41,23 +40,45 @@ def summary(data, german):
     return lines
 
 
+def welcome_payload(data, preferences):
+    german = preferences.get('uiLanguage', os.environ.get('LANG', '')[:2]) == 'de'
+    return {
+        'dark': preferences.get('darkMode', 'true') == 'true',
+        'accent': preferences.get('accentColor', '#FE6F2D'),
+        'title': 'Willkommen bei WinDoesNot' if german else 'Welcome to WinDoesNot',
+        'intro': ('Dein System ist eingerichtet. Diese Anpassungen wurden für deinen Rechner gewählt:'
+                  if german else 'Your system is ready. These settings were chosen for your computer:'),
+        'lines': summary(data, german),
+        'hint': ('Du findest diese Informationen auch in den Einstellungen unter „Kernel und Leistung“ und „Wartung“.'
+                 if german else 'You can also find this information in Settings under “Kernel and performance” and “Maintenance”.'),
+        'close': 'Los geht’s' if german else 'Get started',
+    }
+
+
 def main():
     state = Path(os.environ.get('XDG_STATE_HOME', Path.home() / '.local/state')) / 'windoesnot/setup-notice-shown'
-    if state.exists() or not RECORD.is_file() or not shutil.which('notify-send'):
+    if state.exists() or not RECORD.is_file() or not shutil.which('quickshell'):
+        return
+    config = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'quickshell/default'
+    window = config / 'SetupWelcome.qml'
+    if not window.is_file():
+        window = Path('/usr/share/windoesnot/desktop/config/quickshell/default/SetupWelcome.qml')
+    if not window.is_file():
         return
     try:
         data = json.loads(RECORD.read_text())
     except (OSError, ValueError):
         return
-    german = os.environ.get('LANG', '').startswith('de')
-    # swaync starts in the same autostart batch; give it a moment to own the bus name.
-    for _ in range(30):
-        if subprocess.run(['busctl', '--user', 'status', 'org.freedesktop.Notifications'], capture_output=True).returncode == 0:
-            break
-        time.sleep(1)
-    title = 'WinDoesNot ist für deinen Rechner eingerichtet' if german else 'WinDoesNot is set up for your computer'
-    body = '\n'.join('• ' + line for line in summary(data, german))
-    if subprocess.run(['notify-send', '--app-name=WinDoesNot', '--icon=windoesnot', '--expire-time=15000', title, body]).returncode == 0:
+    preferences = {}
+    try:
+        for line in (config / 'settings.txt').read_text().splitlines():
+            key, separator, value = line.partition('=')
+            if separator:
+                preferences[key] = value
+    except OSError:
+        pass
+    env = {**os.environ, 'WINDOESNOT_WELCOME': json.dumps(welcome_payload(data, preferences))}
+    if subprocess.run(['quickshell', '--path', str(window)], env=env).returncode == 0:
         state.parent.mkdir(parents=True, exist_ok=True)
         state.touch()
 

@@ -13,6 +13,32 @@ spec = importlib.util.spec_from_file_location('system_tools', ROOT/'desktop/lib/
 m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 
 class SystemTools(unittest.TestCase):
+    def test_offline_and_partially_available_kernel_catalogue(self):
+        missing = m.subprocess.CompletedProcess([], 1, '', "error: package was not found")
+        found = m.subprocess.CompletedProcess([], 0, 'Name : linux-cachyos\nVersion : 7.2.7\n', '')
+        with patch.object(m.subprocess, 'run', return_value=missing) as run:
+            self.assertEqual(m.repository_packages(m.KERNELS), {})
+            self.assertEqual(run.call_count, len(m.KERNELS))
+            self.assertTrue(all(call.args[0][1] == '-Si' for call in run.call_args_list))
+        with patch.object(m.subprocess, 'run', side_effect=[found, missing]):
+            self.assertEqual(m.repository_packages(m.KERNELS[:2]), {'linux-cachyos': '7.2.7'})
+
+    def test_missing_catalogue_keeps_installed_kernel_status(self):
+        with patch.object(m, 'packages', return_value={'linux-cachyos': '7.2.7'}), \
+             patch.object(m, 'repository_packages', return_value={}), \
+             patch.object(m, 'kernel_state', return_value=('7.2.7', 'linux-cachyos', {'linux-cachyos'})), \
+             patch.object(m, 'driver_state', return_value=('qemu', False)), \
+             patch.object(m, 'query', return_value='cachyos-v3'), \
+             patch.object(m, 'cpu_level', return_value='v3'), \
+             patch.object(m, 'read_setup', return_value=None), \
+             patch.object(m, 'bootloader', return_value='grub'), \
+             patch.object(m, 'scx_status', return_value={'supported': True}):
+            status = m.kernel_status()
+        self.assertFalse(status['catalogAvailable'])
+        self.assertEqual(status['kernels'][0]['installed'], '7.2.7')
+        self.assertTrue(status['kernels'][0]['running'])
+        self.assertTrue(status['scx']['supported'])
+
     def test_strict_action_arguments(self):
         for action, payload in [('shell', {}), ('kernel-install', {'kernel': '--help'}),
                 ('kernel-remove', {'kernel': 'linux-cachyos;id'}),

@@ -48,6 +48,19 @@ ShellRoot {
     const page=kernelLoader.item; const maintenance=maintenanceLoader.item
     page.acceptStatus(FIXTURE)
     testWindow.check(page.ready, "status applied")
+    page.resultKey="kernel.statusFailed"; page.resultDetail="pacman: missing database"
+    testWindow.check(page.resultText.indexOf("pacman") < 0, "friendly error summary")
+    const details = testWindow.find(page, o => o.text === page.resultDetail)
+    testWindow.check(details && !details.visible, "technical error hidden initially")
+    page.detailsExpanded=true
+    testWindow.check(details.visible, "technical error can be expanded")
+    page.detailsExpanded=false; page.resultKey=""; page.resultDetail=""
+    const offline = JSON.parse(JSON.stringify(FIXTURE)); offline.catalogAvailable=false
+    offline.kernels=offline.kernels.filter(k => !!k.installed)
+    page.acceptStatus(offline)
+    testWindow.check(page.ready && page.state.kernels.length === 1, "offline status keeps installed kernel")
+    testWindow.check(!!testWindow.find(page, o => o.text === page.tr("kernel.catalogMissing") && o.visible), "offline guidance visible")
+    page.acceptStatus(FIXTURE)
     testWindow.check(page.tr("header.kernel") === "Kernel und Leistung", "DE")
     const modeChoice = testWindow.find(page,o => o.objectName === "systemToolsMode")
     testWindow.check(modeChoice.currentText === "PowerSave", "selected mode")
