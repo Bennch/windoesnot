@@ -23,10 +23,18 @@ fi
 [[ -f $theme/metadata.desktop ]] || { echo "Theme fehlt: $theme" >&2; exit 1; }
 user=${SUDO_USER:?Bitte mit sudo aus deinem Benutzerkonto starten}
 
-pacman -S --needed --noconfirm sddm qt6-multimedia-ffmpeg
-
 backup=/var/backups/windoesnot-sddm-$(date +%Y%m%d-%H%M%S)
 install -d -m700 "$backup"
+
+# A stray, package-less sddm.service would make pacman refuse the installation.
+for stray in /usr/lib/systemd/system/sddm.service; do
+    if [[ -e $stray ]] && ! pacman -Qqo "$stray" >/dev/null 2>&1; then
+        mv "$stray" "$backup/"
+        echo "Verwaiste Datei gesichert: $stray"
+    fi
+done
+
+pacman -S --needed --noconfirm sddm qt6-multimedia-ffmpeg
 [[ -d /usr/share/sddm/themes/windoesnot ]] && cp -a /usr/share/sddm/themes/windoesnot "$backup/theme"
 [[ -f /etc/sddm.conf.d/windoesnot.conf ]] && cp -a /etc/sddm.conf.d/windoesnot.conf "$backup/"
 
