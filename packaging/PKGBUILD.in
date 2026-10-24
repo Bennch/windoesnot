@@ -79,6 +79,9 @@ package_windoesnot-tools() {
     install -Dm644 desktop/share/systemd/system/windoesnot-super-tap@.service "$pkgdir/usr/lib/systemd/system/windoesnot-super-tap@.service"
     install -Dm644 desktop/share/systemd/system/windoesnot-first-network.service "$pkgdir/usr/lib/systemd/system/windoesnot-first-network.service"
     install -Dm755 desktop/share/NetworkManager/dispatcher.d/90-windoesnot-first-network "$pkgdir/usr/lib/NetworkManager/dispatcher.d/90-windoesnot-first-network"
+    # Public verification material for future images; repository setup is explicit.
+    install -Dm644 packaging/release-key/RELEASE-KEY.asc "$pkgdir/usr/share/windoesnot/repository/RELEASE-KEY.asc"
+    install -Dm644 packaging/release-key/RELEASE-KEY.fingerprint "$pkgdir/usr/share/windoesnot/repository/RELEASE-KEY.fingerprint"
     _license
 }
 

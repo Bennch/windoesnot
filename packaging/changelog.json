@@ -2,6 +2,18 @@
   "comment": "WinDoesNot changes per desktop package release, newest first. Shown in Settings > Updates; entries marked unreleased are never offered as an update.",
   "releases": [
     {
+      "version": "0.1.0-19",
+      "date": "2026-10-24",
+      "de": [
+        "Die Desktop-Pakete enthalten den öffentlichen WinDoesNot-Release-Schlüssel für die Einrichtung signierter Paketupdates. Der Updatekanal muss einmal eingerichtet werden.",
+        "Die Update-Seite nennt direkt eingerichtete Desktop-Dateien jetzt „lokale Desktop-Installation“."
+      ],
+      "en": [
+        "The desktop packages include the public WinDoesNot release key for setting up signed package updates. The update channel needs a one-time setup.",
+        "The update page now calls directly configured desktop files a “local desktop installation”."
+      ]
+    },
+    {
       "version": "0.1.0-18",
       "date": "2026-10-24",
       "de": [

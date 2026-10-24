@@ -68,7 +68,7 @@ Arch news shown before system updates.
 |---|---|
 | Desktop on an existing Arch/CachyOS system | Used daily by the author |
 | Live boot, offline/online install, all four bootloaders | Tested in QEMU (UEFI) |
-| Signed component updates | Tested privately in a VM; no public update channel yet |
+| Signed component updates | [One-time setup](UPDATE-CHANNEL.md) · upgrade checked in a UEFI VM |
 | Real hardware, BIOS boot, Secure Boot, multi-monitor | **Not tested yet** |
 | Public ISO download | [ISO 0.1.0-18](https://download.windoesnot.me/0.1.0-18/windoesnot-2026.10.24-x86_64.iso) · [SHA256](https://download.windoesnot.me/0.1.0-18/windoesnot-2026.10.24-x86_64.iso.sha256) |
 

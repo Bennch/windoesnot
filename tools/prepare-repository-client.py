@@ -51,7 +51,7 @@ with tempfile.TemporaryDirectory(prefix='windoesnot-trust-') as temporary:
     if primary != [fingerprint]:
         p.error('Public key does not match the independently supplied fingerprint')
     keyring = private / 'release.gpg'
-    subprocess.run(['gpg', '--no-options', '--batch', '--dearmor', '--output', str(keyring), str(key)], check=True)
+    subprocess.run(['gpg', '--no-options', '--homedir', str(private), '--batch', '--dearmor', '--output', str(keyring), str(key)], check=True)
     def verify(path):
         result=subprocess.run(['gpgv', '--status-fd','1','--homedir', str(private), '--keyring', str(keyring), str(path) + '.sig', str(path)],check=True,text=True,capture_output=True)
         if any('[GNUPG:] '+status in result.stdout for status in ('EXPKEYSIG','EXPSIG','REVKEYSIG','KEYEXPIRED','SIGEXPIRED')):
@@ -66,6 +66,7 @@ with tempfile.TemporaryDirectory(prefix='windoesnot-trust-') as temporary:
         p.error('Inconsistent signed manifest')
     if metadata['private_test_only'] and not a.allow_test_repository:
         p.error('A test repository must never become a production client')
+    private_test_client = metadata['private_test_only'] or a.allow_test_repository
     for name in ('windoesnot.db.tar.gz', 'windoesnot.files.tar.gz'):
         verify(repo / name)
     for package in metadata['packages'].values():
@@ -83,7 +84,7 @@ with tempfile.TemporaryDirectory(prefix='windoesnot-trust-') as temporary:
         '[windoesnot]\nSigLevel = Required DatabaseRequired TrustedOnly\nServer = ' + a.server.rstrip('/') + '\n'
     )
     (a.output / 'CLIENT.json').write_text(json.dumps({
-        'fingerprint': fingerprint, 'server': a.server, 'private_test_only': metadata['private_test_only'],
+        'fingerprint': fingerprint, 'server': a.server, 'private_test_only': private_test_client,
         'repository_manifest_sha256': hashlib.sha256(manifest.read_bytes()).hexdigest(),
     }, indent=2) + '\n')
     bootstrap = a.output / 'bootstrap.sh'
@@ -91,7 +92,7 @@ with tempfile.TemporaryDirectory(prefix='windoesnot-trust-') as temporary:
 set -euo pipefail
 [[ $EUID == 0 ]] || { echo 'Run with sudo on the target system.' >&2; exit 1; }
 client_dir="$(cd -- "$(dirname -- "$0")" && pwd)"
-''' + ('systemd-detect-virt --vm --quiet || { echo "Test trust is allowed only in a VM." >&2; exit 1; }\n' if metadata['private_test_only'] else '') + '''
+''' + ('systemd-detect-virt --vm --quiet || { echo "Test trust is allowed only in a VM." >&2; exit 1; }\n' if private_test_client else '') + '''
 python3 - "$client_dir" <<'PY'
 import pathlib,re,subprocess,sys,time,shutil
 source=pathlib.Path(sys.argv[1])
