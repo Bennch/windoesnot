@@ -2,6 +2,30 @@
   "comment": "WinDoesNot changes per desktop package release, newest first. Shown in Settings > Updates; entries marked unreleased are never offered as an update.",
   "releases": [
     {
+      "version": "0.1.0-18",
+      "date": "2026-10-24",
+      "de": [
+        "Bei der Installation erkennt WinDoesNot deinen Prozessor und schaltet die passenden optimierten CachyOS-Pakete ein (x86-64-v3, v4 oder Zen 4/5).",
+        "Grafiktreiber für NVIDIA, AMD, Intel und virtuelle Maschinen werden automatisch eingerichtet, auch ohne Internet, inklusive 32-Bit-Treibern für Spiele.",
+        "Die schnellsten Download-Server werden automatisch gewählt: online schon bei der Installation, sonst bei der ersten Internetverbindung.",
+        "Nach dem ersten Anmelden zeigt eine Meldung, was erkannt und eingerichtet wurde.",
+        "Store: Installationsquelle wählen (Paketquelle, Flathub, AUR) und AUR-Pakete vor dem Bauen prüfen.",
+        "Neue Einstellungsseiten „Kernel und Leistung“ (Kernel wechseln, sched-ext) und „Wartung“ (Server, Zwischenspeicher, Schlüsselbund, Treiber).",
+        "Wiederherstellungspunkte vor und nach jeder Programmänderung; mit GRUB, Limine und rEFInd lässt sich ein früherer Stand aus dem Bootmenü starten.",
+        "Fünf mitgelieferte Hintergründe, direkt in den Einstellungen auswählbar."
+      ],
+      "en": [
+        "During installation WinDoesNot detects your processor and enables the matching optimized CachyOS packages (x86-64-v3, v4 or Zen 4/5).",
+        "Graphics drivers for NVIDIA, AMD, Intel and virtual machines are set up automatically, even offline, including 32-bit drivers for games.",
+        "The fastest download servers are chosen automatically: during an online installation, otherwise on the first internet connection.",
+        "After the first login a notification shows what was detected and set up.",
+        "Store: choose the installation source (repositories, Flathub, AUR) and review AUR packages before building.",
+        "New settings pages “Kernel and performance” (switch kernels, sched-ext) and “Maintenance” (mirrors, cache, keyring, drivers).",
+        "Restore points before and after every program change; with GRUB, Limine and rEFInd an earlier state can be started from the boot menu.",
+        "Five bundled wallpapers, selectable right in Settings."
+      ]
+    },
+    {
       "version": "0.1.0-17",
       "date": "2026-10-23",
       "de": [
