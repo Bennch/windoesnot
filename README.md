@@ -70,7 +70,7 @@ Arch news shown before system updates.
 | Live boot, offline/online install, all four bootloaders | Tested in QEMU (UEFI) |
 | Signed component updates | Tested privately in a VM; no public update channel yet |
 | Real hardware, BIOS boot, Secure Boot, multi-monitor | **Not tested yet** |
-| Public ISO download | [0.1.0-18 on SourceForge](https://sourceforge.net/projects/windoesnot/files/0.1.0-18/) · [SHA256](https://sourceforge.net/projects/windoesnot/files/0.1.0-18/windoesnot-2026.10.24-x86_64.iso.sha256/download) |
+| Public ISO download | [ISO 0.1.0-18](https://download.windoesnot.me/0.1.0-18/windoesnot-2026.10.24-x86_64.iso) · [SHA256](https://download.windoesnot.me/0.1.0-18/windoesnot-2026.10.24-x86_64.iso.sha256) |
 
 ## Building
 
