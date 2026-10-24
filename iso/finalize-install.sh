@@ -15,6 +15,12 @@ systemctl disable systemd-networkd.service systemd-networkd.socket systemd-netwo
 systemctl disable systemd-time-wait-sync.service 2>/dev/null || true
 systemctl enable sddm.service NetworkManager.service bluetooth.service getty@tty1.service
 systemctl enable "windoesnot-super-tap@$install_user.service"
+# sddm writes /etc/sddm.conf itself on its first run, with a stray, broken
+# [Autologin] Session=hyprland (no matching session, no User=, so autologin
+# never actually triggers) that only causes a spurious "Autologin failed"
+# log line on every normal start. No package owns this file; drop that
+# section so our own /etc/sddm.conf.d/windoesnot.conf is the only source.
+[[ -f /etc/sddm.conf ]] && sed -i '/^\[Autologin\]$/,/^$/{/^\[Autologin\]$/d;/^Session=/d}' /etc/sddm.conf
 install -d -o sddm -g sddm /var/lib/sddm
 printf '[Last]\nSession=/usr/share/windoesnot/wayland-sessions/windoesnot.desktop\nUser=%s\n' "$install_user" > /var/lib/sddm/state.conf
 chown sddm:sddm /var/lib/sddm/state.conf
