@@ -27,3 +27,8 @@
 # Host specific manifests & secrets
 /desktop/import-manifest.json
 .env
+
+# Internal working notes, agent handoffs and agent instructions stay local only
+/AGENTS.md
+/docs/*
+!/docs/screenshots/

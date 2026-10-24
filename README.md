@@ -72,9 +72,6 @@ Arch news shown before system updates.
 | Real hardware, BIOS boot, Secure Boot, multi-monitor | **Not tested yet** |
 | Public ISO download | **Not available yet** — releases will be published on [SourceForge](https://sourceforge.net/projects/windoesnot/files/) |
 
-Detailed results: [test report](docs/TEST-REPORT.md),
-[installation modes](docs/INSTALLATION-MODES.md), [roadmap](docs/FEATURE-ROADMAP.md).
-
 ## Building
 
 Requirements on an Arch-based host: `archiso`, `arch-install-scripts`,
@@ -120,17 +117,16 @@ preserved. Every run creates a file backup under `~/Backups/windoesnot-release/`
 | `packaging/` | PKGBUILD template, version and changelog |
 | `tools/` | Build, packaging, validation, VM and host-sync tools |
 | `tests/` | Automated tests |
-| `docs/` | Design notes, test reports, roadmap |
+| `docs/screenshots/` | Screenshots for this README |
 | `sources.json` | Pinned upstream sources (CachyOS live ISO, Calamares, snappy-switcher, store) |
 
 Upstream checkouts are never modified in place; all changes live in this repository
-and are applied when the profile is generated. See
-[upstream updates](docs/UPSTREAM-UPDATES.md) and [plugin changes](docs/PLUGIN-CHANGES.md).
+and are applied when the profile is generated.
 
 ## Contributing
 
 Issues and ideas are welcome. The project is developed by one person with the help
-of AI coding agents (Claude Code and Codex). Most documentation is currently in German.
+of AI coding agents (Claude Code and Codex).
 
 ## License
 

@@ -73,9 +73,6 @@ Arch-News vor dem Systemupdate.
 | Echte Hardware, BIOS-Start, Secure Boot, mehrere Monitore | **Noch nicht getestet** |
 | Öffentlicher ISO-Download | **Noch nicht verfügbar** – Releases erscheinen auf [SourceForge](https://sourceforge.net/projects/windoesnot/files/) |
 
-Details: [Testbericht](docs/TEST-REPORT.md),
-[Installationsmodi](docs/INSTALLATION-MODES.md), [Roadmap](docs/FEATURE-ROADMAP.md).
-
 ## Bauen
 
 Voraussetzungen auf einem Arch-basierten System: `archiso`, `arch-install-scripts`,
@@ -122,12 +119,11 @@ und Schlüssel bleiben erhalten. Jeder Lauf legt eine Dateisicherung unter
 | `packaging/` | PKGBUILD-Vorlage, Version und Changelog |
 | `tools/` | Werkzeuge für Build, Pakete, Prüfungen, VMs und Host-Abgleich |
 | `tests/` | Automatische Tests |
-| `docs/` | Konzepte, Testberichte, Roadmap |
+| `docs/screenshots/` | Screenshots für diese README |
 | `sources.json` | Gepinnte Upstream-Quellen (CachyOS-Live-ISO, Calamares, snappy-switcher, Store) |
 
 Upstream-Checkouts werden nie direkt verändert; alle Änderungen liegen in diesem
-Repository und werden beim Erzeugen des Profils angewendet. Siehe
-[Upstream-Updates](docs/UPSTREAM-UPDATES.md) und [Plugin-Änderungen](docs/PLUGIN-CHANGES.md).
+Repository und werden beim Erzeugen des Profils angewendet.
 
 ## Mitmachen
 
