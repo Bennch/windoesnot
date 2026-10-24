@@ -37,6 +37,13 @@ def missing_tree(origin, target):
 
 missing_tree(source / 'desktop/config', config)
 missing_tree(source / 'desktop/defaults/config', config)
+# The extension stays linked to managed code; preserve an existing user extension.
+nearby_extension = config / 'quickshell/default/extras/nautilus/windoesnot-nearby.py'
+nearby_target = Path(os.environ.get('XDG_DATA_HOME', home / '.local/share')) / 'nautilus-python/extensions/windoesnot-nearby.py'
+if nearby_extension.is_file() and not nearby_target.exists() and not nearby_target.is_symlink():
+    nearby_target.parent.mkdir(parents=True, exist_ok=True)
+    nearby_target.symlink_to(nearby_extension)
+
 # Literal $HOME entries stay portable when initializing /etc/skel.
 for directory in ['Desktop','Downloads','Templates','Public','Documents','Music','Pictures','Videos']:
     (home / directory).mkdir(exist_ok=True)

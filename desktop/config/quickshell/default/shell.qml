@@ -2,6 +2,7 @@
 
 import Quickshell
 import Quickshell.Io
+import Quickshell.Wayland
 import Quickshell.Hyprland
 import Quickshell.Services.SystemTray
 import QtQuick
@@ -14,6 +15,7 @@ import "IconMap.js" as IconMap
 import "i18n/Lang.js" as Lang
 
 ShellRoot {
+    id: desktopShell
 
 // Current Does window (null while it is being rebuilt).
 property var copilotWindow: copilotWindowLoader.item
@@ -48,6 +50,7 @@ Timer {
             audioWindow.visible = false
             bluetoothWindow.visible = false
             networkWindow.visible = false
+            nearbyWindow.visible = false
             calendarWindow.visible = false
             powerMenu.visible = false
             powerSubMenu.visible = false
@@ -79,6 +82,7 @@ GlobalShortcut {
         audioWindow.visible = false
         bluetoothWindow.visible = false
         networkWindow.visible = false
+        nearbyWindow.visible = false
         calendarWindow.visible = false
         startMenu.visible = !startMenu.visible
     }
@@ -92,6 +96,7 @@ GlobalShortcut {
         audioWindow.visible = false
         bluetoothWindow.visible = false
         networkWindow.visible = false
+        nearbyWindow.visible = false
         calendarWindow.visible = false
         settingsMenu.visible = !settingsMenu.visible
     }
@@ -115,6 +120,7 @@ GlobalShortcut {
         audioWindow.visible = false
         bluetoothWindow.visible = false
         networkWindow.visible = false
+        nearbyWindow.visible = false
         calendarWindow.visible = false
         // WICHTIG: Erst schließen, dann mit Timer wieder öffnen um FocusGrab neu zu triggern
         settingsMenu.visible = false
@@ -1011,6 +1017,7 @@ PanelWindow {
     function rebuildTrayModel() {
         trayIconModel.clear()
         var order = settingsMenu.trayOrder.split(",")
+        if (order.indexOf("nearby") < 0) order.splice(Math.max(0, order.indexOf("network") + 1), 0, "nearby")
         for (var i = 0; i < order.length; i++) {
             var t = order[i].trim()
             if (t === "weather") {
@@ -1471,6 +1478,23 @@ PanelWindow {
                             Behavior on opacity { NumberAnimation { duration: 150 } }
                         }
 
+                        Item {
+                            visible: model.iconType === "nearby"
+                            anchors.centerIn: parent; width: 20; height: 20
+                            Image {
+                                anchors.fill: parent
+                                source: "img/Win11-dark/actions/symbolic/document-send-symbolic.svg"
+                                opacity: nearbyService.state.receiving ? 1.0 : 0.45
+                                layer.enabled: !settingsMenu.darkMode
+                                layer.effect: MultiEffect { colorization: 1.0; colorizationColor: "#333333" }
+                            }
+                            Rectangle {
+                                visible: nearbyService.state.receiving
+                                anchors.right: parent.right; anchors.bottom: parent.bottom
+                                width: 6; height: 6; radius: 3; color: settingsMenu.accentColor
+                            }
+                        }
+
                         // Network icon content
                         Image {
                             visible: model.iconType === "network"
@@ -1514,6 +1538,8 @@ PanelWindow {
                                 else if (model.iconType === "audio") tipText = "Audio"
                                 else if (model.iconType === "bluetooth") tipText = "Bluetooth"
                 else if (model.iconType === "network") tipText = Lang.get("shell.network", settingsMenu.uiLanguage)
+                                else if (model.iconType === "nearby") tipText = Lang.get("nearby.title", settingsMenu.uiLanguage)
+                                    + " · " + Lang.get(nearbyService.state.receiving ? "nearby.receivingOn" : "nearby.receivingOff", settingsMenu.uiLanguage)
                                 else if (model.iconType === "ollama") tipText = "Ollama"
                                 else if (model.iconType === "docker") tipText = "Docker"
                                 if (tipText.length > 0) unifiedTooltip.show(trayIconDelegate, tipText)
@@ -1559,11 +1585,13 @@ PanelWindow {
                                     } else if (model.iconType === "audio") {
                                         bluetoothWindow.visible = false
                                         networkWindow.visible = false
+                                        nearbyWindow.visible = false
                                         calendarWindow.visible = false
                                         audioWindow.visible = !audioWindow.visible
                                     } else if (model.iconType === "bluetooth") {
                                         audioWindow.visible = false
                                         networkWindow.visible = false
+                                        nearbyWindow.visible = false
                                         calendarWindow.visible = false
                                         bluetoothWindow.visible = !bluetoothWindow.visible
                                     } else if (model.iconType === "network") {
@@ -1571,10 +1599,14 @@ PanelWindow {
                                         bluetoothWindow.visible = false
                                         calendarWindow.visible = false
                                         networkWindow.visible = !networkWindow.visible
+                                    } else if (model.iconType === "nearby") {
+                                        if (nearbyWindow.visible) nearbyWindow.visible = false
+                                        else desktopShell.openNearby()
                                     } else if (model.iconType === "ollama") {
                                         audioWindow.visible = false
                                         bluetoothWindow.visible = false
                                         networkWindow.visible = false
+                                        nearbyWindow.visible = false
                                         calendarWindow.visible = false
                                         dockerWindow.visible = false
                                         ollamaWindow.visible = !ollamaWindow.visible
@@ -1582,6 +1614,7 @@ PanelWindow {
                                         audioWindow.visible = false
                                         bluetoothWindow.visible = false
                                         networkWindow.visible = false
+                                        nearbyWindow.visible = false
                                         calendarWindow.visible = false
                                         ollamaWindow.visible = false
                                         dockerWindow.visible = !dockerWindow.visible
@@ -1660,6 +1693,7 @@ PanelWindow {
                 audioWindow.visible = false
                 bluetoothWindow.visible = false
                 networkWindow.visible = false
+                nearbyWindow.visible = false
                 calendarWindow.visible = !calendarWindow.visible
             }
         }
@@ -1844,6 +1878,7 @@ PanelWindow {
                             audioWindow.visible = false
                             bluetoothWindow.visible = false
                             networkWindow.visible = false
+                            nearbyWindow.visible = false
                             calendarWindow.visible = false
                             startMenu.visible = false
                             appContextMenu.visible = false
@@ -1870,6 +1905,7 @@ PanelWindow {
                             audioWindow.visible = false
                             bluetoothWindow.visible = false
                             networkWindow.visible = false
+                            nearbyWindow.visible = false
                             calendarWindow.visible = false
                             powerMenu.visible = false
                             startMenu.visible = !startMenu.visible
@@ -1980,6 +2016,7 @@ PanelWindow {
                         audioWindow.visible = false
                         bluetoothWindow.visible = false
                         networkWindow.visible = false
+                        nearbyWindow.visible = false
                         calendarWindow.visible = false
                         settingsMenu.visible = !settingsMenu.visible
                     }
@@ -2442,6 +2479,7 @@ PanelWindow {
                                         audioWindow.visible = false
                                         bluetoothWindow.visible = false
                                         networkWindow.visible = false
+                                        nearbyWindow.visible = false
                                         calendarWindow.visible = false
                                         powerMenu.visible = false
                                         // Set context data
@@ -2480,6 +2518,7 @@ PanelWindow {
                                             audioWindow.visible = false
                                             bluetoothWindow.visible = false
                                             networkWindow.visible = false
+                                            nearbyWindow.visible = false
                                             calendarWindow.visible = false
                                             dockerWindow.visible = false
                                             panelWindow.openCopilotPopup(taskbarDragArea)
@@ -4793,6 +4832,7 @@ FloatingWindow {
         windows: [networkWindow]
         active: networkWindow.visible
         onCleared: networkWindow.visible = false
+        nearbyWindow.visible = false
     }
 
     onVisibleChanged: {
@@ -4813,6 +4853,62 @@ FloatingWindow {
             item.uiLanguage = Qt.binding(function() { return settingsMenu.uiLanguage })
             networkWindow.connectionType = Qt.binding(function() { return item.connectionType })
         }
+    }
+}
+
+function openNearby() {
+    audioWindow.visible = false
+    bluetoothWindow.visible = false
+    networkWindow.visible = false
+    calendarWindow.visible = false
+    startMenu.visible = false
+    nearbyWindow.visible = true
+}
+
+NearbyService {
+    id: nearbyService
+    onIncomingRequest: desktopShell.openNearby()
+}
+
+IpcHandler {
+    target: "windoesnot-nearby"
+    function share(files: string): string {
+        try {
+            const values = JSON.parse(files)
+            if (!Array.isArray(values) || !values.length || values.length > 1000) return "invalid"
+            nearbyService.command({action:"select", files:values})
+            desktopShell.openNearby()
+            return "opened"
+        } catch (error) { return "invalid" }
+    }
+}
+
+PanelWindow {
+    id: nearbyWindow
+    visible: false
+    screen: networkWindow.screen
+    anchors { right: true; bottom: true }
+    margins { right: 8; bottom: panelWindow.height + 8 }
+    exclusiveZone: -1
+    implicitWidth: Math.min(400, screen ? screen.width - 16 : 400)
+    implicitHeight: Math.min(580, screen ? screen.height - panelWindow.height - 24 : 580)
+    color: "transparent"
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+    onVisibleChanged: nearbyService.command({action:"active", value:visible})
+    HyprlandFocusGrab {
+        windows: [nearbyWindow]
+        active: nearbyWindow.visible && !nearbyPanel.dialogOpen
+        onCleared: nearbyWindow.visible = false
+    }
+    NearbyPanel {
+        id: nearbyPanel
+        anchors.fill: parent
+        service: nearbyService
+        darkMode: settingsMenu.darkMode
+        accentColor: settingsMenu.accentColor
+        borderRadius: settingsMenu.borderRadius
+        uiLanguage: settingsMenu.uiLanguage
     }
 }
 
