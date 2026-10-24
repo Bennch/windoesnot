@@ -11,8 +11,10 @@ Scope {
     readonly property var flow: agent.item ? agent.item.flow : null
     readonly property bool active: flow !== null && !flow.isCompleted
     readonly property bool embedded: active && settingsMenu && settingsMenu.visible
-        && settingsMenu.currentCategory === "backups"
-        && flow.actionId.indexOf("org.windoesnot.snapshots.") === 0
+        && ((settingsMenu.currentCategory === "backups"
+             && flow.actionId.indexOf("org.windoesnot.snapshots.") === 0)
+            || ((settingsMenu.currentCategory === "kernel" || settingsMenu.currentCategory === "maintenance")
+                && flow.actionId.indexOf("org.windoesnot.system.") === 0))
     readonly property bool registered: agent.item !== null && agent.item.isRegistered
     property string guardPath: "/usr/bin/windoesnot-auth-guard"
 
@@ -54,7 +56,7 @@ Scope {
         id: fallback
         command: [authentication.guardPath, "restore", String(Quickshell.processId)]
     }
-    // A separate layer surface is only used for requests outside Backup Settings.
+    // A separate layer surface is used for requests outside their Settings page.
     PanelWindow {
         visible: authentication.active && !authentication.embedded
         screen: authentication.settingsMenu ? authentication.settingsMenu.screen : null

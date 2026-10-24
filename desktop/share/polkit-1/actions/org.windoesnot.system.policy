@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<policyconfig>
+  <vendor>WinDoesNot</vendor>
+  <action id="org.windoesnot.system.kernel-install">
+    <description>Install a kernel and update the system</description>
+    <description xml:lang="de">Kernel installieren und System aktualisieren</description>
+    <message>Please confirm: Install a kernel and update the system</message>
+    <message xml:lang="de">Bitte bestätigen: Kernel installieren und System aktualisieren</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">kernel-install</annotate>
+  </action>
+  <action id="org.windoesnot.system.kernel-remove">
+    <description>Remove a kernel</description>
+    <description xml:lang="de">Kernel entfernen</description>
+    <message>Please confirm: Remove a kernel</message>
+    <message xml:lang="de">Bitte bestätigen: Kernel entfernen</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">kernel-remove</annotate>
+  </action>
+  <action id="org.windoesnot.system.scx-install">
+    <description>Install scheduler tools and update the system</description>
+    <description xml:lang="de">Scheduler-Werkzeuge installieren und System aktualisieren</description>
+    <message>Please confirm: Install scheduler tools and update the system</message>
+    <message xml:lang="de">Bitte bestätigen: Scheduler-Werkzeuge installieren und System aktualisieren</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">scx-install</annotate>
+  </action>
+  <action id="org.windoesnot.system.scx-set">
+    <description>Change the CPU scheduler</description>
+    <description xml:lang="de">Prozessor-Scheduler ändern</description>
+    <message>Please confirm: Change the CPU scheduler</message>
+    <message xml:lang="de">Bitte bestätigen: Prozessor-Scheduler ändern</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">scx-set</annotate>
+  </action>
+  <action id="org.windoesnot.system.scx-stop">
+    <description>Stop the extra CPU scheduler</description>
+    <description xml:lang="de">Zusätzlichen Prozessor-Scheduler beenden</description>
+    <message>Please confirm: Stop the extra CPU scheduler</message>
+    <message xml:lang="de">Bitte bestätigen: Zusätzlichen Prozessor-Scheduler beenden</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">scx-stop</annotate>
+  </action>
+  <action id="org.windoesnot.system.mirrors-rank">
+    <description>Rank package download servers</description>
+    <description xml:lang="de">Download-Server prüfen</description>
+    <message>Please confirm: Rank package download servers</message>
+    <message xml:lang="de">Bitte bestätigen: Download-Server prüfen</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">mirrors-rank</annotate>
+  </action>
+  <action id="org.windoesnot.system.cache-clean">
+    <description>Clean old downloaded packages</description>
+    <description xml:lang="de">Alte heruntergeladene Pakete aufräumen</description>
+    <message>Please confirm: Clean old downloaded packages</message>
+    <message xml:lang="de">Bitte bestätigen: Alte heruntergeladene Pakete aufräumen</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">cache-clean</annotate>
+  </action>
+  <action id="org.windoesnot.system.keyring-repair">
+    <description>Repair official signing keys and update the system</description>
+    <description xml:lang="de">Offizielle Paketschlüssel reparieren und System aktualisieren</description>
+    <message>Please confirm: Repair official signing keys and update the system</message>
+    <message xml:lang="de">Bitte bestätigen: Offizielle Paketschlüssel reparieren und System aktualisieren</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">keyring-repair</annotate>
+  </action>
+  <action id="org.windoesnot.system.lock-remove">
+    <description>Remove a stale package lock</description>
+    <description xml:lang="de">Hängende Paketsperre entfernen</description>
+    <message>Please confirm: Remove a stale package lock</message>
+    <message xml:lang="de">Bitte bestätigen: Hängende Paketsperre entfernen</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">lock-remove</annotate>
+  </action>
+  <action id="org.windoesnot.system.orphans-remove">
+    <description>Remove reviewed unused packages</description>
+    <description xml:lang="de">Geprüfte ungenutzte Pakete entfernen</description>
+    <message>Please confirm: Remove reviewed unused packages</message>
+    <message xml:lang="de">Bitte bestätigen: Geprüfte ungenutzte Pakete entfernen</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">orphans-remove</annotate>
+  </action>
+  <action id="org.windoesnot.system.drivers-configure">
+    <description>Update the system and configure graphics drivers</description>
+    <description xml:lang="de">System aktualisieren und Grafiktreiber einrichten</description>
+    <message>Please confirm: Update the system and configure graphics drivers</message>
+    <message xml:lang="de">Bitte bestätigen: System aktualisieren und Grafiktreiber einrichten</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">drivers-configure</annotate>
+  </action>
+</policyconfig>
