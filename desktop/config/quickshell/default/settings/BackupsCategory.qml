@@ -12,6 +12,11 @@ Item {
     height: backupsReady ? contentColumn.height : unavailableNotice.implicitHeight
     property bool backupsReady: false
     property bool liveSession: false
+    property bool snapshotBoot: false
+    property var bootInfo: ({loader: "", configured: false})
+    property bool packageSnapshots: false
+    property string numberLimit: ""
+    property string importantLimit: ""
 
     // State
     property bool busy: false
@@ -48,7 +53,7 @@ Item {
         const description = String(snapshot.description || "").toLowerCase()
         if (description === "windoesnot installation") return "installedPoint"
         if (description === "manual-quickshell") return "manualPoint"
-        const update = /pacman|yay|paru|update|upgrade/.test(description)
+        const update = snapshot.packageChange === true || /pacman|yay|paru|update|upgrade/.test(description)
         if (snapshot.type === "pre") return update ? "beforeUpdate" : "beforeChange"
         if (snapshot.type === "post") return update ? "afterUpdate" : "afterChange"
         if (snapshot.cleanup === "timeline" || description === "timeline") return "automaticPoint"
@@ -61,6 +66,11 @@ Item {
     function acceptStatus(data, updateSchedule) {
         backupsReady = data.ready === true
         liveSession = data.live === true
+        snapshotBoot = data.snapshotBoot === true
+        bootInfo = data.boot || {loader: "", configured: false}
+        packageSnapshots = data.packageSnapshots === true
+        numberLimit = String(data.numberLimit || "")
+        importantLimit = String(data.importantLimit || "")
         if (!backupsReady) return
         snapshotModel.clear()
         for (const snapshot of data.snapshots)
@@ -83,7 +93,7 @@ Item {
     }
 
     function runAction(action, args, updateSchedule) {
-        if (busy || liveSession || (action !== "status" && !backupsReady)) return
+        if (busy || liveSession || snapshotBoot || (action !== "status" && !backupsReady)) return
         busy = true
         statusText = ""
         // Keeps Settings open if the fallback agent needs a separate window.
@@ -138,7 +148,7 @@ Item {
         id: unavailableNotice
         visible: !backupsReady
         width: parent.width
-        text: Lang.get(liveSession ? "backups.liveNotice" : "backups.unavailablePlain", _lang) + (statusText ? "\n" + statusText : "")
+        text: Lang.get(snapshotBoot ? "backups.snapshotBootNotice" : liveSession ? "backups.liveNotice" : "backups.unavailablePlain", _lang) + (statusText ? "\n" + statusText : "")
         color: settingsMenu.darkMode ? "#aaa" : "#555"
         font.pixelSize: 14
         wrapMode: Text.WordWrap
@@ -212,10 +222,54 @@ Item {
 
     Text {
         width: parent.width
-        text: Lang.get("backups.scopePlain", _lang) + "\n\n" + Lang.get("backups.restoreUnavailable", _lang)
+        text: Lang.get("backups.scopePlain", _lang) + "\n\n" + Lang.get("backups.restoreClickUnavailable", _lang)
         color: settingsMenu.darkMode ? "#bbb" : "#555"
         font.pixelSize: 13
         wrapMode: Text.WordWrap
+    }
+
+    Rectangle {
+        width: parent.width
+        height: recoveryInformation.implicitHeight + 32
+        radius: settingsMenu.borderRadius
+        color: settingsMenu.darkMode ? "#141414" : "#f5f5f5"
+        border.width: 1
+        border.color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
+        Column {
+            id: recoveryInformation
+            x: 16; y: 16; width: parent.width - 32; spacing: 10
+            Text {
+                width: parent.width
+                text: Lang.get("backups.packagePointsTitle", _lang)
+                font.pixelSize: 15; font.bold: true
+                color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
+                wrapMode: Text.WordWrap
+            }
+            Text {
+                width: parent.width
+                text: Lang.get(packageSnapshots ? "backups.packagePointsEnabled" : "backups.packagePointsMissing", _lang)
+                    + (packageSnapshots && numberLimit && importantLimit ? "\n" + Lang.get("backups.packageRetention", _lang).replace("%1", numberLimit).replace("%2", importantLimit) : "")
+                font.pixelSize: 13; color: settingsMenu.darkMode ? "#aaa" : "#555"
+                wrapMode: Text.WordWrap
+            }
+            Text {
+                width: parent.width
+                text: Lang.get("backups.bootTitle", _lang)
+                font.pixelSize: 15; font.bold: true
+                color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
+                wrapMode: Text.WordWrap
+            }
+            Text {
+                objectName: "snapshotBootInstructions"
+                width: parent.width
+                text: Lang.get(bootInfo.loader === "systemd-boot" ? "backups.bootSystemd"
+                    : !bootInfo.configured ? "backups.bootUnavailable"
+                    : "backups.boot." + bootInfo.loader, _lang)
+                    + (bootInfo.configured ? "\n\n" + Lang.get("backups.bootReturn", _lang) + "\n\n" + Lang.get("backups.bootFilesSeparate", _lang) : "")
+                font.pixelSize: 13; color: settingsMenu.darkMode ? "#aaa" : "#555"
+                wrapMode: Text.WordWrap
+            }
+        }
     }
 
     // Error message bar (only when error occurs)

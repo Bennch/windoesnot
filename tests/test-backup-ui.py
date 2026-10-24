@@ -40,15 +40,25 @@ ShellRoot {
      testWindow.check(page.pointKind({description:"other",type:"pre"}) === "beforeChange", "do not invent update")
      testWindow.check(page.pointKind({cleanup:"timeline"}) === "automaticPoint", "automatic label")
      testWindow.check(page.pointKind({description:"unknown"}) === "otherPoint", "do not invent manual author")
+     testWindow.check(page.pointKind({description:"tree",type:"post",packageChange:true}) === "afterUpdate", "post package list label")
      page.acceptStatus({ready:true,live:false,snapshots:[{id:"1",date:"2026-10-23T12:00:00",description:"WinDoesNot installation"}],schedule:{daily:"5",hourly:"0",weekly:"0",monthly:"0"},timeline:true,timerActive:true},true)
      testWindow.check(page.pointName("installedPoint", "") === "Nach der Installation", "German label")
      const response = testWindow.find(auth,"authenticationResponse")
      testWindow.check(response.placeholderText === "Passwort eingeben", "German password")
+     const instructions = testWindow.find(page,"snapshotBootInstructions")
+     page.bootInfo={loader:"grub",configured:true}; page.packageSnapshots=true; page.numberLimit="20"; page.importantLimit="5"
+     testWindow.check(instructions.text.indexOf("WinDoesNot snapshots") >= 0, "GRUB guidance")
+     page.bootInfo={loader:"systemd-boot",configured:false}
+     testWindow.check(instructions.text.indexOf("nicht direkt") >= 0, "honest systemd-boot limit")
+     page.bootInfo={loader:"refind",configured:true}
+     testWindow.check(instructions.text.indexOf("Kopie") >= 0, "rEFInd writable copy")
      page.deleteCandidateId="1"; page.deleteCandidateImportant=true; page.confirmDeleteVisible=true
      preferences.uiLanguage="en"; preferences.darkMode=false
      testWindow.check(page.pointName("installedPoint", "") === "After installation", "English label")
      testWindow.check(response.placeholderText === "Enter password", "English password")
      page.confirmDeleteVisible=false
+     page.acceptStatus({ready:false,live:false,snapshotBoot:true},false)
+     testWindow.check(!page.backupsReady && page.snapshotBoot, "snapshot preview cannot mutate")
      console.log("BACKUP_UI_PASS")
     } catch(e) { console.error("BACKUP_UI_FAIL",e) }
     Qt.quit()

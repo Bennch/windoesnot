@@ -1,6 +1,7 @@
 #!/usr/bin/python3 -I
 """Fixed, root-owned pkexec entry point. Never executes caller-supplied commands."""
 import json
+import configparser
 import os
 from pathlib import Path
 import re
@@ -8,6 +9,10 @@ import subprocess
 import sys
 
 CONFIG = Path('/etc/snapper/configs/root')
+INSTALLATION = Path('/var/lib/windoesnot/installation.json')
+SNAP_PAC = Path('/etc/snap-pac.ini')
+PRE_HOOK = Path('/usr/share/libalpm/hooks/05-snap-pac-pre.hook')
+SNAPSHOT_BOOT = Path('/run/windoesnot-snapshot-boot')
 OVERRIDE = Path('/etc/systemd/system/snapper-timeline.timer.d/zz-windoesnot.conf')
 PERIODS = ('monthly', 'weekly', 'daily', 'hourly')
 ENV = {'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8'}
@@ -39,13 +44,78 @@ def parse_snapshots(raw):
             result.append({'id': number, 'date': str(row.get('date', '')),
                            'description': str(row.get('description', '')),
                            'type': str(row.get('type', '')),
-                           'cleanup': str(row.get('cleanup', ''))})
+                           'cleanup': str(row.get('cleanup', '')),
+                           'preId': str(row.get('pre-number') or ''),
+                           'packageChange': (row.get('userdata') or {}).get('windoesnot.package-change') == 'yes'
+                               if isinstance(row.get('userdata'), dict) else 'windoesnot.package-change=yes' in str(row.get('userdata') or '')})
+    by_id = {row['id']: row for row in result}
+    for row in result:
+        linked = by_id.get(row['preId'], {})
+        row['packageChange'] = row['packageChange'] or bool(re.search(r'pacman|yay|paru|update|upgrade',
+            row['description'] + ' ' + linked.get('description', ''), re.I))
     return sorted(result, key=lambda row: int(row['id']), reverse=True)
+
+
+def package_snapshots_enabled():
+    if not PRE_HOOK.is_file():
+        return False
+    config = configparser.ConfigParser(interpolation=None)
+    try:
+        if SNAP_PAC.is_file():
+            config.read_string(SNAP_PAC.read_text())
+        return config.getboolean('root', 'snapshot', fallback=True)
+    except (OSError, ValueError, configparser.Error):
+        return False
+
+
+def snapshot_boot_mode():
+    if SNAPSHOT_BOOT.exists():
+        return 'overlay'
+    mount = subprocess.run(['/usr/bin/findmnt', '--mountpoint', '/', '-n', '-o', 'FSTYPE,SOURCE'],
+                           env=ENV, text=True, capture_output=True, timeout=10)
+    fields = mount.stdout.strip().split(maxsplit=1)
+    if not fields:
+        return ''
+    if fields[0] == 'overlay':
+        return 'overlay'
+    source = fields[1] if len(fields) > 1 else ''
+    if '/.snapshots/' in source or '/.refind-btrfs/' in source or '/@rw-snapshots/' in source:
+        return 'snapshot'
+    return ''
+
+
+def enabled(unit):
+    return subprocess.run(['/usr/bin/systemctl', 'is-enabled', '--quiet', unit],
+                          env=ENV, capture_output=True).returncode == 0
+
+
+def boot_status():
+    try:
+        data = json.loads(INSTALLATION.read_text())
+        if type(data) is not dict or data.get('schema_version') != 1 or data.get('filesystem') != 'btrfs':
+            return {'loader': '', 'configured': False}
+        loader = data.get('bootloader', '')
+    except (OSError, ValueError):
+        return {'loader': '', 'configured': False}
+    if loader == 'grub':
+        configured = Path('/etc/grub.d/41_snapshots-btrfs').is_file() and Path('/usr/lib/windoesnot/snapshot-overlay').is_file() and (
+            enabled('grub-btrfsd.service') or enabled('grub-btrfs-snapper.path'))
+    elif loader == 'limine':
+        configured = Path('/etc/limine-snapper-sync.conf').is_file() and enabled('limine-snapper-sync.service')
+    elif loader == 'refind':
+        configured = Path('/boot/EFI/refind/windoesnot-linux.conf').is_file() and enabled('refind-btrfs.service')
+    else:
+        configured = False
+    return {'loader': loader if loader in ('grub', 'limine', 'refind', 'systemd-boot') else '',
+            'configured': configured}
 
 
 def status():
     if Path('/etc/windoesnot-image-build').exists():
         return {'ready': False, 'live': True}
+    mode = snapshot_boot_mode()
+    if mode:
+        return {'ready': False, 'live': False, 'snapshotBoot': True, 'snapshotMode': mode}
     if not CONFIG.is_file() or not Path('/usr/bin/snapper').is_file():
         return {'ready': False, 'live': False}
     values = config_values()
@@ -54,9 +124,12 @@ def status():
         value = values.get('TIMELINE_LIMIT_' + period.upper(), '0')
         # Snapper accepts min-max ranges. Preserve them until explicitly edited.
         schedule[period] = value
-    return {'ready': True, 'live': False,
+    return {'ready': True, 'live': False, 'snapshotBoot': False, 'boot': boot_status(),
+            'packageSnapshots': package_snapshots_enabled(),
+            'numberLimit': values.get('NUMBER_LIMIT', ''),
+            'importantLimit': values.get('NUMBER_LIMIT_IMPORTANT', ''),
             'snapshots': parse_snapshots(run('/usr/bin/snapper', '--no-dbus', '--jsonout',
-                '--iso', '-c', 'root', 'list', '--columns', 'number,type,date,description,cleanup')),
+                '--iso', '-c', 'root', 'list', '--columns', 'number,type,pre-number,date,description,cleanup,userdata')),
             'schedule': schedule, 'timeline': values.get('TIMELINE_CREATE') == 'yes',
             'timerActive': subprocess.run(['/usr/bin/systemctl', 'is-active', '--quiet',
                 'snapper-timeline.timer'], env=ENV).returncode == 0}
@@ -121,7 +194,7 @@ def main():
         raise ValueError('Arguments must be an object')
     validate(action, payload)
     if action != 'status':
-        if Path('/etc/windoesnot-image-build').exists() or not CONFIG.is_file():
+        if Path('/etc/windoesnot-image-build').exists() or snapshot_boot_mode() or not CONFIG.is_file():
             raise ValueError('Snapshots are unavailable in this environment')
         if action == 'create':
             run('/usr/bin/snapper', '--no-dbus', '-c', 'root', 'create', '--description', 'manual-quickshell')
