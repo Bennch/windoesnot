@@ -11,6 +11,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'desktop/config/quickshell/default'
 shell = (SOURCE / 'shell.qml').read_text()
+subprocess.run(['qmlformat', str(SOURCE / 'shell.qml')], stdout=subprocess.DEVNULL, check=True)
 tray = re.search(r'    function rebuildTrayModel\(\) \{.*?\n    \}', shell, re.S).group()
 ipc = shell[shell.index('IpcHandler {\n    target: "windoesnot-nearby"'):shell.index('PanelWindow {\n    id: nearbyWindow')]
 ipc = ipc.replace('IpcHandler {', 'IpcHandler { id: nearbyIpc', 1)
@@ -27,6 +28,8 @@ with tempfile.TemporaryDirectory(prefix='wdn-nearby-ui-') as temp:
     (profile / 'widgets').mkdir(parents=True)
     (profile / 'settings').mkdir()
     shutil.copytree(SOURCE / 'i18n', profile / 'i18n')
+    for folder in ('widgets', 'settings'):
+        shutil.copy2(SOURCE / folder / 'qmldir', profile / folder / 'qmldir')
     for name in ('NearbyService', 'NearbyPanel'):
         shutil.copy2(SOURCE / f'widgets/{name}.qml', profile / 'widgets')
     for name in ('SystemToolsButton', 'SystemToolsToggle'):
