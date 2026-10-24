@@ -125,6 +125,11 @@ and are applied when the profile is generated.
 
 ## Contributing
 
+Want to try the preview? [Start with the short testing guide](CONTRIBUTING.md),
+[share your hardware result](https://github.com/Bennch/windoesnot/issues/new?template=hardware_test.yml)
+or [report a bug](https://github.com/Bennch/windoesnot/issues/new?template=bug_report.yml).
+English and German are both welcome.
+
 Issues and ideas are welcome. The project is developed by one person with the help
 of AI coding agents (Claude Code and Codex).
 

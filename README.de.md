@@ -127,6 +127,11 @@ Repository und werden beim Erzeugen des Profils angewendet.
 
 ## Mitmachen
 
+Du möchtest die Vorschau ausprobieren? [Hier steht der kurze Testablauf](CONTRIBUTING.md#deutsch).
+[Melde dein Hardware-Ergebnis](https://github.com/Bennch/windoesnot/issues/new?template=hardware_test.yml)
+oder [beschreibe einen Fehler](https://github.com/Bennch/windoesnot/issues/new?template=bug_report.yml).
+Deutsch und Englisch sind willkommen.
+
 Fehlermeldungen und Ideen sind willkommen. Das Projekt wird von einer Person mit Hilfe
 von KI-Programmieragenten (Claude Code und Codex) entwickelt.
 

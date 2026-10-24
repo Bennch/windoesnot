@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Help and installation / Hilfe und Installation
+    url: https://windoesnot.me/en/help/installation/
+    about: Installation instructions and known preview limitations. Switch to DE for German.

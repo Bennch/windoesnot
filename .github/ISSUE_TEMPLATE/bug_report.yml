@@ -1,0 +1,45 @@
+name: Bug report / Fehler melden
+description: Something does not work. Reports in English or German are welcome.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying WinDoesNot! English and German are both welcome.
+        Danke fürs Ausprobieren! Du kannst auf Deutsch oder Englisch schreiben.
+        Screenshots help; logs are optional. Remove passwords, API keys and personal information.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      value: "0.1.0-18"
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Where does it happen? / Wo tritt es auf?
+      options:
+        - Live USB / Live-ISO
+        - Installed system / Installiertes System
+        - Desktop sources / Desktop-Quellen
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Computer and graphics / Rechner und Grafik
+      description: Model, CPU and GPU if known; say if this is a virtual machine. No serial numbers needed.
+      placeholder: "Laptop or PC model; Intel/AMD/NVIDIA graphics, or QEMU/VirtualBox"
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened? / Was ist passiert?
+      description: What did you do, what happened, and what did you expect? A short description is enough.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or details / Bilder oder Details
+      description: Optional. Drag screenshots here or paste the relevant error text. Please remove private information first.
