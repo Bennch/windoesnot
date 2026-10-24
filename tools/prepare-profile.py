@@ -124,7 +124,6 @@ def main():
     # Win11 assets already used by the shell; preserve their accompanying metadata.
     icon_source = ROOT / 'desktop/config/quickshell/default/img/Win11-dark'
     shutil.copytree(icon_source, a / 'usr/share/icons/Win11', dirs_exist_ok=True)
-    write(a / 'usr/share/backgrounds/windoesnot/wallpaper.svg', '<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1440"><defs><radialGradient id="g"><stop stop-color="#60372a"/><stop offset="1" stop-color="#111316"/></radialGradient></defs><path fill="url(#g)" d="M0 0h2560v1440H0z"/><path d="M0 1180 920 660l720 330 920-650" fill="none" stroke="#fe6f2d" stroke-opacity=".25" stroke-width="2"/></svg>\n')
     write(a / 'etc/windoesnot-image-build', 'development\n')
     write(a/'etc/hostname','windoesnot-live\n')
     # German live preview; Calamares applies the chosen language to the target.
@@ -178,6 +177,9 @@ def main():
     needed = set(execution) | {'welcome','keyboard','locale','partition','users','finished','summary'}
     execution.insert(execution.index('initcpiocfg'), 'shellprocess@preparetarget')
     execution.insert(execution.index('initcpiocfg'), 'windoesnotprepare')
+    # CPU-level repositories, chwd drivers and mirrors; before initcpio so
+    # driver modules land in the initramfs. Needs the keyring from windoesnotprepare.
+    execution.insert(execution.index('initcpiocfg'), 'windoesnotsystem')
     execution.insert(execution.index('bootloader'), 'grubcfg')
     needed.add('grubcfg')
     pages = next(x['show'] for x in settings['sequence'] if 'show' in x)
@@ -203,7 +205,7 @@ def main():
     cfg('users.conf',users)
     cfg('windoesnotboot.conf', {})
     cfg('windoesnotapps.conf', {'catalog':'/usr/share/windoesnot/iso/software/catalog.json', 'mode':'offline'})
-    for job in ['windoesnotprepare','windoesnotapps_install','windoesnotfinish']:
+    for job in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotfinish']:
         cfg(job + '.conf', {'mode':'offline'})
     locale=yaml.safe_load((modules/'locale/locale.conf').read_text())
     locale['geoip']={'style':'none'}
@@ -239,7 +241,7 @@ def main():
     (online / 'branding').symlink_to('../branding',target_is_directory=True)
     shutil.copytree(cal / 'modules', online / 'modules')
     write(online / 'settings.conf',yaml.safe_dump(settings,sort_keys=False))
-    for job in ['windoesnotprepare','windoesnotapps_install','windoesnotfinish','windoesnotapps']:
+    for job in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotfinish','windoesnotapps']:
         config=yaml.safe_load((online / 'modules' / (job+'.conf')).read_text())
         config['mode']='online'
         write(online / 'modules' / (job+'.conf'),yaml.safe_dump(config,sort_keys=False))

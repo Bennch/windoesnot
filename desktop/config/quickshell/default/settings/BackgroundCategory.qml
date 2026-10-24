@@ -13,6 +13,9 @@ Item {
     property var monitors: []
     property var monitorWallpapers: ({})  // {monitorName: wallpaperPath}
     property var availableWallpapers: []
+    // Wallpapers shipped with WinDoesNot (empty when the package directory is missing)
+    property var builtinWallpapers: []
+    readonly property string builtinFolder: "/usr/share/backgrounds/windoesnot"
     property string picturesFolder: ""
     property var settingsMenu: null
     property string _lang: settingsMenu ? settingsMenu.uiLanguage : "de"  // Reference to parent settings window
@@ -25,6 +28,7 @@ Item {
         loadMonitors()
         loadCurrentWallpapers()
         loadAvailableWallpapers()
+        builtinListProc.running = true
     }
 
     // Detect Pictures folder with multilanguage support
@@ -378,6 +382,25 @@ Item {
         }
     }
 
+    Process {
+        id: builtinListProc
+        command: ["bash", "-c", "find '" + root.builtinFolder + "' -maxdepth 1 -type f \\( -iname '*.jpg' -o -iname '*.png' -o -iname '*.webp' \\) | sort"]
+        running: false
+        property string accumulatedData: ""
+        stdout: SplitParser {
+            onRead: function(data) { builtinListProc.accumulatedData += data + "\n" }
+        }
+        onRunningChanged: {
+            if (!running) {
+                // The default wallpaper comes first, the rest stay alphabetical.
+                var list = accumulatedData.split("\n").filter(function(line) { return line.trim() !== "" })
+                list.sort(function(a, b) { return (b.indexOf("-fire.") >= 0) - (a.indexOf("-fire.") >= 0) || a.localeCompare(b) })
+                builtinWallpapers = list
+                accumulatedData = ""
+            }
+        }
+    }
+
     // Apply wallpaper to monitor using hyprpaper IPC
     function setWallpaper(monitorName, wallpaperPath) {
         console.log("Setting wallpaper for", monitorName, "to", wallpaperPath)
@@ -724,6 +747,70 @@ Item {
                 width: parent.width
                 height: 1
                 color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
+            }
+
+            // Wallpapers shipped with WinDoesNot
+            Text {
+                text: Lang.get("background.builtin", _lang)
+                color: settingsMenu.darkMode ? "#aaa" : "#555"
+                font.pixelSize: 13
+                font.bold: true
+                visible: builtinWallpapers.length > 0
+            }
+
+            Grid {
+                width: parent.width
+                columns: 5
+                spacing: 12
+                visible: builtinWallpapers.length > 0
+
+                Repeater {
+                    model: builtinWallpapers
+
+                    delegate: Rectangle {
+                        property string wallpaperPath: modelData
+                        property bool isCurrent: selectedMonitorIndex >= 0 && selectedMonitorIndex < monitors.length
+                                                 && monitorWallpapers[monitors[selectedMonitorIndex].name] === wallpaperPath
+                        width: (parent.width - 48) / 5
+                        height: width * 0.6
+                        radius: 8
+                        color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
+                        border.color: isCurrent ? root.accentColor : (builtinMouseArea.containsMouse ? root.accentColor : (settingsMenu.darkMode ? "#3a3a3a" : "#c0c0c0"))
+                        border.width: isCurrent ? 3 : 2
+                        clip: true
+
+                        Behavior on border.color { ColorAnimation { duration: 150 } }
+
+                        Image {
+                            anchors.fill: parent
+                            anchors.margins: 2
+                            source: "file://" + wallpaperPath
+                            sourceSize.width: 360
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            smooth: true
+                        }
+
+                        MouseArea {
+                            id: builtinMouseArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (selectedMonitorIndex >= 0 && selectedMonitorIndex < monitors.length)
+                                    setWallpaper(monitors[selectedMonitorIndex].name, wallpaperPath)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Text {
+                text: Lang.get("background.yourPictures", _lang)
+                color: settingsMenu.darkMode ? "#aaa" : "#555"
+                font.pixelSize: 13
+                font.bold: true
+                visible: builtinWallpapers.length > 0
             }
 
             // Wallpaper preview grid (current + 2 quick picks + file dialog button)

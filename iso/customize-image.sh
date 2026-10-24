@@ -13,7 +13,6 @@ archiso_image='/boot/initramfs-$kernel.img'
 EOF
 done
 mkinitcpio -P
-rsvg-convert -w 2560 -h 1440 -o /usr/share/backgrounds/windoesnot/wallpaper.png /usr/share/backgrounds/windoesnot/wallpaper.svg
 locale-gen
 project=/usr/share/windoesnot
 "$project/tools/build-image-packages.sh"
