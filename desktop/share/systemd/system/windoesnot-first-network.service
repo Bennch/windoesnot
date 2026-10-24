@@ -1,0 +1,11 @@
+[Unit]
+Description=WinDoesNot: rank download mirrors on the first internet connection
+ConditionPathExists=!/var/lib/windoesnot/mirrors-ranked
+After=network-online.target nss-lookup.target
+
+[Service]
+Type=oneshot
+StateDirectory=windoesnot
+ExecStart=/usr/bin/cachyos-rate-mirrors
+ExecStartPost=/usr/bin/touch /var/lib/windoesnot/mirrors-ranked
+TimeoutStartSec=10min

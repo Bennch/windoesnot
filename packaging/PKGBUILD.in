@@ -16,6 +16,17 @@ build() {
     ./tools/build-components.sh "$srcdir/components"
 }
 
+# Same upstream version and package release as the build; a CPU-level rebuild
+# suffix (.1 from cachyos-v3/v4/znver4) is allowed, a real rebuild is not.
+_abi() {
+    local version upstream release
+    version=$(pacman -Q "$1" | cut -d' ' -f2)
+    upstream=${version%-*}
+    release=${version##*-}
+    release=${release%%.*}
+    printf '%s\n' "$1>=$upstream-$release" "$1<$upstream-$((release + 1))"
+}
+
 _license() {
     install -Dm644 "$srcdir/windoesnot-$pkgver/packaging/LICENSE-NOTES.md" "$pkgdir/usr/share/licenses/$pkgname/LICENSE-NOTES.md"
     install -Dm644 "$srcdir/windoesnot-$pkgver/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
@@ -37,6 +48,8 @@ package_windoesnot-desktop() {
     install -Dm644 desktop/share/applications/windoesnot-settings.desktop "$pkgdir/usr/share/applications/windoesnot-settings.desktop"
     install -d "$pkgdir/usr/share/icons/Win11"
     cp -a desktop/config/quickshell/default/img/Win11-dark/. "$pkgdir/usr/share/icons/Win11/"
+    install -d "$pkgdir/usr/share/backgrounds/windoesnot"
+    install -m644 desktop/share/backgrounds/windoesnot/*.jpg "$pkgdir/usr/share/backgrounds/windoesnot/"
     install -d "$pkgdir/usr/share/windoesnot/branding"
     install -m644 desktop/config/quickshell/default/img/brand/*.png "$pkgdir/usr/share/windoesnot/branding/"
     for size in 16 32 48 64 128 256 512 1024; do
@@ -50,21 +63,25 @@ package_windoesnot-desktop() {
 
 package_windoesnot-tools() {
     pkgdesc='WinDoesNot session, layout, settings and user-code migration tools'
-    depends=(python python-evdev python-gobject python-cairo hyprland polkit)
+    depends=(python python-evdev python-gobject python-cairo hyprland polkit cachyos-rate-mirrors pacman-contrib)
     cd "$srcdir/windoesnot-$pkgver"
     install -d "$pkgdir/usr/bin"
     for command in desktop/bin/*; do
         install -m755 "$command" "$pkgdir/usr/bin/$(basename "$command")"
     done
+    install -Dm755 desktop/lib/windoesnot/system_tools.py "$pkgdir/usr/lib/windoesnot/system_tools.py"
+    install -Dm644 desktop/share/polkit-1/actions/org.windoesnot.system.policy "$pkgdir/usr/share/polkit-1/actions/org.windoesnot.system.policy"
     install -Dm755 desktop/lib/windoesnot/snapshots.py "$pkgdir/usr/lib/windoesnot/snapshots.py"
     install -Dm644 desktop/share/polkit-1/actions/org.windoesnot.snapshots.policy "$pkgdir/usr/share/polkit-1/actions/org.windoesnot.snapshots.policy"
     install -Dm644 desktop/share/systemd/system/windoesnot-super-tap@.service "$pkgdir/usr/lib/systemd/system/windoesnot-super-tap@.service"
+    install -Dm644 desktop/share/systemd/system/windoesnot-first-network.service "$pkgdir/usr/lib/systemd/system/windoesnot-first-network.service"
+    install -Dm755 desktop/share/NetworkManager/dispatcher.d/90-windoesnot-first-network "$pkgdir/usr/lib/NetworkManager/dispatcher.d/90-windoesnot-first-network"
     _license
 }
 
 package_windoesnot-plugins() {
     pkgdesc='WinDoesNot hyprbars and hyprdrag built for a specific Hyprland package'
-    depends=("hyprland=$(pacman -Q hyprland | cut -d' ' -f2)" "libstdc++=$(pacman -Q libstdc++ | cut -d' ' -f2)")
+    depends=($(_abi hyprland) $(_abi libstdc++))
     install -d "$pkgdir/usr/lib/windoesnot/plugins"
     install -m755 "$srcdir/components/plugins/"*.so "$pkgdir/usr/lib/windoesnot/plugins/"
     install -Dm644 "$srcdir/components/BUILD-PACKAGES.txt" "$pkgdir/usr/share/windoesnot/plugins-build.txt"
@@ -74,7 +91,7 @@ package_windoesnot-plugins() {
 
 package_windoesnot-components() {
     pkgdesc='WinDoesNot embedded terminal and patched Snappy window switcher'
-    depends=("qt6-base=$(pacman -Q qt6-base | cut -d' ' -f2)" "qtermwidget=$(pacman -Q qtermwidget | cut -d' ' -f2)" qt6-declarative wayland cairo pango libxkbcommon glib2 librsvg json-c)
+    depends=($(_abi qt6-base) $(_abi qtermwidget) qt6-declarative wayland cairo pango libxkbcommon glib2 librsvg json-c)
     conflicts=(snappy-switcher snappy-switcher-git)
     provides=(snappy-switcher=2.1.2)
     install -d "$pkgdir/usr/lib/windoesnot/LocalTerminal"

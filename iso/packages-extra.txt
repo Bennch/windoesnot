@@ -70,3 +70,4 @@ fakeroot
 zstd
 appstream
 archlinux-appstream-data
+pacman-contrib

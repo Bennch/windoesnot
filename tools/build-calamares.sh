@@ -20,7 +20,7 @@ rm -rf -- /usr/lib/calamares/modules
 cmake --install "$work/build"
 # Python modules are staged at configure time by Calamares. Install our own
 # canonical jobs explicitly too, so a resumed build cannot retain an older copy.
-for name in windoesnotprepare windoesnotapps_install windoesnotfinish; do
+for name in windoesnotprepare windoesnotsystem windoesnotapps_install windoesnotfinish; do
     install -d "/usr/lib/calamares/modules/$name"
     install -m644 "$project/iso/modules/$name/main.py" "$project/iso/modules/$name/module.desc" "/usr/lib/calamares/modules/$name/"
 done

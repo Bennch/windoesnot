@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
+windoesnot-setup-notice &
 exec windoesnot-layout --watch

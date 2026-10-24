@@ -19,7 +19,7 @@ assert (a/'usr/share/windoesnot/vendor/calamares/src/modules/windoesnotapps_inst
 assert (a/'usr/share/windoesnot/iso/software/catalog.json').is_file()
 assert 'software/prepare.py' in (a/'root/customize_airootfs.sh').read_text()
 assert sequence.index('shellprocess@preparetarget')<sequence.index('initcpiocfg')<sequence.index('initcpio')<sequence.index('bootloader')<sequence.index('shellprocess')
-assert sequence.index('shellprocess@preparetarget') < sequence.index('windoesnotprepare') < sequence.index('initcpiocfg')
+assert sequence.index('shellprocess@preparetarget') < sequence.index('windoesnotprepare') < sequence.index('windoesnotsystem') < sequence.index('initcpiocfg')
 assert sequence.index('grubcfg') < sequence.index('bootloader')
 boot=yaml.safe_load((cal/'modules/bootloader.conf').read_text())
 assert boot['efiBootLoader']=='grub' and boot['efiBootLoaderVar']=='packagechooser_bootloader'
@@ -71,7 +71,7 @@ assert 'windoesnot.install=online' in launcher and '--offline' in launcher
 for mode,directory in [('offline',cal),('online',cal/'online')]:
     mode_settings=yaml.safe_load((directory/'settings.conf').read_text())
     assert mode_settings['sequence']==settings['sequence']
-    for module in ['windoesnotprepare','windoesnotapps_install','windoesnotfinish','windoesnotapps']:
+    for module in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotfinish','windoesnotapps']:
         assert yaml.safe_load((directory/'modules'/(module+'.conf')).read_text())['mode']==mode
     requirements=yaml.safe_load((directory/'modules/welcome.conf').read_text())['requirements']
     assert ('internet' in requirements['required'])==(mode=='online')

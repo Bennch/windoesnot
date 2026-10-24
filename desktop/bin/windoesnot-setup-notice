@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+"""Show once per user what the installer recognized and set up."""
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import time
+
+RECORD = Path('/var/lib/windoesnot/system-setup.json')
+PROFILES = {
+    'nvidia-open-dkms': ('NVIDIA', 'NVIDIA'),
+    'nvidia-open-dkms.prime': ('NVIDIA mit Hybridgrafik', 'NVIDIA hybrid graphics'),
+    'nouveau': ('NVIDIA (nouveau)', 'NVIDIA (nouveau)'),
+    'intel': ('Intel', 'Intel'),
+    'amd': ('AMD', 'AMD'),
+    'qemu': ('virtuelle Maschine', 'virtual machine'),
+    'virtualbox': ('VirtualBox', 'VirtualBox'),
+    'vmware': ('VMware', 'VMware'),
+    'fallback': ('Standardgrafik', 'standard graphics'),
+}
+LEVELS = {'znver4': 'AMD Zen 4/5', 'v4': 'x86-64-v4', 'v3': 'x86-64-v3'}
+
+
+def summary(data, german):
+    lines = []
+    level = data.get('cpu_level')
+    if level in LEVELS:
+        lines.append(f'Optimierte Pakete für {LEVELS[level]}' if german else f'Optimized packages for {LEVELS[level]}')
+    else:
+        lines.append('Standardpakete (x86-64)' if german else 'Standard packages (x86-64)')
+    names = [PROFILES.get(p, (p, p))[0 if german else 1] for p in data.get('driver_profiles', [])]
+    if data.get('drivers') == 'configured' and names:
+        lines.append(('Treiber: ' if german else 'Drivers: ') + ', '.join(names))
+    else:
+        lines.append('Grafiktreiber folgt mit dem ersten Update' if german else 'Graphics driver follows with the first update')
+    if data.get('mirrors_ranked'):
+        lines.append('Schnellste Download-Server ausgewählt' if german else 'Fastest download servers selected')
+    else:
+        lines.append('Download-Server werden bei der ersten Internetverbindung gewählt' if german else 'Download servers are chosen on the first internet connection')
+    return lines
+
+
+def main():
+    state = Path(os.environ.get('XDG_STATE_HOME', Path.home() / '.local/state')) / 'windoesnot/setup-notice-shown'
+    if state.exists() or not RECORD.is_file() or not shutil.which('notify-send'):
+        return
+    try:
+        data = json.loads(RECORD.read_text())
+    except (OSError, ValueError):
+        return
+    german = os.environ.get('LANG', '').startswith('de')
+    # swaync starts in the same autostart batch; give it a moment to own the bus name.
+    for _ in range(30):
+        if subprocess.run(['busctl', '--user', 'status', 'org.freedesktop.Notifications'], capture_output=True).returncode == 0:
+            break
+        time.sleep(1)
+    title = 'WinDoesNot ist für deinen Rechner eingerichtet' if german else 'WinDoesNot is set up for your computer'
+    body = '\n'.join('• ' + line for line in summary(data, german))
+    if subprocess.run(['notify-send', '--app-name=WinDoesNot', '--icon=windoesnot', '--expire-time=15000', title, body]).returncode == 0:
+        state.parent.mkdir(parents=True, exist_ok=True)
+        state.touch()
+
+
+if __name__ == '__main__':
+    main()

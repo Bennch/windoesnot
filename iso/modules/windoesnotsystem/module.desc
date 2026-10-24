@@ -1,0 +1,5 @@
+---
+type: job
+name: windoesnotsystem
+interface: python
+script: main.py

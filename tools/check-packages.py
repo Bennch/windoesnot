@@ -2,8 +2,19 @@
 """Validate package contents, public readability and ABI version requirements."""
 import argparse
 from pathlib import Path
+import re
 import subprocess
 import tarfile
+
+def abi_range(metadata,name):
+    """Require name>=V-R and name<V-(R+1): CPU-level .N rebuilds pass, real rebuilds do not."""
+    depends=[line[len('depend = '):] for line in metadata.splitlines() if line.startswith('depend = ')]
+    lower=[d for d in depends if d.startswith(name+'>=')]
+    upper=[d for d in depends if d.startswith(name+'<') and not d.startswith(name+'<=')]
+    assert len(lower)==1 and len(upper)==1 and not any(d==name or d.startswith(name+'=') for d in depends),(name,depends)
+    match=re.fullmatch(re.escape(name)+r'>=(.+)-(\d+)',lower[0])
+    assert match,lower[0]
+    assert upper[0]==f'{name}<{match[1]}-{int(match[2])+1}',(lower[0],upper[0])
 
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('directory',type=Path)
@@ -37,9 +48,9 @@ for package in sorted(args.directory.glob('*.pkg.tar.zst')):
     assert process.wait()==0
     assert metadata
     if name=='windoesnot-plugins':
-        assert 'depend = hyprland=' in metadata and 'depend = libstdc++=' in metadata
+        abi_range(metadata,'hyprland'); abi_range(metadata,'libstdc++')
     if name=='windoesnot-components':
-        assert 'depend = qt6-base=' in metadata and 'depend = qtermwidget=' in metadata
+        abi_range(metadata,'qt6-base'); abi_range(metadata,'qtermwidget')
     if name in ('windoesnot-plugins','windoesnot-components'):
         assert '-march=x86-64' in flags and '-mtune=generic' in flags and '-march=native' not in flags
     if name=='windoesnot-store':
@@ -49,4 +60,4 @@ assert set(found)==expected and len(set(found.values()))==1
 if args.store:
     print('PASS: store package, root ownership, readable code, no setuid, no private state, desktop runtime dependencies')
 else:
-    print('PASS: four matching packages, root ownership, readable code, no private state, exact native ABI dependencies, generic CPU flags')
+    print('PASS: four matching packages, root ownership, readable code, no private state, native ABI version ranges, generic CPU flags')
