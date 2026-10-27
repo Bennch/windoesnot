@@ -10,6 +10,16 @@ build="$project/build/$build_id"
 image="$build/work/x86_64/airootfs"
 [[ -f "$image/etc/windoesnot-image-build" && -f "$build/work/base._make_customize_airootfs" ]] || { echo 'Expected a completed project image.' >&2; exit 2; }
 (( EUID != 0 )) || { echo 'Run as the regular build user; arch-chroot uses its own user namespace.' >&2; exit 2; }
+python3 - "$project" "$image" <<'CHECK'
+from pathlib import Path
+import sys
+project,image=map(Path,sys.argv[1:])
+sys.path.insert(0,str(project/'iso'))
+from boot_environment import configuration_ready
+base=image/'etc/windoesnot-calamares'
+if not all(configuration_ready(base/mode) for mode in ('','online')):
+    raise SystemExit('Installer workflow changed: prepare a fresh profile/image before using desktop-only refresh. No image files were changed.')
+CHECK
 if $resume; then
     [[ -d "$build/desktop-before-refresh" ]] || { echo 'No interrupted refresh to resume.' >&2; exit 2; }
 else
@@ -35,6 +45,7 @@ project=/usr/share/windoesnot
 if [[ ${WINDOESNOT_SKIP_DESKTOP:-false} != true ]]; then "$project/tools/build-image-packages.sh"; fi
 "$project/tools/build-installer-module.sh"
 python3 "$project/iso/brand-installer.py"
+python3 "$project/tools/check-image-installer.py"
 install -m755 "$project/iso/windoesnot-installer" /usr/local/bin/windoesnot-installer
 install -m755 "$project/iso/windoesnot-installer" /usr/local/bin/calamares-online.sh
 HOME=/etc/skel XDG_CONFIG_HOME=/etc/skel/.config XDG_STATE_HOME=/etc/skel/.local/state windoesnot-initialize

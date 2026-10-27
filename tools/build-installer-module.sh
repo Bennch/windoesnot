@@ -25,7 +25,7 @@ cmake -S "$work" -B "$work/build" -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_I
 cmake --build "$work/build" -j "${BUILD_JOBS:-4}"
 cmake --install "$work/build"
 # Our Python jobs have no compiled target; refresh them alongside the views.
-for name in windoesnotprepare windoesnotsystem windoesnotapps_install windoesnotfinish; do
+for name in windoesnotprepare windoesnotsystem windoesnotapps_install windoesnotfinish windoesnotbootreuse; do
     install -d "/usr/lib/calamares/modules/$name"
     install -m644 "$project/iso/modules/$name/main.py" "$project/iso/modules/$name/module.desc" "/usr/lib/calamares/modules/$name/"
 done

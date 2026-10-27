@@ -11,7 +11,9 @@ args=parser.parse_args()
 root=args.root
 base=root/'usr/share/windoesnot'
 assert (root/'etc/windoesnot-image-build').is_file(),'Not a prepared live image'
-for name in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotfinish']:
+assert (root/'usr/lib/os-probes/55windoesnot-btrfs').read_bytes()==(base/'iso/os-prober-btrfs').read_bytes(),'Missing Btrfs os-prober extension'
+assert (root/'usr/lib/os-probes/55windoesnot-btrfs').stat().st_mode & 0o111
+for name in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotfinish','windoesnotbootreuse']:
     for filename in ['main.py','module.desc']:
         source=base/'iso/modules'/name/filename
         installed=root/'usr/lib/calamares/modules'/name/filename
@@ -21,6 +23,11 @@ for name in ['windoesnotapps','windoesnotboot']:
 for mode,directory in [('offline',root/'etc/windoesnot-calamares'),('online',root/'etc/windoesnot-calamares/online')]:
     settings=yaml.safe_load((directory/'settings.conf').read_text())
     assert 'windoesnotboot' in settings['sequence'][0]['show']
+    execution=next(step['exec'] for step in settings['sequence'] if 'exec' in step)
+    assert execution.index('windoesnotbootreuse@preflight') < execution.index('partition')
+    assert execution.index('windoesnotbootreuse@guard') < execution.index('unpackfs')
+    assert execution.index('windoesnotbootreuse@finish') < execution.index('umount')
+    assert yaml.safe_load((directory/'modules/bootloader.conf').read_text())['efiBootLoaderVar']=='windoesnotBootInstall'
     for name in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotfinish','windoesnotapps']:
         assert yaml.safe_load((directory/'modules'/(name+'.conf')).read_text())['mode']==mode
 for name in ['windoesnot-installer','calamares-online.sh']:

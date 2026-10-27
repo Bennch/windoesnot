@@ -22,7 +22,15 @@ assert sequence.index('shellprocess@preparetarget')<sequence.index('initcpiocfg'
 assert sequence.index('shellprocess@preparetarget') < sequence.index('windoesnotprepare') < sequence.index('windoesnotsystem') < sequence.index('initcpiocfg')
 assert sequence.index('grubcfg') < sequence.index('bootloader')
 boot=yaml.safe_load((cal/'modules/bootloader.conf').read_text())
-assert boot['efiBootLoader']=='grub' and boot['efiBootLoaderVar']=='packagechooser_bootloader'
+assert boot['efiBootLoader']=='grub' and boot['efiBootLoaderVar']=='windoesnotBootInstall'
+assert sequence.index('windoesnotbootreuse@preflight') < sequence.index('partition')
+assert sequence.index('mount') < sequence.index('windoesnotbootreuse@guard') < sequence.index('unpackfs')
+assert sequence.index('grubcfg') < sequence.index('windoesnotbootreuse@install') < sequence.index('bootloader')
+assert sequence.index('windoesnotfinish') < sequence.index('windoesnotbootreuse@finish') < sequence.index('umount')
+assert (a/'usr/share/windoesnot/iso/boot_environment.py').is_file()
+assert (a/'usr/lib/os-probes/55windoesnot-btrfs').read_bytes()==(a/'usr/share/windoesnot/iso/os-prober-btrfs').read_bytes()
+assert (a/'usr/lib/os-probes/55windoesnot-btrfs').stat().st_mode & 0o111
+assert (a/'usr/share/windoesnot/vendor/calamares/src/modules/windoesnotbootreuse/module.desc').is_file()
 partition=yaml.safe_load((cal/'modules/partition.conf').read_text())
 assert partition['efiSystemPartition']=='/boot' and partition['efiSystemPartitionSize']=='1024M'
 assert '${USER}' in yaml.safe_load((cal/'modules/shellprocess.conf').read_text())['script'][0]['command']

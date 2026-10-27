@@ -19,6 +19,7 @@ python-cairo
 python-evdev
 python-requests
 python-websockets
+python-yaml
 adw-gtk-theme
 syntax-highlighting
 qt6-5compat

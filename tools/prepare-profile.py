@@ -125,6 +125,7 @@ def main():
     icon_source = ROOT / 'desktop/config/quickshell/default/img/Win11-dark'
     shutil.copytree(icon_source, a / 'usr/share/icons/Win11', dirs_exist_ok=True)
     write(a / 'etc/windoesnot-image-build', 'development\n')
+    write(a / 'usr/lib/os-probes/55windoesnot-btrfs', (ROOT / 'iso/os-prober-btrfs').read_text(), True)
     write(a/'etc/hostname','windoesnot-live\n')
     # German live preview; Calamares applies the chosen language to the target.
     write(a/'etc/locale.conf','LANG=de_DE.UTF-8\n')
@@ -171,6 +172,8 @@ def main():
         shutil.copy2(brand / name, cal / 'branding/windoesnot' / name)
     write(cal/'branding/windoesnot/branding.desc',yaml.safe_dump(branding,sort_keys=False))
     settings['instances'] = [{'id':'preparetarget','module':'shellprocess','config':'shellprocess-preparetarget.conf'}]
+    settings['instances'] += [{'id':stage,'module':'windoesnotbootreuse','config':'windoesnotbootreuse-'+stage+'.conf'}
+                              for stage in ['preflight','guard','install','finish']]
     execution = next(x['exec'] for x in settings['sequence'] if 'exec' in x)
     execution[:] = [x for x in execution if x not in ['zfs','zfshostid','packages@offline','shellprocess@before']]
     (cal / 'modules').mkdir(exist_ok=True)
@@ -181,6 +184,9 @@ def main():
     # driver modules land in the initramfs. Needs the keyring from windoesnotprepare.
     execution.insert(execution.index('initcpiocfg'), 'windoesnotsystem')
     execution.insert(execution.index('bootloader'), 'grubcfg')
+    execution.insert(execution.index('partition'), 'windoesnotbootreuse@preflight')
+    execution.insert(execution.index('unpackfs'), 'windoesnotbootreuse@guard')
+    execution.insert(execution.index('bootloader'), 'windoesnotbootreuse@install')
     needed.add('grubcfg')
     pages = next(x['show'] for x in settings['sequence'] if 'show' in x)
     pages.insert(pages.index('partition'), 'windoesnotboot')
@@ -188,6 +194,7 @@ def main():
     # The finalizer has initialized the target keyring before offline app installation.
     execution.insert(execution.index('shellprocess') + 1, 'windoesnotapps_install')
     execution.insert(execution.index('windoesnotapps_install') + 1, 'windoesnotfinish')
+    execution.insert(execution.index('windoesnotfinish') + 1, 'windoesnotbootreuse@finish')
     for name in needed:
         p = modules / name / f'{name}.conf'
         if p.exists(): shutil.copy2(p, cal / 'modules' / p.name)
@@ -204,6 +211,8 @@ def main():
     users['hostname']['template']='${first}-windoesnot'
     cfg('users.conf',users)
     cfg('windoesnotboot.conf', {})
+    for stage in ['preflight','guard','install','finish']:
+        cfg('windoesnotbootreuse-'+stage+'.conf', {'stage':stage})
     cfg('windoesnotapps.conf', {'catalog':'/usr/share/windoesnot/iso/software/catalog.json', 'mode':'offline'})
     for job in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotfinish']:
         cfg(job + '.conf', {'mode':'offline'})
@@ -221,7 +230,7 @@ def main():
     unpack['unpack'].append({'source':'/run/archiso/bootmnt/arch/boot/x86_64/vmlinuz-linux-cachyos-lts','sourcefs':'file','destination':'/boot/vmlinuz-linux-cachyos-lts'})
     cfg('unpackfs.conf', unpack)
     boot = yaml.safe_load((modules / 'bootloader/bootloader.conf').read_text())
-    boot['efiBootLoaderVar']='packagechooser_bootloader'
+    boot['efiBootLoaderVar']='windoesnotBootInstall'
     boot.update(efiBootLoader='grub',efiBootloaderId='WinDoesNot',installEFIFallback=True)
     boot['kernelParams']=[p for p in KERNEL_PARAMS if p!='splash']  # Upstream adds splash when Plymouth is present.
     boot.pop('limineSplashLogo',None)

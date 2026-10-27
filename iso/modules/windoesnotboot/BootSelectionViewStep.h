@@ -5,6 +5,8 @@
 #include "viewpages/ViewStep.h"
 #include <QVariantMap>
 class BootSelectionWidget;
+class QProcess;
+class QTimer;
 class PLUGINDLLEXPORT BootSelectionViewStep : public Calamares::ViewStep {
     Q_OBJECT
 public:
@@ -12,7 +14,7 @@ public:
     QString prettyName() const override;
     QString prettyStatus() const override;
     QWidget* widget() override;
-    bool isNextEnabled() const override { return true; }
+    bool isNextEnabled() const override;
     bool isBackEnabled() const override { return true; }
     bool isAtBeginning() const override { return true; }
     bool isAtEnd() const override { return true; }
@@ -22,5 +24,12 @@ public:
     void setConfigurationMap(const QVariantMap&) override {}
 private:
     BootSelectionWidget* m_widget = nullptr;
+    QProcess* m_firmwareProbe = nullptr;
+    QTimer* m_firmwareTimeout = nullptr;
+    QTimer* m_systemsTimer = nullptr;
+    QProcess* m_reuseProbe = nullptr;
+    QTimer* m_reuseTimeout = nullptr;
+    int m_systemsAttempts = 0;
+    void refreshSystems();
 };
 CALAMARES_PLUGIN_FACTORY_DECLARATION(BootSelectionViewStepFactory)

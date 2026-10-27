@@ -1,0 +1,51 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Let the existing os-prober Linux tests inspect common Btrfs root subvolumes.
+
+The regular 50mounted-tests probe inspects the top-level GRUB-FUSE mount only.
+GRUB-FUSE is read-only, including when inspecting these additional directories.
+"""
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+
+
+def probe(device):
+    if not device.startswith('/dev/') or os.geteuid() != 0:
+        return 1
+    fs = subprocess.run(['blkid', '-s', 'TYPE', '-o', 'value', device], capture_output=True, text=True, timeout=10)
+    if fs.returncode or fs.stdout.strip() != 'btrfs':
+        return 1
+    directory = Path(tempfile.mkdtemp(prefix='os-prober-btrfs-'))
+    try:
+        mounted = subprocess.run(['grub-mount', device, str(directory)], capture_output=True, timeout=15)
+        if mounted.returncode:
+            return 1
+        for name in ('@', 'root', '@rootfs'):
+            root = directory / name
+            if not root.is_dir():
+                continue
+            for test in ('40lsb', '90linux-distro'):
+                result = subprocess.run(['/usr/lib/os-probes/mounted/' + test, device, str(root), 'btrfs'],
+                                        capture_output=True, text=True, timeout=10)
+                if result.returncode == 0 and result.stdout.strip().startswith(device + ':') and result.stdout.strip().endswith(':linux'):
+                    print(result.stdout.strip())
+                    return 0
+        return 1
+    finally:
+        if directory.is_mount():
+            # A failed unmount must retain the mount point, never delete contents.
+            subprocess.run(['umount', str(directory)], check=True, timeout=10)
+        try:
+            directory.rmdir()
+        except OSError:
+            pass
+
+
+if __name__ == '__main__':
+    try:
+        raise SystemExit(probe(sys.argv[1]) if len(sys.argv) == 2 else 1)
+    except (OSError, subprocess.SubprocessError):
+        raise SystemExit(1)
