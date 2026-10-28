@@ -25,9 +25,12 @@ SOURCE = ROOT / 'desktop/config/quickshell/default'
 HOST = Path.home() / '.config/quickshell/default'
 TERMINAL = 'widgets/terminalmodule/LocalTerminal'
 # Generated at shell start or personal: never replaced by shared sources.
-SKIPPED = {'IconMap.js', 'replace.qml'}
+SKIPPED = {'IconMap.js', 'icon-map.json', 'replace.qml'}
 PERSONAL = ['settings.txt', 'pinned.txt', 'taskbar.txt', 'calendar_notes.json',
-            'settings/copilot-state.json', 'icon-map.json']
+            'settings/copilot-state.json', 'icons.json', 'taskbar_order.txt']
+# Both icon-map.json and IconMap.js are regenerated from desktop entries at
+# startup. New application packages legitimately change them, unlike user pins
+# and desktop icon positions, which must remain unchanged.
 BIN = Path.home() / '.local/bin'
 APPLICATIONS = Path.home() / '.local/share/applications'
 # The start menu reads launchers from desktop files now; the personal Keys entry
