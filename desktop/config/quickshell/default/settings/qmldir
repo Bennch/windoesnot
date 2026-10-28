@@ -17,3 +17,4 @@ SystemToolsButton 1.0 SystemToolsButton.qml
 SystemToolsChoice 1.0 SystemToolsChoice.qml
 SystemToolsToggle 1.0 SystemToolsToggle.qml
 SystemToolsConfirm 1.0 SystemToolsConfirm.qml
+ShellSettings 1.0 ShellSettings.qml
