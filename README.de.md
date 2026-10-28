@@ -143,3 +143,15 @@ Mitgelieferte Fremdkomponenten behalten ihre eigenen Lizenzen; siehe
 
 WinDoesNot ist ein unabhängiges Community-Projekt und steht in keiner Verbindung zu
 Microsoft. Windows ist eine Marke der Microsoft-Unternehmensgruppe.
+
+## Willkommen beim ersten Start
+
+Die nächste Test-ISO bietet direkten Zugriff auf Store, Geräte-Manager,
+Einstellungen, Dateien, Standardbrowser und Terminal. Darunter stehen die
+Einrichtungshinweise für den Rechner. Die Bilder zeigen die neue Oberfläche
+als Vorschau; die öffentliche ISO 0.1.0-18 enthält sie noch nicht.
+
+![Willkommen mit den wichtigsten Programmen im dunklen Modus](docs/screenshots/welcome-dark.png)
+
+[Helle Ansicht](docs/screenshots/welcome-light.png) ·
+[WinDoesNot Geräte-Manager](https://github.com/Bennch/windoesnot-device-manager)

@@ -62,6 +62,18 @@ Arch news shown before system updates.
 - App selection during installation
 - Quiet boot screen with logo; the error console opens automatically or with Esc
 
+## First-run welcome
+
+The next test ISO adds quick access to Store, Device Manager, Settings, Files,
+your default browser and Terminal. The installed system's setup summary stays
+below the shortcuts. These screenshots preview the new interface; the current
+public ISO 0.1.0-18 does not include this screen yet.
+
+![First-run welcome with essential app shortcuts, dark appearance](docs/screenshots/welcome-dark.png)
+
+[Light appearance](docs/screenshots/welcome-light.png) ·
+[WinDoesNot Device Manager](https://github.com/Bennch/windoesnot-device-manager)
+
 ## Status
 
 | Area | State |
