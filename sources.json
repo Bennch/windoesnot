@@ -25,7 +25,7 @@
   "windoesnot-device-manager": {
     "url": "https://github.com/Bennch/windoesnot-device-manager",
     "path": "device-manager",
-    "commit": "184b877b47835763885c1bc77f8ff5151a668fbe",
+    "commit": "28e46a4761c853ac89fb9322781a68beb822200b",
     "upstream": "https://github.com/biglinux/biglinux-driver-manager",
     "upstream_commit": "d468eacf4e422856591ba4e24b3aef22f61b803b"
   }
