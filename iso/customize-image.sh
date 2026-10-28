@@ -16,6 +16,7 @@ mkinitcpio -P
 locale-gen
 project=/usr/share/windoesnot
 "$project/tools/build-image-boot-language.sh"
+"$project/tools/build-image-device-manager.sh"
 "$project/tools/build-image-packages.sh"
 "$project/tools/build-calamares.sh"
 # Version-matched signed optional apps; no online access needed during installation.

@@ -1899,7 +1899,7 @@ PanelWindow {
                             var monH = primaryScreen ? primaryScreen.height : (panelWindow.screen ? panelWindow.screen.height : 800)
                             var monW = primaryScreen ? primaryScreen.width : (panelWindow.screen ? panelWindow.screen.width : 1280)
                             var pmX = Math.max(0, Math.min(monW - pmW, Math.round(sbPos.x + startButton.width / 2 - pmW / 2)))
-                            var pmY = monH - 45 - 492
+                            var pmY = monH - 45 - powerMenu.implicitHeight
                             var pmPosProc = Qt.createQmlObject('import Quickshell.Io; Process { }', panelWindow)
                             pmPosProc.command = ["windoesnot-hyprctl", "keyword", "windowrule[powermenu-config]:move", pmX + " " + pmY]
                             powerMenu.menuX = pmX; powerMenu.menuY = pmY
@@ -5119,12 +5119,17 @@ Process {
     }
 }
 
+Process {
+    id: deviceManagerLauncher
+    command: ["windoesnot-device-manager"]
+}
+
 // Power Menu (StartOrb right-click)
 FloatingWindow {
     id: powerMenu
     visible: false
     implicitWidth: 220
-    implicitHeight: 492
+    implicitHeight: 528
     color: "transparent"
     title: "quickshell-powermenu"
     screen: {
@@ -5242,6 +5247,27 @@ FloatingWindow {
                             ? settingsMenu.defaultTerminal
                             : "ghostty"
                         Qt.createQmlObject('import Quickshell.Io; Process { command: ["bash", "-c", "' + term + ' -e bash -c \\"fastfetch; exec bash\\" & disown"]; running: true }', powerMenu)
+                    }
+                }
+            }
+
+            // Device Manager — same menu row as the neighbouring system tools.
+            Rectangle {
+                width: parent.width; height: 36; radius: settingsMenu.borderRadius
+                property bool hovered: false
+                color: hovered ? (settingsMenu.darkMode ? "#4A4A4D" : "#e0e0e0") : "transparent"
+                Text {
+                    anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
+                    text: Lang.get("power.deviceManager", settingsMenu.uiLanguage)
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                }
+                MouseArea {
+                    anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onEntered: { parent.hovered = true; powerSubMenu.visible = false }
+                    onExited: parent.hovered = false
+                    onClicked: {
+                        powerMenu.visible = false; powerSubMenu.visible = false
+                        deviceManagerLauncher.running = true
                     }
                 }
             }

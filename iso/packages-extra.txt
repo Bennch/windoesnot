@@ -76,3 +76,9 @@ archlinux-appstream-data
 pacman-contrib
 qt6-multimedia-ffmpeg
 localsend
+gtk4
+libadwaita
+polkit
+pciutils
+usbutils
+chwd

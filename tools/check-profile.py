@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Fail early if an upstream update breaks the offline image contract."""
 import argparse
+import hashlib
+import json
 from pathlib import Path
 import yaml
 
@@ -63,6 +65,12 @@ store_pkgbuild=(store/'PKGBUILD').read_text()
 assert 'SKIP' not in store_pkgbuild and '--frozen' in store_pkgbuild and 'cargo fetch' not in store_pkgbuild
 assert sorted(x.name for x in store.glob('*.tar.gz'))==sorted(x for x in store_pkgbuild.split('source=(',1)[1].split(')',1)[0].replace('"',' ').split())
 assert (store/'windoesnot-store.install').is_file()
+device=a/'usr/share/windoesnot/device-manager-build'
+device_source=json.loads((device/'source.json').read_text())
+assert device_source['commit']==json.loads((a/'usr/share/windoesnot/sources.json').read_text())['windoesnot-device-manager']['commit']
+assert device_source['archive_sha256']==hashlib.sha256((device/'windoesnot-device-manager-source.tar.gz').read_bytes()).hexdigest()
+assert device_source['archive_sha256'] in (device/'PKGBUILD').read_text()
+assert 'build-image-device-manager.sh' in (a/'root/customize_airootfs.sh').read_text()
 for required in ['appstream','archlinux-appstream-data','rust','clang']:
     assert required in packages,required
 image_packages=(a/'usr/share/windoesnot/tools/build-image-packages.sh').read_text()

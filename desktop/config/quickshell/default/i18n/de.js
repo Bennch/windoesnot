@@ -689,6 +689,7 @@ var strings = {
     "power.powerManagement": "Energieoptionen",
     "power.eventViewer": "Ereignisanzeige",
     "power.system": "System",
+    "power.deviceManager": "Geräte-Manager",
     "power.networkConnections": "Netzwerkverbindungen",
     "power.diskManager": "Datenträgerverwaltung",
     "power.search": "Suchen",

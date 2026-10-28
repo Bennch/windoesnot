@@ -12,6 +12,10 @@ import subprocess
 import sys
 import yaml
 from live_boot_menu import grub_modes, syslinux_modes
+import importlib.util
+_device_spec = importlib.util.spec_from_file_location("device_manager_source", Path(__file__).with_name("prepare-device-manager.py"))
+_device_module = importlib.util.module_from_spec(_device_spec)
+_device_spec.loader.exec_module(_device_module)
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0,str(ROOT/'iso'))
@@ -118,6 +122,7 @@ def main():
     for name in ['LICENSE', 'THIRD-PARTY.md']:
         shutil.copy2(ROOT / name, payload / name)
     store =stage_store(pins['windoesnot-store'], payload / 'store')
+    _device_module.stage(pins['windoesnot-device-manager'], payload / 'device-manager-build')
     shutil.copytree(args.sources_root/'cachyos-calamares',payload/'vendor/calamares',ignore=shutil.ignore_patterns('.git','__pycache__','build'))
     # Keep the upstream checkout untouched; add our modules only to the generated build copy.
     shutil.copytree(ROOT / 'iso/modules', payload / 'vendor/calamares/src/modules', dirs_exist_ok=True)

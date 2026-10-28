@@ -21,5 +21,12 @@
     "url": "https://github.com/Bennch/windoesnot-store",
     "path": "store",
     "commit": "539e11e78d7baa1aefede43f85ec508f9330c15d"
+  },
+  "windoesnot-device-manager": {
+    "url": "https://github.com/Bennch/windoesnot-device-manager",
+    "path": "device-manager",
+    "commit": "999e6b78198bbbf2707960fab29c034c3390093c",
+    "upstream": "https://github.com/biglinux/biglinux-driver-manager",
+    "upstream_commit": "d468eacf4e422856591ba4e24b3aef22f61b803b"
   }
 }
