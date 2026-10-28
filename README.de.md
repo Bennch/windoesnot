@@ -144,6 +144,9 @@ Mitgelieferte Fremdkomponenten behalten ihre eigenen Lizenzen; siehe
 WinDoesNot ist ein unabhängiges Community-Projekt und steht in keiner Verbindung zu
 Microsoft. Windows ist eine Marke der Microsoft-Unternehmensgruppe.
 
+**Neue Testversion:** [ISO 0.1.0-20-rc1, Prüfsumme und geprüfte Abläufe](TESTING-ISO.md).
+Der reguläre Release-Download bleibt unverändert.
+
 ## Willkommen beim ersten Start
 
 Die nächste Test-ISO bietet direkten Zugriff auf Store, Geräte-Manager,

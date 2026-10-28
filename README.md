@@ -62,6 +62,9 @@ Arch news shown before system updates.
 - App selection during installation
 - Quiet boot screen with logo; the error console opens automatically or with Esc
 
+**New test candidate:** [ISO 0.1.0-20-rc1, checksum and tested paths](TESTING-ISO.md).
+The regular release download remains unchanged.
+
 ## First-run welcome
 
 The next test ISO adds quick access to Store, Device Manager, Settings, Files,
