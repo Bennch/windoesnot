@@ -8,6 +8,8 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
+from unittest.mock import patch
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,6 +25,7 @@ with tempfile.TemporaryDirectory(prefix='wdn-language-welcome-') as temp:
     profile = base / 'profile'
     (profile / 'settings').mkdir(parents=True)
     shutil.copytree(SOURCE / 'i18n', profile / 'i18n')
+    shutil.copytree(SOURCE / 'img/brand', profile / 'img/brand')
     for name in ('InputCategory', 'SystemToolsButton'):
         shutil.copy2(SOURCE / f'settings/{name}.qml', profile / 'settings')
     references = set(re.findall(r'settingsMenu\.(\w+)', (SOURCE / 'settings/InputCategory.qml').read_text()))
@@ -99,10 +102,12 @@ METHODS
         for error in ('ReferenceError', 'TypeError', 'Failed to load configuration', 'Cannot assign', 'Binding loop', '_FAIL'):
             assert error not in result.stdout, result.stdout
 
-    run(profile / 'shell.qml', {}, 'LANGUAGE_UI_PASS')
+    if '--welcome-only' not in sys.argv:
+        run(profile / 'shell.qml', {}, 'LANGUAGE_UI_PASS')
     welcome = (SOURCE / 'SetupWelcome.qml').read_text()
     # Only add a timer: exercise the actual standalone window, sizing and shared button.
     welcome = welcome.replace('        onClosing: Qt.quit()', '''        onClosing: Qt.quit()
+        Component.onCompleted: { width = 920; height = 800 }
         Timer { interval: 100; running: true; onTriggered: {
             if (welcome.width < 600 || welcome.height < 450 || start.text !== welcome.payload.close)
                 console.error("WELCOME_UI_FAIL")
@@ -118,9 +123,17 @@ METHODS
         } }''')
     (profile / 'SetupWelcome.qml').write_text(welcome)
     for language, dark in [('de', 'true'), ('en', 'false')]:
-        payload = notice.welcome_payload({'cpu_level': 'v3', 'drivers': 'configured', 'driver_profiles': ['qemu']},
-                                         {'uiLanguage': language, 'darkMode': dark})
+        # A freshly installed image supplies these six launchers.
+        with patch.object(notice.shutil, 'which', return_value='/usr/bin/fixture'):
+            payload = notice.welcome_payload({'cpu_level': 'v3', 'drivers': 'configured', 'driver_profiles': ['qemu']},
+                                             {'uiLanguage': language, 'darkMode': dark})
+        for app in payload['apps']:
+            icon = profile / app['icon']
+            icon.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(SOURCE / app['icon'], icon)
         assert len(payload['lines']) == 3 and payload['dark'] == (dark == 'true')
+        assert len(payload['apps']) == 6
+        assert all(isinstance(app['command'], list) and isinstance(app['available'], bool) for app in payload['apps'])
         extra = {'WINDOESNOT_WELCOME': json.dumps(payload)}
         screenshots = os.environ.get('WINDOESNOT_TEST_SCREENSHOTS')
         if screenshots:
@@ -128,4 +141,4 @@ METHODS
             extra['WINDOESNOT_WELCOME_SCREENSHOT'] = str(Path(screenshots).resolve() / f'welcome-{language}.png')
         run(profile / 'SetupWelcome.qml', extra, 'WELCOME_UI_PASS')
 
-print('PASS: one language choice, DE/EN, French fallback, failure recovery; welcome window DE/EN and dark/light')
+print('PASS: welcome window with six apps, DE/EN and dark/light' if '--welcome-only' in sys.argv else 'PASS: one language choice, DE/EN, French fallback, failure recovery; welcome window DE/EN and dark/light')

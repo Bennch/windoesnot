@@ -42,12 +42,28 @@ def summary(data, german):
 
 def welcome_payload(data, preferences):
     german = preferences.get('uiLanguage', os.environ.get('LANG', '')[:2]) == 'de'
+    apps = [
+        ('WinDoesNot Store', 'Programme entdecken und aktualisieren', 'Discover and update apps', 'img/scalable/system-software-install.svg', ['windoesnot-store']),
+        ('Geräte-Manager' if german else 'Device Manager', 'Hardware und Treiber verwalten', 'Manage hardware and drivers', 'img/brand/windoesnot-icon-64.png', ['windoesnot-device-manager']),
+        ('Einstellungen' if german else 'Settings', 'Aussehen, Sprache und System anpassen', 'Adjust appearance, language and system', 'img/settings.svg', ['windoesnot-hyprctl', 'dispatch', 'global', 'quickshell:show-settings']),
+        ('Dateien' if german else 'Files', 'Ordner, Dokumente und Laufwerke öffnen', 'Open folders, documents and drives', 'img/folder.svg', ['nautilus']),
+        ('Webbrowser' if german else 'Web browser', 'Mit deinem Standardbrowser ins Internet', 'Go online with your default browser', 'img/scalable/web-browser.svg', ['xdg-open', 'https://windoesnot.me']),
+        ('Terminal', 'Befehle und Werkzeuge für Fortgeschrittene', 'Commands and tools for advanced users', 'img/scalable/terminal.svg', ['ghostty']),
+    ]
     return {
         'dark': preferences.get('darkMode', 'true') == 'true',
         'accent': preferences.get('accentColor', '#FE6F2D'),
         'title': 'Willkommen bei WinDoesNot' if german else 'Welcome to WinDoesNot',
-        'intro': ('Dein System ist eingerichtet. Diese Anpassungen wurden für deinen Rechner gewählt:'
-                  if german else 'Your system is ready. These settings were chosen for your computer:'),
+        'intro': ('Dein System ist bereit. Hier findest du die wichtigsten Programme für den Einstieg.'
+                  if german else 'Your system is ready. Start with these essential apps.'),
+        'appsTitle': 'Deine ersten Schritte' if german else 'Your first steps',
+        'apps': [{'name': name, 'description': de if german else en, 'icon': icon,
+                  'command': command, 'available': bool(shutil.which(command[0]))}
+                 for name, de, en, icon, command in apps],
+        'open': 'Öffnen' if german else 'Open',
+        'unavailable': 'Nicht installiert' if german else 'Not installed',
+        'launchError': 'Das Programm konnte nicht geöffnet werden.' if german else 'The app could not be opened.',
+        'setupTitle': 'Für deinen Rechner eingerichtet' if german else 'Set up for your computer',
         'lines': summary(data, german),
         'hint': ('Du findest diese Informationen auch in den Einstellungen unter „Kernel und Leistung“ und „Wartung“.'
                  if german else 'You can also find this information in Settings under “Kernel and performance” and “Maintenance”.'),
