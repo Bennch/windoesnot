@@ -27,6 +27,8 @@ done
 python3 "$project/iso/brand-installer.py"
 ldconfig
 if ldd /usr/bin/calamares | grep -q 'not found'; then echo 'Unresolved installer library' >&2; exit 1; fi
-QT_QPA_PLATFORM=offscreen /usr/bin/calamares --version --help >/dev/null
+# Do not inherit the host's GTK platform theme or display in the build chroot.
+QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=basic QT_STYLE_OVERRIDE=Fusion \
+    DISPLAY= WAYLAND_DISPLAY= /usr/bin/calamares --version --help >/dev/null
 pacman -Q python boost-libs qt6-base kpmcore > "$project/CALAMARES-BUILD-PACKAGES.txt"
 sha256sum /usr/bin/calamares /usr/lib/libcalamares*.so* > "$project/CALAMARES-SHA256SUMS"
