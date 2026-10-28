@@ -115,7 +115,7 @@ def main():
         p.unlink()
     payload = a / 'usr/share/windoesnot'
     shutil.copytree(ROOT / 'desktop', payload / 'desktop', ignore=shutil.ignore_patterns('import-manifest.json', '.*', '__pycache__'))
-    shutil.copytree(ROOT / 'tools', payload / 'tools', ignore=shutil.ignore_patterns('__pycache__','import-desktop.py'))
+    shutil.copytree(ROOT / 'tools', payload / 'tools', ignore=shutil.ignore_patterns('__pycache__','import-desktop.py','auto-bugfix-watch.sh','systemd'))
     shutil.copytree(ROOT / 'iso', payload / 'iso', ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
     shutil.copytree(ROOT / 'packaging', payload / 'packaging')
     subprocess.run(['python3', str(ROOT / 'tools/prepare-boot-language.py'), '--output', str(payload / 'boot-language-build')], check=True)

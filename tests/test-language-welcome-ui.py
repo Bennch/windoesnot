@@ -63,7 +63,7 @@ METHODS
     testWindow.check(input.item !== null, "language page loaded")
     settingsMenu.selectLanguage("en_US.UTF-8")
     testWindow.check(settingsMenu.uiLanguage === "en" && settingsMenu.localeChangeBusy, "English immediately")
-    testWindow.check(localeProc.command.join("|") === "localectl|set-locale|LANG=en_US.UTF-8", "direct localectl argv")
+    testWindow.check(localeProc.command.join("|") === "localectl|set-locale|LANG=en_US.UTF-8|LC_MESSAGES=en_US.UTF-8|LC_TIME=en_US.UTF-8", "locale, interface and time argv")
     settingsMenu.selectLanguage("fr_FR.UTF-8")
     testWindow.check(settingsMenu.pendingSystemLocale === "en_US.UTF-8", "busy guard")
     settingsMenu.finishLanguageChange(0)
