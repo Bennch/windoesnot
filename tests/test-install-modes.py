@@ -88,12 +88,16 @@ with tempfile.TemporaryDirectory(prefix='wdn-install-modes-') as temporary:
     calls.clear()
     with patch.object(installation.subprocess,'check_output',return_value='ext4\n'),patch.object(installation.subprocess,'run',side_effect=finish_run):
         installation.finish('grub','efi','offline',root)
-    assert not calls
+    assert calls == [['/usr/lib/windoesnot/boot_language.py', 'finish'],
+                     ['systemctl', 'enable', 'windoesnot-boot-language.path']]
     (root/'boot').mkdir()
     (root/'etc/default').mkdir(exist_ok=True)
     (root/'boot/limine.conf').write_text('timeout: 5\ndefault_entry: 2\ncomment: machine-id=test-id\n/+CachyOS\n')
     (root/'etc/default/limine').write_text('ESP_PATH="/boot"\n')
     def limine_run(command,**kwargs):
+        if command in (['/usr/lib/windoesnot/boot_language.py', 'finish'],
+                       ['systemctl', 'enable', 'windoesnot-boot-language.path']):
+            return SimpleNamespace(returncode=0)
         assert command==['limine-update']
         config=(root/'boot/limine.conf').read_text()
         assert config.count('/+WinDoesNot')==1 and '/+CachyOS' not in config
