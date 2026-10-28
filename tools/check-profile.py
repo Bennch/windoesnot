@@ -8,6 +8,7 @@ import yaml
 
 parser=argparse.ArgumentParser();parser.add_argument('profile',type=Path);args=parser.parse_args()
 p=args.profile;a=p/'airootfs';cal=a/'usr/share/windoesnot/iso/calamares'
+assert 'file_permissions["/usr/lib/os-probes/55windoesnot-btrfs"]="0:0:755"' in (p/'profiledef.sh').read_text()
 assert (cal/'qml').is_symlink() and (cal/'qml').readlink()==Path('/usr/share/calamares/qml')
 settings=yaml.safe_load((cal/'settings.conf').read_text())
 sequence=next(s['exec'] for s in settings['sequence'] if 'exec' in s)

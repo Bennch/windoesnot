@@ -268,6 +268,7 @@ def main():
     p=profile/'profiledef.sh'; t=p.read_text().replace('iso_name="cachyos"','iso_name="windoesnot"').replace('COS_','WDN_').replace('iso_publisher="CachyOS <https://cachyos.org>"','iso_publisher="WinDoesNot"').replace('iso_application="CachyOS Live/Rescue DVD"','iso_application="WinDoesNot Hyprland Live and Offline Installer"').replace("airootfs_image_tool_options=('-comp' 'xz' '-Xbcj' 'x86' '-b' '1M' '-Xdict-size' '1M')", "airootfs_image_tool_options=('-comp' 'zstd' '-Xcompression-level' '8' '-b' '1M')")
     t+='\nfile_permissions["/root/customize_airootfs.sh"]="0:0:755"\n'
     t+='file_permissions["/usr/lib/windoesnot/boot-error"]="0:0:755"\n'
+    t+='file_permissions["/usr/lib/os-probes/55windoesnot-btrfs"]="0:0:755"\n'
     for f in [a/'usr/local/bin/windoesnot-installer',a/'etc/skel/Desktop/windoesnot-installer.desktop',payload/'iso/finalize-install.sh',payload/'iso/prepare-target.sh',payload/'tools/build-components.sh']:
         t+=f'file_permissions["/{f.relative_to(a)}"]="0:0:755"\n'
     for f in payload.rglob('*'):
