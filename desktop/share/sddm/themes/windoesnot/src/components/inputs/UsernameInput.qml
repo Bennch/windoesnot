@@ -58,12 +58,14 @@ Rectangle {
             }
             color: config.LoginFieldTextColor
             selectByMouse: true
+            activeFocusOnTab: true
             renderType: Text.QtRendering
             onFocusChanged: if (focus)
                 selectAll()
             onAccepted: userInputContainer.accepted(userInput.text)
 
             KeyNavigation.down: userInputContainer.nextDown
+            KeyNavigation.tab: userInputContainer.nextDown
 
             Rectangle {
                 id: userPlaceholder
@@ -73,7 +75,7 @@ Rectangle {
 
                 Text {
                     anchors.centerIn: parent
-                    text: loginConstants.userName
+                    text: root.systemLocale.text("userName")
                     color: config.PlaceholderTextColor
                     font: userInput.font
                     horizontalAlignment: Text.AlignHCenter

@@ -6,6 +6,9 @@ import Qt5Compat.GraphicalEffects
 Rectangle {
     id: animatedIconButton
     color: "transparent"
+    activeFocusOnTab: true
+    border.width: activeFocus ? 2 : 0
+    border.color: hoverIconColor
 
     property string iconSource: ""
     property color defaultIconColor: config.SystemButtonsIconsColor
@@ -95,4 +98,5 @@ Rectangle {
 
     Keys.onReturnPressed: animatedIconButton.clicked()
     Keys.onEnterPressed: animatedIconButton.clicked()
+    Keys.onSpacePressed: animatedIconButton.clicked()
 }

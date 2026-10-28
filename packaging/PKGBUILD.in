@@ -57,6 +57,7 @@ package_windoesnot-desktop() {
     done
     install -d "$pkgdir/usr/share/sddm/themes/windoesnot" "$pkgdir/usr/share/grub/themes/windoesnot"
     cp -a desktop/share/sddm/themes/windoesnot/. "$pkgdir/usr/share/sddm/themes/windoesnot/"
+    install -Dm644 desktop/share/systemd/system/sddm.service.d/10-windoesnot-locale.conf "$pkgdir/usr/lib/systemd/system/sddm.service.d/10-windoesnot-locale.conf"
     # The greeter only sees system fonts; thyx's Plus Jakarta Sans (OFL) is installed for it.
     install -d "$pkgdir/usr/share/fonts/windoesnot"
     install -m644 desktop/share/sddm/themes/windoesnot/fonts/*.ttf "$pkgdir/usr/share/fonts/windoesnot/"
@@ -66,7 +67,7 @@ package_windoesnot-desktop() {
 
 package_windoesnot-tools() {
     pkgdesc='WinDoesNot session, layout, settings and user-code migration tools'
-    depends=(python python-evdev python-gobject python-cairo hyprland polkit cachyos-rate-mirrors pacman-contrib)
+    depends=(python python-evdev python-gobject python-cairo hyprland polkit cachyos-rate-mirrors pacman-contrib btrfs-progs diffutils)
     cd "$srcdir/windoesnot-$pkgver"
     install -d "$pkgdir/usr/bin"
     for command in desktop/bin/*; do

@@ -16,6 +16,7 @@ public:
     void setDetectedSystems(const QStringList& lines, DetectionState state);
     void setFirmwareEntries(const QString& output, DetectionState state);
     void setReuseOptions(const QJsonArray& options);
+    void setDetectedBootloader(const QString& loader);
     QJsonObject reusePlan() const;
     bool selectionValid() const { return !m_reuseMode || !reusePlan().isEmpty(); }
     std::function<void()> selectionChanged;
@@ -25,6 +26,8 @@ private:
     bool m_efi;
     bool m_german = false;
     QString m_selected = QStringLiteral("grub");
+    QString m_detectedLoader;
+    bool m_userSelected = false;
     QStringList m_systems;
     QString m_firmwareOutput;
     DetectionState m_systemsState = DetectionState::Pending;

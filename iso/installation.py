@@ -197,7 +197,7 @@ def configure_snapshots(bootloader, root):
     if bootloader == 'grub':
         configure_grub_overlay(root)
         config = root / 'etc/default/grub-btrfs/config'
-        set_shell_value(config, 'GRUB_BTRFS_SUBMENUNAME', 'WinDoesNot snapshots')
+        set_shell_value(config, 'GRUB_BTRFS_SUBMENUNAME', 'WinDoesNot restore points')
         set_shell_value(config, 'GRUB_BTRFS_SNAPSHOT_KERNEL_PARAMETERS', 'ro')
         subprocess.run(['systemctl', 'enable', 'grub-btrfsd.service'], check=True)
         subprocess.run(['mkinitcpio', '-P'], check=True)
@@ -237,10 +237,26 @@ def prepare(bootloader, firmware, mode, base=BASE, root=Path('/')):
     record = root / 'var/lib/windoesnot/installation.json'
     record.parent.mkdir(parents=True, exist_ok=True)
     record.write_text(json.dumps({'schema_version': 1, 'mode': mode, 'bootloader': bootloader, 'firmware': firmware, 'filesystem': filesystem}, indent=2) + '\n')
+    # Feed the original Calamares installer the version-matched multilingual
+    # binaries, including Limine's matching BIOS stage and install utility.
+    subprocess.run(['/usr/lib/windoesnot/boot_language.py', 'prepare'], check=True)
 
 
 def finish(bootloader, firmware, mode, root=Path('/')):
     validate_choice(bootloader, firmware, mode)
+    # The base image may contain English category overrides. Match the selected
+    # installer language for messages and the login screen's date/time format.
+    locale_path = root / 'etc/locale.conf'
+    if locale_path.is_file():
+        locale_text = locale_path.read_text()
+        language = re.search(r'(?m)^LANG=(.*)$', locale_text)
+        if language:
+            values = shlex.split(language[1])
+            if len(values) == 1 and re.fullmatch(r'[A-Za-z0-9_.@-]+', values[0]):
+                for key in ('LC_MESSAGES', 'LC_TIME'):
+                    locale_text = re.sub(r'(?m)^' + key + r'=.*\n?', '', locale_text)
+                    locale_text = locale_text.rstrip() + '\n' + key + '=' + values[0] + '\n'
+                locale_path.write_text(locale_text)
     if bootloader == 'systemd-boot':
         subprocess.run(['sdboot-manage', 'gen'], check=True)
     elif bootloader == 'limine':
@@ -263,6 +279,8 @@ def finish(bootloader, firmware, mode, root=Path('/')):
         subprocess.run(['grub-mkconfig', '-o', '/boot/grub/grub.cfg'], check=True)
     if bootloader == 'limine':
         subprocess.run(['limine-update'], check=True)
+    subprocess.run(['/usr/lib/windoesnot/boot_language.py', 'finish'], check=True)
+    subprocess.run(['systemctl', 'enable', 'windoesnot-boot-language.path'], check=True)
     (root / 'var/lib/pacman/sync/windoesnot-apps.db').unlink(missing_ok=True)
 
 

@@ -54,6 +54,7 @@ Rectangle {
             color: config.PasswordFieldTextColor
             focus: true
             selectByMouse: true
+            activeFocusOnTab: true
             renderType: Text.QtRendering
 
             echoMode: TextInput.Password
@@ -62,6 +63,7 @@ Rectangle {
 
             onAccepted: secureInputContainer.accepted(secureInput.text)
             KeyNavigation.down: secureInputContainer.nextDown
+            KeyNavigation.tab: secureInputContainer.nextDown
 
             Rectangle {
                 id: placeholder
@@ -71,7 +73,7 @@ Rectangle {
 
                 Text {
                     anchors.centerIn: parent
-                    text: authConstants.password
+                    text: root.systemLocale.text("password")
                     color: config.PlaceholderTextColor
                     font: secureInput.font
                     horizontalAlignment: Text.AlignHCenter

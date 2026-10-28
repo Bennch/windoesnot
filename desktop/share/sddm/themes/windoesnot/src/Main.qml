@@ -13,6 +13,8 @@ import "ui"
 
 Pane {
     id: root
+    readonly property var systemLocale: greeterLocale
+    SystemLocale { id: greeterLocale }
     height: Screen.height
     width: Screen.width
     padding: 0

@@ -13,6 +13,18 @@ spec = importlib.util.spec_from_file_location('system_tools', ROOT/'desktop/lib/
 m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 
 class SystemTools(unittest.TestCase):
+    def test_shell_allowlist_and_calling_account(self):
+        m.validate('shell-set', {'shell': 'fish'})
+        for value in ['/bin/sh', 'bash;id', '', 'root']:
+            with self.assertRaises(ValueError): m.validate('shell-set', {'shell': value})
+        with patch.dict(m.os.environ, {'PKEXEC_UID': '0'}):
+            with self.assertRaises(ValueError): m.shell_account()
+        with patch.object(m, 'shell_account') as account, patch.object(m, 'shell_status', return_value={'available': ['fish']}), patch.object(m, 'command') as command:
+            account.return_value.pw_name = 'test-user'
+            m.set_shell('fish')
+            command.assert_called_once_with('/usr/bin/usermod', '--shell', '/usr/bin/fish', '--', 'test-user')
+            with self.assertRaises(ValueError): m.set_shell('zsh')
+
     def test_offline_and_partially_available_kernel_catalogue(self):
         missing = m.subprocess.CompletedProcess([], 1, '', "error: package was not found")
         found = m.subprocess.CompletedProcess([], 0, 'Name : linux-cachyos\nVersion : 7.2.7\n', '')

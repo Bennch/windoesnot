@@ -27,6 +27,7 @@ def window_rules(monitor, settings):
         'audio-config': (320, 400, 'right'),
         'bluetooth-config': (320, 450, 'right'),
         'network-config': (320, 500, 'right'),
+        'nearby-config': (400, 580, 'right'),
         'docker-config': (340, 420, 'right'),
         'ollama-config': (360, 480, 'right'),
         'mediaplayer-config': (853, 500, 'top'),

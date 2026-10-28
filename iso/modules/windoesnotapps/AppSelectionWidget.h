@@ -16,6 +16,7 @@ public:
     explicit AppSelectionWidget(const QString& catalogPath, QWidget* parent = nullptr);
     QStringList selectedIds() const;
     QString summary() const;
+    QString selectedShell() const { return m_shell; }
     void setGerman(bool value);
     void setDarkMode(bool value);
     void setOnlineMode(bool value);
@@ -34,6 +35,7 @@ private:
     void notify();
     QJsonObject m_catalog;
     QString m_catalogPath;
+    QString m_shell;
     QSet<QString> m_selected;
     QMap<QString, QCheckBox*> m_boxes;
     QList<QWidget*> m_cards;

@@ -18,6 +18,11 @@ spec=importlib.util.spec_from_file_location('snapshots',ROOT/'desktop/lib/windoe
 backend=importlib.util.module_from_spec(spec);spec.loader.exec_module(backend)
 
 class Snapshots(unittest.TestCase):
+    def test_restore_id_validation(self):
+        backend.validate('restore', {'id': '9'})
+        for value in ['0', '-1', '../9', '9;reboot', 9]:
+            with self.assertRaises(ValueError): backend.validate('restore', {'id': value})
+
     def test_full_offline_union_and_filesystem_matrix(self):
         union=set()
         for loader in installation.BOOT_PACKAGES:

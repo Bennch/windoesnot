@@ -223,6 +223,10 @@ def probe(osprober_lines):
                     candidate.update(kind='grub', **linux_root(roots[0]))
                 else:
                     continue
+                # Identification remains useful even when adding an entry is
+                # blocked by occupied WinDoesNot paths. Do not change reuse rules.
+                if osprober_lines:
+                    result['detected_bootloader'] = candidate['kind']
                 conflicts = reserved_files(esp)
                 if conflicts:
                     result['unavailable'].append(entry['label'] + ': ' + ', '.join(conflicts))

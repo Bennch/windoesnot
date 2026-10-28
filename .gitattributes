@@ -1,0 +1,3 @@
+# Preserve upstream patch bytes, including blank context lines.
+iso/boot-language/refind-gnu-efi-4-compat.patch -whitespace
+iso/boot-language/refind-fix-target-option.patch -whitespace

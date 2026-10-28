@@ -3,6 +3,7 @@
 #include "DllMacro.h"
 #include "utils/PluginFactory.h"
 #include "viewpages/ViewStep.h"
+#include <QStringList>
 #include <QVariantMap>
 class BootSelectionWidget;
 class QProcess;
@@ -30,6 +31,8 @@ private:
     QProcess* m_reuseProbe = nullptr;
     QTimer* m_reuseTimeout = nullptr;
     int m_systemsAttempts = 0;
+    QStringList m_probedSystems;
+    bool m_haveProbedSystems = false;
     void refreshSystems();
 };
 CALAMARES_PLUGIN_FACTORY_DECLARATION(BootSelectionViewStepFactory)

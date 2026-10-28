@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import Quickshell.Io
+import "." as Tools
 import "../i18n/Lang.js" as Lang
 
 Item {
@@ -37,6 +38,16 @@ Item {
     property bool hourlyEnabled: false
     property int hourlyKeep: 6
 
+    Tools.SystemToolsConfirm {
+        id: restorePrompt
+        property string number: ""
+        settingsMenu: backupsCategory.settingsMenu
+        title: Lang.get("backups.restoreConfirm", _lang)
+        description: Lang.get("backups.restoreHint", _lang)
+        confirmText: Lang.get("backups.restoreRestart", _lang)
+        destructive: true
+        onAccepted: backupsCategory.runAction("restore", {id: number}, false)
+    }
     ListModel { id: snapshotModel }
 
     property bool customRetention: false
@@ -123,14 +134,18 @@ Item {
             busy = false
             if (settingsMenu) settingsMenu.fileDialogOpen = false
             if (code === 0) {
-                try { acceptStatus(JSON.parse(snapshotOutput.text), updateSchedule) }
+                try {
+                    const data = JSON.parse(snapshotOutput.text)
+                    if (data.restoring) { busy = true; statusText = Lang.get("backups.restoring", _lang) }
+                    else acceptStatus(data, updateSchedule)
+                }
                 catch (error) { statusText = Lang.get("backups.error", _lang) + ": " + error }
             } else if (code === 126) {
                 statusText = Lang.get("backups.cancelled", _lang)
             } else {
                 let detail = snapshotError.text.trim()
                 try { detail = JSON.parse(detail).error } catch (error) {}
-                statusText = Lang.get("backups.error", _lang) + ": " + detail
+                statusText = detail === "restore-kernel-mismatch" ? Lang.get("backups.restoreKernelMismatch", _lang) : Lang.get("backups.error", _lang) + ": " + detail
             }
         }
     }
@@ -222,7 +237,7 @@ Item {
 
     Text {
         width: parent.width
-        text: Lang.get("backups.scopePlain", _lang) + "\n\n" + Lang.get("backups.restoreClickUnavailable", _lang)
+        text: Lang.get("backups.scopePlain", _lang) + "\n\n" + Lang.get("backups.restoreHint", _lang)
         color: settingsMenu.darkMode ? "#bbb" : "#555"
         font.pixelSize: 13
         wrapMode: Text.WordWrap
@@ -324,7 +339,7 @@ Item {
                     spacing: 0
 
                     Text {
-                        width: parent.width - 60
+                        width: parent.width - 190
                         text: Lang.get("backups.restoreTitle", _lang)
                         color: settingsMenu.darkMode ? "#bbb" : "#555"
                         font.pixelSize: 11
@@ -369,7 +384,7 @@ Item {
                         spacing: 0
 
                         Column {
-                            width: parent.width - 60
+                            width: parent.width - 190
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 3
                             Text {
@@ -393,6 +408,16 @@ Item {
                             }
                         }
 
+                        Item {
+                            width: 130; height: parent.height
+                            Tools.SystemToolsButton {
+                                anchors.centerIn: parent
+                                settingsMenu: backupsCategory.settingsMenu
+                                text: Lang.get("backups.restore", _lang)
+                                enabled: !backupsCategory.busy
+                                onClicked: { restorePrompt.number = model.snapshotId; restorePrompt.open() }
+                            }
+                        }
                         Item {
                             width: 60
                             height: parent.height

@@ -1,0 +1,14 @@
+[Unit]
+Description=Follow system language and generated boot menu changes
+ConditionPathExists=/var/lib/windoesnot/installation.json
+ConditionPathExists=!/etc/windoesnot-image-build
+
+[Path]
+PathChanged=/etc/locale.conf
+PathChanged=/boot/limine.conf
+PathChanged=/boot/refind_linux.conf
+PathChanged=/boot/EFI/refind/windoesnot-linux.conf
+Unit=windoesnot-boot-language.service
+
+[Install]
+WantedBy=multi-user.target

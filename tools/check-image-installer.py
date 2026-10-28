@@ -2,6 +2,7 @@
 """Check actual installed installer files, not only their staged source tree."""
 import argparse
 import json
+import hashlib
 from pathlib import Path
 import yaml
 
@@ -11,6 +12,16 @@ args=parser.parse_args()
 root=args.root
 base=root/'usr/share/windoesnot'
 assert (root/'etc/windoesnot-image-build').is_file(),'Not a prepared live image'
+assert (root/'usr/lib/windoesnot/boot_language.py').is_file(),'Missing boot language runtime'
+boot_language=root/'usr/lib/windoesnot/boot-language'
+boot_manifest=json.loads((boot_language/'manifest.json').read_text())
+assert boot_manifest['runtime_sha256']==hashlib.sha256((root/'usr/lib/windoesnot/boot_language.py').read_bytes()).hexdigest(),'Stale boot language runtime'
+assert boot_manifest['patcher_sha256']==hashlib.sha256((base/'tools/patch-boot-language.py').read_bytes()).hexdigest(),'Stale boot language source patch'
+for name,checksum in boot_manifest['catalogs'].items():
+    assert checksum==hashlib.sha256((base/f'iso/boot-language/{name}-de.json').read_bytes()).hexdigest(),'Stale boot language catalog'
+for name,data in boot_manifest['loaders'].items():
+    for filename,checksum in data['sha256'].items():
+        assert hashlib.sha256((boot_language/name/filename).read_bytes()).hexdigest()==checksum,'Boot language artifact mismatch'
 assert (root/'usr/lib/os-probes/55windoesnot-btrfs').read_bytes()==(base/'iso/os-prober-btrfs').read_bytes(),'Missing Btrfs os-prober extension'
 assert (root/'usr/lib/os-probes/55windoesnot-btrfs').stat().st_mode & 0o111
 for name in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotfinish','windoesnotbootreuse']:

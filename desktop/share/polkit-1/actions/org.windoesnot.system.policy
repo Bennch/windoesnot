@@ -155,4 +155,14 @@
     <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
     <annotate key="org.freedesktop.policykit.exec.argv1">drivers-configure</annotate>
   </action>
+  <action id="org.windoesnot.system.shell-set">
+    <description>Change your login shell</description>
+    <description xml:lang="de">Eigene Terminal-Shell ändern</description>
+    <message>Confirm changing your login shell</message>
+    <message xml:lang="de">Änderung deiner Terminal-Shell bestätigen</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin_keep</allow_active></defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">shell-set</annotate>
+  </action>
 </policyconfig>

@@ -37,15 +37,18 @@ BootSelectionViewStep::BootSelectionViewStep(QObject* parent) : Calamares::ViewS
     connect(m_reuseTimeout,&QTimer::timeout,m_reuseProbe,&QProcess::terminate);
     connect(m_reuseProbe,&QProcess::started,this,[this] {
         const auto lines=Calamares::JobQueue::instance()->globalStorage()->value("osproberLines").toStringList();
+        m_probedSystems=lines;m_haveProbedSystems=true;
         m_reuseProbe->write(QJsonDocument(QJsonObject{{"osprober",QJsonArray::fromStringList(lines)}}).toJson(QJsonDocument::Compact));
         m_reuseProbe->closeWriteChannel();
     });
     connect(m_reuseProbe,&QProcess::errorOccurred,this,[this](QProcess::ProcessError) {
-        m_reuseTimeout->stop();if(m_widget) m_widget->setReuseOptions({});
+        m_reuseTimeout->stop();if(m_widget) { m_widget->setDetectedBootloader({}); m_widget->setReuseOptions({}); }
     });
     connect(m_reuseProbe,&QProcess::finished,this,[this](int code,QProcess::ExitStatus status) {
         m_reuseTimeout->stop();
         const auto result=QJsonDocument::fromJson(m_reuseProbe->readAllStandardOutput());
+        if (m_widget) m_widget->setDetectedBootloader(code==0 && status==QProcess::NormalExit
+            ? result.object().value("detected_bootloader").toString() : QString());
         if(m_widget) m_widget->setReuseOptions(code==0 && status==QProcess::NormalExit
             ?result.object().value("candidates").toArray():QJsonArray());
     });
@@ -65,15 +68,19 @@ QWidget* BootSelectionViewStep::widget() {
 }
 bool BootSelectionViewStep::isNextEnabled() const { return !m_widget || m_widget->selectionValid(); }
 void BootSelectionViewStep::refreshSystems() {
+    if(++m_systemsAttempts>=120) m_systemsTimer->stop();
     auto* storage=Calamares::JobQueue::instance()->globalStorage();
     if(storage->contains("osproberLines")) {
-        m_widget->setDetectedSystems(storage->value("osproberLines").toStringList(),BootSelectionWidget::DetectionState::Available);
-        m_systemsTimer->stop();
-        if(QFileInfo::exists("/sys/firmware/efi") && m_reuseProbe->state()==QProcess::NotRunning) {
+        const auto lines=storage->value("osproberLines").toStringList();
+        m_widget->setDetectedSystems(lines,BootSelectionWidget::DetectionState::Available);
+        // Calamares can publish its list incrementally. Watch that same list;
+        // inspect a changed result once, never start another OS scan.
+        if(QFileInfo::exists("/sys/firmware/efi") && m_reuseProbe->state()==QProcess::NotRunning
+                && (!m_haveProbedSystems || lines!=m_probedSystems)) {
             m_reuseProbe->start("/usr/bin/python3",{QStringLiteral("/usr/share/windoesnot/iso/boot_environment.py")});
             m_reuseTimeout->start(90000);
         }
-    } else if(++m_systemsAttempts>=120) {
+    } else if(m_systemsAttempts>=120) {
         m_widget->setDetectedSystems({},BootSelectionWidget::DetectionState::Unavailable);
         m_systemsTimer->stop();
     }
@@ -82,6 +89,7 @@ void BootSelectionViewStep::onActivate() {
     widget();m_widget->setGerman(QLocale().language()==QLocale::German);
     // Reuse Calamares' existing Windows/Linux scan; never run a second os-prober.
     m_systemsAttempts=0;
+    m_haveProbedSystems=false;
     m_systemsTimer->start();
     refreshSystems();
     if(QFileInfo::exists("/sys/firmware/efi") && m_firmwareProbe->state()==QProcess::NotRunning) {

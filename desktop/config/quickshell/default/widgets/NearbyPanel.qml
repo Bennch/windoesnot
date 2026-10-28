@@ -15,10 +15,13 @@ Rectangle {
     readonly property var viewState: service ? service.state : ({devices:[],selected:[],history:[]})
     readonly property color foreground: darkMode ? "#eeeeee" : "#202020"
     readonly property color secondary: darkMode ? "#bbbbbb" : "#555555"
-    color: darkMode ? "#1a1a1a" : "#ffffff"
+    color: darkMode ? Qt.rgba(0.125, 0.125, 0.125, 0.93) : Qt.rgba(0.95, 0.95, 0.95, 0.97)
     border.width: 1
-    border.color: darkMode ? "#3a3a3a" : "#d0d0d0"
-    radius: borderRadius
+    border.color: darkMode ? "#3a3a3f" : "#c0c0c0"
+    topLeftRadius: borderRadius
+    topRightRadius: borderRadius
+    bottomLeftRadius: 0
+    bottomRightRadius: 0
     width: 400; height: 580
 
     function tr(key) { return Lang.get(key, uiLanguage) }

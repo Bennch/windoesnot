@@ -46,7 +46,7 @@ def refresh():
     # Static placement rules only affect the next map. Also fit already-open
     # shell windows after a scale/orientation change, in global logical pixels.
     titles = {'quickshell-' + name: name + '-config' for name in
-              ['startmenu','settings','calendar','audio','bluetooth','network','docker','ollama','mediaplayer','colorpalette','search']}
+              ['startmenu','settings','calendar','audio','bluetooth','network','nearby','docker','ollama','mediaplayer','colorpalette','search']}
     titles['quickshell-does-pinned'] = 'copilot-config-pinned'
     titles['quickshell-copilot-pinned'] = 'copilot-config-pinned'
     clients = json.loads(subprocess.check_output(['/usr/bin/hyprctl','clients','-j'], text=True))

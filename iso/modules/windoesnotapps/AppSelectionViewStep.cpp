@@ -38,5 +38,9 @@ QWidget* AppSelectionViewStep::widget() {
 bool AppSelectionViewStep::isNextEnabled() const { return m_errorWidget == nullptr; }
 void AppSelectionViewStep::onActivate() { widget(); if(m_widget) m_widget->setGerman(german()); }
 void AppSelectionViewStep::onLeave() {
-    if (m_widget) Calamares::JobQueue::instance()->globalStorage()->insert("windoesnotSoftwareSelection",m_widget->selectedIds());
+    if (m_widget) {
+        auto* storage = Calamares::JobQueue::instance()->globalStorage();
+        storage->insert("windoesnotSoftwareSelection",m_widget->selectedIds());
+        storage->insert("windoesnotUserShell", m_widget->selectedShell());
+    }
 }

@@ -12,11 +12,16 @@ image="$build/work/x86_64/airootfs"
 (( EUID != 0 )) || { echo 'Run as the regular build user; arch-chroot uses its own user namespace.' >&2; exit 2; }
 python3 - "$project" "$image" <<'CHECK'
 from pathlib import Path
-import sys
+import sys,json,hashlib
 project,image=map(Path,sys.argv[1:])
 sys.path.insert(0,str(project/'iso'))
 from boot_environment import configuration_ready
 base=image/'etc/windoesnot-calamares'
+if not (image/'usr/lib/windoesnot/boot_language.py').is_file() or not (image/'usr/lib/windoesnot/boot-language/manifest.json').is_file():
+    raise SystemExit('Bootloader language package missing: prepare a fresh profile/image. No image files were changed.')
+boot_language=json.loads((image/'usr/lib/windoesnot/boot-language/manifest.json').read_text())
+if boot_language.get('runtime_sha256')!=hashlib.sha256((project/'desktop/lib/windoesnot/boot_language.py').read_bytes()).hexdigest() or boot_language.get('patcher_sha256')!=hashlib.sha256((project/'tools/patch-boot-language.py').read_bytes()).hexdigest() or any(boot_language.get('catalogs',{}).get(name)!=hashlib.sha256((project/f'iso/boot-language/{name}-de.json').read_bytes()).hexdigest() for name in ('limine','refind','systemd-boot')):
+    raise SystemExit('Bootloader language sources changed: rebuild the language package in a fresh profile/image. No image files were changed.')
 if not all(configuration_ready(base/mode) for mode in ('','online')):
     raise SystemExit('Installer workflow changed: prepare a fresh profile/image before using desktop-only refresh. No image files were changed.')
 CHECK

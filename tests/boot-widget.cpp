@@ -7,6 +7,21 @@
 #include <cassert>
 int main(int argc,char** argv) {
     QApplication app(argc,argv);
+    BootSelectionWidget autoDetected(true);
+    autoDetected.setDetectedBootloader("systemd-boot");
+    assert(autoDetected.selected() == "systemd-boot");
+    assert(autoDetected.findChild<QLabel*>("bootloader-installed"));
+    autoDetected.setDetectedBootloader({});
+    assert(autoDetected.selected() == "grub");
+    assert(!autoDetected.findChild<QLabel*>("bootloader-installed"));
+    autoDetected.setDetectedBootloader("systemd-boot");
+    autoDetected.findChild<QRadioButton*>("bootloader-grub")->click();
+    autoDetected.setDetectedBootloader("refind");
+    assert(autoDetected.selected() == "grub");
+    BootSelectionWidget legacy(false);
+    legacy.setDetectedBootloader("refind");
+    assert(legacy.selected() == "grub");
+    assert(!legacy.findChild<QLabel*>("bootloader-installed"));
     BootSelectionWidget efi(true);
     assert(efi.selected()=="grub");
     for(const auto* id:{"grub","refind","systemd-boot","limine"}) assert(efi.findChild<QRadioButton*>(QString("bootloader-")+id));

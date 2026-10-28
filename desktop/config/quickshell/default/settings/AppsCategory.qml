@@ -11,6 +11,8 @@ Column {
     width: parent.width
     spacing: 30
 
+    ShellSettings { width: parent.width; settingsMenu: parent.settingsMenu }
+
     Text {
         text: Lang.get("apps.optionalTools", _lang)
         font.pixelSize: 18
@@ -21,7 +23,8 @@ Column {
     Repeater {
         model: [
             { "propertyName": "showDockerTray", "title": "Docker", "description": "apps.dockerTrayDesc" },
-            { "propertyName": "showOllamaTray", "title": "Ollama", "description": "apps.ollamaTrayDesc" }
+            { "propertyName": "showOllamaTray", "title": "Ollama", "description": "apps.ollamaTrayDesc" },
+            { "propertyName": "showNearbyTray", "title": Lang.get("nearby.title", _lang), "description": "apps.nearbyTrayDesc" }
         ]
         delegate: Row {
             required property var modelData

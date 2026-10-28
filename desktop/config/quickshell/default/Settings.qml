@@ -75,6 +75,7 @@ FloatingWindow {
     // Weather settings
     property bool showOllamaTray: false
     property bool showDockerTray: false
+    property bool showNearbyTray: true
     property bool weatherEnabled: false
     property string weatherLocation: "tray"  // "tray" | "taskbar"
     property int weatherTaskbarIndex: -1  // position in taskbar model (-1 = end)
@@ -950,6 +951,7 @@ FloatingWindow {
             'else if (key === "primaryMonitor") settingsMenu.primaryMonitor = value; ' +
             'else if (key === "showOllamaTray") settingsMenu.showOllamaTray = (value === "true"); ' +
             'else if (key === "showDockerTray") settingsMenu.showDockerTray = (value === "true"); ' +
+            'else if (key === "showNearbyTray") settingsMenu.showNearbyTray = (value === "true"); ' +
             'else if (key === "weatherEnabled") settingsMenu.weatherEnabled = (value === "true"); ' +
             'else if (key === "weatherLocation") settingsMenu.weatherLocation = value; ' +
             'else if (key === "weatherTaskbarIndex") settingsMenu.weatherTaskbarIndex = parseInt(value); ' +
@@ -1002,7 +1004,7 @@ FloatingWindow {
         function state(): string {
             return JSON.stringify({language: settingsMenu.uiLanguage, dark: settingsMenu.darkMode,
                 loading: settingsMenu.isLoadingSettings, docker: settingsMenu.showDockerTray,
-                ollama: settingsMenu.showOllamaTray})
+                ollama: settingsMenu.showOllamaTray, nearby: settingsMenu.showNearbyTray})
         }
     }
 
@@ -1093,6 +1095,7 @@ FloatingWindow {
                       "startMenuShowVideos=" + (startMenuShowVideos ? "true" : "false") + "\\n" +
                       "showOllamaTray=" + (showOllamaTray ? "true" : "false") + "\\n" +
                       "showDockerTray=" + (showDockerTray ? "true" : "false") + "\\n" +
+                      "showNearbyTray=" + (showNearbyTray ? "true" : "false") + "\\n" +
                       "weatherEnabled=" + (weatherEnabled ? "true" : "false") + "\\n" +
                       "weatherLocation=" + weatherLocation + "\\n" +
                       "weatherTaskbarIndex=" + weatherTaskbarIndex + "\\n" +
@@ -1856,7 +1859,7 @@ FloatingWindow {
         localeChangeBusy = true
         localeChangeFailed = false
         fileDialogOpen = true
-        localeProc.command = ["localectl", "set-locale", "LANG=" + pendingSystemLocale]
+        localeProc.command = ["localectl", "set-locale", "LANG=" + pendingSystemLocale, "LC_MESSAGES=" + pendingSystemLocale, "LC_TIME=" + pendingSystemLocale]
         localeProc.running = true
     }
 

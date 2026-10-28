@@ -154,6 +154,7 @@ PanelWindow {
         }
         return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
     }
+    screen: primaryScreen
     property real weatherScaleRaw: primaryScreen ? (primaryScreen.height / 1080.0) : 1.0
     property real weatherScale: Math.max(1.0, Math.min(1.8, weatherScaleRaw))
     property int weatherInnerMargin: Math.round(4 * weatherScale)
@@ -1028,6 +1029,8 @@ PanelWindow {
                 if (settingsMenu.showDockerTray) trayIconModel.append({iconType: "docker"})
             } else if (t === "ollama") {
                 if (settingsMenu.showOllamaTray) trayIconModel.append({iconType: "ollama"})
+            } else if (t === "nearby") {
+                if (settingsMenu.showNearbyTray) trayIconModel.append({iconType: "nearby"})
             } else {
                 trayIconModel.append({iconType: t})
             }
@@ -1063,6 +1066,7 @@ PanelWindow {
         function onTrayOrderChanged() { panelWindow.rebuildTrayModel() }
         function onUiLanguageChanged() { if (!settingsMenu.isLoadingSettings) desktopFilesProc.running = true }
         function onShowOllamaTrayChanged() { panelWindow.rebuildTrayModel() }
+        function onShowNearbyTrayChanged() { panelWindow.rebuildTrayModel() }
     }
 
     // Workspace Toggle Button - Position depends on alignment
@@ -1597,6 +1601,7 @@ PanelWindow {
                                     } else if (model.iconType === "network") {
                                         audioWindow.visible = false
                                         bluetoothWindow.visible = false
+                                        nearbyWindow.visible = false
                                         calendarWindow.visible = false
                                         networkWindow.visible = !networkWindow.visible
                                     } else if (model.iconType === "nearby") {
@@ -4861,6 +4866,8 @@ function openNearby() {
     networkWindow.visible = false
     calendarWindow.visible = false
     startMenu.visible = false
+    dockerWindow.visible = false
+    ollamaWindow.visible = false
     nearbyWindow.visible = true
 }
 
@@ -4882,32 +4889,35 @@ IpcHandler {
     }
 }
 
-PanelWindow {
+FloatingWindow {
     id: nearbyWindow
     visible: false
-    screen: networkWindow.screen
-    anchors { right: true; bottom: true }
-    margins { right: 8; bottom: panelWindow.height + 8 }
-    exclusiveZone: -1
-    implicitWidth: Math.min(400, screen ? screen.width - 16 : 400)
-    implicitHeight: Math.min(580, screen ? screen.height - panelWindow.height - 24 : 580)
+    implicitWidth: 400
+    implicitHeight: 580
     color: "transparent"
-    WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+    title: "quickshell-nearby"
+    screen: networkWindow.screen
+
     onVisibleChanged: nearbyService.command({action:"active", value:visible})
+
     HyprlandFocusGrab {
         windows: [nearbyWindow]
-        active: nearbyWindow.visible && !nearbyPanel.dialogOpen
+        active: nearbyWindow.visible && !(nearbyLoader.item && nearbyLoader.item.dialogOpen)
         onCleared: nearbyWindow.visible = false
     }
-    NearbyPanel {
-        id: nearbyPanel
+
+    Loader {
+        id: nearbyLoader
         anchors.fill: parent
-        service: nearbyService
-        darkMode: settingsMenu.darkMode
-        accentColor: settingsMenu.accentColor
-        borderRadius: settingsMenu.borderRadius
-        uiLanguage: settingsMenu.uiLanguage
+        source: "widgets/NearbyPanel.qml"
+
+        onLoaded: {
+            item.service = nearbyService
+            item.accentColor = Qt.binding(function() { return settingsMenu.accentColor })
+            item.borderRadius = Qt.binding(function() { return settingsMenu.borderRadius })
+            item.darkMode = Qt.binding(function() { return settingsMenu.darkMode })
+            item.uiLanguage = Qt.binding(function() { return settingsMenu.uiLanguage })
+        }
     }
 }
 
@@ -6444,6 +6454,7 @@ Connections {
     target: settingsMenu
     function onShowDockerTrayChanged() { if (!settingsMenu.showDockerTray) dockerWindow.visible = false }
     function onShowOllamaTrayChanged() { if (!settingsMenu.showOllamaTray) ollamaWindow.visible = false }
+    function onShowNearbyTrayChanged() { if (!settingsMenu.showNearbyTray) nearbyWindow.visible = false }
 }
 
 // Does (AI panel). A window closed by the compositor (title bar X) cannot be

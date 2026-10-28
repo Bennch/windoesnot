@@ -7,6 +7,9 @@ hyprlock
 hypridle
 hyprshot
 ghostty
+bash
+fish
+zsh
 nautilus
 nautilus-python
 gnome-text-editor
@@ -61,7 +64,6 @@ binutils
 wayland-protocols
 librsvg
 json-c
-fish
 xorg-server
 xorg-xauth
 cava

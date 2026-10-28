@@ -23,12 +23,7 @@ Text {
 
     function refreshDisplay() {
         const today = new Date();
-        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        const dayName = dayNames[today.getDay()];
-        const monthName = monthNames[today.getMonth()];
-        const dayNumber = today.getDate();
-        text = dayName + ", " + monthName + " " + dayNumber;
+        text = today.toLocaleDateString(rootItem && rootItem.systemLocale ? rootItem.systemLocale.locale : Qt.locale(), Locale.LongFormat);
     }
 
     Component.onCompleted: refreshDisplay()

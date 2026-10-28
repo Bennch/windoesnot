@@ -76,6 +76,19 @@ void AppSelectionWidget::build() {
     QFont heading = intro->font(); heading.setPointSize(17); heading.setBold(true); intro->setFont(heading); outer->addWidget(intro);
     auto* help = new QLabel(m_online ? text("Online-Installation: Das Grundsystem kommt vom Installationsmedium. Zusatzprogramme werden in passenden Versionen aus dem Internet geladen.\n\nUnsicher? Behalte das empfohlene Softwareprofil. Du kannst Programme abwählen und später im Store hinzufügen. „Profil laden/speichern“ überträgt nur die Programmauswahl, keine persönlichen Dateien oder Konten.", "Online installation: the base system comes from the installation media. Optional apps are downloaded in matching versions.\n\nUnsure? Keep the recommended software profile. You can deselect apps and add them later from the Store. “Load/Save profile” transfers only the app selection, not personal files or accounts.") : text("Offline-Installation: Das Grundsystem und alle hier angebotenen Programme lassen sich ohne Internet installieren.\n\nUnsicher? Behalte das empfohlene Softwareprofil. Du kannst Programme abwählen und später im Store hinzufügen. „Profil laden/speichern“ überträgt nur die Programmauswahl, keine persönlichen Dateien oder Konten.", "Offline installation: the base system and all apps offered here can be installed without an internet connection.\n\nUnsure? Keep the recommended software profile. You can deselect apps and add them later from the Store. “Load/Save profile” transfers only the app selection, not personal files or accounts."), this);
     help->setWordWrap(true); outer->addWidget(help);
+    auto* shellRow = new QHBoxLayout;
+    shellRow->addWidget(new QLabel(text("Terminal-Shell", "Terminal shell"), this));
+    auto* shell = new QComboBox(this);
+    shell->setObjectName("userShell");
+    shell->addItem(text("Systemstandard", "System default"), QString());
+    for (const auto& name : {"bash", "fish", "zsh"})
+        shell->addItem(QString::fromUtf8(name), QStringLiteral("/usr/bin/") + name);
+    shell->setCurrentIndex(shell->findData(m_shell));
+    shell->setToolTip(text("Bestimmt die Shell für neue Terminals. Programme und persönliche Dateien bleiben gleich.", "Selects the shell for new terminals. Apps and personal files stay the same."));
+    connect(shell, qOverload<int>(&QComboBox::activated), this, [this, shell](int index) {
+        m_shell = shell->itemData(index).toString(); notify();
+    });
+    shellRow->addWidget(shell, 1); outer->addLayout(shellRow);
     auto* toolbar = new QWidget(this); auto* row = new QHBoxLayout(toolbar); row->setContentsMargins(0,0,0,0);
     m_profiles = new QComboBox(toolbar); m_profiles->setObjectName("softwareProfile"); m_profiles->setAccessibleName(text("Softwareprofil", "Software profile"));
     for (const auto& item : m_catalog.value("profiles").toArray()) m_profiles->addItem(localized(item.toObject(), "name"), item.toObject().value("id").toString());

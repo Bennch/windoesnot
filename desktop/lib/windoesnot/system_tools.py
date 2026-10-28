@@ -3,6 +3,7 @@
 import fcntl
 import json
 import os
+import pwd
 from pathlib import Path
 import re
 import shlex
@@ -25,6 +26,7 @@ SCX_PATHS = (SCX_CONFIG, Path('/etc/scx_loader.toml'),
              Path('/usr/share/scx_loader/config.toml'), Path('/usr/share/scx_loader.toml'))
 LOG_DIR = Path('/var/log/windoesnot/system-tools')
 LOG = None
+SHELLS = ('bash', 'fish', 'zsh')
 DB_LOCK = Path('/var/lib/pacman/db.lck')
 MIRRORS_MARKER = Path('/var/lib/windoesnot/mirrors-ranked')
 REFIND_CONF = Path('/boot/EFI/refind/refind.conf')
@@ -354,13 +356,39 @@ def maintenance_apply(action, payload):
     return {'reboot': False}
 
 
+def shell_account():
+    uid = int(os.environ.get('PKEXEC_UID', os.getuid()))
+    if uid < 1000 or uid == 65534:
+        raise ValueError('Select a regular user account')
+    return pwd.getpwuid(uid)
+
+
+def shell_status():
+    account = shell_account()
+    allowed = Path('/etc/shells').read_text().splitlines()
+    return {'current': Path(account.pw_shell).name,
+            'available': [name for name in SHELLS if Path('/usr/bin/' + name).is_file()
+                          and any(path in allowed for path in ('/usr/bin/' + name, '/bin/' + name))]}
+
+
+def set_shell(name):
+    account = shell_account()
+    if name not in shell_status()['available']:
+        raise ValueError('Install the selected shell first')
+    command('/usr/bin/usermod', '--shell', '/usr/bin/' + name, '--', account.pw_name)
+    return {'reboot': False}
+
+
 def validate(action, payload):
     if type(payload) is not dict:
         raise ValueError('Arguments must be an object')
-    if action in ('kernel-status', 'maintenance-status', 'scx-install', 'scx-stop',
+    if action in ('kernel-status', 'maintenance-status', 'shell-status', 'scx-install', 'scx-stop',
                   'mirrors-rank', 'cache-clean', 'keyring-repair', 'lock-remove', 'drivers-configure'):
         if payload:
             raise ValueError('This action takes no arguments')
+    elif action == 'shell-set':
+        if set(payload) != {'shell'} or payload['shell'] not in SHELLS:
+            raise ValueError('Unsupported shell')
     elif action in ('kernel-install', 'kernel-remove'):
         if set(payload) != {'kernel'} or payload['kernel'] not in KERNELS:
             raise ValueError('Unsupported kernel')
@@ -532,6 +560,8 @@ def set_scx(payload):
 
 
 def apply(action, payload):
+    if action == 'shell-set':
+        return set_shell(payload['shell'])
     if action in ('mirrors-rank', 'cache-clean', 'keyring-repair', 'lock-remove', 'orphans-remove', 'drivers-configure'):
         return maintenance_apply(action, payload)
     if action in ('kernel-install', 'kernel-remove'):
@@ -564,8 +594,9 @@ def main():
     action = sys.argv[1]
     payload = json.loads(sys.argv[2]) if len(sys.argv) == 3 else {}
     validate(action, payload)
-    if action in ('kernel-status', 'maintenance-status'):
-        print(json.dumps(kernel_status() if action == 'kernel-status' else maintenance_status())); return
+    if action in ('kernel-status', 'maintenance-status', 'shell-status'):
+        print(json.dumps({'kernel-status': kernel_status, 'maintenance-status': maintenance_status,
+                          'shell-status': shell_status}[action]())); return
     if os.geteuid() != 0:
         raise PermissionError('Use the authorized pkexec entry point')
     if Path('/etc/windoesnot-image-build').exists():

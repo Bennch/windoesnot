@@ -1,0 +1,9 @@
+[Unit]
+Description=Apply the system language to the WinDoesNot boot menu
+ConditionPathExists=/var/lib/windoesnot/installation.json
+ConditionPathExists=!/etc/windoesnot-image-build
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/windoesnot/boot_language.py sync

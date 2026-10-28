@@ -13,7 +13,7 @@ Scope {
     readonly property bool embedded: active && settingsMenu && settingsMenu.visible
         && ((settingsMenu.currentCategory === "backups"
              && flow.actionId.indexOf("org.windoesnot.snapshots.") === 0)
-            || ((settingsMenu.currentCategory === "kernel" || settingsMenu.currentCategory === "maintenance")
+            || ((settingsMenu.currentCategory === "kernel" || settingsMenu.currentCategory === "maintenance" || settingsMenu.currentCategory === "apps")
                 && flow.actionId.indexOf("org.windoesnot.system.") === 0))
     readonly property bool registered: agent.item !== null && agent.item.isRegistered
     property string guardPath: "/usr/bin/windoesnot-auth-guard"

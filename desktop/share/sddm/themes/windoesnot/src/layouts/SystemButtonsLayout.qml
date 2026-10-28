@@ -20,9 +20,9 @@ RowLayout {
         id: textConstants
     }
 
-    property var shutdown: [textConstants.shutdown, sddm.canPowerOff]
-    property var restart: ["Restart", sddm.canReboot]
-    property var sleep: ["Sleep", sddm.canSuspend]
+    property var shutdown: [root.systemLocale.text("shutdown"), sddm.canPowerOff]
+    property var restart: [root.systemLocale.text("reboot"), sddm.canReboot]
+    property var sleep: [root.systemLocale.text("suspend"), sddm.canSuspend]
 
     Repeater {
         model: [systemButtons.shutdown, systemButtons.restart, systemButtons.sleep]
@@ -30,7 +30,7 @@ RowLayout {
         SystemButton {
             text: modelData[0]
             idx: index
-            visible: true
+            visible: modelData[1]
         }
     }
 }

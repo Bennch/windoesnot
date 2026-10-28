@@ -3,39 +3,48 @@
 <policyconfig>
 <vendor>WinDoesNot</vendor>
 <action id="org.windoesnot.snapshots.status">
-  <description>View system restore points</description><description xml:lang="de">System-Sicherungspunkte anzeigen</description>
+  <description>View system restore points</description><description xml:lang="de">Wiederherstellungspunkte anzeigen</description>
   <message>Authentication is required: View system restore points</message>
-  <message xml:lang="de">Bitte bestätigen: System-Sicherungspunkte anzeigen</message>
+  <message xml:lang="de">Bitte bestätigen: Wiederherstellungspunkte anzeigen</message>
   <icon_name>system-lock-screen</icon_name>
   <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>yes</allow_active></defaults>
   <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/snapshots.py</annotate>
   <annotate key="org.freedesktop.policykit.exec.argv1">status</annotate>
 </action>
 <action id="org.windoesnot.snapshots.create">
-  <description>Create a system restore point</description><description xml:lang="de">System-Sicherungspunkt erstellen</description>
+  <description>Create a system restore point</description><description xml:lang="de">Wiederherstellungspunkt erstellen</description>
   <message>Authentication is required: Create a system restore point</message>
-  <message xml:lang="de">Bitte bestätigen: System-Sicherungspunkt erstellen</message>
+  <message xml:lang="de">Bitte bestätigen: Wiederherstellungspunkt erstellen</message>
   <icon_name>system-lock-screen</icon_name>
   <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin</allow_active></defaults>
   <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/snapshots.py</annotate>
   <annotate key="org.freedesktop.policykit.exec.argv1">create</annotate>
 </action>
 <action id="org.windoesnot.snapshots.delete">
-  <description>Delete a system restore point</description><description xml:lang="de">System-Sicherungspunkt löschen</description>
+  <description>Delete a system restore point</description><description xml:lang="de">Wiederherstellungspunkt löschen</description>
   <message>Authentication is required: Delete a system restore point</message>
-  <message xml:lang="de">Bitte bestätigen: System-Sicherungspunkt löschen</message>
+  <message xml:lang="de">Bitte bestätigen: Wiederherstellungspunkt löschen</message>
   <icon_name>system-lock-screen</icon_name>
   <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin</allow_active></defaults>
   <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/snapshots.py</annotate>
   <annotate key="org.freedesktop.policykit.exec.argv1">delete</annotate>
 </action>
 <action id="org.windoesnot.snapshots.schedule">
-  <description>Change the snapshot schedule</description><description xml:lang="de">Zeitplan für Sicherungspunkte ändern</description>
-  <message>Authentication is required: Change the snapshot schedule</message>
-  <message xml:lang="de">Bitte bestätigen: Zeitplan für Sicherungspunkte ändern</message>
+  <description>Change the restore point schedule</description><description xml:lang="de">Zeitplan für Wiederherstellungspunkte ändern</description>
+  <message>Authentication is required: Change the restore point schedule</message>
+  <message xml:lang="de">Bitte bestätigen: Zeitplan für Wiederherstellungspunkte ändern</message>
   <icon_name>system-lock-screen</icon_name>
   <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin</allow_active></defaults>
   <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/snapshots.py</annotate>
   <annotate key="org.freedesktop.policykit.exec.argv1">schedule</annotate>
+</action>
+<action id="org.windoesnot.snapshots.restore">
+  <description>Restore a system restore point and restart</description><description xml:lang="de">Wiederherstellungspunkt einspielen und neu starten</description>
+  <message>Restore the selected system state and restart now?</message>
+  <message xml:lang="de">Gewählten Systemstand wiederherstellen und jetzt neu starten?</message>
+  <icon_name>system-lock-screen</icon_name>
+  <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin</allow_active></defaults>
+  <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/snapshots.py</annotate>
+  <annotate key="org.freedesktop.policykit.exec.argv1">restore</annotate>
 </action>
 </policyconfig>

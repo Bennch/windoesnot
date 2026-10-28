@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "archives": [
+    {"file": "systemd-262.1.tar.gz", "url": "https://github.com/systemd/systemd/archive/refs/tags/v262.1.tar.gz", "sha256": "100fc873b848b9b0297d8a705e8e2ed326256c8483d9960ee1ffe264c8a5c3e3"},
+    {"file": "refind-src-0.14.2.tar.gz", "url": "https://downloads.sourceforge.net/project/refind/0.14.2/refind-src-0.14.2.tar.gz", "sha256": "f7d93ce80da76b86c567281ea225b6a87907ce86ff77233c9357a522c115c8f0"},
+    {"file": "limine-12.9.4.tar.xz", "url": "https://github.com/Limine-Bootloader/Limine/releases/download/v12.9.4/limine-12.9.4.tar.xz", "sha256": "0b576463ec818d09df5dfd27d06cf3028be54bd95b12007053cc0818c041f4c3"}
+  ]
+}

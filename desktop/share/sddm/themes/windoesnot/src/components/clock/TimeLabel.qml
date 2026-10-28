@@ -20,7 +20,7 @@ Text {
     renderType: Text.QtRendering
     horizontalAlignment: Text.AlignHCenter
 
-    readonly property var systemLocale: Qt.locale()
+    readonly property var systemLocale: rootItem && rootItem.systemLocale ? rootItem.systemLocale.locale : Qt.locale()
 
     function refreshDisplay() {
         const now = new Date();

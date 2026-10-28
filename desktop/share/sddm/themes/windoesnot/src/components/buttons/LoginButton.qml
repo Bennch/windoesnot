@@ -18,7 +18,7 @@ Rectangle {
     required property var passwordField
     required property int environmentIndex
 
-    property alias authenticateBtn: focusProxy
+    property alias authenticateBtn: authBtn
 
     readonly property int animationDuration: Number(config.AnimationDuration || 80)
     readonly property int animationEasing: {
@@ -83,17 +83,6 @@ Rectangle {
         }
     }
 
-    Item {
-        id: focusProxy
-        width: 0
-        height: 0
-        visible: false
-        focus: true
-
-        Keys.onReturnPressed: authenticationControl.doLogin()
-        Keys.onEnterPressed: authenticationControl.doLogin()
-    }
-
     Rectangle {
         id: authBtn
         implicitHeight: root.font.pointSize * 3
@@ -102,6 +91,12 @@ Rectangle {
         radius: 24
         opacity: 1
         color: baseColor
+        activeFocusOnTab: true
+        border.width: activeFocus ? 2 : 0
+        border.color: config.LoginButtonTextColor
+        Keys.onReturnPressed: authenticationControl.doLogin()
+        Keys.onEnterPressed: authenticationControl.doLogin()
+        Keys.onSpacePressed: authenticationControl.doLogin()
 
         readonly property color baseColor: config.LoginButtonBackgroundColor
         readonly property color hoverColor: config.HoverLoginButtonBackgroundColor
@@ -118,7 +113,7 @@ Rectangle {
         Text {
             id: authLabel
             anchors.centerIn: parent
-            text: loginConstants.login
+            text: root.systemLocale.text("login")
             font {
                 pointSize: root.font.pointSize
                 family: root.font.family

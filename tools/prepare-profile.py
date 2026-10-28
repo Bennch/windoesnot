@@ -114,6 +114,7 @@ def main():
     shutil.copytree(ROOT / 'tools', payload / 'tools', ignore=shutil.ignore_patterns('__pycache__','import-desktop.py'))
     shutil.copytree(ROOT / 'iso', payload / 'iso', ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
     shutil.copytree(ROOT / 'packaging', payload / 'packaging')
+    subprocess.run(['python3', str(ROOT / 'tools/prepare-boot-language.py'), '--output', str(payload / 'boot-language-build')], check=True)
     for name in ['LICENSE', 'THIRD-PARTY.md']:
         shutil.copy2(ROOT / name, payload / name)
     store =stage_store(pins['windoesnot-store'], payload / 'store')
