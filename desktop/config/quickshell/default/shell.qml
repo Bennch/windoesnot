@@ -1347,6 +1347,9 @@ PanelWindow {
                             id: trayMenuAnchor
                             menu: modelData.menu
                             anchor.window: panelWindow
+                            anchor.edges: Edges.Top
+                            anchor.gravity: Edges.Top
+                            anchor.adjustment: PopupAdjustment.None
                         }
 
                         MouseArea {
@@ -1369,12 +1372,15 @@ PanelWindow {
                                     modelData.secondaryActivate()
                                 } else if (mouse.button === Qt.RightButton) {
                                     if (modelData.hasMenu) {
-                                        // Calculate position - fixed value that works well
+                                        // Anchor rect spans exactly the icon; gravity: Top (set on
+                                        // trayMenuAnchor above, no Left/Right flag) centers the menu
+                                        // horizontally on it and grows it upward by its real height,
+                                        // so no fixed size guess is needed here.
                                         var pos = trayItemDelegate.mapToItem(panelWindow.contentItem, 0, 0)
                                         trayMenuAnchor.anchor.rect.x = pos.x
-                                        trayMenuAnchor.anchor.rect.y = -333
+                                        trayMenuAnchor.anchor.rect.y = pos.y
                                         trayMenuAnchor.anchor.rect.width = trayItemDelegate.width
-                                        trayMenuAnchor.anchor.rect.height = 333
+                                        trayMenuAnchor.anchor.rect.height = trayItemDelegate.height
                                         trayMenuAnchor.open()
                                     }
                                 }
@@ -5636,7 +5642,6 @@ PopupWindow {
     implicitWidth: 220
     implicitHeight: ctxIsOpen ? 129 : 84
     color: "transparent"
-    title: "quickshell-appcontextmenu"
     property int menuX: 0
     anchor {
         window: panelWindow
@@ -5644,7 +5649,7 @@ PopupWindow {
         gravity: Edges.Top | Edges.Left
         adjustment: PopupAdjustment.None
         rect.x: appContextMenu.menuX
-        rect.y: -appContextMenu.implicitHeight
+        rect.y: 0
     }
 
     HyprlandFocusGrab {
