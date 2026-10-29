@@ -1537,6 +1537,7 @@ PanelWindow {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
+                            acceptedButtons: Qt.LeftButton | Qt.RightButton
 
                             property bool dragActive: false
                             property point dragStartPos
@@ -1588,6 +1589,18 @@ PanelWindow {
                                     }
                                 } else {
                                     unifiedTooltip.hide()
+                                    if (mouse.button === Qt.RightButton &&
+                                            (model.iconType === "network" || model.iconType === "bluetooth")) {
+                                        startMenu.visible = false
+                                        settingsMenu.visible = false
+                                        audioWindow.visible = false
+                                        networkWindow.visible = false
+                                        bluetoothWindow.visible = false
+                                        quickSettingsContextMenu.openFor(model.iconType, trayIconDelegate)
+                                        dragActive = false
+                                        trayIconDelegate.isBeingDragged = false
+                                        return
+                                    }
                                     startMenu.visible = false
                                     settingsMenu.visible = false
                                     if (model.iconType === "weather") {
@@ -2690,6 +2703,129 @@ PanelWindow {
 
 }
 
+// Context menu for the network/Bluetooth quick-settings icons.
+PopupWindow {
+    id: quickSettingsContextMenu
+    visible: false
+    implicitWidth: 240
+    implicitHeight: 6 + 36 + 1 + 36 + 6
+    color: "transparent"
+
+    property string contextType: "network"
+
+    anchor {
+        window: panelWindow
+        edges: Edges.Top
+        gravity: Edges.Top
+        adjustment: PopupAdjustment.None
+    }
+
+    HyprlandFocusGrab {
+        windows: [quickSettingsContextMenu]
+        active: quickSettingsContextMenu.visible
+        onCleared: quickSettingsContextMenu.visible = false
+    }
+
+    function openFor(kind, iconItem) {
+        contextType = kind
+        var pos = iconItem.mapToItem(panelWindow.contentItem, 0, 0)
+        anchor.rect.x = pos.x
+        anchor.rect.y = pos.y
+        anchor.rect.width = iconItem.width
+        anchor.rect.height = iconItem.height
+        visible = true
+    }
+
+    function run(command) {
+        var proc = Qt.createQmlObject('import Quickshell.Io; Process { }', quickSettingsContextMenu)
+        proc.command = ["bash", "-c", command]
+        proc.running = true
+        visible = false
+    }
+
+    Item {
+        anchors.fill: parent
+        clip: true
+
+        Rectangle {
+            anchors.fill: parent
+            topLeftRadius: settingsMenu.borderRadius
+            topRightRadius: settingsMenu.borderRadius
+            bottomLeftRadius: 0
+            bottomRightRadius: 0
+            color: settingsMenu.darkMode ? Qt.rgba(0.125, 0.125, 0.125, 0.93) : Qt.rgba(0.95, 0.95, 0.95, 0.97)
+        }
+
+        Column {
+            anchors { top: parent.top; left: parent.left; right: parent.right; margins: 6 }
+            spacing: 0
+
+            Rectangle {
+                width: parent.width
+                height: 36
+                radius: 6
+                property bool hovered: false
+                color: hovered ? (settingsMenu.darkMode ? "#4A4A4D" : "#e0e0e0") : "transparent"
+                Text {
+                    anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
+                    text: quickSettingsContextMenu.contextType === "bluetooth"
+                        ? (settingsMenu.uiLanguage === "en" ? "Toggle Bluetooth" : "Bluetooth umschalten")
+                        : (settingsMenu.uiLanguage === "en" ? "Toggle Wi-Fi" : "WLAN umschalten")
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"
+                    font.pixelSize: 13
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onEntered: parent.hovered = true
+                    onExited: parent.hovered = false
+                    onClicked: {
+                        if (quickSettingsContextMenu.contextType === "bluetooth") {
+                            quickSettingsContextMenu.run("state=$(bluetoothctl show 2>/dev/null | awk '/Powered:/ {print $2}'); bluetoothctl power $([ \"$state\" = yes ] && echo off || echo on)")
+                        } else {
+                            quickSettingsContextMenu.run("state=$(nmcli radio wifi); nmcli radio wifi $([ \"$state\" = enabled ] && echo off || echo on)")
+                        }
+                    }
+                }
+            }
+
+            Item { width: parent.width; height: 1 }
+
+            Rectangle {
+                width: parent.width
+                height: 36
+                radius: 6
+                property bool hovered: false
+                color: hovered ? (settingsMenu.darkMode ? "#4A4A4D" : "#e0e0e0") : "transparent"
+                Text {
+                    anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
+                    text: quickSettingsContextMenu.contextType === "bluetooth"
+                        ? (settingsMenu.uiLanguage === "en" ? "Open Bluetooth" : "Bluetooth öffnen")
+                        : (settingsMenu.uiLanguage === "en" ? "Open Network" : "Netzwerk öffnen")
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"
+                    font.pixelSize: 13
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onEntered: parent.hovered = true
+                    onExited: parent.hovered = false
+                    onClicked: {
+                        quickSettingsContextMenu.visible = false
+                        if (quickSettingsContextMenu.contextType === "bluetooth") {
+                            bluetoothWindow.visible = true
+                        } else {
+                            networkWindow.visible = true
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 // Top Notification Bar
 TopNotificationBar {
     id: topBar
@@ -3703,7 +3839,7 @@ FloatingWindow {
                                     Rectangle {
                                         id: appItem
                                         anchors.fill: parent
-                                        radius: 8
+                                        radius: settingsMenu.borderRadius
 
                                         property bool hovered: false
 
@@ -3737,7 +3873,7 @@ FloatingWindow {
                                         // Drop indicator
                                         Rectangle {
                                             anchors.fill: parent
-                                            radius: 8
+                                            radius: settingsMenu.borderRadius
                                             color: "transparent"
                                             border.color: settingsMenu.accentColor
                                             border.width: 2
@@ -3958,7 +4094,7 @@ FloatingWindow {
                                     Rectangle {
                                         id: allAppItem
                                         anchors.fill: parent
-                                        radius: 8
+                                        radius: settingsMenu.borderRadius
 
                                         property bool hovered: false
 
@@ -4209,7 +4345,7 @@ FloatingWindow {
                                             Rectangle {
                                                 id: persAppItem
                                                 anchors.fill: parent
-                                                radius: 8
+                                                radius: settingsMenu.borderRadius
                                                 property bool hovered: false
                                                 color: hovered ? (settingsMenu.darkMode ? Qt.rgba(1,1,1,0.07) : Qt.rgba(0,0,0,0.07)) : "transparent"
                                                 Behavior on color { ColorAnimation { duration: 150 } }
