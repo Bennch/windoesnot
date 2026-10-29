@@ -6,8 +6,12 @@ hl.bind("SUPER + E", hl.dsp.exec_cmd("nautilus"), {}) -- legacy:275
 hl.bind("SUPER + V", hl.dsp.window.float({["action"]="toggle"}), {}) -- legacy:276
 hl.bind("SUPER + R", hl.dsp.global("quickshell:toggle-startmenu"), {}) -- legacy:278
 hl.bind("CTRL + ALT + Delete", hl.dsp.exec_cmd("gnome-system-monitor"), {}) -- legacy:279
+hl.bind("CTRL + SHIFT + Escape", hl.dsp.exec_cmd("gnome-system-monitor"), {})
+hl.bind("SUPER + I", hl.dsp.global("quickshell:show-settings"), {})
+hl.bind("SUPER + L", hl.dsp.exec_cmd("~/.config/quickshell/default/hyprlock/lock.sh"), {})
 hl.bind("SUPER + S", hl.dsp.exec_cmd("echo 1 > /tmp/qs-search-toggle"), {}) -- legacy:281
 hl.bind("SUPER + H", hl.dsp.exec_cmd("~/.config/hypr/hide_windows.sh"), {}) -- legacy:282
+hl.bind("SUPER + D", hl.dsp.exec_cmd("~/.config/hypr/hide_windows.sh"), {})
 hl.bind("SUPER + N", hl.dsp.exec_cmd("swaync-client -t -sw"), {}) -- legacy:283
 hl.bind("SUPER + P", hl.dsp.exec_cmd("hyprpicker -a -f hex"), {}) -- legacy:284
 hl.bind("SUPER + F", hl.dsp.window.fullscreen({["mode"]="fullscreen"}), {}) -- legacy:285

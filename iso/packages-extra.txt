@@ -5,6 +5,7 @@ hyprpaper
 hyprpicker
 hyprlock
 hypridle
+imagemagick
 hyprshot
 ghostty
 bash
