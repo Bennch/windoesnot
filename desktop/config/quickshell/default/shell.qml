@@ -206,7 +206,7 @@ PanelWindow {
                     // application directories, so apps installed later still resolve.
                     function windowIcon(appClass) {
                         // System dialogs without a desktop entry
-                        if (appClass === "polkit-gnome-authentication-agent-1") return "system-lock-screen"
+                        if (appClass.toLowerCase() === "polkit-gnome-authentication-agent-1") return "system-lock-screen"
                         var mapped = IconMap.smartFix(appClass)
                         if (mapped !== appClass && mapped !== appClass.toLowerCase()) return mapped
                         var entry = appClass.length > 0 ? DesktopEntries.heuristicLookup(appClass) : null
