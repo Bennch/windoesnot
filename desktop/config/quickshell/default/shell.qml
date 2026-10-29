@@ -1589,14 +1589,15 @@ PanelWindow {
                                     }
                                 } else {
                                     unifiedTooltip.hide()
-                                    if (mouse.button === Qt.RightButton &&
-                                            (model.iconType === "network" || model.iconType === "bluetooth")) {
-                                        startMenu.visible = false
-                                        settingsMenu.visible = false
-                                        audioWindow.visible = false
-                                        networkWindow.visible = false
-                                        bluetoothWindow.visible = false
-                                        quickSettingsContextMenu.openFor(model.iconType, trayIconDelegate)
+                                    if (mouse.button === Qt.RightButton) {
+                                        if (model.iconType === "network" || model.iconType === "bluetooth") {
+                                            startMenu.visible = false
+                                            settingsMenu.visible = false
+                                            audioWindow.visible = false
+                                            networkWindow.visible = false
+                                            bluetoothWindow.visible = false
+                                            quickSettingsContextMenu.openFor(model.iconType, trayIconDelegate)
+                                        }
                                         dragActive = false
                                         trayIconDelegate.isBeingDragged = false
                                         return
@@ -2710,6 +2711,7 @@ PopupWindow {
     implicitWidth: 240
     implicitHeight: 6 + 36 + 1 + 36 + 6
     color: "transparent"
+    grabFocus: true
 
     property string contextType: "network"
 
