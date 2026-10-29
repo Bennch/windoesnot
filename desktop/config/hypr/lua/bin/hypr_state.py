@@ -139,6 +139,7 @@ def update(state, payload):
                 'bluetooth-config': [ew - 330, eh - 450 - 45],
                 'network-config': [ew - 330, eh - 500 - 45],
                 'nearby-config': [ew - 410, eh - 580 - 45],
+                'appcontextmenu-config': [round((ew - 220) / 2), eh - 129 - 45],
                 'colorpalette-config': [round((ew - 400) / 2), round((eh - 480) / 2)],
             }
             for rule, pos in positions.items():
