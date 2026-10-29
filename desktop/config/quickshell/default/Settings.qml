@@ -1344,10 +1344,18 @@ FloatingWindow {
     // own accent color and border radius settings instead.
     function updateGtkAccentCss() {
         var accent = accentColor.toString()
-        var css = ":root { --accent-color: " + accent + "; --accent-bg-color: " + accent + "; }\\n" +
-            "@define-color accent_color " + accent + ";\\n" +
+        // :root { --custom-prop: ... } is not valid GTK CSS (Gtk-WARNING:
+        // Invalid name of pseudo-class) even though some shipped themes get
+        // away with it internally. Override the rubberband rule directly
+        // with literal values instead of relying on the --accent-color
+        // custom property cascading down to it.
+        var css = "@define-color accent_color " + accent + ";\\n" +
             "@define-color accent_bg_color " + accent + ";\\n" +
-            "rubberband { border-radius: " + borderRadius + "px; }\\n"
+            "rubberband {\\n" +
+            "  border: 1px solid " + accent + ";\\n" +
+            "  background-color: alpha(" + accent + ", 0.2);\\n" +
+            "  border-radius: " + borderRadius + "px;\\n" +
+            "}\\n"
 
         console.log("Updating GTK accent CSS:", accent, "radius=" + borderRadius)
 
@@ -2259,7 +2267,7 @@ FloatingWindow {
                         // Desktop Settings
                         Loader {
                             id: desktopLoader
-                            active: settingsMenu.currentCategory === "desktop"
+                            active: settingsMenu.currentCategory === "desktop" && settingsMenu.visible
                             visible: settingsMenu.currentCategory === "desktop"
                             width: parent.width
                             asynchronous: false
@@ -2285,7 +2293,7 @@ FloatingWindow {
                         // Aussehen Settings
                         Loader {
                             id: appearanceLoader
-                            active: settingsMenu.currentCategory === "appearance"
+                            active: settingsMenu.currentCategory === "appearance" && settingsMenu.visible
                             visible: settingsMenu.currentCategory === "appearance"
                             width: parent.width
                             asynchronous: false
@@ -2296,7 +2304,7 @@ FloatingWindow {
                         // Ausrichtung Settings
                         Loader {
                             id: alignmentLoader
-                            active: settingsMenu.currentCategory === "alignment"
+                            active: settingsMenu.currentCategory === "alignment" && settingsMenu.visible
                             visible: settingsMenu.currentCategory === "alignment"
                             width: parent.width
                             asynchronous: false
@@ -2307,7 +2315,7 @@ FloatingWindow {
                         // Input Settings (Maus & Tastatur)
                         Loader {
                             id: inputLoader
-                            active: settingsMenu.currentCategory === "input"
+                            active: settingsMenu.currentCategory === "input" && settingsMenu.visible
                             visible: settingsMenu.currentCategory === "input"
                             width: parent.width
                             asynchronous: false
@@ -2318,7 +2326,7 @@ FloatingWindow {
                         // Akku & Energie Settings
                         Loader {
                             id: powerLoader
-                            active: settingsMenu.currentCategory === "power"
+                            active: settingsMenu.currentCategory === "power" && settingsMenu.visible
                             visible: settingsMenu.currentCategory === "power"
                             width: parent.width
                             asynchronous: false
@@ -2329,7 +2337,7 @@ FloatingWindow {
                         // Apps Settings
                         Loader {
                             id: appsLoader
-                            active: settingsMenu.currentCategory === "apps"
+                            active: settingsMenu.currentCategory === "apps" && settingsMenu.visible
                             visible: settingsMenu.currentCategory === "apps"
                             width: parent.width
                             asynchronous: false
@@ -2339,7 +2347,7 @@ FloatingWindow {
 
                         Loader {
                             id: maintenanceLoader
-                            active: settingsMenu.currentCategory === "maintenance" || (item !== null && item.busy)
+                            active: (settingsMenu.currentCategory === "maintenance" && settingsMenu.visible) || (item !== null && item.busy)
                             visible: settingsMenu.currentCategory === "maintenance"
                             width: parent.width
                             asynchronous: false
@@ -2350,7 +2358,7 @@ FloatingWindow {
                         // Backup Settings
                         Loader {
                             id: backupsLoader
-                            active: settingsMenu.currentCategory === "backups"
+                            active: (settingsMenu.currentCategory === "backups" && settingsMenu.visible) || (item !== null && item.busy)
                             visible: settingsMenu.currentCategory === "backups"
                             width: parent.width
                             asynchronous: false
@@ -2361,7 +2369,7 @@ FloatingWindow {
                         // Hilfe Settings
                         Loader {
                             id: helpLoader
-                            active: settingsMenu.currentCategory === "help"
+                            active: settingsMenu.currentCategory === "help" && settingsMenu.visible
                             visible: settingsMenu.currentCategory === "help"
                             width: parent.width
                             asynchronous: false
@@ -2372,7 +2380,7 @@ FloatingWindow {
                         // Monitor Settings
                         Loader {
                             id: monitorsLoader
-                            active: settingsMenu.currentCategory === "monitors"
+                            active: settingsMenu.currentCategory === "monitors" && settingsMenu.visible
                             visible: settingsMenu.currentCategory === "monitors"
                             width: parent.width
                             asynchronous: false
@@ -2383,7 +2391,7 @@ FloatingWindow {
                         // Update Settings
                         Loader {
                             id: updatesLoader
-                            active: settingsMenu.currentCategory === "updates"
+                            active: settingsMenu.currentCategory === "updates" && settingsMenu.visible
                             visible: settingsMenu.currentCategory === "updates"
                             width: parent.width
                             asynchronous: false
@@ -2394,7 +2402,7 @@ FloatingWindow {
                         // Über Settings
                         Loader {
                             id: aboutLoader
-                            active: settingsMenu.currentCategory === "about"
+                            active: settingsMenu.currentCategory === "about" && settingsMenu.visible
                             visible: settingsMenu.currentCategory === "about"
                             width: parent.width
                             asynchronous: false
