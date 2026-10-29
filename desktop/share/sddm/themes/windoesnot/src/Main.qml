@@ -41,6 +41,27 @@ Pane {
 
     focus: true
 
+    // SDDM's own greeter view re-asserts focus on the root item after the
+    // theme finishes loading, which can steal it back from the password
+    // field's static `focus: true`. Grab it again once the event loop
+    // settles, and keep a fallback so the very first Tab/Return/Space the
+    // user presses always lands somewhere useful instead of being dropped.
+    function focusLoginField() {
+        passwordInput.password.forceActiveFocus();
+    }
+
+    Component.onCompleted: Qt.callLater(focusLoginField)
+
+    Keys.onPressed: function (event) {
+        if (usernameInput.username.activeFocus || passwordInput.password.activeFocus)
+            return;
+
+        if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab || event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+            root.focusLoginField();
+            event.accepted = true;
+        }
+    }
+
     Item {
         id: fxVisual
         anchors.fill: parent
