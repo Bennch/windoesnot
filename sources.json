@@ -28,5 +28,19 @@
     "commit": "28e46a4761c853ac89fb9322781a68beb822200b",
     "upstream": "https://github.com/biglinux/biglinux-driver-manager",
     "upstream_commit": "d468eacf4e422856591ba4e24b3aef22f61b803b"
+  },
+  "windoesnot-bluetooth": {
+    "url": "https://github.com/Bennch/windoesnot-bluetooth",
+    "path": "bluetooth",
+    "commit": "f49b6e701c6edd3f24e56dd1eec7e8c67802f25b",
+    "upstream": "https://github.com/kaii-lb/overskride",
+    "upstream_commit": "31b8c15794bf07e69927d2f42ed12bd31241ca57"
+  },
+  "windoesnot-network": {
+    "url": "https://github.com/Bennch/windoesnot-network",
+    "path": "network",
+    "commit": "54fabe0bd7cb807ac2eaafb1455843082be53ae0",
+    "upstream": "https://github.com/PlayRood32/adw-network",
+    "upstream_commit": "59df66eafba8a010f3302dad1923a2f6dad5abe5"
   }
 }

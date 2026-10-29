@@ -1338,9 +1338,9 @@ Column {
         Repeater {
             model: ListModel {
                 ListElement { name: "Displays"; targetCategory: "monitors"; cmd: ""; icon: "display" }
-                ListElement { name: "Bluetooth"; targetCategory: ""; cmd: "blueman-manager"; icon: "bluetooth" }
+                ListElement { name: "Bluetooth"; targetCategory: ""; cmd: "windoesnot-open-bluetooth"; icon: "bluetooth" }
                 ListElement { name: "Audio"; targetCategory: ""; cmd: "pavucontrol"; icon: "audio" }
-                ListElement { name: "Network"; targetCategory: ""; cmd: "nm-connection-editor"; icon: "network" }
+                ListElement { name: "Network"; targetCategory: ""; cmd: "windoesnot-open-network"; icon: "network" }
                 ListElement { name: "System Monitor"; targetCategory: ""; cmd: "gnome-system-monitor"; icon: "chart" }
                 ListElement { name: "GTK-Themes"; targetCategory: "appearance"; cmd: ""; icon: "palette" }
             }

@@ -29,8 +29,8 @@ def write(path, text, executable=False):
     if executable:
         path.chmod(0o755)
 
-def stage_store(pin, target):
-    """Stage the WinDoesNot Store from its exact pinned commit for the in-image build.
+def stage_store(pin, target, package='windoesnot-store'):
+    """Stage a native Rust application from its exact pinned commit.
 
     The archive and PKGBUILD come only from git objects of that commit, so
     uncommitted changes in store/ never reach an image, and the archive hash
@@ -47,16 +47,16 @@ def stage_store(pin, target):
     if f'pkgver={version}' not in pkgbuild:
         raise SystemExit(f'Store PKGBUILD does not match Cargo version {version}')
     target.mkdir(parents=True)
-    archive = target / f'windoesnot-store-{version}.tar.gz'
-    subprocess.run(['git', '-C', str(repo), 'archive', '--format=tar.gz', f'--prefix=windoesnot-store-{version}/',
+    archive = target / f'{package}-{version}.tar.gz'
+    subprocess.run(['git', '-C', str(repo), 'archive', '--format=tar.gz', f'--prefix={package}-{version}/',
                     '-o', str(archive), commit], check=True)
     # The image chroot has no network: vendor the locked crates here, as a
     # reproducible archive (sorted, fixed mtime/owner, gzip without timestamp).
-    vendor = target / f'windoesnot-store-{version}-vendor.tar.gz'
+    vendor = target / f'{package}-{version}-vendor.tar.gz'
     with tempfile.TemporaryDirectory() as temp:
         temp = Path(temp)
         subprocess.run(['tar', '-xzf', str(archive), '-C', str(temp)], check=True)
-        source = temp / f'windoesnot-store-{version}'
+        source = temp / f'{package}-{version}'
         subprocess.run(['cargo', 'vendor', '--locked', '--versioned-dirs', '--quiet', str(temp / 'vendor')],
                        cwd=source, check=True, stdout=subprocess.DEVNULL)
         subprocess.run(f"tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -C {shlex.quote(str(temp))} -cf - vendor"
@@ -82,7 +82,8 @@ def stage_store(pin, target):
             raise SystemExit(f'Store PKGBUILD lacks: {old}')
         pkgbuild = pkgbuild.replace(old, f'{remap} cargo {step} --release --frozen')
     write(target / 'PKGBUILD', pkgbuild)
-    write(target / 'windoesnot-store.install', show('windoesnot-store.install'))
+    if package == 'windoesnot-store':
+        write(target / 'windoesnot-store.install', show('windoesnot-store.install'))
     return {'version': version, 'commit': commit, 'archive_sha256': digests[0], 'vendor_sha256': digests[1]}
 
 def main():
@@ -123,6 +124,8 @@ def main():
         shutil.copy2(ROOT / name, payload / name)
     store =stage_store(pins['windoesnot-store'], payload / 'store')
     _device_module.stage(pins['windoesnot-device-manager'], payload / 'device-manager-build')
+    for app in ('windoesnot-bluetooth', 'windoesnot-network'):
+        stage_store(pins[app], payload / (app + '-build'), app)
     shutil.copytree(args.sources_root/'cachyos-calamares',payload/'vendor/calamares',ignore=shutil.ignore_patterns('.git','__pycache__','build'))
     # Keep the upstream checkout untouched; add our modules only to the generated build copy.
     shutil.copytree(ROOT / 'iso/modules', payload / 'vendor/calamares/src/modules', dirs_exist_ok=True)

@@ -337,7 +337,7 @@ Item {
     // Open network settings
     Process {
         id: openNetworkSettingsProc
-        command: ["bash", "-c", "nm-connection-editor & disown"]
+        command: ["windoesnot-open-network"]
         running: false
     }
 
@@ -1030,7 +1030,7 @@ Item {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: openNetworkSettingsProc.running = true
+                onClicked: openNetworkSettingsProc.startDetached()
             }
         }
     }

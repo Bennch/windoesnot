@@ -18,10 +18,11 @@ for name in ['cachyos-live-iso','cachyos-calamares']:
     subprocess.run(['git','-C',str(source),'checkout','--detach',pin['commit']],check=True)
 # The application fork is a separate working repository. Never reset its branch
 # or local edits: prepare-profile archives the recorded commit directly.
-pin=pins['windoesnot-device-manager']
-source=ROOT/pin['path']
-if not (source/'.git').exists():
-    subprocess.run(['git','clone',pin['url'],str(source)],check=True)
-if subprocess.run(['git','-C',str(source),'cat-file','-e',f"{pin['commit']}^{{commit}}"],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode:
-    subprocess.run(['git','-C',str(source),'fetch','origin',pin['commit']],check=True)
-print('Pinned official sources and Device Manager fork available')
+for app in ('windoesnot-device-manager', 'windoesnot-bluetooth', 'windoesnot-network'):
+    pin = pins[app]
+    source = ROOT / pin['path']
+    if not (source / '.git').exists():
+        subprocess.run(['git', 'clone', pin['url'], str(source)], check=True)
+    if subprocess.run(['git', '-C', str(source), 'cat-file', '-e', f"{pin['commit']}^{{commit}}"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode:
+        subprocess.run(['git', '-C', str(source), 'fetch', 'origin', pin['commit']], check=True)
+print('Pinned official sources and application forks available')

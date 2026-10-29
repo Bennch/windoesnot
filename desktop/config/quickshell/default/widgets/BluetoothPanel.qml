@@ -218,7 +218,7 @@ Item {
     // Close blueman notification windows
     Process {
         id: closeBluemanProc
-        command: ["bash", "-c", "windoesnot-hyprctl clients -j | jq -r '.[] | select(.class==\"blueman-applet\" or .class==\"blueman-manager\" or .class==\"Blueman-manager\" or (.title | contains(\"Bluetooth\"))) | .address' | while read addr; do windoesnot-hyprctl dispatch closewindow address:$addr; done"]
+        command: ["bash", "-c", "windoesnot-hyprctl clients -j | jq -r '.[] | select(.class==\"blueman-applet\" or .class==\"blueman-manager\" or .class==\"Blueman-manager\") | .address' | while read addr; do windoesnot-hyprctl dispatch closewindow address:$addr; done"]
         running: false
     }
 
@@ -347,10 +347,10 @@ Item {
         pairDeviceProc.running = true
     }
 
-    // Open blueman-manager
+    // Open WinDoesNot Bluetooth (legacy fallback stays in the launcher)
     Process {
         id: openBluemanProc
-        command: ["bash", "-c", "blueman-manager & disown"]
+        command: ["windoesnot-open-bluetooth"]
         running: false
     }
 
@@ -773,7 +773,7 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: openBluemanProc.running = true
+                    onClicked: openBluemanProc.startDetached()
                 }
             }
         }

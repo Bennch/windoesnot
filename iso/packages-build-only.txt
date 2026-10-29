@@ -10,3 +10,6 @@ meson
 nasm
 python-pyelftools
 patch
+
+# Native Bluetooth Blueprint templates.
+blueprint-compiler

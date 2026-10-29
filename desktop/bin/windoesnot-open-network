@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if command -v windoesnot-network >/dev/null 2>&1; then
+    exec windoesnot-network "$@"
+fi
+exec nm-connection-editor "$@"

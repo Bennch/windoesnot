@@ -37,3 +37,13 @@ retained. It does not replace the licenses of the other components listed above.
 
 If you hold rights to any of this material and want it credited differently or
 removed, please open an issue.
+
+## Connectivity applications
+
+The separately versioned [WinDoesNot Bluetooth](https://github.com/Bennch/windoesnot-bluetooth)
+fork is based on [Overskride](https://github.com/kaii-lb/overskride), copyright kaii,
+under GPL-3.0-or-later. [WinDoesNot Network](https://github.com/Bennch/windoesnot-network)
+is based on [Adwaita Network](https://github.com/PlayRood32/adw-network), copyright
+its upstream contributors, under GPL-3.0-or-later. Both retain the upstream
+license and credits. Exact commits are recorded in `sources.json`; the image
+build compiles these sources against its own GTK libraries.

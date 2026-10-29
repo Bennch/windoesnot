@@ -82,3 +82,5 @@ polkit
 pciutils
 usbutils
 chwd
+
+bluez-obex

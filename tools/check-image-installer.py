@@ -12,7 +12,7 @@ args=parser.parse_args()
 root=args.root
 base=root/'usr/share/windoesnot'
 assert (root/'etc/windoesnot-image-build').is_file(),'Not a prepared live image'
-for path in ['usr/bin/windoesnot-device-manager','usr/bin/windoesnot-drivers',
+for path in ['usr/bin/windoesnot-bluetooth','usr/bin/windoesnot-network','usr/bin/windoesnot-device-manager','usr/bin/windoesnot-drivers',
              'usr/share/applications/me.windoesnot.DeviceManager.desktop',
              'usr/share/polkit-1/actions/me.windoesnot.DeviceManager.policy']:
     assert (root/path).is_file(),f'Missing Device Manager package file: {path}'

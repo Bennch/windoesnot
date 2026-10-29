@@ -70,8 +70,9 @@ def changes(terminal_build):
         result.append((HOST / relative, source.read_bytes(), source.stat().st_mode & 0o777))
     for library in sorted((terminal_build / TERMINAL).iterdir()):
         result.append((HOST / TERMINAL / library.name, library.read_bytes(), library.stat().st_mode & 0o777))
-    lister = ROOT / 'desktop/bin/windoesnot-list-apps'
-    result.append((BIN / lister.name, lister.read_bytes(), 0o755))
+    for name in ('windoesnot-list-apps', 'windoesnot-open-bluetooth', 'windoesnot-open-network'):
+        launcher = ROOT / 'desktop/bin' / name
+        result.append((BIN / name, launcher.read_bytes(), 0o755))
     keys = APPLICATIONS / 'windoesnot-keys.desktop'
     if not keys.exists():
         result.append((keys, KEYS_LAUNCHER.encode(), 0o644))
