@@ -1019,6 +1019,7 @@ PanelWindow {
         trayIconModel.clear()
         var order = settingsMenu.trayOrder.split(",")
         if (order.indexOf("nearby") < 0) order.splice(Math.max(0, order.indexOf("network") + 1), 0, "nearby")
+        if (order.indexOf("battery") < 0) order.splice(Math.max(0, order.indexOf("network") + 1), 0, "battery")
         for (var i = 0; i < order.length; i++) {
             var t = order[i].trim()
             if (t === "weather") {
@@ -1031,6 +1032,8 @@ PanelWindow {
                 if (settingsMenu.showOllamaTray) trayIconModel.append({iconType: "ollama"})
             } else if (t === "nearby") {
                 if (settingsMenu.showNearbyTray) trayIconModel.append({iconType: "nearby"})
+            } else if (t === "battery") {
+                if (settingsMenu.showBatteryTray) trayIconModel.append({iconType: "battery"})
             } else {
                 trayIconModel.append({iconType: t})
             }
@@ -1067,6 +1070,7 @@ PanelWindow {
         function onUiLanguageChanged() { if (!settingsMenu.isLoadingSettings) desktopFilesProc.running = true }
         function onShowOllamaTrayChanged() { panelWindow.rebuildTrayModel() }
         function onShowNearbyTrayChanged() { panelWindow.rebuildTrayModel() }
+        function onShowBatteryTrayChanged() { panelWindow.rebuildTrayModel() }
     }
 
     // Workspace Toggle Button - Position depends on alignment
@@ -1460,6 +1464,21 @@ PanelWindow {
                             Behavior on opacity { NumberAnimation { duration: 150 } }
                         }
 
+                        // Battery icon content
+                        Image {
+                            visible: model.iconType === "battery"
+                            anchors.centerIn: parent
+                            source: "img/Win11-dark/devices/symbolic/battery-symbolic.svg"
+                            width: 18; height: 18
+                            sourceSize.width: 36; sourceSize.height: 36
+                            fillMode: Image.PreserveAspectFit
+                            smooth: true; antialiasing: true; mipmap: true
+                            opacity: trayDragArea.containsMouse ? 0.7 : 1.0
+                            layer.enabled: !settingsMenu.darkMode
+                            layer.effect: MultiEffect { colorization: 1.0; colorizationColor: "#333333" }
+                            Behavior on opacity { NumberAnimation { duration: 150 } }
+                        }
+
                         // Ollama icon content
                         Image {
                             visible: model.iconType === "ollama"
@@ -1549,6 +1568,7 @@ PanelWindow {
                                 else if (model.iconType === "audio") tipText = "Audio"
                                 else if (model.iconType === "bluetooth") tipText = "Bluetooth"
                 else if (model.iconType === "network") tipText = Lang.get("shell.network", settingsMenu.uiLanguage)
+                                else if (model.iconType === "battery") tipText = Lang.get("power.battery", settingsMenu.uiLanguage)
                                 else if (model.iconType === "nearby") tipText = Lang.get("nearby.title", settingsMenu.uiLanguage)
                                     + " · " + Lang.get(nearbyService.state.receiving ? "nearby.receivingOn" : "nearby.receivingOff", settingsMenu.uiLanguage)
                                 else if (model.iconType === "ollama") tipText = "Ollama"
@@ -1624,6 +1644,13 @@ PanelWindow {
                                         nearbyWindow.visible = false
                                         calendarWindow.visible = false
                                         networkWindow.visible = !networkWindow.visible
+                                    } else if (model.iconType === "battery") {
+                                        audioWindow.visible = false
+                                        bluetoothWindow.visible = false
+                                        networkWindow.visible = false
+                                        nearbyWindow.visible = false
+                                        calendarWindow.visible = false
+                                        batteryWindow.visible = !batteryWindow.visible
                                     } else if (model.iconType === "nearby") {
                                         if (nearbyWindow.visible) nearbyWindow.visible = false
                                         else desktopShell.openNearby()
@@ -2515,20 +2542,10 @@ PanelWindow {
                                         appContextMenu.ctxAppWindows = panelWindow.openWindows[model.name] || []
                                         // Calculate position: center menu above clicked icon
                                         var itemPos = taskbarDragArea.mapToItem(panelWindow.contentItem, 0, 0)
-                                        var primaryScreen = null
-                                        for (var s = 0; s < Quickshell.screens.length; s++) {
-                                            if (Quickshell.screens[s].name === settingsMenu.primaryMonitor) {
-                                                primaryScreen = Quickshell.screens[s]; break
-                                            }
-                                        }
-                                        var monH = primaryScreen ? primaryScreen.height : (panelWindow.screen ? panelWindow.screen.height : 800)
-                                        var monW = primaryScreen ? primaryScreen.width : (panelWindow.screen ? panelWindow.screen.width : 1280)
-                                        var acmW = 220
-                                        var acmWins = panelWindow.openWindows[model.name] || []
-                                        var acmH = acmWins.length > 0 ? 129 : 84
-                                        var acmX = Math.max(0, Math.min(monW - acmW, Math.round(itemPos.x + taskbarDragArea.width / 2 - acmW / 2)))
-                                        var acmY = monH - 45 - acmH
-                                        appContextMenu.menuX = acmX
+                                        appContextMenu.anchor.rect.x = itemPos.x
+                                        appContextMenu.anchor.rect.y = itemPos.y
+                                        appContextMenu.anchor.rect.width = taskbarDragArea.width
+                                        appContextMenu.anchor.rect.height = taskbarDragArea.height
                                         appContextMenu.visible = true
                                     } else {
                                         // Left click: weather opens popup, others toggle/launch
@@ -4957,6 +4974,42 @@ FloatingWindow {
 }
 
 FloatingWindow {
+    id: batteryWindow
+    visible: false
+    implicitWidth: 320
+    implicitHeight: 360
+    color: "transparent"
+    title: "quickshell-battery"
+    screen: {
+        for (var i = 0; i < Quickshell.screens.length; i++) {
+            if (Quickshell.screens[i].name === settingsMenu.primaryMonitor)
+                return Quickshell.screens[i]
+        }
+        return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    }
+
+    HyprlandFocusGrab {
+        id: batteryFocusGrab
+        windows: [batteryWindow]
+        active: batteryWindow.visible
+        onCleared: batteryWindow.visible = false
+    }
+
+    Loader {
+        anchors.fill: parent
+        source: "widgets/BatteryPanel.qml"
+
+        onLoaded: {
+            item.accentColor = Qt.binding(function() { return settingsMenu.accentColor })
+            item.borderRadius = Qt.binding(function() { return settingsMenu.borderRadius })
+            item.windowVisible = Qt.binding(function() { return batteryWindow.visible })
+            item.darkMode = Qt.binding(function() { return settingsMenu.darkMode })
+            item.uiLanguage = Qt.binding(function() { return settingsMenu.uiLanguage })
+        }
+    }
+}
+
+FloatingWindow {
     id: networkWindow
     visible: false
     implicitWidth: 320
@@ -5780,14 +5833,12 @@ PopupWindow {
     implicitWidth: 220
     implicitHeight: ctxIsOpen ? 129 : 84
     color: "transparent"
-    property int menuX: 0
+    grabFocus: true
     anchor {
         window: panelWindow
-        edges: Edges.Top | Edges.Left
-        gravity: Edges.Top | Edges.Left
+        edges: Edges.Top
+        gravity: Edges.Top
         adjustment: PopupAdjustment.None
-        rect.x: appContextMenu.menuX
-        rect.y: 0
     }
 
     HyprlandFocusGrab {
@@ -6623,6 +6674,7 @@ Connections {
     function onShowDockerTrayChanged() { if (!settingsMenu.showDockerTray) dockerWindow.visible = false }
     function onShowOllamaTrayChanged() { if (!settingsMenu.showOllamaTray) ollamaWindow.visible = false }
     function onShowNearbyTrayChanged() { if (!settingsMenu.showNearbyTray) nearbyWindow.visible = false }
+    function onShowBatteryTrayChanged() { if (!settingsMenu.showBatteryTray) batteryWindow.visible = false }
 }
 
 // Does (AI panel). A window closed by the compositor (title bar X) cannot be

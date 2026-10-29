@@ -24,7 +24,8 @@ Column {
         model: [
             { "propertyName": "showDockerTray", "title": "Docker", "description": "apps.dockerTrayDesc" },
             { "propertyName": "showOllamaTray", "title": "Ollama", "description": "apps.ollamaTrayDesc" },
-            { "propertyName": "showNearbyTray", "title": Lang.get("nearby.title", _lang), "description": "apps.nearbyTrayDesc" }
+            { "propertyName": "showNearbyTray", "title": Lang.get("nearby.title", _lang), "description": "apps.nearbyTrayDesc" },
+            { "propertyName": "showBatteryTray", "title": Lang.get("nav.power", _lang), "description": "apps.batteryTrayDesc" }
         ]
         delegate: Row {
             required property var modelData

@@ -41,6 +41,7 @@ var strings = {
     "power.stateUnknown": "Unknown",
     "power.timeToFull": "Fully charged in",
     "power.timeToEmpty": "Remaining:",
+    "power.brightness": "Brightness",
     "power.profile": "Power profile",
     "power.profileHint": "Takes effect immediately, no restart needed.",
     "power.profileUnavailable": "power-profiles-daemon is not available on this system.",
@@ -266,6 +267,7 @@ var strings = {
     "apps.dockerTrayDesc": "Enable Docker management in the taskbar. Loaded only when enabled; does not start the Docker service.",
     "apps.ollamaTrayDesc": "Manage local AI models in the taskbar. Loaded only when enabled; does not start the Ollama service.",
     "apps.nearbyTrayDesc": "Show file sharing with devices on the same network (LocalSend-compatible) in the taskbar. Disabling only hides the icon; \"Allow receiving\" still controls whether requests are accepted.",
+    "apps.batteryTrayDesc": "Show battery level, power profile and brightness in the taskbar. Turned on automatically once if a battery is detected, freely toggleable afterward.",
     "backups.liveDisabled": "Backups are disabled in the live session. This preview does not back up an installed system.",
     "backups.unavailable": "Backups are unavailable because Snapper is not installed.",
 

@@ -41,6 +41,7 @@ var strings = {
     "power.stateUnknown": "Unbekannt",
     "power.timeToFull": "Vollständig geladen in",
     "power.timeToEmpty": "Noch verfügbar:",
+    "power.brightness": "Helligkeit",
     "power.profile": "Energieprofil",
     "power.profileHint": "Wirkt sofort, ohne Neustart.",
     "power.profileUnavailable": "power-profiles-daemon ist auf diesem System nicht verfügbar.",
@@ -266,6 +267,7 @@ var strings = {
     "apps.dockerTrayDesc": "Docker-Verwaltung in der Taskleiste aktivieren. Wird nur bei Aktivierung geladen; startet keinen Docker-Dienst.",
     "apps.ollamaTrayDesc": "Lokale KI-Modelle in der Taskleiste verwalten. Wird nur bei Aktivierung geladen; startet keinen Ollama-Dienst.",
     "apps.nearbyTrayDesc": "Dateifreigabe mit Geräten im selben Netzwerk (LocalSend-kompatibel) in der Taskleiste anzeigen. Bei Deaktivierung nur das Symbol ausgeblendet; „Empfangen erlauben“ steuert weiterhin, ob Anfragen angenommen werden.",
+    "apps.batteryTrayDesc": "Akkustand, Energieprofil und Helligkeit in der Taskleiste anzeigen. Wird bei einem erkannten Akku automatisch einmalig aktiviert, danach frei umschaltbar.",
     "backups.liveDisabled": "Backups sind im Live-System deaktiviert. Die Vorschau sichert kein installiertes System.",
     "backups.unavailable": "Backups sind hier nicht verfügbar, weil Snapper nicht installiert ist.",
 

@@ -54,17 +54,17 @@ with tempfile.TemporaryDirectory(prefix='windoesnot-placement-') as temporary:
         for alignment in ('left', 'center'):
             for sidebar in ('left', 'hidden'):
                 geometry = window_rules(dict(name='Virtual-9', width=width, height=height, scale=scale, transform=transform, reserved=[0,0,0,45]), dict(taskbarAlignment=alignment, startMenuSidebarPosition=sidebar))
-                for name in ('startmenu-config', 'settings-config', 'calendar-config', 'audio-config', 'bluetooth-config', 'network-config', 'nearby-config', 'appcontextmenu-config', 'docker-config', 'ollama-config'):
+                for name in ('startmenu-config', 'settings-config', 'calendar-config', 'audio-config', 'bluetooth-config', 'network-config', 'battery-config', 'nearby-config', 'appcontextmenu-config', 'docker-config', 'ollama-config'):
                     rule = geometry['rules'][name]
                     assert rule['move'][1] + rule['size'][1] == geometry['height'] - 45, name
                 (fixture / 'geometry.lua').write_text('return ' + lua(geometry) + '\n')
                 result = subprocess.run(['lua', fixture / 'runner.lua', fixture], env=env, capture_output=True, text=True)
                 assert result.returncode == 0, result.stderr
-                assert result.stdout.strip() == 'PLACEMENT_OK 14', result.stdout
+                assert result.stdout.strip() == 'PLACEMENT_OK 15', result.stdout
                 cases += 1
     # Verify the regression test really rejects the original contradictory payload.
     patched = (fixture / 'init.lua').read_text()
     (fixture / 'init.lua').write_text(patched.replace('    if copy.move ~= nil then copy.center = nil end\n', ''))
     previous = subprocess.run(['lua', fixture / 'runner.lua', fixture], env=env, capture_output=True, text=True)
     assert previous.returncode != 0 and 'conflicting move and center effects' in previous.stderr
-    print(f'PASS: {cases} fresh Lua states, all 14 shell placement rules, original regression detected')
+    print(f'PASS: {cases} fresh Lua states, all 15 shell placement rules, original regression detected')

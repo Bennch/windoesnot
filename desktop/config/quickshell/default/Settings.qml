@@ -76,11 +76,13 @@ FloatingWindow {
     property bool showOllamaTray: false
     property bool showDockerTray: false
     property bool showNearbyTray: true
+    property bool showBatteryTray: false
+    property bool batteryTraySeen: false  // not persisted; true once showBatteryTray has been loaded or auto-detected
     property bool weatherEnabled: false
     property string weatherLocation: "tray"  // "tray" | "taskbar"
     property int weatherTaskbarIndex: -1  // position in taskbar model (-1 = end)
     property int weatherStartAreaSlot: -1  // -1 = in app repeater, 0/1/2 = before start / after start / after settings
-    property string trayOrder: "weather,audio,bluetooth,network,docker,ollama"
+    property string trayOrder: "weather,audio,bluetooth,network,battery,docker,ollama"
     property string weatherCity: ""
     property real weatherLatitude: 0.0
     property real weatherLongitude: 0.0
@@ -953,6 +955,7 @@ FloatingWindow {
             'else if (key === "showOllamaTray") settingsMenu.showOllamaTray = (value === "true"); ' +
             'else if (key === "showDockerTray") settingsMenu.showDockerTray = (value === "true"); ' +
             'else if (key === "showNearbyTray") settingsMenu.showNearbyTray = (value === "true"); ' +
+            'else if (key === "showBatteryTray") { settingsMenu.showBatteryTray = (value === "true"); settingsMenu.batteryTraySeen = true; } ' +
             'else if (key === "weatherEnabled") settingsMenu.weatherEnabled = (value === "true"); ' +
             'else if (key === "weatherLocation") settingsMenu.weatherLocation = value; ' +
             'else if (key === "weatherTaskbarIndex") settingsMenu.weatherTaskbarIndex = parseInt(value); ' +
@@ -978,6 +981,7 @@ FloatingWindow {
             'settingsMenu.updateGtkSettingsIni(); ' +
             'settingsMenu.updateGtkColorScheme(); ' +
             'settingsMenu.updateIconTheme(); ' +
+            'settingsMenu.detectBatteryTrayDefault(); ' +
             'console.log("Settings loaded and applied to Hyprland"); ' +
             'currentGtkThemeLoader.running = true; ' +
             '} } }',
@@ -1097,6 +1101,7 @@ FloatingWindow {
                       "showOllamaTray=" + (showOllamaTray ? "true" : "false") + "\\n" +
                       "showDockerTray=" + (showDockerTray ? "true" : "false") + "\\n" +
                       "showNearbyTray=" + (showNearbyTray ? "true" : "false") + "\\n" +
+                      "showBatteryTray=" + (showBatteryTray ? "true" : "false") + "\\n" +
                       "weatherEnabled=" + (weatherEnabled ? "true" : "false") + "\\n" +
                       "weatherLocation=" + weatherLocation + "\\n" +
                       "weatherTaskbarIndex=" + weatherTaskbarIndex + "\\n" +
@@ -1363,6 +1368,25 @@ FloatingWindow {
             'import Quickshell.Io; Process { ' +
             'command: ["bash", "-c", "printf \'%b\' \'' + css.replace(/'/g, "'\\''") + '\' > ~/.config/gtk-4.0/gtk.css && cp ~/.config/gtk-4.0/gtk.css ~/.config/gtk-3.0/gtk.css"]; ' +
             'running: true; }',
+            settingsMenu
+        )
+    }
+
+    // Battery tray icon defaults to shown on a system that actually has a
+    // battery, hidden otherwise, but only the first time it is ever decided
+    // (batteryTraySeen false means the key was never found in settings.txt).
+    // After that it is a plain persisted user toggle like the other tray
+    // icons, same as the rest of loadSettings()/saveSettings().
+    function detectBatteryTrayDefault() {
+        if (batteryTraySeen) return
+        var proc = Qt.createQmlObject(
+            'import Quickshell.Io; Process { ' +
+            'command: ["bash", "-c", "upower -e 2>/dev/null | grep -q /battery_ && echo yes || echo no"]; ' +
+            'running: true; ' +
+            'stdout: StdioCollector { onStreamFinished: { ' +
+            'settingsMenu.batteryTraySeen = true; ' +
+            'if (this.text.trim() === "yes") { settingsMenu.showBatteryTray = true; settingsMenu.saveSettings() } ' +
+            '} } }',
             settingsMenu
         )
     }
@@ -1637,6 +1661,12 @@ FloatingWindow {
         }
     }
     onShowOllamaTrayChanged: {
+        if (!isLoadingSettings) {
+            saveSettings()
+            if (panelWindow) panelWindow.rebuildTrayModel()
+        }
+    }
+    onShowBatteryTrayChanged: {
         if (!isLoadingSettings) {
             saveSettings()
             if (panelWindow) panelWindow.rebuildTrayModel()
