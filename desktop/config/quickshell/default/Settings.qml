@@ -754,6 +754,7 @@ FloatingWindow {
         if (!isLoadingSettings) {
             saveSettings()
             updateHyprlandAppearance()
+            updateGtkAccentCss()
         }
     }
 
@@ -1120,6 +1121,7 @@ FloatingWindow {
         saveSettings()
         if (!isLoadingSettings) {
             updateHyprlandBorders()
+            updateGtkAccentCss()
         }
     }
     onStartOrbStyleChanged: saveSettings()
@@ -1330,6 +1332,28 @@ FloatingWindow {
         var proc = Qt.createQmlObject(
             'import Quickshell.Io; Process { ' +
             'command: ["bash", "-c", "' + cmd + '"]; ' +
+            'running: true; }',
+            settingsMenu
+        )
+    }
+
+    // GTK4/libadwaita apps (Nautilus, etc.) pick their selection-rectangle
+    // ("rubberband") color from the GNOME accent-color variables, and have
+    // no rounding on it at all by default. User gtk.css is loaded as an
+    // override on top of the active theme, so this makes both follow our
+    // own accent color and border radius settings instead.
+    function updateGtkAccentCss() {
+        var accent = accentColor.toString()
+        var css = ":root { --accent-color: " + accent + "; --accent-bg-color: " + accent + "; }\\n" +
+            "@define-color accent_color " + accent + ";\\n" +
+            "@define-color accent_bg_color " + accent + ";\\n" +
+            "rubberband { border-radius: " + borderRadius + "px; }\\n"
+
+        console.log("Updating GTK accent CSS:", accent, "radius=" + borderRadius)
+
+        var proc = Qt.createQmlObject(
+            'import Quickshell.Io; Process { ' +
+            'command: ["bash", "-c", "printf \'%b\' \'' + css.replace(/'/g, "'\\''") + '\' > ~/.config/gtk-4.0/gtk.css && cp ~/.config/gtk-4.0/gtk.css ~/.config/gtk-3.0/gtk.css"]; ' +
             'running: true; }',
             settingsMenu
         )

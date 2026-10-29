@@ -79,6 +79,17 @@ Column {
         color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
     }
 
+    ColorsCategory {
+        width: parent.width
+        settingsMenu: parent.settingsMenu
+    }
+
+    Rectangle {
+        width: parent.width
+        height: 1
+        color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
+    }
+
     StartOrbSettings { settingsMenu: parent.settingsMenu }
 
     Rectangle {
@@ -2107,15 +2118,5 @@ Column {
             }
         }
 
-        Rectangle {
-            width: parent.width
-            height: 1
-            color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
-        }
-
-        ColorsCategory {
-            width: parent.width
-            settingsMenu: settingsMenu
-        }
 }
 }
