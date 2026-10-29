@@ -2049,12 +2049,11 @@ FloatingWindow {
                             ListElement { category: "monitors";   labelKey: "nav.monitors";   icon: "img/Win11-dark/devices/symbolic/video-display-symbolic.svg" }
                             ListElement { category: "background"; labelKey: "nav.background"; icon: "img/Win11-dark/places/symbolic/folder-pictures-symbolic.svg" }
                             ListElement { category: "appearance"; labelKey: "nav.appearance"; icon: "img/Win11-dark/actions/symbolic/builder-appearance-symbolic.svg" }
-                            ListElement { category: "colors";     labelKey: "nav.colors";     icon: "img/Win11-dark/actions/symbolic/color-palette-symbolic.svg" }
                             ListElement { category: "alignment";  labelKey: "nav.alignment";  icon: "img/Win11-dark/actions/symbolic/align-on-canvas-symbolic.svg" }
                             ListElement { category: "input";      labelKey: "nav.input";      icon: "img/Win11-dark/devices/symbolic/input-mouse-symbolic.svg" }
+                            ListElement { category: "power";      labelKey: "nav.power";      icon: "img/Win11-dark/devices/symbolic/battery-symbolic.svg" }
                             ListElement { category: "apps";       labelKey: "nav.apps";       icon: "img/Win11-dark/actions/symbolic/view-app-grid-symbolic.svg" }
                             ListElement { category: "maintenance"; labelKey: "nav.maintenance"; icon: "img/Win11-dark/categories/symbolic/preferences-system-symbolic.svg" }
-                            ListElement { category: "kernel"; labelKey: "nav.kernel"; icon: "img/Win11-dark/devices/symbolic/computer-chip-symbolic.svg" }
                             ListElement { category: "backups";    labelKey: "nav.backups";    icon: "img/Win11-dark/places/symbolic/folder-documents-symbolic.svg" }
                             ListElement { category: "updates";    labelKey: "nav.updates";    icon: "img/Win11-dark/actions/symbolic/system-update-symbolic.svg" }
                             ListElement { category: "about";      labelKey: "nav.about";      icon: "img/Win11-dark/actions/symbolic/link-symbolic.svg" }
@@ -2171,12 +2170,11 @@ FloatingWindow {
                             if (settingsMenu.currentCategory === "desktop") return Lang.get("header.desktop", uiLanguage)
                             if (settingsMenu.currentCategory === "background") return Lang.get("header.background", uiLanguage)
                             if (settingsMenu.currentCategory === "appearance") return Lang.get("header.appearance", uiLanguage)
-                            if (settingsMenu.currentCategory === "colors") return Lang.get("header.colors", uiLanguage)
                             if (settingsMenu.currentCategory === "alignment") return Lang.get("header.alignment", uiLanguage)
                             if (settingsMenu.currentCategory === "input") return Lang.get("header.input", uiLanguage)
+                            if (settingsMenu.currentCategory === "power") return Lang.get("header.power", uiLanguage)
                             if (settingsMenu.currentCategory === "apps") return Lang.get("header.apps", uiLanguage)
                             if (settingsMenu.currentCategory === "maintenance") return Lang.get("header.maintenance", uiLanguage)
-                            if (settingsMenu.currentCategory === "kernel") return Lang.get("header.kernel", uiLanguage)
                             if (settingsMenu.currentCategory === "backups") return Lang.get("header.backups", uiLanguage)
                             if (settingsMenu.currentCategory === "monitors") return Lang.get("header.monitors", uiLanguage)
                             if (settingsMenu.currentCategory === "updates") return Lang.get("header.updates", uiLanguage)
@@ -2215,12 +2213,11 @@ FloatingWindow {
                                 var padding = 20
                                 if (settingsMenu.currentCategory === "desktop") return desktopLoader.item ? desktopLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "appearance") return appearanceLoader.item ? appearanceLoader.item.height + padding : height
-                                if (settingsMenu.currentCategory === "colors") return colorsLoader.item ? colorsLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "alignment") return alignmentLoader.item ? alignmentLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "input") return inputLoader.item ? inputLoader.item.height + padding : height
+                                if (settingsMenu.currentCategory === "power") return powerLoader.item ? powerLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "apps") return appsLoader.item ? appsLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "maintenance") return maintenanceLoader.item ? maintenanceLoader.item.height + padding : height
-                                if (settingsMenu.currentCategory === "kernel") return kernelLoader.item ? kernelLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "backups") return backupsLoader.item ? backupsLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "monitors") return monitorsLoader.item ? monitorsLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "updates") return updatesLoader.item ? updatesLoader.item.height + padding : height
@@ -2272,17 +2269,6 @@ FloatingWindow {
                             onActiveChanged: if (active) setSource("settings/AppearanceCategory.qml", {"settingsMenu": settingsMenu})
                         }
 
-                        // Farben Settings
-                        Loader {
-                            id: colorsLoader
-                            active: settingsMenu.currentCategory === "colors"
-                            visible: settingsMenu.currentCategory === "colors"
-                            width: parent.width
-                            asynchronous: false
-                            Component.onCompleted: if (active) setSource("settings/ColorsCategory.qml", {"settingsMenu": settingsMenu})
-                            onActiveChanged: if (active) setSource("settings/ColorsCategory.qml", {"settingsMenu": settingsMenu})
-                        }
-
                         // Ausrichtung Settings
                         Loader {
                             id: alignmentLoader
@@ -2305,6 +2291,17 @@ FloatingWindow {
                             onActiveChanged: if (active) setSource("settings/InputCategory.qml", {"settingsMenu": settingsMenu})
                         }
 
+                        // Akku & Energie Settings
+                        Loader {
+                            id: powerLoader
+                            active: settingsMenu.currentCategory === "power"
+                            visible: settingsMenu.currentCategory === "power"
+                            width: parent.width
+                            asynchronous: false
+                            Component.onCompleted: if (active) setSource("settings/PowerCategory.qml", {"settingsMenu": settingsMenu})
+                            onActiveChanged: if (active) setSource("settings/PowerCategory.qml", {"settingsMenu": settingsMenu})
+                        }
+
                         // Apps Settings
                         Loader {
                             id: appsLoader
@@ -2322,18 +2319,8 @@ FloatingWindow {
                             visible: settingsMenu.currentCategory === "maintenance"
                             width: parent.width
                             asynchronous: false
-                            Component.onCompleted: if (active) setSource("settings/MaintenanceCategory.qml", {"settingsMenu": settingsMenu})
-                            onActiveChanged: if (active && !item) setSource("settings/MaintenanceCategory.qml", {"settingsMenu": settingsMenu})
-                        }
-
-                        Loader {
-                            id: kernelLoader
-                            active: settingsMenu.currentCategory === "kernel" || (item !== null && item.busy)
-                            visible: settingsMenu.currentCategory === "kernel"
-                            width: parent.width
-                            asynchronous: false
-                            Component.onCompleted: if (active) setSource("settings/KernelCategory.qml", {"settingsMenu": settingsMenu})
-                            onActiveChanged: if (active && !item) setSource("settings/KernelCategory.qml", {"settingsMenu": settingsMenu})
+                            Component.onCompleted: if (active) setSource("settings/SystemCategory.qml", {"settingsMenu": settingsMenu})
+                            onActiveChanged: if (active && !item) setSource("settings/SystemCategory.qml", {"settingsMenu": settingsMenu})
                         }
 
                         // Backup Settings

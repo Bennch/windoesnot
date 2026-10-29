@@ -6,6 +6,8 @@ hyprpicker
 hyprlock
 hypridle
 imagemagick
+upower
+power-profiles-daemon
 hyprshot
 ghostty
 bash

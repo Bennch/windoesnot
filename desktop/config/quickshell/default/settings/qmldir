@@ -13,6 +13,8 @@ StartOrbSettings 1.0 StartOrbSettings.qml
 UpdateCategory 1.0 UpdateCategory.qml
 KernelCategory 1.0 KernelCategory.qml
 MaintenanceCategory 1.0 MaintenanceCategory.qml
+SystemCategory 1.0 SystemCategory.qml
+PowerCategory 1.0 PowerCategory.qml
 SystemToolsButton 1.0 SystemToolsButton.qml
 SystemToolsChoice 1.0 SystemToolsChoice.qml
 SystemToolsToggle 1.0 SystemToolsToggle.qml

@@ -273,6 +273,48 @@ def maintenance_status():
             'tools': {name: available(name) for name in ('cachyos-rate-mirrors', 'paccache', 'pacman-key', 'chwd', 'curl')}}
 
 
+def battery_info():
+    try:
+        devices = query('/usr/bin/upower', '-e').splitlines()
+    except (RuntimeError, FileNotFoundError):
+        return None
+    path = next((d for d in devices if '/battery_' in d), None)
+    if not path:
+        return None
+    fields = {}
+    for line in query('/usr/bin/upower', '-i', path).splitlines():
+        key, sep, value = line.strip().partition(':')
+        if sep:
+            fields[key.strip()] = value.strip()
+    return {'percentage': fields.get('percentage', '').rstrip('%'),
+            'state': fields.get('state', ''),
+            'timeToEmpty': fields.get('time to empty', ''),
+            'timeToFull': fields.get('time to full', ''),
+            'capacity': fields.get('capacity', '')}
+
+
+def power_profiles():
+    try:
+        raw = query('/usr/bin/powerprofilesctl', 'list')
+    except (RuntimeError, FileNotFoundError):
+        return [], ''
+    profiles, current = [], ''
+    for line in raw.splitlines():
+        match = re.match(r'^(\* |  )([a-z][\w-]*):$', line)
+        if match:
+            name = match.group(2)
+            profiles.append(name)
+            if match.group(1) == '* ':
+                current = name
+    return profiles, current
+
+
+def power_status():
+    profiles, current = power_profiles()
+    return {'battery': battery_info(), 'profiles': profiles, 'currentProfile': current,
+            'profilesAvailable': available('powerprofilesctl')}
+
+
 def require_online():
     # A real HTTPS request rejects disconnected/captive portal environments.
     command('/usr/bin/curl', '--fail', '--silent', '--show-error', '--max-time', '20',
@@ -382,7 +424,7 @@ def set_shell(name):
 def validate(action, payload):
     if type(payload) is not dict:
         raise ValueError('Arguments must be an object')
-    if action in ('kernel-status', 'maintenance-status', 'shell-status', 'scx-install', 'scx-stop',
+    if action in ('kernel-status', 'maintenance-status', 'shell-status', 'power-status', 'scx-install', 'scx-stop',
                   'mirrors-rank', 'cache-clean', 'keyring-repair', 'lock-remove', 'drivers-configure'):
         if payload:
             raise ValueError('This action takes no arguments')
@@ -594,9 +636,9 @@ def main():
     action = sys.argv[1]
     payload = json.loads(sys.argv[2]) if len(sys.argv) == 3 else {}
     validate(action, payload)
-    if action in ('kernel-status', 'maintenance-status', 'shell-status'):
+    if action in ('kernel-status', 'maintenance-status', 'shell-status', 'power-status'):
         print(json.dumps({'kernel-status': kernel_status, 'maintenance-status': maintenance_status,
-                          'shell-status': shell_status}[action]())); return
+                          'shell-status': shell_status, 'power-status': power_status}[action]())); return
     if os.geteuid() != 0:
         raise PermissionError('Use the authorized pkexec entry point')
     if Path('/etc/windoesnot-image-build').exists():

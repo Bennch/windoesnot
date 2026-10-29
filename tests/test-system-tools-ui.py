@@ -92,11 +92,11 @@ ShellRoot {
     maintenance.requestAction("lock-remove",{},"test")
     testWindow.check(maintenance.pendingAction === "orphans-remove", "maintenance live guard")
     preferences.uiLanguage="de"; preferences.darkMode=true
-    testWindow.check(maintenance.tr("header.maintenance") === "Wartung", "maintenance DE")
+    testWindow.check(maintenance.tr("header.maintenance") === "Wartung & Kernel", "maintenance DE")
     maintenance.resultKey="systemTools.cancelled"
     testWindow.check(maintenance.resultText.indexOf("Abgebrochen") === 0, "translated result DE")
     preferences.uiLanguage="en"; preferences.darkMode=false
-    testWindow.check(maintenance.tr("header.maintenance") === "Maintenance", "maintenance EN")
+    testWindow.check(maintenance.tr("header.maintenance") === "Maintenance & Kernel", "maintenance EN")
     testWindow.check(maintenance.resultText.indexOf("Cancelled") === 0, "translated result EN")
     finish.start()
    } catch(e) { console.error("SYSTEM_TOOLS_UI_FAIL",e); Qt.quit() }

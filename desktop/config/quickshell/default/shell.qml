@@ -2508,11 +2508,8 @@ PanelWindow {
                                         var acmH = acmWins.length > 0 ? 129 : 84
                                         var acmX = Math.max(0, Math.min(monW - acmW, Math.round(itemPos.x + taskbarDragArea.width / 2 - acmW / 2)))
                                         var acmY = monH - 45 - acmH
-                                        var acmPosProc = Qt.createQmlObject('import Quickshell.Io; Process { }', panelWindow)
-                                        acmPosProc.command = ["windoesnot-hyprctl", "keyword", "windowrule[appcontextmenu-config]:move", acmX + " " + acmY]
-                                        var acmXFinal = acmX, acmYFinal = acmY
-                                        acmPosProc.exited.connect(function() { appContextMenu.visible = true })
-                                        acmPosProc.running = true
+                                        appContextMenu.menuX = acmX
+                                        appContextMenu.visible = true
                                     } else {
                                         // Left click: weather opens popup, others toggle/launch
                                         if (taskbarAppItem.isWeatherItem) {
@@ -5633,19 +5630,21 @@ FloatingWindow {
 }
 
 // App Context Menu (Taskbar app right-click)
-FloatingWindow {
+PopupWindow {
     id: appContextMenu
     visible: false
     implicitWidth: 220
     implicitHeight: ctxIsOpen ? 129 : 84
     color: "transparent"
     title: "quickshell-appcontextmenu"
-    screen: {
-        for (var i = 0; i < Quickshell.screens.length; i++) {
-            if (Quickshell.screens[i].name === settingsMenu.primaryMonitor)
-                return Quickshell.screens[i]
-        }
-        return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    property int menuX: 0
+    anchor {
+        window: panelWindow
+        edges: Edges.Top | Edges.Left
+        gravity: Edges.Top | Edges.Left
+        adjustment: PopupAdjustment.None
+        rect.x: appContextMenu.menuX
+        rect.y: -appContextMenu.implicitHeight
     }
 
     HyprlandFocusGrab {
