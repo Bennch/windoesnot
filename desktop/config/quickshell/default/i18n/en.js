@@ -33,6 +33,7 @@ var strings = {
     "nav.power": "Battery & Power",
     "header.power": "Battery & Power",
     "power.intro": "Battery level and power profile for this system.",
+    "power.trayToggle": "Show in the taskbar",
     "power.battery": "Battery",
     "power.noBattery": "No battery detected. The power profile still applies to this system.",
     "power.stateCharging": "Charging",

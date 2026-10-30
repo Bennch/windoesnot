@@ -83,16 +83,15 @@ Item {
         spacing: 20
 
         Note { text: page.tr("power.intro") }
-        Row {
-            spacing: 12
-            Tools.SystemToolsButton {
-                settingsMenu: page.settingsMenu
-                text: page.tr("systemTools.refresh")
-                enabled: !page.busy
-                onClicked: page.refresh()
-            }
-            BusyIndicator { width: 32; height: 32; running: page.busy; visible: running; palette.highlight: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
+        BusyIndicator { width: 32; height: 32; running: page.busy; visible: running; palette.highlight: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
+
+        Tools.SystemToolsToggle {
+            settingsMenu: page.settingsMenu
+            text: page.tr("power.trayToggle")
+            checked: page.settingsMenu ? page.settingsMenu.showBatteryTray : false
+            onToggled: if (page.settingsMenu) page.settingsMenu.showBatteryTray = checked
         }
+        Note { text: page.tr("apps.batteryTrayDesc") }
 
         Heading { text: page.tr("power.battery") }
         Note { visible: !page.ready && page.busy; text: page.tr("systemTools.loading") }
