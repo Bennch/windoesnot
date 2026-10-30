@@ -2,6 +2,24 @@
 # This script runs only in the image chroot created by mkarchiso 91.
 set -euo pipefail
 [[ -f /etc/windoesnot-image-build ]] || { echo 'Image build marker missing; refusing.' >&2; exit 1; }
+# A silent Hyprland bump once broke rendering (0.57's
+# quirks.skip_non_kms_dmabuf_formats, see desktop/config/hypr/lua/init.lua,
+# 2026-10-30): bars went black and Ghostty SIGSEGV'd, on virtio-gpu only.
+# Not a build-blocking check — every ISO gets tested by hand regardless —
+# just a loud, hard-to-miss flag in the build log when it's worth testing
+# rendering and GTK apps extra carefully.
+strip_rebuild_suffix() { local release=${1##*-}; printf '%s-%s\n' "${1%-*}" "${release%%.*}"; }
+hyprland_installed=$(pacman -Q hyprland | awk '{print $2}')
+hyprland_pinned=$(python3 -c "import json; print(json.load(open('/usr/share/windoesnot/sources.json'))['hyprland']['version'])")
+if [[ $(strip_rebuild_suffix "$hyprland_installed") != $(strip_rebuild_suffix "$hyprland_pinned") ]]; then
+    printf '\n================================================================\n'
+    printf 'HYPRLAND VERSION CHANGED since the last tested build:\n'
+    printf '  last confirmed-good (sources.json): %s\n' "$hyprland_pinned"
+    printf '  installed in this build:            %s\n' "$hyprland_installed"
+    printf 'Test bar/taskbar transparency and GTK apps (Ghostty) carefully.\n'
+    printf 'Update sources.json once this build is confirmed good.\n'
+    printf '================================================================\n\n'
+fi
 python3 -c 'import sys; sys.path.insert(0,"/usr/share/windoesnot/iso"); from boot_splash import finish_theme; finish_theme("/")'
 # Produce archiso initramfs for both boot-menu kernels, without changing host tools.
 for kernel in linux-cachyos linux-cachyos-lts; do

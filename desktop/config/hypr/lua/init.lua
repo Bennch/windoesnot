@@ -30,6 +30,22 @@ end
 for key, value in pairs(personal.options or {}) do
     if state.options[key] == nil and (not key:match("^plugin%.") or hasBars) then options[key] = value end
 end
+-- Hyprland 0.57's KMS-only dmabuf format list makes Qt/GTK surfaces render
+-- black or crash on virtio-gpu. Keep the default on physical GPUs, and allow
+-- an explicit state or personal option to override this guest workaround.
+if options["quirks.skip_non_kms_dmabuf_formats"] == nil then
+    for card = 0, 15 do
+        local vendor = io.open("/sys/class/drm/card" .. card .. "/device/vendor", "r")
+        if vendor then
+            local id = vendor:read("*l")
+            vendor:close()
+            if id == "0x1af4" then
+                options["quirks.skip_non_kms_dmabuf_formats"] = false
+                break
+            end
+        end
+    end
+end
 hl.config(options)
 if isolated then
     hl.config({debug = {enable_stdout_logs = true, disable_logs = false},
