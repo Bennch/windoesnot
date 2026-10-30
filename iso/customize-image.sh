@@ -20,6 +20,11 @@ project=/usr/share/windoesnot
 "$project/tools/build-image-connectivity.sh"
 "$project/tools/build-image-packages.sh"
 "$project/tools/build-calamares.sh"
+# The taskbar/Start menu spawn-and-disown a fresh ghostty process per click;
+# GTK single-instance's D-Bus handoff can lose that race and the window
+# flashes shut. extras/nautilus/windoesnot-terminal.py already avoids this
+# the same way for its own launches.
+sed -i 's/--gtk-single-instance=true/--gtk-single-instance=false/' /usr/share/applications/com.mitchellh.ghostty.desktop
 # Version-matched signed optional apps; no online access needed during installation.
 python3 "$project/iso/software/prepare.py"
 # Bootstrap both skel and the live account using the exact shared code/defaults.
