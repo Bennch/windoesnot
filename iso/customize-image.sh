@@ -43,6 +43,12 @@ project=/usr/share/windoesnot
 # flashes shut. extras/nautilus/windoesnot-terminal.py already avoids this
 # the same way for its own launches.
 sed -i 's/--gtk-single-instance=true/--gtk-single-instance=false/' /usr/share/applications/com.mitchellh.ghostty.desktop
+# Ghostty's own GTK4/EGL context creation fails outright on virtio-gpu
+# (BadMatch), independently of the Hyprland-level quirk above. Shadow the
+# real binary via PATH so every launch path (desktop file, taskbar/Start
+# menu, the power menu's hardcoded "ghostty" fallback) goes through the
+# virtio check, not just one call site. See iso/ghostty-wrapper.sh.
+install -Dm755 "$project/iso/ghostty-wrapper.sh" /usr/local/bin/ghostty
 # Version-matched signed optional apps; no online access needed during installation.
 python3 "$project/iso/software/prepare.py"
 # Bootstrap both skel and the live account using the exact shared code/defaults.
