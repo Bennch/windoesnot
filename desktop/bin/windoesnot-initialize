@@ -37,6 +37,10 @@ def missing_tree(origin, target):
 
 missing_tree(source / 'desktop/config', config)
 missing_tree(source / 'desktop/defaults/config', config)
+data_home = Path(os.environ.get('XDG_DATA_HOME', home / '.local/share'))
+share_defaults = source / 'desktop/defaults/share'
+if share_defaults.is_dir():
+    missing_tree(share_defaults, data_home)
 # The extension stays linked to managed code; preserve an existing user extension.
 nearby_extension = config / 'quickshell/default/extras/nautilus/windoesnot-nearby.py'
 nearby_target = Path(os.environ.get('XDG_DATA_HOME', home / '.local/share')) / 'nautilus-python/extensions/windoesnot-nearby.py'
