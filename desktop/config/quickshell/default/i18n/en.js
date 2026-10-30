@@ -43,6 +43,7 @@ var strings = {
     "power.timeToFull": "Fully charged in",
     "power.timeToEmpty": "Remaining:",
     "power.brightness": "Brightness",
+    "power.nightLight": "Night light",
     "power.profile": "Power profile",
     "power.profileHint": "Takes effect immediately, no restart needed.",
     "power.profileUnavailable": "power-profiles-daemon is not available on this system.",

@@ -43,6 +43,7 @@ var strings = {
     "power.timeToFull": "Vollständig geladen in",
     "power.timeToEmpty": "Noch verfügbar:",
     "power.brightness": "Helligkeit",
+    "power.nightLight": "Augenschonmodus",
     "power.profile": "Energieprofil",
     "power.profileHint": "Wirkt sofort, ohne Neustart.",
     "power.profileUnavailable": "power-profiles-daemon ist auf diesem System nicht verfügbar.",
