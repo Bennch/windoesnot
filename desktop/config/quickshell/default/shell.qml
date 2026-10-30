@@ -528,30 +528,43 @@ PanelWindow {
         return "widgets/weather/google-weather-icons-main/sets/set-3/" + theme + "/" + name + ".svg"
     }
 
-    function openWeatherPopup(iconItem) {
-        if (weatherPopup.visible) { weatherPopup.visible = false; return }
+    property var weatherPopupIconItem: null
+
+    // Separate from openWeatherPopup so it can also run later, when forecast/
+    // hourly data finishes loading after the popup is already on screen and
+    // weatherPopupCol grows taller than it was when first positioned (it
+    // otherwise stayed anchored to the shorter pre-data height, landing too
+    // far above the taskbar instead of flush against it).
+    function repositionWeatherPopup() {
+        if (!weatherPopupIconItem) return null
         var popupW = 380
-        var popupH = Math.round((weatherPopupCol ? (weatherPopupCol.height + 30) : weatherPopup.implicitHeight) || 390)
+        var popupH = Math.round(weatherPopupCol.height + 30)
         var primaryScreen = null
         for (var s = 0; s < Quickshell.screens.length; s++) {
             if (Quickshell.screens[s].name === settingsMenu.primaryMonitor) { primaryScreen = Quickshell.screens[s]; break }
         }
         var monW = primaryScreen ? primaryScreen.width  : (panelWindow.screen ? panelWindow.screen.width : 1280)
         var monH = primaryScreen ? primaryScreen.height : (panelWindow.screen ? panelWindow.screen.height : 800)
-        var iconPos = iconItem.mapToItem(panelWindow.contentItem, 0, 0)
-        var px = Math.round(iconPos.x + iconItem.width / 2 - popupW / 2)
+        var iconPos = weatherPopupIconItem.mapToItem(panelWindow.contentItem, 0, 0)
+        var px = Math.round(iconPos.x + weatherPopupIconItem.width / 2 - popupW / 2)
         px = Math.max(4, Math.min(monW - popupW - 4, px))
         var taskbarH = panelWindow.implicitHeight || 45
         var py = monH - taskbarH - popupH + 1
-        console.log("Weather popup: h=" + popupH + " y=" + py + " (monH=" + monH + ")")
-        // Set position BEFORE showing so Hyprland uses it at map time
         var posProc = Qt.createQmlObject('import Quickshell.Io; Process {}', panelWindow)
         posProc.command = ["windoesnot-hyprctl", "keyword", "windowrule[weather-popup-config]:move", px + " " + py]
+        posProc.running = true
+        return posProc
+    }
+
+    function openWeatherPopup(iconItem) {
+        if (weatherPopup.visible) { weatherPopup.visible = false; weatherPopupIconItem = null; return }
+        weatherPopupIconItem = iconItem
+        // Set position BEFORE showing so Hyprland uses it at map time
+        var posProc = repositionWeatherPopup()
         posProc.exited.connect(function() {
             weatherPopup.visible = true
             if (panelWindow.weatherActiveTab === 0) Qt.callLater(function() { panelWindow.scrollWeatherHourlyToNow() })
         })
-        posProc.running = true
     }
 
     function scrollWeatherHourlyToNow() {
@@ -6466,6 +6479,7 @@ FloatingWindow {
             id: weatherPopupCol
             anchors { top: parent.top; left: parent.left; right: parent.right; topMargin: 20; leftMargin: 20; rightMargin: 20 }
             spacing: 8
+            onHeightChanged: if (weatherPopup.visible) Qt.callLater(panelWindow.repositionWeatherPopup)
 
             // Header: city name + last update time
             Item {
