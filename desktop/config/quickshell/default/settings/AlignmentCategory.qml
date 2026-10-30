@@ -509,7 +509,9 @@ Column {
                 }
             }
             Rectangle {
+                readonly property bool hasLocation: settingsMenu.weatherLatitude !== 0 || settingsMenu.weatherLongitude !== 0
                 width: 60; height: 32; radius: 16
+                opacity: hasLocation ? 1 : 0.5
                 color: settingsMenu.weatherEnabled ? settingsMenu.accentColor : (settingsMenu.darkMode ? "#3a3a3a" : "#c0c0c0")
                 anchors.verticalCenter: parent.verticalCenter
                 Behavior on color { ColorAnimation { duration: 150 } }
@@ -521,8 +523,15 @@ Column {
                     Behavior on x { NumberAnimation { duration: 150 } }
                 }
                 MouseArea {
-                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                    onClicked: settingsMenu.weatherEnabled = !settingsMenu.weatherEnabled
+                    anchors.fill: parent
+                    cursorShape: parent.hasLocation ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    onClicked: {
+                        // A location (PLZ/city search above) is required before the
+                        // widget can be turned on; otherwise it ends up enabled with
+                        // no data and no icon.
+                        if (parent.hasLocation) settingsMenu.weatherEnabled = !settingsMenu.weatherEnabled
+                        else geocodeStatus.text = "⚠ " + geocodeStatus.text
+                    }
                 }
             }
         }
