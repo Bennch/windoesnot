@@ -321,7 +321,7 @@ def parse_quickshell_settings():
     """Liest Desktop-relevante Settings aus quickshell default/settings.txt"""
     settings = {
         "accentColor": "#FE6F2D",  # Default
-        "borderRadius": 0,  # Default
+        "borderRadius": 10,  # Gleicher Startwert wie Quickshell Settings
         "darkMode": True,  # Default
         "desktopIconSize": 64,  # Default
         "desktopGridSize": 16,  # Default
@@ -894,6 +894,7 @@ class DesktopIcon(Gtk.Box):
 
         # Popover erstellen - am Cursor
         popover = Gtk.PopoverMenu()
+        popover.add_css_class("desktop-context-menu")
         popover.set_menu_model(menu)
         popover.insert_action_group("icon", action_group)
         popover.set_parent(self)
@@ -1622,10 +1623,10 @@ class MonitorWindow:
                 margin-top: -20px;
             }}
             .desktop-context-menu {{
-                background-color: rgba(28, 28, 28, 0.97);
-                border-radius: {border_radius}px;
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                padding: 4px 0px;
+                background: transparent;
+                border: none;
+                box-shadow: none;
+                padding: 0;
             }}
             .desktop-context-menu button {{
                 background: transparent;
@@ -1640,8 +1641,11 @@ class MonitorWindow:
                 background-color: rgba({r}, {g}, {b}, 0.35);
                 border-radius: {max(0, border_radius - 2) if border_radius > 0 else 0}px;
             }}
-            popover.menu > contents {{
+            popover.desktop-context-menu > contents {{
                 border-radius: {border_radius}px;
+                background-color: rgba(28, 28, 28, 0.97);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                box-shadow: none;
             }}
         """
         # Gleichen Provider mit neuen Daten laden
@@ -1665,7 +1669,8 @@ class MonitorWindow:
 
     def on_theme_changed(self, monitor, file, other_file, event_type):
         """Callback wenn Theme-Settings geändert werden."""
-        if event_type == Gio.FileMonitorEvent.CHANGES_DONE_HINT:
+        if event_type in (Gio.FileMonitorEvent.CHANGES_DONE_HINT, Gio.FileMonitorEvent.CREATED,
+                          Gio.FileMonitorEvent.MOVED_IN):
             debug(f"Theme settings changed, reloading CSS on all monitors")
             # CSS auf ALLEN Monitoren neu laden
             def reload_theme_on_all():
@@ -1942,6 +1947,7 @@ class MonitorWindow:
         action_group.add_action(nd_action)
 
         popover = Gtk.PopoverMenu()
+        popover.add_css_class("desktop-context-menu")
         popover.set_menu_model(menu)
         popover.insert_action_group("desktopbg", action_group)
         popover.set_parent(self.event_catcher)

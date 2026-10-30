@@ -48,7 +48,6 @@ Item {
         busy = true; worker.operation = action
         if (action !== "maintenance-status") {
             resultKey = ""; freedBytes = -1; detailText = ""; showDetails = false; logPath = ""
-            if (settingsMenu) settingsMenu.fileDialogOpen = true
         }
         worker.command = (action === "maintenance-status" ? ["/usr/bin/python3", "-I"] : ["/usr/bin/pkexec", "--disable-internal-agent"])
             .concat(["/usr/lib/windoesnot/system_tools.py", action, JSON.stringify(args)])
@@ -62,7 +61,6 @@ Item {
         stderr: StdioCollector { id: errors }
         onExited: (code) => {
             busy = false
-            if (settingsMenu) settingsMenu.fileDialogOpen = false
             let data = {}
             try { data = JSON.parse(output.text) } catch (error) {}
             if (code === 0 && !data.error) {

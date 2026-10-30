@@ -107,8 +107,6 @@ Item {
         if (busy || liveSession || snapshotBoot || (action !== "status" && !backupsReady)) return
         busy = true
         statusText = ""
-        // Keeps Settings open if the fallback agent needs a separate window.
-        if (settingsMenu) settingsMenu.fileDialogOpen = true
         snapshotProcess.operation = action
         snapshotProcess.updateSchedule = updateSchedule
         snapshotProcess.command = ["/usr/bin/pkexec", "--disable-internal-agent",
@@ -132,7 +130,6 @@ Item {
         stderr: StdioCollector { id: snapshotError }
         onExited: (code) => {
             busy = false
-            if (settingsMenu) settingsMenu.fileDialogOpen = false
             if (code === 0) {
                 try {
                     const data = JSON.parse(snapshotOutput.text)

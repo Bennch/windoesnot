@@ -5,6 +5,9 @@ set -euo pipefail
 project=/usr/share/windoesnot
 work=$(mktemp -d /tmp/windoesnot-connectivity.XXXXXXXX)
 trap 'rm -rf -- "$work"' EXIT
+# mktemp creates a root-only directory (0700). The isolated makepkg process
+# runs as nobody, so it must be able to traverse the temporary build root.
+chown nobody:nobody "$work"
 printf '[options]\nArchitecture = auto\nSigLevel = Required DatabaseOptional\nLocalFileSigLevel = Optional\n' > "$work/local-install.conf"
 for app in windoesnot-bluetooth windoesnot-network; do
     mkdir -p "$work/$app/home"

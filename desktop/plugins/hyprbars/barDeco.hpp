@@ -30,7 +30,7 @@ class CHyprBar : public IHyprWindowDecoration {
 
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
 
-    virtual void                       draw(PHLMONITOR, float const& a);
+    virtual void                       draw(Render::CRenderContext& ctx, PHLMONITOR monitor, const float& a, const Render::SWindowRenderPresentation& presentation);
 
     virtual eDecorationType            getDecorationType();
 
@@ -49,6 +49,7 @@ class CHyprBar : public IHyprWindowDecoration {
     PHLWINDOW                          getOwner();
 
     void                               updateRules();
+    void                               setTitle(std::optional<std::string> title);
     void                               onConfigReloaded();
 
     WP<CHyprBar>                       m_self;
@@ -66,10 +67,12 @@ class CHyprBar : public IHyprWindowDecoration {
     bool                       m_hidden             = false;
     bool                       m_bTitleColorChanged = false;
     bool                       m_bButtonHovered     = false;
+    bool                       m_bBarHovered        = false;
     bool                       m_bLastEnabledState  = false;
     bool                       m_bWindowHasFocus    = false;
     std::optional<CHyprColor>  m_bForcedBarColor;
     std::optional<CHyprColor>  m_bForcedTitleColor;
+    std::optional<std::string> m_forcedTitle;
 
     Time::steady_tp            m_lastMouseDown = Time::steadyNow();
 
@@ -77,10 +80,10 @@ class CHyprBar : public IHyprWindowDecoration {
 
     Vector2D                   cursorRelativeToBar();
 
-    void                       renderPass(PHLMONITOR, float const& a);
+    void                       renderPass(Render::CRenderContext& ctx, PHLMONITOR, float const& a);
     void                       renderBarTitle(const Vector2D& bufferSize, const float scale);
-    void renderBarButtons(CBox* barBox, const float scale, const float a);
-    void renderBarButtonsText(CBox* barBox, const float scale, const float a);
+    void renderBarButtons(Render::CRenderContext& ctx, CBox* barBox, const float scale, const float a);
+    void renderBarButtonsText(Render::CRenderContext& ctx, CBox* barBox, const float scale, const float a);
     void damageOnButtonHover();
 
     bool inputIsValid();
@@ -105,6 +108,7 @@ class CHyprBar : public IHyprWindowDecoration {
     CHyprSignalListener m_pMouseMoveCallback;
 
     std::string         m_szLastTitle;
+    int                 m_iLastScaledTextSize = 0;
 
     bool                m_bDraggingThis  = false;
     bool                m_bTouchEv       = false;

@@ -16,55 +16,17 @@ import "i18n/Lang.js" as Lang
 
 ShellRoot {
     id: desktopShell
+    property int contextMenuRequestSerial: 0
+
+    function closeTaskbarContextMenus() {
+        contextMenuRequestSerial++
+        quickSettingsContextMenu.visible = false
+        appContextMenu.visible = false
+        taskbarBgMenu.visible = false
+    }
 
 // Current Does window (null while it is being rebuilt).
 property var copilotWindow: copilotWindowLoader.item
-
-// FocusGrab Warmup Timer - initialisiert alle HyprlandFocusGrabs beim Start
-Timer {
-    id: focusGrabWarmupTimer
-    interval: 500  // Warte 500ms nach Start
-    running: true
-    repeat: false
-    onTriggered: {
-        console.log("Warming up FocusGrabs...")
-        // Öffne und schließe jedes Menü kurz um FocusGrab zu initialisieren
-        startMenu.visible = true
-        settingsMenu.visible = true
-        audioWindow.visible = true
-        bluetoothWindow.visible = true
-        networkWindow.visible = true
-        calendarWindow.visible = true
-        powerMenu.visible = true
-        powerSubMenu.visible = true
-        searchWindow.visible = true
-        appContextMenu.visible = true
-        taskbarBgMenu.visible = true
-        weatherPopup.visible = true
-        if (copilotWindow) copilotWindow.visible = true
-
-        // Schließe alles nach kurzer Zeit
-        Qt.callLater(function() {
-            startMenu.visible = false
-            settingsMenu.visible = false
-            audioWindow.visible = false
-            bluetoothWindow.visible = false
-            networkWindow.visible = false
-            nearbyWindow.visible = false
-            calendarWindow.visible = false
-            powerMenu.visible = false
-            powerSubMenu.visible = false
-            searchWindow.visible = false
-            appContextMenu.visible = false
-            taskbarBgMenu.visible = false
-            weatherPopup.visible = false
-            dockerWindow.visible = false
-            ollamaWindow.visible = false
-            if (copilotWindow) copilotWindow.visible = false
-            console.log("FocusGrabs warmed up!")
-        })
-    }
-}
 
 // App Override System
 Loader {
@@ -927,13 +889,24 @@ PanelWindow {
         )
     }
 
-    function addToTaskbar(appName, appCmd, appIcon, isCustomIcon) {
-        // Check if already in taskbar
+    function taskbarAppIndex(appName, appCmd) {
         for (var i = 0; i < panelWindow.taskbarApps.length; i++) {
-            if (panelWindow.taskbarApps[i].name === appName) {
-                console.log("App already in taskbar:", appName)
-                return
-            }
+            var app = panelWindow.taskbarApps[i]
+            if (app.name === appName || (appCmd && app.cmd === appCmd)) return i
+        }
+        return -1
+    }
+
+    function addToTaskbar(appName, appCmd, appIcon, isCustomIcon) {
+        var existing = taskbarAppIndex(appName, appCmd)
+        if (existing >= 0) {
+            var app = panelWindow.taskbarApps[existing]
+            if (!app.temporary && app.pinned) return
+            app.pinned = true
+            app.temporary = false
+            saveTaskbarApps()
+            rebuildTaskbarModel()
+            return
         }
 
         panelWindow.taskbarApps.push({
@@ -1376,6 +1349,7 @@ PanelWindow {
                                     modelData.secondaryActivate()
                                 } else if (mouse.button === Qt.RightButton) {
                                     if (modelData.hasMenu) {
+                                        desktopShell.closeTaskbarContextMenus()
                                         // Anchor rect spans exactly the icon; gravity: Top (set on
                                         // trayMenuAnchor above, no Left/Right flag) centers the menu
                                         // horizontally on it and grows it upward by its real height,
@@ -2162,6 +2136,7 @@ PanelWindow {
                     onExited:  searchTaskbarButton.hovered = false
                     onClicked: {
                         startMenu.visible = false
+                        settingsMenu.visible = false
                         powerMenu.visible = false
                         powerSubMenu.visible = false
                         searchWindow.openSearch()
@@ -2207,6 +2182,7 @@ PanelWindow {
                     onExited:  storeTaskbarButton.hovered = false
                     onClicked: {
                         startMenu.visible = false
+                        settingsMenu.visible = false
                         powerMenu.visible = false
                         powerSubMenu.visible = false
                         var win = storeTaskbarButton.storeWindow
@@ -2526,6 +2502,7 @@ PanelWindow {
                                     // Normal click (released before hold delay or without movement)
                                     if (mouse.button === Qt.RightButton && !taskbarAppItem.isWeatherItem && !taskbarAppItem.isInternalCopilotApp) {
                                         // Right click: open context menu
+                                        desktopShell.closeTaskbarContextMenus()
                                         startMenu.visible = false
                                         settingsMenu.visible = false
                                         audioWindow.visible = false
@@ -2543,12 +2520,13 @@ PanelWindow {
                                         // Calculate position: center menu above clicked icon
                                         var itemPos = taskbarDragArea.mapToItem(panelWindow.contentItem, 0, 0)
                                         appContextMenu.anchor.rect.x = itemPos.x
-                                        appContextMenu.anchor.rect.y = itemPos.y
+                                        appContextMenu.anchor.rect.y = 0
                                         appContextMenu.anchor.rect.width = taskbarDragArea.width
                                         appContextMenu.anchor.rect.height = taskbarDragArea.height
                                         appContextMenu.visible = true
                                     } else {
                                         // Left click: weather opens popup, others toggle/launch
+                                        settingsMenu.visible = false
                                         if (taskbarAppItem.isWeatherItem) {
                                             panelWindow.openWeatherPopup(taskbarDragArea)
                                         } else if (taskbarAppItem.isInternalCopilotApp) {
@@ -2674,6 +2652,8 @@ PanelWindow {
         acceptedButtons: Qt.RightButton
         z: -1
         onClicked: function(mouse) {
+            desktopShell.closeTaskbarContextMenus()
+            var requestSerial = desktopShell.contextMenuRequestSerial
             // Collect all hidden windows across all apps
             var hiddenList = []
             for (var appName in panelWindow.openWindows) {
@@ -2714,7 +2694,10 @@ PanelWindow {
             proc.command = ["bash", "-c",
                 "windoesnot-hyprctl keyword 'windowrule[tbgmenu]:size " + menuW + " " + menuH + "' ; " +
                 "windoesnot-hyprctl keyword 'windowrule[tbgmenu]:move " + Math.round(mx) + " " + (monH - 45 - menuH) + "'"]
-            proc.exited.connect(function() { taskbarBgMenu.visible = true })
+            proc.exited.connect(function() {
+                if (requestSerial === desktopShell.contextMenuRequestSerial)
+                    taskbarBgMenu.visible = true
+            })
             proc.running = true
         }
     }
@@ -2746,10 +2729,12 @@ PopupWindow {
     }
 
     function openFor(kind, iconItem) {
+        desktopShell.closeTaskbarContextMenus()
         contextType = kind
         var pos = iconItem.mapToItem(panelWindow.contentItem, 0, 0)
         anchor.rect.x = pos.x
-        anchor.rect.y = pos.y
+        // Match the StartOrb menu: its bottom edge meets the taskbar's top edge.
+        anchor.rect.y = 0
         anchor.rect.width = iconItem.width
         anchor.rect.height = iconItem.height
         visible = true
@@ -2889,9 +2874,12 @@ FloatingWindow {
 
     HyprlandFocusGrab {
         id: startMenuGrab
-        windows: [startMenu]
-        active: startMenu.visible
-        onCleared: startMenu.visible = false
+        windows: [startMenu, startAppContextMenu]
+        active: startMenu.visible || startAppContextMenu.visible
+        onCleared: {
+            startAppContextMenu.visible = false
+            startMenu.visible = false
+        }
     }
 
     property string searchText: ""
@@ -2983,6 +2971,7 @@ FloatingWindow {
                     cmd: app.cmd,
                     icon: app.icon,
                     customIcon: app.customIcon,
+                    desktopPath: app.desktopPath || "",
                     pinAliases: app.pinAliases || "[]"
                 })
             }
@@ -3019,6 +3008,7 @@ FloatingWindow {
                     cmd: app.cmd,
                     icon: app.icon,
                     customIcon: app.customIcon,
+                    desktopPath: app.desktopPath || "",
                     pinAliases: app.pinAliases || "[]",
                     pinned: false
                 })
@@ -3035,6 +3025,7 @@ FloatingWindow {
                 cmd: pinnedData[j].cmd,
                 icon: pinnedData[j].icon,
                 customIcon: pinnedData[j].customIcon,
+                desktopPath: pinnedData[j].desktopPath || "",
                 pinAliases: pinnedData[j].pinAliases || "[]",
                 pinned: true
             })
@@ -3188,6 +3179,7 @@ FloatingWindow {
                 console.log("=== searchInput.activeFocus:", searchInput.activeFocus)
             })
         } else {
+            startAppContextMenu.visible = false
             console.log("=== START MENU CLOSED ===")
             // Reset beim Schließen
             searchText = ""
@@ -3319,10 +3311,23 @@ FloatingWindow {
                 // Desktop-Apps laden
                 var pinnedApps = []
                 var unpinnedApps = []
+                var usedNames = ({})
+                var customByCommand = ({})
 
                 // Custom Apps verarbeiten
                 for (var k = 0; k < customApps.length; k++) {
                     var customApp = customApps[k]
+                    customByCommand[customApp.cmd] = customApp
+                    // Prefer the real desktop launcher: it carries the path
+                    // needed by the Store and can still use our custom icon.
+                    var hasDesktopLauncher = false
+                    for (var existing = 0; existing < entries.length; existing++) {
+                        if (entries[existing].cmd === customApp.cmd) {
+                            hasDesktopLauncher = true
+                            break
+                        }
+                    }
+                    if (hasDesktopLauncher) continue
                     var isCustomPinned = startMenu.pinIndex(customApp.name, customApp.pinNames) >= 0
 
                     var customAppData = {
@@ -3331,6 +3336,7 @@ FloatingWindow {
                         icon: customApp.icon,
                         pinned: isCustomPinned,
                         customIcon: true,
+                        desktopPath: "",
                         pinAliases: JSON.stringify(customApp.pinNames)
                     }
 
@@ -3339,14 +3345,28 @@ FloatingWindow {
                     } else {
                         unpinnedApps.push(customAppData)
                     }
+                    usedNames["$" + customApp.name.toLowerCase()] = true
+                    for (var customAlias = 0; customAlias < customApp.pinNames.length; customAlias++)
+                        usedNames["$" + customApp.pinNames[customAlias].toLowerCase()] = true
                 }
 
                 // Desktop-Apps verarbeiten
                 for (var i = 0; i < entries.length; i++) {
                     var entry = entries[i]
                     if (entry.name && entry.cmd) {
-                        var appName = entry.name
-                        var isPinned = startMenu.pinIndex(appName, entry.names) >= 0
+                        var aliases = entry.names && entry.names.length ? entry.names : [entry.name]
+                        var collides = false
+                        for (var alias = 0; alias < aliases.length; alias++) {
+                            if (usedNames["$" + aliases[alias].toLowerCase()]) {
+                                collides = true
+                                break
+                            }
+                        }
+                        var suffix = (entry.id || entry.cmd).replace(/\.desktop$/i, "")
+                        suffix = suffix.indexOf("wine-") === 0 ? "Wine" : suffix.split(".").pop()
+                        var appName = collides ? entry.name + " (" + suffix + ")" : entry.name
+                        var pinAliases = collides ? aliases.map(function(a) { return a + " (" + suffix + ")" }) : aliases
+                        var isPinned = startMenu.pinIndex(appName, pinAliases) >= 0
 
                         var appData = {
                             name: appName,
@@ -3359,13 +3379,22 @@ FloatingWindow {
                         // Existing name-based overrides also work after a language switch.
                         var originalName = appData.name
                         if (!appReplace.hasOverride(originalName)) {
-                            for (var aliasIndex = 0; aliasIndex < entry.names.length; aliasIndex++) {
-                                if (appReplace.hasOverride(entry.names[aliasIndex])) { appData.name = entry.names[aliasIndex]; break }
+                            for (var aliasIndex = 0; aliasIndex < aliases.length; aliasIndex++) {
+                                if (appReplace.hasOverride(aliases[aliasIndex])) { appData.name = aliases[aliasIndex]; break }
                             }
                         }
                         appData = appReplace.applyOverride(appData)
                         appData.name = originalName
-                        appData.pinAliases = JSON.stringify(entry.names)
+                        if (customByCommand[entry.cmd]) {
+                            appData.icon = customByCommand[entry.cmd].icon
+                            appData.customIcon = true
+                        }
+                        appData.desktopPath = entry.desktopPath || ""
+                        appData.pinAliases = JSON.stringify(pinAliases)
+
+                        usedNames["$" + appName.toLowerCase()] = true
+                        for (var usedAlias = 0; usedAlias < pinAliases.length; usedAlias++)
+                            usedNames["$" + pinAliases[usedAlias].toLowerCase()] = true
 
                         if (isPinned) {
                             pinnedApps.push(appData)
@@ -3655,7 +3684,7 @@ FloatingWindow {
 
                     Image {
                         anchors.verticalCenter: parent.verticalCenter
-                        source: "img/Win11-dark/actions/symbolic/search-symbolic.svg"
+                        source: "img/Win11-dark/actions/symbolic/edit-find-symbolic.svg"
                         width: 18
                         height: 18
                         sourceSize.width: 18
@@ -4038,7 +4067,7 @@ FloatingWindow {
                                                 } else if (!wasActive) {
                                                     // Normaler Klick
                                                     if (mouse.button === Qt.RightButton) {
-                                                        startMenu.togglePin(myName)
+                                                        startAppContextMenu.openFor(myName, pinned, desktopPath, myCmd, myIcon, myCustomIcon, dragArea)
                                                     } else if (mouse.button === Qt.LeftButton) {
                                                         var safeCmd = myCmd.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
                                                         Qt.createQmlObject(
@@ -4232,7 +4261,7 @@ FloatingWindow {
                                                 } else if (!wasActive) {
                                                     // Normaler Klick
                                                     if (mouse.button === Qt.RightButton) {
-                                                        startMenu.togglePin(myName)
+                                                        startAppContextMenu.openFor(myName, pinned, desktopPath, myCmd, myIcon, myCustomIcon, allAppDragArea)
                                                     } else {
                                                         var safeCmd = myCmd.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
                                                         Qt.createQmlObject(
@@ -4402,7 +4431,7 @@ FloatingWindow {
                                                     onExited: persAppItem.hovered = false
                                                     onClicked: function(mouse) {
                                                         if (mouse.button === Qt.RightButton) {
-                                                            startMenu.togglePin(name)
+                                                            startAppContextMenu.openFor(name, pinned, desktopPath, cmd, icon, customIcon, this)
                                                         } else {
                                                             var safeCmd = cmd.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
                                                             Qt.createQmlObject(
@@ -4631,6 +4660,142 @@ FloatingWindow {
             }
         }  // Ende Column (Main)
     }  // Ende Item (Clip Container)
+}
+
+// Start menu app actions. The menu stays anchored to the clicked tile while
+// the Start menu remains visible behind it.
+PopupWindow {
+    id: startAppContextMenu
+    visible: false
+    implicitWidth: 210
+    implicitHeight: 132
+    color: "transparent"
+    // startMenuGrab handles dismissal for both windows. A second popup grab
+    // treats the click on the app tile as outside and closes the Start menu.
+    grabFocus: false
+
+    property string appName: ""
+    property string desktopPath: ""
+    property bool appPinned: false
+    property string appCmd: ""
+    property string appIcon: ""
+    property bool appUsesCustomIcon: false
+    property bool taskbarPinned: false
+
+    anchor {
+        window: startMenu
+        edges: Edges.Top | Edges.Left
+        gravity: Edges.Bottom | Edges.Right
+        adjustment: PopupAdjustment.None
+    }
+
+    function openFor(name, pinned, path, cmd, icon, usesCustomIcon, tile) {
+        visible = false
+        appName = name
+        appPinned = pinned
+        desktopPath = path
+        appCmd = cmd
+        appIcon = icon
+        appUsesCustomIcon = usesCustomIcon
+        var existing = panelWindow.taskbarAppIndex(name, cmd)
+        taskbarPinned = existing >= 0 && panelWindow.taskbarApps[existing].pinned && !panelWindow.taskbarApps[existing].temporary
+        var pos = tile.mapToItem(startMenu.contentItem, 0, 0)
+        anchor.rect.x = Math.max(8, Math.min(pos.x + tile.width, startMenu.width - implicitWidth - 8))
+        anchor.rect.y = Math.max(8, Math.min(pos.y, startMenu.height - implicitHeight - 8))
+        anchor.rect.width = 1
+        anchor.rect.height = 1
+        // Let the right-button release finish before mapping the popup.
+        Qt.callLater(function() {
+            if (startMenu.visible)
+                startAppContextMenu.visible = true
+        })
+    }
+
+    Item {
+        anchors.fill: parent
+        clip: true
+        Rectangle {
+            anchors.fill: parent
+            radius: settingsMenu.borderRadius
+            color: settingsMenu.darkMode ? Qt.rgba(0.125, 0.125, 0.125, 0.96) : Qt.rgba(0.95, 0.95, 0.95, 0.98)
+            border.color: settingsMenu.darkMode ? "#3a3a3f" : "#c0c0c0"
+            border.width: 1
+        }
+        Column {
+            anchors { fill: parent; margins: 6 }
+            spacing: 0
+            Rectangle {
+                width: parent.width; height: 40; radius: 6
+                property bool hovered: false
+                color: hovered ? (settingsMenu.darkMode ? "#4A4A4D" : "#e0e0e0") : "transparent"
+                Text {
+                    anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
+                    text: startAppContextMenu.appPinned
+                        ? (settingsMenu.uiLanguage === "en" ? "Unpin" : "Lösen")
+                        : (settingsMenu.uiLanguage === "en" ? "Pin to Start" : "An Start anheften")
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"
+                    font.pixelSize: 13
+                }
+                MouseArea {
+                    anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onEntered: parent.hovered = true; onExited: parent.hovered = false
+                    onClicked: {
+                        startAppContextMenu.visible = false
+                        startMenu.togglePin(startAppContextMenu.appName)
+                    }
+                }
+            }
+            Rectangle {
+                width: parent.width; height: 40; radius: 6
+                property bool hovered: false
+                color: hovered ? (settingsMenu.darkMode ? "#4A4A4D" : "#e0e0e0") : "transparent"
+                opacity: startAppContextMenu.taskbarPinned ? 0.45 : 1
+                Text {
+                    anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
+                    text: startAppContextMenu.taskbarPinned
+                        ? (settingsMenu.uiLanguage === "en" ? "Already on taskbar" : "Bereits an Taskleiste")
+                        : (settingsMenu.uiLanguage === "en" ? "Pin to taskbar" : "An Taskleiste anheften")
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"
+                    font.pixelSize: 13
+                }
+                MouseArea {
+                    anchors.fill: parent; hoverEnabled: true
+                    enabled: !startAppContextMenu.taskbarPinned
+                    cursorShape: Qt.PointingHandCursor
+                    onEntered: parent.hovered = true; onExited: parent.hovered = false
+                    onClicked: {
+                        panelWindow.addToTaskbar(startAppContextMenu.appName, startAppContextMenu.appCmd,
+                            startAppContextMenu.appIcon, startAppContextMenu.appUsesCustomIcon)
+                        startAppContextMenu.visible = false
+                    }
+                }
+            }
+            Rectangle {
+                width: parent.width; height: 40; radius: 6
+                property bool hovered: false
+                color: hovered ? (settingsMenu.darkMode ? "#4A4A4D" : "#e0e0e0") : "transparent"
+                opacity: startAppContextMenu.desktopPath ? 1 : 0.45
+                Text {
+                    anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
+                    text: settingsMenu.uiLanguage === "en" ? "Uninstall…" : "Deinstallieren…"
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"
+                    font.pixelSize: 13
+                }
+                MouseArea {
+                    anchors.fill: parent; hoverEnabled: true
+                    enabled: startAppContextMenu.desktopPath !== ""
+                    cursorShape: Qt.PointingHandCursor
+                    onEntered: parent.hovered = true; onExited: parent.hovered = false
+                    onClicked: {
+                        var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', startAppContextMenu)
+                        proc.command = ["windoesnot-store", "--open-desktop", startAppContextMenu.desktopPath]
+                        proc.running = true
+                        startMenu.visible = false
+                    }
+                }
+            }
+        }
+    }
 }
 
 
@@ -4898,6 +5063,7 @@ FloatingWindow {
         asynchronous: false  // Load immediately, not async
 
         onLoaded: {
+            item.closeRequested.connect(function() { audioWindow.visible = false })
             item.accentColor = Qt.binding(function() { return settingsMenu.accentColor })
             item.borderRadius = Qt.binding(function() { return settingsMenu.borderRadius })
             item.windowVisible = Qt.binding(function() { return audioWindow.visible })
@@ -4964,6 +5130,7 @@ FloatingWindow {
         source: "widgets/BluetoothPanel.qml"
 
         onLoaded: {
+            item.closeRequested.connect(function() { bluetoothWindow.visible = false })
             item.accentColor = Qt.binding(function() { return settingsMenu.accentColor })
             item.borderRadius = Qt.binding(function() { return settingsMenu.borderRadius })
             item.windowVisible = Qt.binding(function() { return bluetoothWindow.visible })
@@ -5044,6 +5211,7 @@ FloatingWindow {
         source: "widgets/NetworkPanel.qml"
 
         onLoaded: {
+            item.closeRequested.connect(function() { networkWindow.visible = false })
             item.accentColor = Qt.binding(function() { return settingsMenu.accentColor })
             item.borderRadius = Qt.binding(function() { return settingsMenu.borderRadius })
             item.windowVisible = Qt.binding(function() { return networkWindow.visible })

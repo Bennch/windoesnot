@@ -8,6 +8,7 @@ Item {
     id: networkPanel
     width: 320
     height: networkPanel.showPasswordDialog ? 650 : 500
+    signal closeRequested()
 
     Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.InOutQuad } }
 
@@ -1030,7 +1031,10 @@ Item {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: openNetworkSettingsProc.startDetached()
+                onClicked: {
+                    networkPanel.closeRequested()
+                    openNetworkSettingsProc.startDetached()
+                }
             }
         }
     }

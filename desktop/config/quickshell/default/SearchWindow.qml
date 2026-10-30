@@ -527,7 +527,7 @@ FloatingWindow {
                 // SVG icon (normal, emoji, clip modes)
                 Image {
                     anchors.fill: parent
-                    source: "img/Win11-dark/actions/symbolic/search-symbolic.svg"
+                    source: "img/Win11-dark/actions/symbolic/edit-find-symbolic.svg"
                     fillMode: Image.PreserveAspectFit
                     smooth: true
                     mipmap: true

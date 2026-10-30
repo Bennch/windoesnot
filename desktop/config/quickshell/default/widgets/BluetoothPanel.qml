@@ -8,6 +8,7 @@ Item {
     id: bluetoothPanel
     width: 320
     height: 400
+    signal closeRequested()
 
     property color accentColor: "#FE6F2D"
     property int borderRadius: 12  // Default value, wird von shell.qml gebunden
@@ -773,7 +774,10 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: openBluemanProc.startDetached()
+                    onClicked: {
+                        bluetoothPanel.closeRequested()
+                        openBluemanProc.startDetached()
+                    }
                 }
             }
         }

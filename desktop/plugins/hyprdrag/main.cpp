@@ -2,12 +2,11 @@
 #include <string>
 #include <utility>
 
-#include <hyprland/src/desktop/view/Window.hpp>
+#include <hyprland/src/desktop/view/window/Window.hpp>
 #include <hyprland/src/config/shared/actions/ConfigActions.hpp>
 #include <hyprland/src/event/EventBus.hpp>
 #include <hyprland/src/layout/LayoutManager.hpp>
 #include <hyprland/src/layout/supplementary/DragController.hpp>
-#include <hyprland/src/managers/EventManager.hpp>
 #include <hyprland/src/managers/eventLoop/EventLoopManager.hpp>
 #include <hyprland/src/version.h>
 
@@ -31,9 +30,9 @@ namespace {
     void postDragEvent(const PHLWINDOW& window, const std::string& address, bool moving, bool start, bool updateTag = true) {
         const char* event = start ? (moving ? "hyprdrag-movestart" : "hyprdrag-resizestart")
                                   : (moving ? "hyprdrag-movestop" : "hyprdrag-resizestop");
-        g_pEventManager->postEvent(SHyprIPCEvent{event, address});
+        (void)Config::Actions::event(std::format("{}>>{}", event, address));
 
-        if (updateTag && window && window->m_isMapped) {
+        if (updateTag && validMapped(window)) {
             const std::string tag = std::format("{}hyprdrag-{}", start ? "" : "-", moving ? "move" : "resize");
             // Native action works with both config managers and preserves the
             // same tag/rule updates as the old tagwindow dispatcher.
@@ -58,7 +57,7 @@ namespace {
         const auto& controller = g_layoutManager->dragController();
         const auto target = controller->target();
         const auto window = target ? target->window() : nullptr;
-        const bool dragging = window && window->m_isMapped && controller->mode() != MBIND_INVALID && controller->dragThresholdReached();
+        const bool dragging = validMapped(window) && controller->mode() != MBIND_INVALID && controller->dragThresholdReached();
         const bool moving = controller->mode() == MBIND_MOVE;
 
         if (!lastAddress.empty() && (!dragging || lastDraggedWindow.lock() != window || moving != wasMoving))

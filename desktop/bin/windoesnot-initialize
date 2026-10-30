@@ -58,7 +58,7 @@ if not state_path.exists() or args.adopt_system:
     atomic_write(state_path, encode(state))
 settings_path = config / 'quickshell/default/settings.txt'
 if not settings_path.exists() or args.adopt_system:
-    settings = dict(line.split('=', 1) for line in settings_path.read_text().splitlines() if '=' in line) if settings_path.exists() else {}
+    settings = dict(line.split('=', 1) for line in settings_path.read_text().splitlines() if '=' in line) if settings_path.exists() else {'borderRadius': '10'}
     settings.update(defaults['settings'])
     settings_path.write_text(''.join(f'{key}={value}\n' for key, value in settings.items()))
 for name in ['hyprbars', 'hyprdrag']:

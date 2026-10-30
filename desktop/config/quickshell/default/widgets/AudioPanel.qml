@@ -8,6 +8,7 @@ Item {
     id: audioPanel
     width: 320
     height: 400
+    signal closeRequested()
 
     property color accentColor: "#FE6F2D"
     property int borderRadius: 12  // Default value, wird von shell.qml gebunden
@@ -226,7 +227,7 @@ Item {
                 spacing: 10
 
                 Image {
-                    source: audioPanel.muted ? Qt.resolvedUrl("../img/Win11-dark/status/symbolic/ephy-audio-muted-symbolic.svg") : Qt.resolvedUrl("../img/Win11-dark/status/symbolic/audio-volume-overamplified-symbolic.svg")
+                    source: audioPanel.muted ? Qt.resolvedUrl("../img/Win11-dark/status/symbolic/audio-volume-muted-blocking-symbolic.svg") : Qt.resolvedUrl("../img/Win11-dark/status/symbolic/audio-volume-overamplified-symbolic.svg")
                     width: 20
                     height: 20
                     smooth: true
@@ -408,7 +409,7 @@ Item {
                 spacing: 8
 
                 Image {
-                    source: Qt.resolvedUrl("../img/Win11-dark/status/symbolic/ephy-audio-muted-symbolic.svg")
+                    source: Qt.resolvedUrl("../img/Win11-dark/status/symbolic/audio-volume-muted-blocking-symbolic.svg")
                     width: 16
                     height: 16
                     smooth: true
@@ -455,7 +456,7 @@ Item {
                 spacing: 8
 
                 Image {
-                    source: Qt.resolvedUrl("../img/Win11-dark/apps/symbolic/org.gnome.Settings-accessibility-hearing-symbolic.svg")
+                    source: Qt.resolvedUrl("../img/Win11-dark/apps/symbolic/hearing-symbolic.svg")
                     width: 16
                     height: 16
                     smooth: true
@@ -487,7 +488,10 @@ Item {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: openMixerProc.running = true
+                onClicked: {
+                    audioPanel.closeRequested()
+                    openMixerProc.running = true
+                }
             }
         }
     }

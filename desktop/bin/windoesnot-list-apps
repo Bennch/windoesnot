@@ -12,6 +12,7 @@ def launchers(directories, language, structured=False):
     language = language.split('.')[0].replace('-', '_')
     keys = ['Name[' + language + ']', 'Name[' + language.split('_')[0] + ']', 'Name']
     seen = set()
+    seen_commands = set()
     result = []
     for directory in directories:
         if not directory.is_dir():
@@ -32,8 +33,14 @@ def launchers(directories, language, structured=False):
                 command = re.sub(r'\s+%[a-zA-Z](?=\s|$)', '', entry.get('Exec', ''))
                 row = (name, command, entry.get('Icon', ''))
                 if name and command and all(not any(c in field for c in '|\n\r') for field in row):
+                    # Two desktop IDs can launch the same application (for
+                    # example webapp-manager in two applications directories).
+                    # The first directory has precedence, just as for IDs.
+                    if command in seen_commands:
+                        continue
+                    seen_commands.add(command)
                     names = sorted({value for key, value in entry.items() if key == 'Name' or key.startswith('Name[')})
-                    result.append({'id': identity, 'name': name, 'cmd': command, 'icon': row[2], 'names': names} if structured else '|'.join(row))
+                    result.append({'id': identity, 'desktopPath': str(path), 'name': name, 'cmd': command, 'icon': row[2], 'names': names} if structured else '|'.join(row))
             except (OSError, UnicodeError, configparser.Error, KeyError):
                 continue
     if structured:

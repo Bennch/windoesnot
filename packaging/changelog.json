@@ -2,6 +2,24 @@
   "comment": "WinDoesNot changes per desktop package release, newest first. Shown in Settings > Updates; entries marked unreleased are never offered as an update.",
   "releases": [
     {
+      "version": "0.1.0-21",
+      "date": "2026-10-29",
+      "de": [
+        "Neue Windows-nahe Tastenkombinationen: Sperren, Desktop anzeigen, Task-Manager und Einstellungen sind direkt erreichbar.",
+        "Die Einstellungen enthalten jetzt eine eigene Akku-/Energie-Seite und eine konsolidierte, übersichtlichere Navigation.",
+        "Kontextmenüs im Tray und an der Taskleiste werden passend am jeweiligen Symbol verankert und schließen wieder zuverlässig bei Außenklicks.",
+        "Nautilus übernimmt die WinDoesNot-Akzentfarbe auch in der Dateiverwaltung.",
+        "Die nativen Hyprland-Plugins hyprbars und hyprdrag sind auf die aktuelle Hyprland-API portiert."
+      ],
+      "en": [
+        "New Windows-like keyboard shortcuts: lock, show desktop, Task Manager and Settings are directly accessible.",
+        "Settings now includes a dedicated battery/power page and a more consistent, consolidated navigation.",
+        "Tray and taskbar context menus are anchored to their respective icons and close reliably when clicking outside.",
+        "Nautilus now uses the WinDoesNot accent color in the file manager as well.",
+        "The native Hyprland plugins hyprbars and hyprdrag are ported to the current Hyprland API."
+      ]
+    },
+    {
       "version": "0.1.0-19",
       "date": "2026-10-24",
       "de": [

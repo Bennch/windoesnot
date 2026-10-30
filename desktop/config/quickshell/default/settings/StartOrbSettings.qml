@@ -129,6 +129,7 @@ Column {
         title: Lang.get("appearance.startOrbChoose", orbSettings._lang)
         nameFilters: [Lang.get("appearance.startOrbImages", orbSettings._lang) + " (*.png *.jpg *.jpeg *.webp *.svg)"]
         onAccepted: {
+            orbSettings.settingsMenu.fileDialogOpen = false
             importOrb.command = ["windoesnot-import-orb", selectedFile.toString()]
             importOrb.running = true
         }
@@ -144,7 +145,6 @@ Column {
                     orbSettings.settingsMenu.startOrbStyle = "custom"
                     orbSettings.importFailed = false
                 } else orbSettings.importFailed = true
-                orbSettings.settingsMenu.fileDialogOpen = false
             }
         }
     }

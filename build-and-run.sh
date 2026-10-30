@@ -62,6 +62,13 @@ if [[ $mode != run ]]; then
         if $dry; then show python3 "$project/tools/prepare-profile.py" --output "$profile"
         else python3 "$project/tools/prepare-profile.py" --output "$profile"; fi
     fi
+    # Never let a partially generated profile fall through to mkarchiso. This
+    # marker is written only after all WinDoesNot staging and branding steps
+    # completed; without it the upstream CachyOS profile could be packaged.
+    $dry || [[ -f "$profile/airootfs/etc/windoesnot-image-build" ]] || {
+        echo "Incomplete WinDoesNot profile: $profile (use a new --build-id)" >&2
+        exit 1
+    }
     if $rootless; then
         if $dry; then
             show "$project/tools/prepare-rootless.sh" "$profile"
@@ -71,9 +78,19 @@ if [[ $mode != run ]]; then
             export PATH="$project/build/host-tools/usr/bin:$PATH"
         fi
     fi
+    # A prepared profile may be resumed with --sudo-build after rootless
+    # namespace setup failed. Reuse the same isolated GRUB tools if present.
+    if [[ -d $project/build/host-tools/usr/bin ]]; then
+        export PATH="$project/build/host-tools/usr/bin:$PATH"
+    fi
     if ! $dry; then python3 "$project/tools/stage-build-resolver.py" "$profile"; fi
     command=(mkarchiso -v -w "$work" -o "$output" "$profile")
-    if ((EUID != 0)) && ! $rootless; then command=(sudo -- "${command[@]}"); fi
+    if ((EUID != 0)) && ! $rootless; then
+        # sudo's secure_path hides the signed, unpacked GRUB tools prepared in
+        # build/host-tools. Pass only this build PATH explicitly; do not install
+        # or modify host packages just to satisfy mkarchiso validation.
+        command=(sudo -- env "PATH=$PATH" "${command[@]}")
+    fi
     if $dry; then show "${command[@]}"; else
         mkdir -p "$output"
         "${command[@]}" 2>&1 | tee "$output/build.log"

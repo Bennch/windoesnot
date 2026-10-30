@@ -139,6 +139,10 @@ def main():
     # German live preview; Calamares applies the chosen language to the target.
     write(a/'etc/locale.conf','LANG=de_DE.UTF-8\n')
     write(a/'etc/locale.gen','de_DE.UTF-8 UTF-8\nen_US.UTF-8 UTF-8\n')
+    live_localtime = a/'etc/localtime'
+    if live_localtime.is_symlink() or live_localtime.is_file():
+        live_localtime.unlink()
+    live_localtime.symlink_to('/usr/share/zoneinfo/Europe/Berlin')
     # Passwordless administration belongs only to the disposable live account.
     write(a/'etc/polkit-1/rules.d/49-nopasswd_global.rules', 'polkit.addRule(function(action, subject) {\n    if (subject.user === "liveuser" && subject.isInGroup("wheel")) {\n        return polkit.Result.YES;\n    }\n});\n')
     # Do not start any other graphical session in the live image.

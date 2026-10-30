@@ -37,9 +37,9 @@ FloatingWindow {
     HyprlandFocusGrab {
         id: settingsFocusGrab
         windows: [settingsMenu]
-        active: settingsMenu.visible && !settingsMenu.fileDialogOpen && !settingsMenu.backupAuthenticationActive && !settingsMenu.colorPaletteVisible
+        active: settingsMenu.visible && !settingsMenu.fileDialogOpen && !settingsMenu.colorPaletteVisible
         onCleared: {
-            if (!settingsMenu.fileDialogOpen && !settingsMenu.backupAuthenticationActive) {
+            if (!settingsMenu.fileDialogOpen && !settingsMenu.colorPaletteVisible) {
                 settingsMenu.visible = false
             }
         }
@@ -979,6 +979,7 @@ FloatingWindow {
             'settingsMenu.updateHyprlandAppearance(); ' +
             'settingsMenu.updateHyprlandBorders(); ' +
             'settingsMenu.updateGtkSettingsIni(); ' +
+            'settingsMenu.updateGtkAccentCss(); ' +
             'settingsMenu.updateGtkColorScheme(); ' +
             'settingsMenu.updateIconTheme(); ' +
             'settingsMenu.detectBatteryTrayDefault(); ' +
@@ -1366,7 +1367,7 @@ FloatingWindow {
 
         var proc = Qt.createQmlObject(
             'import Quickshell.Io; Process { ' +
-            'command: ["bash", "-c", "printf \'%b\' \'' + css.replace(/'/g, "'\\''") + '\' > ~/.config/gtk-4.0/gtk.css && cp ~/.config/gtk-4.0/gtk.css ~/.config/gtk-3.0/gtk.css"]; ' +
+            'command: ["bash", "-c", "mkdir -p ~/.config/gtk-4.0 ~/.config/gtk-3.0 && printf \'%b\' \'' + css.replace(/'/g, "'\\''") + '\' > ~/.config/gtk-4.0/gtk.css && cp ~/.config/gtk-4.0/gtk.css ~/.config/gtk-3.0/gtk.css"]; ' +
             'running: true; }',
             settingsMenu
         )
@@ -1920,14 +1921,12 @@ FloatingWindow {
     function updateSystemLocale() {
         localeChangeBusy = true
         localeChangeFailed = false
-        fileDialogOpen = true
         localeProc.command = ["localectl", "set-locale", "LANG=" + pendingSystemLocale, "LC_MESSAGES=" + pendingSystemLocale, "LC_TIME=" + pendingSystemLocale]
         localeProc.running = true
     }
 
     function finishLanguageChange(code) {
         localeChangeBusy = false
-        fileDialogOpen = false
         localeChangeFailed = code !== 0
         if (code === 0) systemLocale = pendingSystemLocale
         else uiLanguage = previousUiLanguage

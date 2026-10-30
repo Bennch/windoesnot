@@ -16,7 +16,6 @@ Column {
     function run(action, args) {
         if (busy) return
         busy = true
-        if (settingsMenu) settingsMenu.fileDialogOpen = true
         worker.operation = action
         worker.command = (action === "shell-status" ? ["/usr/bin/python3", "-I"] : ["/usr/bin/pkexec", "--disable-internal-agent"])
             .concat(["/usr/lib/windoesnot/system_tools.py", action, JSON.stringify(args)])
@@ -29,7 +28,6 @@ Column {
         stdout: StdioCollector { id: output }
         onExited: code => {
             page.busy = false
-            if (page.settingsMenu) page.settingsMenu.fileDialogOpen = false
             let data = {}
             try { data = JSON.parse(output.text) } catch (error) {}
             if (code !== 0 || data.error) {
