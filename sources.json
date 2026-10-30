@@ -43,6 +43,13 @@
     "upstream": "https://github.com/PlayRood32/adw-network",
     "upstream_commit": "59df66eafba8a010f3302dad1923a2f6dad5abe5"
   },
+  "windoesnot-audio": {
+    "url": "https://github.com/Bennch/windoesnot-audio",
+    "path": "audio",
+    "commit": "0eca70306cf070688783904a9efcba626d76cd26",
+    "upstream": "https://github.com/wwmm/easyeffects",
+    "upstream_commit": "b4390ab3fec06fcfbd6dcf2c2fa1d12bca23bc68"
+  },
   "hyprland": {
     "version": "0.57.0-1",
     "note": "Not a build pin — mkarchiso still installs whatever CachyOS currently ships. This is only the pacman hyprland version/release (CPU-rebuild .N suffix ignored) that the image was last actually booted and tested on. customize-image.sh compares against it and prints a loud, non-fatal warning in the build log when it changed, so a Hyprland bump (e.g. 0.57's quirks.skip_non_kms_dmabuf_formats breaking rendering on virtio-gpu, found 2026-10-30) doesn't slip into a build unnoticed. Update this value once you've confirmed a build with the new version is fine."
