@@ -161,6 +161,12 @@ def main():
     write(a / 'usr/share/applications/windoesnot-installer.desktop', '[Desktop Entry]\nType=Application\nName=Install WinDoesNot\nName[de]=WinDoesNot installieren\nExec=windoesnot-installer\nIcon=windoesnot\nTerminal=false\nCategories=System;\n')
     write(a / 'etc/skel/Desktop/windoesnot-installer.desktop', (a / 'usr/share/applications/windoesnot-installer.desktop').read_text(), True)
     write(a / 'etc/xdg/xdg-desktop-portal/hyprland-portals.conf', '[preferred]\ndefault=hyprland;gtk\norg.freedesktop.impl.portal.FileChooser=gtk\n')
+    # Ghostty's own .desktop launches with --gtk-single-instance=true: the
+    # taskbar/Start menu spawn-and-disown a new process per click, so the
+    # GTK single-instance handoff can lose the race and the window flashes
+    # shut. extras/nautilus/windoesnot-terminal.py already avoids this the
+    # same way for its own launches.
+    write(a / 'usr/share/applications/com.mitchellh.ghostty.desktop', '[Desktop Entry]\nVersion=1.0\nName=Ghostty\nType=Application\nComment=A terminal emulator\nTryExec=ghostty\nExec=ghostty --gtk-single-instance=false\nIcon=com.mitchellh.ghostty\nCategories=System;TerminalEmulator;\nKeywords=terminal;tty;pty;\nStartupNotify=true\nStartupWMClass=com.mitchellh.ghostty\nTerminal=false\nActions=new-window;\nX-GNOME-UsesNotifications=true\nX-TerminalArgExec=-e\nX-TerminalArgTitle=--title=\nX-TerminalArgAppId=--class=\nX-TerminalArgDir=--working-directory=\nX-TerminalArgHold=--wait-after-command\nDBusActivatable=true\nX-KDE-Shortcuts=Ctrl+Alt+T\n\n[Desktop Action new-window]\nName=New Window\nExec=ghostty --gtk-single-instance=false\n')
     # Use supported distro hooks to generate installed initramfs without archiso hooks.
     write(a / 'etc/mkinitcpio-windoesnot.conf', add_hook('MODULES=()\nBINARIES=()\nFILES=()\nHOOKS=(base systemd autodetect microcode modconf kms keyboard sd-vconsole block filesystems fsck)\n'))
     stage_boot_splash(a, ROOT/'iso/boot-splash', ROOT/'desktop/config/quickshell/default/img/brand/windoesnot-logo-hell.png')
