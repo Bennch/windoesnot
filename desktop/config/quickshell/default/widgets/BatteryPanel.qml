@@ -27,6 +27,17 @@ Item {
 
     property bool hasBrightness: false
     property int brightness: 0
+    // Desktops with no laptop backlight (brightnessctl finds nothing) fall
+    // back to DDC/CI on the first detected external monitor.
+    property bool usesDdc: false
+    property string ddcDisplay: ""
+    property bool ddcProbed: false
+
+    // Eye-comfort / blue-light filter. State is just "is hyprsunset running
+    // right now" -- no separate persisted setting, so a crashed/restarted
+    // Quickshell can't disagree with reality.
+    property bool hasNightLight: false
+    property bool nightLightEnabled: false
 
     function tr(key) { return Lang.get(key, uiLanguage) }
 
@@ -39,7 +50,8 @@ Item {
 
     function refresh() {
         statusProc.running = true
-        brightnessProc.running = true
+        if (usesDdc) { ddcGetProc.running = true } else { brightnessProc.running = true }
+        nightLightStatusProc.running = true
     }
 
     Component.onCompleted: refresh()
@@ -102,6 +114,47 @@ Item {
                 if (parts.length >= 4) {
                     batteryPanel.hasBrightness = true
                     batteryPanel.brightness = parseInt(parts[3]) || 0
+                } else if (!batteryPanel.ddcProbed) {
+                    batteryPanel.ddcProbed = true
+                    ddcDetectProc.running = true
+                } else {
+                    batteryPanel.hasBrightness = false
+                }
+            }
+        }
+    }
+
+    // No backlight device (desktop PC, external monitors): try the first
+    // DDC/CI-capable display instead. One-off probe, not repeated on every
+    // refresh -- ddcutil is slow (seconds, not milliseconds).
+    Process {
+        id: ddcDetectProc
+        command: ["bash", "-c", "command -v ddcutil >/dev/null 2>&1 && ddcutil detect --brief 2>/dev/null | sed -n 's/^Display \\([0-9]\\+\\)/\\1/p' | head -1"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var display = this.text.trim()
+                if (display) {
+                    batteryPanel.usesDdc = true
+                    batteryPanel.ddcDisplay = display
+                    ddcGetProc.command = ["bash", "-c", "ddcutil getvcp 10 --display " + display + " 2>/dev/null"]
+                    ddcGetProc.running = true
+                } else {
+                    batteryPanel.hasBrightness = false
+                }
+            }
+        }
+    }
+
+    Process {
+        id: ddcGetProc
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var match = this.text.match(/current value\s*=\s*(\d+)/)
+                if (match) {
+                    batteryPanel.hasBrightness = true
+                    batteryPanel.brightness = parseInt(match[1])
                 } else {
                     batteryPanel.hasBrightness = false
                 }
@@ -114,10 +167,49 @@ Item {
         running: false
     }
 
+    // Dragging the slider fires setBrightness continuously; ddcutil's I2C
+    // writes take noticeably longer than brightnessctl, so only the DDC path
+    // gets debounced -- brightnessctl stays as responsive as before.
+    Timer {
+        id: ddcWriteDebounce
+        interval: 150
+        onTriggered: setBrightnessProc.running = true
+    }
+
     function setBrightness(value) {
         brightness = Math.max(1, Math.min(100, value))
-        setBrightnessProc.command = ["bash", "-c", "brightnessctl -c backlight set " + brightness + "%"]
-        setBrightnessProc.running = true
+        if (usesDdc) {
+            setBrightnessProc.command = ["bash", "-c", "ddcutil setvcp 10 " + brightness + " --display " + ddcDisplay + " --noverify 2>/dev/null"]
+            ddcWriteDebounce.restart()
+        } else {
+            setBrightnessProc.command = ["bash", "-c", "brightnessctl -c backlight set " + brightness + "%"]
+            setBrightnessProc.running = true
+        }
+    }
+
+    Process {
+        id: nightLightStatusProc
+        command: ["bash", "-c", "command -v hyprsunset >/dev/null 2>&1 && echo has; pgrep -x hyprsunset >/dev/null 2>&1 && echo on"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                batteryPanel.hasNightLight = this.text.indexOf("has") !== -1
+                batteryPanel.nightLightEnabled = this.text.indexOf("on") !== -1
+            }
+        }
+    }
+
+    Process {
+        id: nightLightToggleProc
+        running: false
+        onExited: nightLightStatusProc.running = true
+    }
+
+    function toggleNightLight() {
+        nightLightToggleProc.command = nightLightEnabled
+            ? ["bash", "-c", "pkill -x hyprsunset"]
+            : ["bash", "-c", "setsid hyprsunset -t 4000 >/dev/null 2>&1 &"]
+        nightLightToggleProc.running = true
     }
 
     Rectangle {
@@ -289,6 +381,47 @@ Item {
                         onClicked: function(mouse) {
                             batteryPanel.setBrightness(Math.round((mouse.x / parent.width) * 100))
                         }
+                    }
+                }
+            }
+
+            // Eye comfort / night light
+            Row {
+                width: parent.width
+                spacing: 10
+                visible: batteryPanel.hasNightLight
+
+                Image {
+                    source: Qt.resolvedUrl("../img/Win11-dark/status/symbolic/weather-clear-night-symbolic.svg")
+                    width: 20; height: 20
+                    smooth: true
+                    layer.enabled: !darkMode
+                    layer.effect: MultiEffect { colorization: 1.0; colorizationColor: "#333333" }
+                }
+                Text {
+                    id: nightLightLabel
+                    text: batteryPanel.tr("power.nightLight")
+                    font.pixelSize: 14
+                    color: darkMode ? "#cccccc" : "#333333"
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                Item { width: parent.width - nightLightLabel.width - 60 - 20; height: 1 }
+                Rectangle {
+                    width: 44; height: 24; radius: 12
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: batteryPanel.nightLightEnabled ? batteryPanel.accentColor : (darkMode ? "#3a3a3a" : "#c0c0c0")
+                    Behavior on color { ColorAnimation { duration: 150 } }
+                    Rectangle {
+                        width: 18; height: 18; radius: 9
+                        color: darkMode ? "#fff" : "#1a1a1a"
+                        x: batteryPanel.nightLightEnabled ? parent.width - width - 3 : 3
+                        anchors.verticalCenter: parent.verticalCenter
+                        Behavior on x { NumberAnimation { duration: 150 } }
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: batteryPanel.toggleNightLight()
                     }
                 }
             }

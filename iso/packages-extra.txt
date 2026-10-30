@@ -5,6 +5,8 @@ hyprpaper
 hyprpicker
 hyprlock
 hypridle
+hyprsunset
+ddcutil
 imagemagick
 upower
 power-profiles-daemon
