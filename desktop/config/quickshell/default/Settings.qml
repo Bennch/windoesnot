@@ -37,7 +37,6 @@ FloatingWindow {
     HyprlandFocusGrab {
         id: settingsFocusGrab
         windows: [settingsMenu]
-        active: settingsMenu.visible && !settingsMenu.fileDialogOpen && !settingsMenu.colorPaletteVisible
         onCleared: {
             if (!settingsMenu.fileDialogOpen && !settingsMenu.colorPaletteVisible) {
                 settingsMenu.visible = false
@@ -45,11 +44,28 @@ FloatingWindow {
         }
     }
 
+    function syncFocusGrab() {
+        if (!visible || fileDialogOpen || colorPaletteVisible) {
+            settingsFocusGrab.active = false
+        } else {
+            // Quickshell clears active when a grab is dismissed or the window
+            // has not mapped yet; a binding to visible is then lost.
+            Qt.callLater(function() {
+                if (settingsMenu.visible && !settingsMenu.fileDialogOpen && !settingsMenu.colorPaletteVisible)
+                    settingsFocusGrab.active = true
+            })
+        }
+    }
+
+    onFileDialogOpenChanged: syncFocusGrab()
+    onColorPaletteVisibleChanged: syncFocusGrab()
+
     // Wenn Settings geschlossen wird, schließe auch colorPalette
     onVisibleChanged: {
         if (!visible) {
             colorPaletteVisible = false
         }
+        syncFocusGrab()
     }
 
     property string currentCategory: "desktop"
@@ -2284,7 +2300,7 @@ FloatingWindow {
                                 if (settingsMenu.currentCategory === "updates") return updatesLoader.item ? updatesLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "about") return aboutLoader.item ? aboutLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "help") return helpLoader.item ? helpLoader.item.height + padding : height
-                                if (settingsMenu.currentCategory === "background") return height - 45  // Kein Scrollbar nötig
+                                if (settingsMenu.currentCategory === "background") return backgroundSettingsLoader.item ? backgroundSettingsLoader.item.implicitHeight + padding : height
                                 return height
                             }
 
@@ -2308,7 +2324,7 @@ FloatingWindow {
                         Loader {
                             id: backgroundSettingsLoader
                             visible: settingsMenu.currentCategory === "background"
-                            anchors.fill: parent
+                            width: parent.width
                             source: "settings/BackgroundCategory.qml"
 
                             onLoaded: {
