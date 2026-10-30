@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=PDF Viewer
+Name[de]=PDF-Betrachter
+Comment=View PDF documents
+Comment[de]=PDF-Dokumente ansehen
+Exec=evince %F
+Icon=application-pdf
+Categories=Application;Viewer;
+MimeType=application/pdf;
+Terminal=false
+Type=Application
