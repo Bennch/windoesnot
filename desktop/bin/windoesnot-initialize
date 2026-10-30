@@ -48,6 +48,17 @@ if nearby_extension.is_file() and not nearby_target.exists() and not nearby_targ
 for directory in ['Desktop','Downloads','Templates','Public','Documents','Music','Pictures','Videos']:
     (home / directory).mkdir(exist_ok=True)
 
+# Nautilus/GTK sidebar favorites for the common folders. Bookmarks are plain
+# file:// URIs with no $HOME-style substitution, so they must be written here
+# (where the real path is known) rather than shipped as a static default.
+bookmarks_path = config / 'gtk-3.0/bookmarks'
+if not bookmarks_path.exists():
+    from urllib.parse import quote
+    bookmark_dirs = ['Desktop', 'Documents', 'Downloads', 'Pictures', 'Music']
+    lines = [f'file://{quote(str(home / d))} {d}\n' for d in bookmark_dirs]
+    bookmarks_path.parent.mkdir(parents=True, exist_ok=True)
+    bookmarks_path.write_text(''.join(lines))
+
 # Clean up duplicate installer desktop files from language switching
 desktop_dir = home / 'Desktop'
 if desktop_dir.exists():
