@@ -528,6 +528,17 @@ PanelWindow {
         return "widgets/weather/google-weather-icons-main/sets/set-3/" + theme + "/" + name + ".svg"
     }
 
+    // Quickshell clears a HyprlandFocusGrab's `active` internally once it's
+    // dismissed, which breaks a plain `active: someWindow.visible` binding
+    // for good: every open after the first then leaves outside clicks
+    // unable to close that window again — it just sits there looking stuck.
+    // Every popup/context-menu window's onVisibleChanged calls this instead
+    // of binding active directly.
+    function syncFocusGrab(grab, vis) {
+        if (vis) Qt.callLater(function() { grab.active = true })
+        else grab.active = false
+    }
+
     property var weatherPopupIconItem: null
 
     // Separate from openWeatherPopup so it can also run later, when forecast/
@@ -2735,9 +2746,11 @@ PopupWindow {
         adjustment: PopupAdjustment.None
     }
 
+    onVisibleChanged: panelWindow.syncFocusGrab(quickSettingsContextMenuGrab, visible)
+
     HyprlandFocusGrab {
+        id: quickSettingsContextMenuGrab
         windows: [quickSettingsContextMenu]
-        active: quickSettingsContextMenu.visible
         onCleared: quickSettingsContextMenu.visible = false
     }
 
@@ -2888,7 +2901,6 @@ FloatingWindow {
     HyprlandFocusGrab {
         id: startMenuGrab
         windows: [startMenu, startAppContextMenu]
-        active: startMenu.visible || startAppContextMenu.visible
         onCleared: {
             startAppContextMenu.visible = false
             startMenu.visible = false
@@ -3174,6 +3186,7 @@ FloatingWindow {
     }
 
     onVisibleChanged: {
+        panelWindow.syncFocusGrab(startMenuGrab, visible || startAppContextMenu.visible)
         if (visible) {
             console.log("=== START MENU OPENED ===")
             // Reset beim Öffnen
@@ -4686,6 +4699,7 @@ PopupWindow {
     // startMenuGrab handles dismissal for both windows. A second popup grab
     // treats the click on the app tile as outside and closes the Start menu.
     grabFocus: false
+    onVisibleChanged: panelWindow.syncFocusGrab(startMenuGrab, startMenu.visible || visible)
 
     property string appName: ""
     property string desktopPath: ""
@@ -4834,11 +4848,11 @@ FloatingWindow {
     implicitHeight: 480
     color: "transparent"
     title: "quickshell-colorpalette"
+    onVisibleChanged: panelWindow.syncFocusGrab(colorPaletteFocusGrab, visible)
 
     HyprlandFocusGrab {
         id: colorPaletteFocusGrab
         windows: [colorPaletteDialog]
-        active: colorPaletteDialog.visible
         onCleared: settingsMenu.colorPaletteVisible = false
     }
 
@@ -5018,13 +5032,11 @@ FloatingWindow {
     HyprlandFocusGrab {
         id: calendarFocusGrab
         windows: [calendarWindow]
-        active: calendarWindow.visible
         onCleared: calendarWindow.visible = false
     }
 
-
-
     onVisibleChanged: {
+        panelWindow.syncFocusGrab(calendarFocusGrab, visible)
         if (visible) {
         }
     }
@@ -5060,11 +5072,11 @@ FloatingWindow {
     HyprlandFocusGrab {
         id: audioFocusGrab
         windows: [audioWindow]
-        active: audioWindow.visible
         onCleared: audioWindow.visible = false
     }
 
     onVisibleChanged: {
+        panelWindow.syncFocusGrab(audioFocusGrab, visible)
         if (visible) {
         }
     }
@@ -5129,11 +5141,11 @@ FloatingWindow {
     HyprlandFocusGrab {
         id: bluetoothFocusGrab
         windows: [bluetoothWindow]
-        active: bluetoothWindow.visible
         onCleared: bluetoothWindow.visible = false
     }
 
     onVisibleChanged: {
+        panelWindow.syncFocusGrab(bluetoothFocusGrab, visible)
         if (visible) {
         }
     }
@@ -5171,9 +5183,10 @@ FloatingWindow {
     HyprlandFocusGrab {
         id: batteryFocusGrab
         windows: [batteryWindow]
-        active: batteryWindow.visible
         onCleared: batteryWindow.visible = false
     }
+
+    onVisibleChanged: panelWindow.syncFocusGrab(batteryFocusGrab, visible)
 
     Loader {
         anchors.fill: parent
@@ -5209,11 +5222,11 @@ FloatingWindow {
     HyprlandFocusGrab {
         id: networkFocusGrab
         windows: [networkWindow]
-        active: networkWindow.visible
         onCleared: networkWindow.visible = false
     }
 
     onVisibleChanged: {
+        panelWindow.syncFocusGrab(networkFocusGrab, visible)
         if (visible) {
         }
     }
@@ -5273,11 +5286,17 @@ FloatingWindow {
     title: "quickshell-nearby"
     screen: networkWindow.screen
 
-    onVisibleChanged: nearbyService.command({action:"active", value:visible})
+    function syncNearbyGrab() {
+        panelWindow.syncFocusGrab(nearbyFocusGrab, visible && !(nearbyLoader.item && nearbyLoader.item.dialogOpen))
+    }
+    onVisibleChanged: {
+        nearbyService.command({action:"active", value:visible})
+        syncNearbyGrab()
+    }
 
     HyprlandFocusGrab {
+        id: nearbyFocusGrab
         windows: [nearbyWindow]
-        active: nearbyWindow.visible && !(nearbyLoader.item && nearbyLoader.item.dialogOpen)
         onCleared: nearbyWindow.visible = false
     }
 
@@ -5288,6 +5307,7 @@ FloatingWindow {
 
         onLoaded: {
             item.service = nearbyService
+            item.dialogOpenChanged.connect(nearbyWindow.syncNearbyGrab)
             item.accentColor = Qt.binding(function() { return settingsMenu.accentColor })
             item.borderRadius = Qt.binding(function() { return settingsMenu.borderRadius })
             item.darkMode = Qt.binding(function() { return settingsMenu.darkMode })
@@ -5518,9 +5538,11 @@ FloatingWindow {
     property int menuX: 0
     property int menuY: 0
 
+    onVisibleChanged: panelWindow.syncFocusGrab(powerMenuFocusGrab, visible)
+
     HyprlandFocusGrab {
+        id: powerMenuFocusGrab
         windows: powerSubMenu.visible ? [powerMenu, powerSubMenu] : [powerMenu]
-        active: powerMenu.visible
         onCleared: { powerMenu.visible = false; powerSubMenu.visible = false }
     }
 
@@ -6022,9 +6044,11 @@ PopupWindow {
         adjustment: PopupAdjustment.None
     }
 
+    onVisibleChanged: panelWindow.syncFocusGrab(appContextMenuFocusGrab, visible)
+
     HyprlandFocusGrab {
+        id: appContextMenuFocusGrab
         windows: [appContextMenu]
-        active: appContextMenu.visible
         onCleared: appContextMenu.visible = false
     }
 
@@ -6236,9 +6260,19 @@ FloatingWindow {
                     + 6
 
     HyprlandFocusGrab {
+        id: taskbarBgMenuFocusGrab
         windows: [taskbarBgMenu]
-        active: taskbarBgMenu.visible
         onCleared: taskbarBgMenu.visible = false
+    }
+
+    // Quickshell clears a HyprlandFocusGrab's `active` internally once it's
+    // dismissed, which breaks a plain `active: taskbarBgMenu.visible`
+    // binding for good: every open after the first then leaves outside
+    // clicks unable to close the menu again. Re-set it explicitly instead,
+    // same fix as Settings.qml's syncFocusGrab().
+    onVisibleChanged: {
+        if (visible) Qt.callLater(function() { taskbarBgMenuFocusGrab.active = true })
+        else taskbarBgMenuFocusGrab.active = false
     }
 
     Item {
@@ -6455,9 +6489,11 @@ FloatingWindow {
     implicitWidth: 380
     implicitHeight: Math.round(weatherPopupCol.height + 30)
 
+    onVisibleChanged: panelWindow.syncFocusGrab(weatherPopupFocusGrab, visible)
+
     HyprlandFocusGrab {
+        id: weatherPopupFocusGrab
         windows: [weatherPopup]
-        active: weatherPopup.visible
         onCleared: weatherPopup.visible = false
     }
 
@@ -6793,9 +6829,11 @@ FloatingWindow {
         return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
     }
 
+    onVisibleChanged: panelWindow.syncFocusGrab(dockerFocusGrab, visible)
+
     HyprlandFocusGrab {
+        id: dockerFocusGrab
         windows: [dockerWindow]
-        active: dockerWindow.visible
         onCleared: dockerWindow.visible = false
     }
 
@@ -6831,9 +6869,11 @@ FloatingWindow {
         return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
     }
 
+    onVisibleChanged: panelWindow.syncFocusGrab(ollamaFocusGrab, visible)
+
     HyprlandFocusGrab {
+        id: ollamaFocusGrab
         windows: [ollamaWindow]
-        active: ollamaWindow.visible
         onCleared: ollamaWindow.visible = false
     }
 
