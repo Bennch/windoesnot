@@ -9,6 +9,19 @@ from urllib.parse import unquote, urlparse
 
 ARCHIVE_EXTS = ('.rar', '.zip', '.7z', '.tar.gz', '.tar.xz', '.tar.bz2', '.tar.zst', '.tgz')
 
+
+def german():
+    from pathlib import Path
+    config = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'quickshell/default/settings.txt'
+    try:
+        for line in config.read_text().splitlines():
+            if line.startswith('uiLanguage='):
+                return line.partition('=')[2].strip() == 'de'
+    except OSError:
+        pass
+    return os.environ.get('LANG', '').startswith('de')
+
+
 def filepath(fileinfo):
     return unquote(urlparse(fileinfo.get_uri()).path)
 
@@ -20,11 +33,12 @@ def extract(path):
     lower = path.lower()
     dir_ = os.path.dirname(path)
 
-    # Bei mehrteiligen RARs immer part1 verwenden
+    # Multi-part RARs: always extract via part1
     if re.search(r'\.part\d+\.rar$', lower):
         path = re.sub(r'\.part\d+\.rar$', '.part1.rar', path)
         if not os.path.exists(path):
-            notify(f"part1.rar nicht gefunden")
+            msg = "part1.rar nicht gefunden" if german() else "part1.rar not found"
+            subprocess.Popen(['notify-send', 'Entpacken' if german() else 'Extract', msg, '--icon=package-x-generic'])
             return
 
     base = os.path.basename(path)
@@ -50,8 +64,12 @@ def extract(path):
 
     def run():
         ret = subprocess.call(cmd)
-        msg = f"Fertig: {base}" if ret == 0 else f"Fehler bei: {base}"
-        subprocess.Popen(['notify-send', 'Entpacken', msg, '--icon=package-x-generic'])
+        de = german()
+        if ret == 0:
+            msg = f"Fertig: {base}" if de else f"Done: {base}"
+        else:
+            msg = f"Fehler bei: {base}" if de else f"Failed: {base}"
+        subprocess.Popen(['notify-send', 'Entpacken' if de else 'Extract', msg, '--icon=package-x-generic'])
 
     import threading
     threading.Thread(target=run, daemon=True).start()
@@ -63,10 +81,11 @@ class ExtractMenuProvider(GObject.GObject, Nautilus.MenuProvider):
         if not archives:
             return []
 
+        de = german()
         item = Nautilus.MenuItem(
             name='ExtractProvider::extract_all',
-            label='Part Dateien entpacken',
-            tip='Archiv(e) entpacken',
+            label='Dateien entpacken' if de else 'Extract files',
+            tip='Archiv(e) entpacken' if de else 'Extract archive(s)',
             icon='package-x-generic',
         )
         item.connect('activate', lambda *_: [extract(filepath(f)) for f in archives])

@@ -11,6 +11,17 @@ SETTINGS_FILE = os.path.expanduser("~/.config/quickshell/default/settings.txt")
 FALLBACK_TERMINAL = "ghostty"
 
 
+def _german():
+    try:
+        with open(SETTINGS_FILE, "r") as f:
+            for line in f:
+                if line.startswith("uiLanguage="):
+                    return line.partition("=")[2].strip() == "de"
+    except OSError:
+        pass
+    return os.environ.get("LANG", "").startswith("de")
+
+
 def _read_configured_terminal():
     try:
         with open(SETTINGS_FILE, "r") as f:
@@ -61,7 +72,7 @@ class WindoesNotTerminalAction(GObject.GObject, Nautilus.MenuProvider):
     def _make_item(self, name, paths):
         item = Nautilus.MenuItem(
             name=name,
-            label="Im Terminal öffnen",
+            label="Im Terminal öffnen" if _german() else "Open in Terminal",
             icon="utilities-terminal"
         )
         item.connect("activate", self._menu_item_activated, paths)
