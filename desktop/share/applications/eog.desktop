@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Image Viewer
+Name[de]=Bildbetrachter
+Comment=View images
+Comment[de]=Bilder ansehen
+Exec=eog %F
+Icon=eog
+Categories=Graphics;Viewer;
+MimeType=image/png;image/jpeg;image/gif;image/webp;image/svg+xml;image/bmp;image/tiff;
+Terminal=false
+Type=Application
