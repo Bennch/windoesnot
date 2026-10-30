@@ -50,18 +50,14 @@ Column {
         width: parent.width; text: page.tr("apps.shellHint"); wrapMode: Text.WordWrap
         font.pixelSize: 13; color: settingsMenu && !settingsMenu.darkMode ? "#555555" : "#bbbbbb"
     }
-    Row {
-        spacing: 12
-        Tools.SystemToolsChoice {
-            id: choice
-            width: 180; settingsMenu: page.settingsMenu
-            model: page.available; enabled: !page.busy
-        }
-        Tools.SystemToolsButton {
-            settingsMenu: page.settingsMenu
-            text: page.tr("systemTools.apply")
-            enabled: !page.busy && choice.currentIndex >= 0 && choice.currentText !== page.current
-            onClicked: page.run("shell-set", {shell: choice.currentText})
+    Tools.SystemToolsChoice {
+        id: choice
+        width: 180; settingsMenu: page.settingsMenu
+        model: page.available; enabled: !page.busy
+        onCurrentTextChanged: {
+            if (choice.currentText && choice.currentText !== page.current && !page.busy) {
+                page.run("shell-set", {shell: choice.currentText})
+            }
         }
     }
     Text {
