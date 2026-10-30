@@ -10,6 +10,16 @@ Column {
     width: parent.width
     spacing: 30
 
+    Process {
+        id: filemanagerRestart
+        onExited: {}
+    }
+
+    function restartFileManager() {
+        filemanagerRestart.command = ["/usr/bin/killall", "-9", "nautilus", "dolphin", "nemo", "thunar"]
+        filemanagerRestart.running = true
+    }
+
     // === SYSTEMSPRACHE ===
     Column {
         width: parent.width
@@ -66,7 +76,10 @@ Column {
                 }
                 displayText: currentIndex >= 0 ? model.get(currentIndex).text : settingsMenu.systemLocale
                 enabled: !settingsMenu.localeChangeBusy
-                onActivated: settingsMenu.selectLanguage(model.get(currentIndex).value)
+                onActivated: {
+                    settingsMenu.selectLanguage(model.get(currentIndex).value)
+                    restartFileManager()
+                }
 
                 background: Rectangle {
                     color: localeComboBox.pressed ? (settingsMenu.darkMode ? "#1a1a1a" : "#e0e0e0") : (settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0")
