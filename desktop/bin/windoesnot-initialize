@@ -47,6 +47,17 @@ if nearby_extension.is_file() and not nearby_target.exists() and not nearby_targ
 # Literal $HOME entries stay portable when initializing /etc/skel.
 for directory in ['Desktop','Downloads','Templates','Public','Documents','Music','Pictures','Videos']:
     (home / directory).mkdir(exist_ok=True)
+
+# Clean up duplicate installer desktop files from language switching
+desktop_dir = home / 'Desktop'
+if desktop_dir.exists():
+    installer_files = list(desktop_dir.glob('*[Ii]nstall*'))
+    if len(installer_files) > 1:
+        for f in installer_files[1:]:
+            try:
+                f.unlink()
+            except OSError:
+                pass
 sys.path.insert(0, str(config / 'hypr/lua/bin'))
 from hypr_state import encode, read_state, atomic_write
 from system_defaults import system_defaults

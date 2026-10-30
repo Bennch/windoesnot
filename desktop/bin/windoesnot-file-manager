@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Launch file manager with current locale settings
+set -euo pipefail
+
+# Read current locale from settings
+locale=$(grep "^LANG=" /etc/locale.conf 2>/dev/null | head -1 | cut -d= -f2 || echo "en_US.UTF-8")
+
+# Export locale for file manager
+export LANG="$locale"
+export LANGUAGE="${locale%%_*}"
+export LC_ALL="$locale"
+
+# Launch available file manager
+if command -v nautilus >/dev/null 2>&1; then
+    exec nautilus "$@"
+elif command -v dolphin >/dev/null 2>&1; then
+    exec dolphin "$@"
+elif command -v thunar >/dev/null 2>&1; then
+    exec thunar "$@"
+else
+    exec xdg-open "$@"
+fi
