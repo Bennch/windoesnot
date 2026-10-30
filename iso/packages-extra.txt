@@ -93,7 +93,6 @@ chwd
 
 bluez-obex
 
-# windoesnot-audio (easyeffects fork) build + runtime deps
 intltool
 mold
 ladspa
