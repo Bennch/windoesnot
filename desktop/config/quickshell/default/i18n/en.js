@@ -659,7 +659,7 @@ var strings = {
     "audio.outputDevice": "Output Device",
     "audio.default": "Default",
     "audio.mute": "Mute",
-    "audio.mixer": "Mixer",
+    "audio.mixer": "WinDoesNot Audio",
 
     // === Bluetooth Panel ===
     "bluetooth.title": "Bluetooth",

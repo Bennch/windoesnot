@@ -479,7 +479,7 @@ Item {
 
             Process {
                 id: openMixerProc
-                command: ["bash", "-c", "pavucontrol & disown"]
+                command: ["bash", "-c", "easyeffects & disown"]
                 running: false
             }
 
