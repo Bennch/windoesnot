@@ -409,6 +409,13 @@ var strings = {
     "background.clickOrSelect": "Click on an image or select your own",
     "background.selectMonitor": "Select a monitor to set the wallpaper",
     "background.selectWallpaper": "Select wallpaper",
+    "background.sddmThemeTitle": "Login screen",
+    "background.sddmThemeDesc": "Theme for the SDDM login screen. \"Silent\" always shows your current wallpaper (primary monitor).",
+    "background.sddmCinder": "Cinder",
+    "background.sddmCinderStill": "Cinder (no animation)",
+    "background.sddmFire": "Fire",
+    "background.sddmGlutDunkel": "Glut Dunkel",
+    "background.sddmSilent": "Silent",
 
     // === Appearance Category ===
     "appearance.mode": "Appearance Mode",

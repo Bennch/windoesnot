@@ -437,9 +437,25 @@ Item {
                 // Emit signal
                 wallpaperChanged(monitorName, wallpaperPath)
 
+                // Keep the SilentSDDM login-screen background mirroring the primary
+                // monitor's wallpaper. No-op (and no pkexec) if that theme was never
+                // set up: the cache directory only exists once sddm-set-theme created it.
+                if (settingsMenu && monitorName === settingsMenu.primaryMonitor) {
+                    sddmWallpaperSyncProc.command = ["bash", "-c",
+                        'test -d "$1" && cp -- "$2" "$1/current.jpg"', "_",
+                        "/var/lib/windoesnot/sddm-wallpaper", wallpaperPath]
+                    sddmWallpaperSyncProc.running = true
+                }
+
                 tag = ""
             }
         }
+    }
+
+    Process {
+        id: sddmWallpaperSyncProc
+        command: ["bash", "-c", ""]
+        running: false
     }
 
     // Save wallpaper configuration to hyprpaper.conf
@@ -1077,6 +1093,141 @@ Item {
                 font.pixelSize: 14
                 font.italic: true
             }
+        }
+
+        // Login screen (SDDM) theme
+        Column {
+            id: sddmThemeSection
+            width: parent.width
+            spacing: 15
+
+            property var sddmThemes: [
+                {theme: "windoesnot", preset: "cinder", label: Lang.get("background.sddmCinder", _lang)},
+                {theme: "windoesnot", preset: "cinder-still", label: Lang.get("background.sddmCinderStill", _lang)},
+                {theme: "windoesnot", preset: "fire", label: Lang.get("background.sddmFire", _lang)},
+                {theme: "windoesnot", preset: "glut-dunkel", label: Lang.get("background.sddmGlutDunkel", _lang)},
+                {theme: "silentsddm", preset: "default", label: Lang.get("background.sddmSilent", _lang)}
+            ]
+            property string currentTheme: "windoesnot"
+            property string currentPreset: "cinder"
+            property bool busy: false
+            property string resultText: ""
+
+            Component.onCompleted: sddmThemeStatusProc.running = true
+
+            Rectangle {
+                width: parent.width
+                height: 1
+                color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
+            }
+
+            Text {
+                text: Lang.get("background.sddmThemeTitle", _lang)
+                color: settingsMenu.darkMode ? "#ccc" : "#1a1a1a"
+                font.pixelSize: 16
+                font.bold: true
+            }
+
+            Text {
+                text: Lang.get("background.sddmThemeDesc", _lang)
+                color: "#888"
+                font.pixelSize: 11
+                width: parent.width
+                wrapMode: Text.WordWrap
+            }
+
+            Flow {
+                width: parent.width
+                spacing: 10
+
+                Repeater {
+                    model: sddmThemeSection.sddmThemes
+
+                    delegate: Rectangle {
+                        property bool isCurrent: modelData.theme === sddmThemeSection.currentTheme
+                                                  && modelData.preset === sddmThemeSection.currentPreset
+                        width: Math.max(110, label.implicitWidth + 24)
+                        height: 40
+                        radius: 6
+                        color: isCurrent ? root.accentColor : (settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0")
+                        border.color: isCurrent ? root.accentColor : (settingsMenu.darkMode ? "#4a4a4a" : "#c0c0c0")
+                        border.width: 1
+                        opacity: sddmThemeSection.busy ? 0.6 : 1.0
+
+                        Behavior on color { ColorAnimation { duration: 150 } }
+
+                        Text {
+                            id: label
+                            anchors.centerIn: parent
+                            text: modelData.label
+                            color: isCurrent ? "#ffffff" : (settingsMenu.darkMode ? "#ccc" : "#1a1a1a")
+                            font.pixelSize: 12
+                            font.bold: isCurrent
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            enabled: !sddmThemeSection.busy
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                sddmThemeSection.busy = true
+                                sddmThemeSection.resultText = ""
+                                sddmThemeApplyProc.command = ["/usr/bin/pkexec", "--disable-internal-agent",
+                                    "/usr/lib/windoesnot/system_tools.py", "sddm-set-theme",
+                                    JSON.stringify({theme: modelData.theme, preset: modelData.preset})]
+                                sddmThemeApplyProc.running = true
+                            }
+                        }
+                    }
+                }
+            }
+
+            Text {
+                text: sddmThemeSection.resultText
+                color: sddmThemeSection.resultText.indexOf(Lang.get("systemTools.failed", _lang)) === 0 ? "#e05050" : "#888"
+                font.pixelSize: 11
+                visible: sddmThemeSection.resultText !== ""
+                width: parent.width
+                wrapMode: Text.WordWrap
+            }
+        }
+    }
+
+    // Reads which SDDM login-screen theme/preset is currently active (unprivileged, no pkexec).
+    Process {
+        id: sddmThemeStatusProc
+        command: ["/usr/bin/python3", "-I", "/usr/lib/windoesnot/system_tools.py", "sddm-theme-status"]
+        running: false
+        property string accumulatedData: ""
+        stdout: SplitParser {
+            onRead: function(data) { sddmThemeStatusProc.accumulatedData += data }
+        }
+        onRunningChanged: {
+            if (!running) {
+                try {
+                    var status = JSON.parse(sddmThemeStatusProc.accumulatedData)
+                    sddmThemeSection.currentTheme = status.theme
+                    sddmThemeSection.currentPreset = status.preset
+                } catch (e) {}
+                sddmThemeStatusProc.accumulatedData = ""
+            }
+        }
+    }
+
+    // Applies the selected SDDM login-screen theme (privileged: writes under /usr/share and /etc).
+    Process {
+        id: sddmThemeApplyProc
+        command: ["bash", "-c", ""]
+        running: false
+        stdout: StdioCollector { id: sddmThemeApplyOutput }
+        stderr: StdioCollector { id: sddmThemeApplyErrors }
+        onExited: (code) => {
+            sddmThemeSection.busy = false
+            var ok = false
+            try { ok = JSON.parse(sddmThemeApplyOutput.text).ok === true } catch (e) {}
+            sddmThemeSection.resultText = ok ? Lang.get("systemTools.done", _lang)
+                : (code === 126 ? Lang.get("systemTools.cancelled", _lang) : Lang.get("systemTools.failed", _lang))
+            if (ok) sddmThemeStatusProc.running = true
         }
     }
 }

@@ -24,6 +24,23 @@ Pane {
     readonly property var sddmApi: (typeof sddm !== "undefined" && sddm) ? sddm : null
     readonly property color startupColor: (cfg.StartupBackgroundColor && cfg.StartupBackgroundColor !== "") ? cfg.StartupBackgroundColor : "#000000"
 
+    // SDDM creates one instance of this theme per physical screen. Only the
+    // screen X11/RandR calls "primary" (set to match Hyprland's main monitor
+    // by the greeter's Xsetup script) should offer the login form; the rest
+    // just show the background. Falls open to "show the form" whenever the
+    // screen model isn't available (e.g. a single-screen setup, or an older
+    // SDDM), which is today's behavior on every screen.
+    readonly property bool isPrimaryScreen: {
+        if (typeof screenModel === "undefined" || !screenModel)
+            return true;
+        try {
+            var primaryGeometry = screenModel.geometry(screenModel.primary);
+            return !!primaryGeometry && Screen.virtualX === primaryGeometry.x && Screen.virtualY === primaryGeometry.y;
+        } catch (e) {
+            return true;
+        }
+    }
+
     LayoutMirroring.enabled: false
     LayoutMirroring.childrenInherit: true
 
@@ -50,9 +67,14 @@ Pane {
         passwordInput.password.forceActiveFocus();
     }
 
-    Component.onCompleted: Qt.callLater(focusLoginField)
+    Component.onCompleted: {
+        if (root.isPrimaryScreen)
+            Qt.callLater(focusLoginField);
+    }
 
     Keys.onPressed: function (event) {
+        if (!root.isPrimaryScreen)
+            return;
         if (usernameInput.username.activeFocus || passwordInput.password.activeFocus)
             return;
 
@@ -91,6 +113,7 @@ Pane {
         ColumnLayout {
             id: form
             z: 1
+            visible: root.isPrimaryScreen
 
             anchors.top: parent.top
             anchors.bottom: parent.bottom

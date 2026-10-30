@@ -409,6 +409,13 @@ var strings = {
     "background.clickOrSelect": "Klicke auf ein Bild oder wähle ein eigenes aus",
     "background.selectMonitor": "Wähle einen Monitor aus, um das Hintergrundbild festzulegen",
     "background.selectWallpaper": "Hintergrundbild auswählen",
+    "background.sddmThemeTitle": "Anmeldebildschirm",
+    "background.sddmThemeDesc": "Design des SDDM-Login-Bildschirms. \"Silent\" zeigt immer dein aktuelles Hintergrundbild (Hauptmonitor).",
+    "background.sddmCinder": "Cinder",
+    "background.sddmCinderStill": "Cinder (ohne Animation)",
+    "background.sddmFire": "Fire",
+    "background.sddmGlutDunkel": "Glut Dunkel",
+    "background.sddmSilent": "Silent",
 
     // === Appearance Category ===
     "appearance.mode": "Erscheinungsmodus",

@@ -2,6 +2,7 @@
 """Host-safe security and state tests; no real system commands are executed."""
 import importlib.util
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -150,6 +151,109 @@ class SystemTools(unittest.TestCase):
             self.assertFalse(m.driver_state({'linux-cachyos-nvidia-open':'1'})[1])
         with patch.object(m,'available',return_value=True), patch.object(m,'query',return_value='│ nvidia-open-dkms.prime ┆ 5 │'):
             self.assertTrue(m.driver_state({})[1])
+
+    def test_sddm_set_theme_rejects_unknown_theme_or_preset(self):
+        for payload in [{'theme': 'windoesnot', 'preset': 'nope'}, {'theme': 'nope', 'preset': 'cinder'},
+                        {'theme': 'silentsddm', 'preset': 'fire'}, {'theme': 'windoesnot'}, {}]:
+            with self.assertRaises(ValueError): m.validate('sddm-set-theme', payload)
+        m.validate('sddm-set-theme', {'theme': 'windoesnot', 'preset': 'fire'})
+        m.validate('sddm-set-theme', {'theme': 'silentsddm', 'preset': 'default'})
+
+    def test_sddm_write_conf_sets_theme_and_strips_stale_greeter_env(self):
+        with tempfile.TemporaryDirectory() as temp, patch.object(m, 'SDDM_CONF', Path(temp)/'windoesnot.conf'):
+            m.SDDM_CONF.write_text('[General]\nDisplayServer=x11\nInputMethod=qtvirtualkeyboard\n'
+                                    'GreeterEnvironment=stale\n[Theme]\nCurrent=silentsddm\n')
+            m.sddm_write_conf('windoesnot', {})
+            parser = m._ini_parser(); parser.read(m.SDDM_CONF)
+            self.assertEqual(parser.get('Theme', 'Current'), 'windoesnot')
+            self.assertEqual(parser.get('X11', 'DisplayCommand'), '/usr/share/sddm/themes/windoesnot/Xsetup')
+            self.assertFalse(parser.has_option('General', 'InputMethod'))
+            self.assertFalse(parser.has_option('General', 'GreeterEnvironment'))
+            m.sddm_write_conf('silentsddm', {'InputMethod': 'qtvirtualkeyboard', 'GreeterEnvironment': 'QML2_IMPORT_PATH=x'})
+            parser = m._ini_parser(); parser.read(m.SDDM_CONF)
+            self.assertEqual(parser.get('General', 'InputMethod'), 'qtvirtualkeyboard')
+            self.assertEqual(parser.get('Theme', 'Current'), 'silentsddm')
+
+    def test_sddm_theme_status_reads_preset_marker_and_falls_back(self):
+        with tempfile.TemporaryDirectory() as temp:
+            themes = Path(temp)/'themes'; (themes/'windoesnot').mkdir(parents=True)
+            conf = Path(temp)/'windoesnot.conf'
+            with patch.object(m, 'SDDM_THEMES_DIR', themes), patch.object(m, 'SDDM_CONF', conf):
+                self.assertEqual(m.sddm_theme_status(), {'theme': 'windoesnot', 'preset': 'cinder'})
+                conf.write_text('[Theme]\nCurrent=windoesnot\n')
+                (themes/'windoesnot/theme.conf.user').write_text('; windoesnot-preset: fire\n[General]\n')
+                self.assertEqual(m.sddm_theme_status(), {'theme': 'windoesnot', 'preset': 'fire'})
+                conf.write_text('[Theme]\nCurrent=not-a-real-theme\n')
+                self.assertEqual(m.sddm_theme_status()['theme'], 'windoesnot')
+
+    def test_sddm_wallpaper_source_prefers_primary_monitor(self):
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp); hypr = home/'.config/hypr'; hypr.mkdir(parents=True)
+            (hypr/'lua').mkdir()
+            encoded = m.base64.b64encode(m.json.dumps({'primary_monitor': 'DP-2'}).encode()).decode()
+            (hypr/'lua/state.lua').write_text('-- state-json:' + encoded + '\nreturn {}\n')
+            (hypr/'hyprpaper.conf').write_text(
+                'wallpaper {\n    monitor = HDMI-A-1\n    path = /pics/a.jpg\n    fit_mode = cover\n}\n'
+                'wallpaper {\n    monitor = DP-2\n    path = /pics/b.jpg\n    fit_mode = cover\n}\n')
+            account = type('Account', (), {'pw_dir': str(home)})()
+            self.assertEqual(m.sddm_wallpaper_source(account), Path('/pics/b.jpg'))
+
+    def test_sddm_wallpaper_source_without_state_falls_back_to_any(self):
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp); hypr = home/'.config/hypr'; hypr.mkdir(parents=True)
+            (hypr/'hyprpaper.conf').write_text('wallpaper {\n    monitor = HDMI-A-1\n    path = /pics/a.jpg\n}\n')
+            account = type('Account', (), {'pw_dir': str(home)})()
+            self.assertEqual(m.sddm_wallpaper_source(account), Path('/pics/a.jpg'))
+
+    def test_sddm_wallpaper_source_missing_config_returns_none(self):
+        with tempfile.TemporaryDirectory() as temp:
+            account = type('Account', (), {'pw_dir': temp})()
+            self.assertIsNone(m.sddm_wallpaper_source(account))
+
+    def test_sddm_set_theme_windoesnot_writes_marked_preset(self):
+        with tempfile.TemporaryDirectory() as temp:
+            themes = Path(temp)/'themes'
+            (themes/'windoesnot/presets').mkdir(parents=True)
+            (themes/'windoesnot/presets/fire.conf').write_text('[General]\nBackground="fire.jpg"\n')
+            conf = Path(temp)/'windoesnot.conf'
+            with patch.object(m, 'SDDM_THEMES_DIR', themes), patch.object(m, 'SDDM_CONF', conf), \
+                 patch.object(m, 'shell_account') as account:
+                account.return_value.pw_uid = 1000; account.return_value.pw_gid = 1000
+                m.sddm_set_theme({'theme': 'windoesnot', 'preset': 'fire'})
+                written = (themes/'windoesnot/theme.conf.user').read_text()
+                self.assertTrue(written.startswith('; windoesnot-preset: fire\n'))
+                self.assertIn('fire.jpg', written)
+                parser = m._ini_parser(); parser.read(conf)
+                self.assertEqual(parser.get('Theme', 'Current'), 'windoesnot')
+
+    def test_sddm_set_theme_silentsddm_forces_current_jpg_background_and_symlinks(self):
+        with tempfile.TemporaryDirectory() as temp:
+            themes = Path(temp)/'themes'
+            (themes/'silentsddm/configs').mkdir(parents=True)
+            (themes/'silentsddm/configs/default.conf').write_text(
+                '[LoginScreen]\nbackground = "smoky.jpg"\nblur = 0\n[LockScreen]\nbackground = "smoky.jpg"\n')
+            cache = Path(temp)/'cache'; conf = Path(temp)/'windoesnot.conf'
+            source = Path(temp)/'wallpaper.jpg'; source.write_bytes(b'fake-jpeg')
+            with patch.object(m, 'SDDM_THEMES_DIR', themes), patch.object(m, 'SDDM_CONF', conf), \
+                 patch.object(m, 'SDDM_WALLPAPER_DIR', cache), \
+                 patch.object(m, 'shell_account') as account, \
+                 patch.object(m, 'sddm_wallpaper_source', return_value=source):
+                account.return_value.pw_uid = os.getuid(); account.return_value.pw_gid = os.getgid()
+                m.sddm_set_theme({'theme': 'silentsddm', 'preset': 'default'})
+                written = (themes/'silentsddm/theme.conf.user').read_text()
+                self.assertIn('background = "current.jpg"', written)
+                self.assertNotIn('smoky.jpg', written)
+                self.assertIn('blur = 0', written)  # untouched keys survive the merge
+                link = themes/'silentsddm/backgrounds/current.jpg'
+                self.assertTrue(link.is_symlink())
+                self.assertEqual(link.resolve(), (cache/'current.jpg').resolve())
+                self.assertEqual((cache/'current.jpg').read_bytes(), b'fake-jpeg')
+                parser = m._ini_parser(); parser.read(conf)
+                self.assertEqual(parser.get('Theme', 'Current'), 'silentsddm')
+                self.assertEqual(parser.get('General', 'InputMethod'), 'qtvirtualkeyboard')
+                self.assertIn('QML2_IMPORT_PATH', parser.get('General', 'GreeterEnvironment'))
+                # Re-running must not choke on the symlink already existing.
+                m.sddm_set_theme({'theme': 'silentsddm', 'preset': 'default'})
 
     def test_policy_has_exact_entry_points(self):
         policy=ET.parse(ROOT/'desktop/share/polkit-1/actions/org.windoesnot.system.policy')

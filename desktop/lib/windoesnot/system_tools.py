@@ -1,12 +1,16 @@
 #!/usr/bin/python3 -I
 """Fixed Polkit entry point for kernel and maintenance settings. No shell commands."""
+import base64
+import configparser
 import fcntl
+import io
 import json
 import os
 import pwd
 from pathlib import Path
 import re
 import shlex
+import shutil
 import subprocess
 import stat
 import sys
@@ -30,6 +34,13 @@ SHELLS = ('bash', 'fish', 'zsh')
 DB_LOCK = Path('/var/lib/pacman/db.lck')
 MIRRORS_MARKER = Path('/var/lib/windoesnot/mirrors-ranked')
 REFIND_CONF = Path('/boot/EFI/refind/refind.conf')
+SDDM_THEMES_DIR = Path('/usr/share/sddm/themes')
+SDDM_CONF = Path('/etc/sddm.conf.d/windoesnot.conf')
+SDDM_WALLPAPER_DIR = Path('/var/lib/windoesnot/sddm-wallpaper')
+SDDM_PRESETS = {
+    'windoesnot': ('cinder', 'cinder-still', 'fire', 'glut-dunkel'),
+    'silentsddm': ('default',),
+}
 
 
 def command(*args, allowed=(0,), timeout=60):
@@ -398,6 +409,125 @@ def maintenance_apply(action, payload):
     return {'reboot': False}
 
 
+def _ini_parser():
+    parser = configparser.ConfigParser(interpolation=None, strict=False)
+    parser.optionxform = str
+    return parser
+
+
+def sddm_theme_status():
+    """Current SDDM login-screen theme and preset, as last written by sddm-set-theme."""
+    current = 'windoesnot'
+    parser = _ini_parser()
+    if parser.read(SDDM_CONF) and parser.has_option('Theme', 'Current'):
+        current = parser.get('Theme', 'Current')
+    if current not in SDDM_PRESETS:
+        current = 'windoesnot'
+    preset = SDDM_PRESETS[current][0]
+    try:
+        first_line = (SDDM_THEMES_DIR / current / 'theme.conf.user').read_text().splitlines()[0]
+        if first_line.startswith('; windoesnot-preset:'):
+            marked = first_line.split(':', 1)[1].strip()
+            if marked in SDDM_PRESETS[current]:
+                preset = marked
+    except (OSError, IndexError):
+        pass
+    return {'theme': current, 'preset': preset}
+
+
+def sddm_wallpaper_source(account):
+    """The real user's current wallpaper: their Hyprland primary monitor's, or any one if unset."""
+    primary = None
+    try:
+        first_line = (Path(account.pw_dir) / '.config/hypr/lua/state.lua').read_text().splitlines()[0]
+        if first_line.startswith('-- state-json:'):
+            data = json.loads(base64.b64decode(first_line[len('-- state-json:'):]))
+            primary = data.get('primary_monitor')
+    except (OSError, IndexError, ValueError, TypeError):
+        pass
+    try:
+        text = (Path(account.pw_dir) / '.config/hypr/hyprpaper.conf').read_text()
+    except OSError:
+        return None
+    paths = {}
+    for block in re.findall(r'wallpaper\s*\{([^}]*)\}', text):
+        monitor = re.search(r'^\s*monitor\s*=\s*(\S+)\s*$', block, re.MULTILINE)
+        path = re.search(r'^\s*path\s*=\s*(\S+)\s*$', block, re.MULTILINE)
+        if monitor and path:
+            paths[monitor.group(1)] = path.group(1)
+    if primary and primary in paths:
+        return Path(paths[primary])
+    return Path(next(iter(paths.values()))) if paths else None
+
+
+def sddm_sync_wallpaper(account, force=False):
+    """Refresh the world-readable wallpaper cache the SilentSDDM theme mirrors as its background.
+
+    The cache directory is owned by the real user (not root) so the unprivileged
+    Settings UI can keep it in sync on every wallpaper change without re-prompting."""
+    SDDM_WALLPAPER_DIR.mkdir(parents=True, exist_ok=True, mode=0o755)
+    os.chown(SDDM_WALLPAPER_DIR, account.pw_uid, account.pw_gid)
+    target = SDDM_WALLPAPER_DIR / 'current.jpg'
+    if target.exists() and not force:
+        return
+    source = sddm_wallpaper_source(account)
+    if source and source.is_file():
+        shutil.copy2(source, target)
+        os.chown(target, account.pw_uid, account.pw_gid)
+        os.chmod(target, 0o644)
+
+
+def sddm_write_conf(current, general_extra):
+    parser = _ini_parser()
+    parser.read(SDDM_CONF)
+    for section in ('General', 'X11', 'Theme'):
+        if not parser.has_section(section):
+            parser.add_section(section)
+    parser.set('General', 'DisplayServer', 'x11')
+    for key in ('InputMethod', 'GreeterEnvironment'):
+        parser.remove_option('General', key)
+    for key, value in general_extra.items():
+        parser.set('General', key, value)
+    # Always routed through our own Xsetup, regardless of the selected theme:
+    # it also matches SDDM's X11 primary output to Hyprland's main monitor.
+    parser.set('X11', 'DisplayCommand', '/usr/share/sddm/themes/windoesnot/Xsetup')
+    parser.set('Theme', 'Current', current)
+    buffer = io.StringIO()
+    parser.write(buffer)
+    atomic_write(SDDM_CONF, buffer.getvalue())
+
+
+def sddm_set_theme(payload):
+    theme = payload['theme']
+    account = shell_account()
+    if theme == 'windoesnot':
+        preset = payload['preset']
+        base = (SDDM_THEMES_DIR / 'windoesnot/presets' / (preset + '.conf')).read_text()
+        atomic_write(SDDM_THEMES_DIR / 'windoesnot/theme.conf.user', f'; windoesnot-preset: {preset}\n' + base)
+        sddm_write_conf('windoesnot', {})
+    elif theme == 'silentsddm':
+        merged = _ini_parser()
+        merged.read_string((SDDM_THEMES_DIR / 'silentsddm/configs/default.conf').read_text())
+        for section in ('LoginScreen', 'LockScreen'):
+            if not merged.has_section(section):
+                merged.add_section(section)
+            merged.set(section, 'background', '"current.jpg"')
+        buffer = io.StringIO()
+        merged.write(buffer)
+        atomic_write(SDDM_THEMES_DIR / 'silentsddm/theme.conf.user', '; windoesnot-preset: default\n' + buffer.getvalue())
+        sddm_sync_wallpaper(account, force=True)
+        link = SDDM_THEMES_DIR / 'silentsddm/backgrounds/current.jpg'
+        if not link.is_symlink():
+            link.parent.mkdir(parents=True, exist_ok=True)
+            link.symlink_to(SDDM_WALLPAPER_DIR / 'current.jpg')
+        sddm_write_conf('silentsddm', {
+            'InputMethod': 'qtvirtualkeyboard',
+            'GreeterEnvironment': ('QML2_IMPORT_PATH=/usr/share/sddm/themes/silentsddm/components/,'
+                                    'QT_IM_MODULE=qtvirtualkeyboard'),
+        })
+    return {'reboot': False}
+
+
 def shell_account():
     uid = int(os.environ.get('PKEXEC_UID', os.getuid()))
     if uid < 1000 or uid == 65534:
@@ -424,10 +554,16 @@ def set_shell(name):
 def validate(action, payload):
     if type(payload) is not dict:
         raise ValueError('Arguments must be an object')
-    if action in ('kernel-status', 'maintenance-status', 'shell-status', 'power-status', 'scx-install', 'scx-stop',
-                  'mirrors-rank', 'cache-clean', 'keyring-repair', 'lock-remove', 'drivers-configure'):
+    if action in ('kernel-status', 'maintenance-status', 'shell-status', 'power-status', 'sddm-theme-status',
+                  'scx-install', 'scx-stop', 'mirrors-rank', 'cache-clean', 'keyring-repair', 'lock-remove',
+                  'drivers-configure'):
         if payload:
             raise ValueError('This action takes no arguments')
+    elif action == 'sddm-set-theme':
+        theme = payload.get('theme')
+        if (set(payload) != {'theme', 'preset'} or theme not in SDDM_PRESETS
+                or payload.get('preset') not in SDDM_PRESETS[theme]):
+            raise ValueError('Unsupported SDDM theme')
     elif action == 'shell-set':
         if set(payload) != {'shell'} or payload['shell'] not in SHELLS:
             raise ValueError('Unsupported shell')
@@ -604,6 +740,8 @@ def set_scx(payload):
 def apply(action, payload):
     if action == 'shell-set':
         return set_shell(payload['shell'])
+    if action == 'sddm-set-theme':
+        return sddm_set_theme(payload)
     if action in ('mirrors-rank', 'cache-clean', 'keyring-repair', 'lock-remove', 'orphans-remove', 'drivers-configure'):
         return maintenance_apply(action, payload)
     if action in ('kernel-install', 'kernel-remove'):
@@ -636,9 +774,10 @@ def main():
     action = sys.argv[1]
     payload = json.loads(sys.argv[2]) if len(sys.argv) == 3 else {}
     validate(action, payload)
-    if action in ('kernel-status', 'maintenance-status', 'shell-status', 'power-status'):
+    if action in ('kernel-status', 'maintenance-status', 'shell-status', 'power-status', 'sddm-theme-status'):
         print(json.dumps({'kernel-status': kernel_status, 'maintenance-status': maintenance_status,
-                          'shell-status': shell_status, 'power-status': power_status}[action]())); return
+                          'shell-status': shell_status, 'power-status': power_status,
+                          'sddm-theme-status': sddm_theme_status}[action]())); return
     if os.geteuid() != 0:
         raise PermissionError('Use the authorized pkexec entry point')
     if Path('/etc/windoesnot-image-build').exists():

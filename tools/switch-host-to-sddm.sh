@@ -34,8 +34,9 @@ for stray in /usr/lib/systemd/system/sddm.service; do
     fi
 done
 
-pacman -S --needed --noconfirm sddm qt6-multimedia-ffmpeg
+pacman -S --needed --noconfirm sddm qt6-multimedia-ffmpeg qt6-virtualkeyboard qt6-imageformats xorg-xrandr
 [[ -d /usr/share/sddm/themes/windoesnot ]] && cp -a /usr/share/sddm/themes/windoesnot "$backup/theme"
+[[ -d /usr/share/sddm/themes/silentsddm ]] && cp -a /usr/share/sddm/themes/silentsddm "$backup/silentsddm-theme"
 [[ -f /etc/sddm.conf.d/windoesnot.conf ]] && cp -a /etc/sddm.conf.d/windoesnot.conf "$backup/"
 
 # Theme and the font the greeter needs.
@@ -49,6 +50,21 @@ mv /usr/share/sddm/themes/windoesnot.new /usr/share/sddm/themes/windoesnot
 install -d /usr/share/fonts/windoesnot
 install -m644 "$theme"/fonts/*.ttf /usr/share/fonts/windoesnot/
 fc-cache -f /usr/share/fonts/windoesnot >/dev/null
+
+# Optional second theme, selectable in Settings > Background > Anmeldebildschirm.
+silent_theme=$src/desktop/share/sddm/themes/silentsddm
+if [[ -d $silent_theme ]]; then
+    rm -rf /usr/share/sddm/themes/silentsddm.new
+    cp -a "$silent_theme" /usr/share/sddm/themes/silentsddm.new
+    chown -R root:root /usr/share/sddm/themes/silentsddm.new
+    chmod -R u=rwX,go=rX /usr/share/sddm/themes/silentsddm.new
+    rm -rf /usr/share/sddm/themes/silentsddm
+    mv /usr/share/sddm/themes/silentsddm.new /usr/share/sddm/themes/silentsddm
+    install -d /usr/share/fonts/windoesnot-silentsddm
+    find "$silent_theme/fonts" -maxdepth 2 -type f \( -iname '*.otf' -o -iname '*.ttf' \) \
+        -exec install -m644 -t /usr/share/fonts/windoesnot-silentsddm {} +
+    fc-cache -f /usr/share/fonts/windoesnot-silentsddm >/dev/null
+fi
 
 # Same greeter setup as the ISO: X11 greeter, keyboard layout applied by Xsetup.
 install -d /etc/sddm.conf.d
