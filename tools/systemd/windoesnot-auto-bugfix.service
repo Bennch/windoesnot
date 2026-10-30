@@ -1,0 +1,9 @@
+[Unit]
+Description=WinDoesNot: hand new GitHub bug reports to Codex
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/Projekte/WinDoesNot
+ExecStart=%h/Projekte/WinDoesNot/tools/auto-bugfix-watch.sh
