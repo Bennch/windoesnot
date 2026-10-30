@@ -119,11 +119,7 @@ Item {
         Note { text: page.tr("kernel.intro") }
         Note { visible: page.state.live === true; text: page.tr("systemTools.live") }
         Note { visible: !page.ready; text: page.busy ? page.tr("systemTools.loading") : page.tr("systemTools.unavailable") }
-        Row {
-            spacing: 12
-            ActionButton { text: page.tr("systemTools.refresh"); enabled: !page.busy; onClicked: page.runAction("kernel-status", {}) }
-            BusyIndicator { width: 32; height: 32; running: page.busy; visible: running; palette.highlight: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
-        }
+        BusyIndicator { width: 32; height: 32; running: page.busy; visible: running; palette.highlight: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
         Note { visible: page.resultText.length > 0; text: page.resultText; color: page.foreground }
         Note { visible: page.ready && page.state.catalogAvailable === false; text: page.tr("kernel.catalogMissing") }
         Tools.SystemToolsButton {

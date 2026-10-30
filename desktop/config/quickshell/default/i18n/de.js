@@ -33,6 +33,7 @@ var strings = {
     "nav.power": "Akku & Energie",
     "header.power": "Akku & Energie",
     "power.intro": "Akkustand und Energieprofil dieses Systems.",
+    "power.trayToggle": "In der Taskleiste anzeigen",
     "power.battery": "Akku",
     "power.noBattery": "Kein Akku erkannt. Das Energieprofil gilt trotzdem für dieses System.",
     "power.stateCharging": "Lädt",

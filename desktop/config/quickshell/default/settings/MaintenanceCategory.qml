@@ -96,11 +96,7 @@ Item {
         Note { text: page.tr("maintenance.intro") }
         Note { visible: page.state.live === true; text: page.tr("systemTools.live") }
         Note { visible: !page.ready; text: page.busy ? page.tr("systemTools.loading") : page.tr("systemTools.unavailable") }
-        Row {
-            spacing: 12
-            ActionButton { text: page.tr("systemTools.refresh"); enabled: !page.busy; onClicked: page.runAction("maintenance-status", {}) }
-            BusyIndicator { width: 32; height: 32; running: page.busy; visible: running; palette.highlight: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
-        }
+        BusyIndicator { width: 32; height: 32; running: page.busy; visible: running; palette.highlight: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
         Rectangle {
             visible: page.resultText.length > 0 || page.rebootNeeded
             width: parent.width; height: resultColumn.implicitHeight + 32
