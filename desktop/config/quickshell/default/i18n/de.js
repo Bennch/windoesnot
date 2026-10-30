@@ -566,7 +566,6 @@ var strings = {
     "apps.commandHint": "z.B. my-custom-app --flag",
     "apps.save": "Speichern",
     "apps.delete": "Löschen",
-    "apps.systemApps": "Wichtige System-Apps",
 
     // === Backups Category ===
     "backups.ready": "Bereit",
