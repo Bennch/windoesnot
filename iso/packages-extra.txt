@@ -92,3 +92,31 @@ usbutils
 chwd
 
 bluez-obex
+
+# windoesnot-audio (easyeffects fork) build + runtime deps
+intltool
+mold
+ladspa
+kcolorscheme
+kirigami
+kirigami-addons
+kiconthemes
+kconfigwidgets
+qqc2-desktop-style
+breeze-icons
+qt6-base
+qt6-graphs
+pipewire-pulse
+lilv
+libsndfile
+zita-convolver
+libebur128
+rnnoise
+soundtouch
+libbs2b
+nlohmann-json
+tbb
+speexdsp
+gsl
+webrtc-audio-processing
+libmysofa

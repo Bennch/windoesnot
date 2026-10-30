@@ -86,6 +86,34 @@ def stage_store(pin, target, package='windoesnot-store'):
         write(target / 'windoesnot-store.install', show('windoesnot-store.install'))
     return {'version': version, 'commit': commit, 'archive_sha256': digests[0], 'vendor_sha256': digests[1]}
 
+def stage_audio(pin, target, package='windoesnot-audio'):
+    """Stage the CMake/Qt audio app from its exact pinned commit.
+
+    Unlike stage_store(), there is no cargo-vendor offline step: all
+    dependencies are system Qt6/KDE packages already in PKGBUILD's
+    depends/makedepends, resolved by pacman during the chroot build, not
+    bundled source crates.
+    """
+    repo = ROOT / pin.get('path', 'audio')
+    commit = pin['commit']
+    def show(name):
+        return subprocess.check_output(['git', '-C', str(repo), 'show', f'{commit}:{name}'], text=True)
+    if subprocess.run(['git', '-C', str(repo), 'cat-file', '-e', f'{commit}^{{commit}}']).returncode:
+        raise SystemExit(f'Audio pin not found in {repo}: {commit}')
+    version = re.search(r'^project\(\w+ VERSION ([\d.]+)', show('CMakeLists.txt'), re.M).group(1)
+    pkgbuild = show('PKGBUILD')
+    if f'pkgver={version}' not in pkgbuild:
+        raise SystemExit(f'Audio PKGBUILD does not match CMakeLists.txt version {version}')
+    target.mkdir(parents=True)
+    archive = target / f'{package}-{version}.tar.gz'
+    subprocess.run(['git', '-C', str(repo), 'archive', '--format=tar.gz', f'--prefix={package}-{version}/',
+                    '-o', str(archive), commit], check=True)
+    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+    pkgbuild = re.sub(r'^source=.*$', f'source=("{archive.name}")', pkgbuild, count=1, flags=re.M)
+    pkgbuild = re.sub(r'^sha256sums=.*$', f"sha256sums=('{digest}')", pkgbuild, count=1, flags=re.M)
+    write(target / 'PKGBUILD', pkgbuild)
+    return {'version': version, 'commit': commit, 'archive_sha256': digest}
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--sources-root', type=Path, default=ROOT / 'upstream')
@@ -126,6 +154,7 @@ def main():
     _device_module.stage(pins['windoesnot-device-manager'], payload / 'device-manager-build')
     for app in ('windoesnot-bluetooth', 'windoesnot-network'):
         stage_store(pins[app], payload / (app + '-build'), app)
+    stage_audio(pins['windoesnot-audio'], payload / 'windoesnot-audio-build')
     shutil.copytree(args.sources_root/'cachyos-calamares',payload/'vendor/calamares',ignore=shutil.ignore_patterns('.git','__pycache__','build'))
     # Keep the upstream checkout untouched; add our modules only to the generated build copy.
     shutil.copytree(ROOT / 'iso/modules', payload / 'vendor/calamares/src/modules', dirs_exist_ok=True)
