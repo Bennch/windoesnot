@@ -6,7 +6,9 @@ import "../i18n/Lang.js" as Lang
 
 Item {
     id: root
-    anchors.fill: parent
+    width: parent.width
+    implicitHeight: backgroundContent.implicitHeight
+    height: implicitHeight
 
     property string accentColor: "#FE6F2D"
     property int selectedMonitorIndex: -1
@@ -541,7 +543,8 @@ Item {
 
     // Main UI
     Column {
-        anchors.fill: parent
+        id: backgroundContent
+        width: parent.width
         spacing: 20
 
         // Monitor Visualization Area
@@ -1170,6 +1173,7 @@ Item {
                             enabled: !sddmThemeSection.busy
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
+                                // Live ISO: system_tools rejects SDDM writes; installed sessions can apply presets.
                                 sddmThemeSection.busy = true
                                 sddmThemeSection.resultText = ""
                                 sddmThemeApplyProc.command = ["/usr/bin/pkexec", "--disable-internal-agent",
