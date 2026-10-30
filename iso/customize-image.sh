@@ -49,9 +49,6 @@ sed -i 's/--gtk-single-instance=true/--gtk-single-instance=false/' /usr/share/ap
 # menu, the power menu's hardcoded "ghostty" fallback) goes through the
 # virtio check, not just one call site. See iso/ghostty-wrapper.sh.
 install -Dm755 "$project/iso/ghostty-wrapper.sh" /usr/local/bin/ghostty
-# Install application launcher desktop files for images, PDFs, and text editors
-install -Dm644 "$project/desktop/share/applications/eog.desktop" /usr/share/applications/eog.desktop
-install -Dm644 "$project/desktop/share/applications/evince.desktop" /usr/share/applications/evince.desktop
 # Version-matched signed optional apps; no online access needed during installation.
 python3 "$project/iso/software/prepare.py"
 # Bootstrap both skel and the live account using the exact shared code/defaults.

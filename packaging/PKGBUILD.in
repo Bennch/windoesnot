@@ -46,6 +46,8 @@ package_windoesnot-desktop() {
     install -Dm644 desktop/share/wayland-sessions/windoesnot.desktop "$pkgdir/usr/share/wayland-sessions/windoesnot.desktop"
     install -Dm644 desktop/share/wayland-sessions/windoesnot.desktop "$pkgdir/usr/share/windoesnot/wayland-sessions/windoesnot.desktop"
     install -Dm644 desktop/share/applications/windoesnot-settings.desktop "$pkgdir/usr/share/applications/windoesnot-settings.desktop"
+    install -Dm644 desktop/share/applications/eog.desktop "$pkgdir/usr/share/applications/eog.desktop"
+    install -Dm644 desktop/share/applications/evince.desktop "$pkgdir/usr/share/applications/evince.desktop"
     install -d "$pkgdir/usr/share/icons/Win11"
     cp -a desktop/config/quickshell/default/img/Win11-dark/. "$pkgdir/usr/share/icons/Win11/"
     install -d "$pkgdir/usr/share/backgrounds/windoesnot"
