@@ -1,12 +1,26 @@
 import "../widgets"
 import QtQuick
 import QtQuick.Controls
+import Quickshell.Io
 import "../i18n/Lang.js" as Lang
 
 Column {
     property var settingsMenu: null
     property string _lang: settingsMenu ? settingsMenu.uiLanguage : "de"
     property color accent: settingsMenu ? settingsMenu.accentColor : "#0078d4"
+    // Installed WinDoesNot version; empty when running from files (development)
+    property string installedVersion: ""
+
+    Process {
+        command: ["pacman", "-Q", "windoesnot-desktop"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var parts = text.trim().split(" ")
+                if (parts.length > 1) installedVersion = parts[1]
+            }
+        }
+    }
 
     width: parent.width
     spacing: 22
@@ -185,7 +199,7 @@ Column {
         }
 
         Text {
-            text: Lang.get("about.version", _lang)
+            text: installedVersion !== "" ? Lang.get("about.version", _lang).replace("{}", installedVersion) : Lang.get("about.versionDev", _lang)
             font.pixelSize: 12
             color: settingsMenu.darkMode ? "#666666" : "#999999"
         }
