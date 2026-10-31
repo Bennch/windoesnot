@@ -143,6 +143,8 @@ Item {
                 userSelector.visible = false;
                 noUsersLoginArea.visible = true;
             }
+
+            loginScreen.resetFocus();
         }
 
         Item {
@@ -329,6 +331,7 @@ Item {
                     isPassword: true
                     inputMethodHints: loginScreen.computedInputMethodHintsOnly
                     splitBorderRadius: true
+                    autoFocus: true
                     onAccepted: {
                         loginScreen.login();
                     }

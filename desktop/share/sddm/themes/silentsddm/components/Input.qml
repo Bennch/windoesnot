@@ -17,6 +17,7 @@ Item {
     property string icon: ""
     property bool enabled: true
     property int inputMethodHints: Qt.ImhNone
+    property bool autoFocus: false
 
     width: Config.passwordInputWidth * Config.automaticScale(Screen.devicePixelRatio)
     height: Config.passwordInputHeight * Config.automaticScale(Screen.devicePixelRatio)
@@ -30,6 +31,7 @@ Item {
         echoMode: input.isPassword ? TextInput.Password : TextInput.Normal
         passwordCharacter: Config.passwordInputMaskedCharacter
         activeFocusOnTab: true
+        focus: input.autoFocus
         selectByMouse: true
         verticalAlignment: TextField.AlignVCenter
         font.family: Config.passwordInputFontFamily
