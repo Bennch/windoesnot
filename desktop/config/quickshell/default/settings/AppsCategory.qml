@@ -1290,7 +1290,7 @@ Column {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "Standard"
+                                        text: Lang.get("apps.default", _lang)
                                         font.pixelSize: 12
                                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                                     }

@@ -36,8 +36,8 @@ args = parser.parse_args()
 known = set(re.findall(r'^\s*"([^"]+)"\s*:', (QS / 'i18n/de.js').read_text(), re.M))
 # Status and result messages are not settings; leave them out of the search.
 noise = re.compile(r'(Saved|Error|Failed|Loading|Done|Working|Busy|Result|Toast|Progress|Confirm|Unavailable|Unknown)$|^(state|systemTools\.)', re.I)
-key_re = re.compile(r'["\']([A-Za-z][A-Za-z0-9]*\.[A-Za-z0-9_]+)["\']')
-lit_re = re.compile(r'\b(?:text|title|label|description|placeholderText)\s*:\s*"([^"\\]{3,120})"')
+key_re = re.compile(r'["\']([A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z0-9_]+)+)["\']')
+lit_re = re.compile(r'\b(?:text|title|label|description)\s*:\s*"([^"\\]{3,120})"')
 entries = []
 for page, files in PAGES.items():
     keys, texts = [], []

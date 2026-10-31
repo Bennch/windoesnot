@@ -115,6 +115,7 @@ var PAGES = [
    "appearance.fontDocument",
    "appearance.fontMonospace",
    "appearance.fontScaling",
+   "appearance.textSizeRange",
    "appearance.hinting",
    "appearance.hintingNone",
    "appearance.hintingSlight",
@@ -136,8 +137,7 @@ var PAGES = [
    "Close (X)",
    "Maximize (□)",
    "Minimize (—)",
-   "Close Text",
-   "0.5 (klein) bis 2.0 (groß)"
+   "Close Text"
   ],
   "extra": {}
  },
@@ -158,29 +158,28 @@ var PAGES = [
    "alignment.storeButtonDesc",
    "alignment.settingsButton",
    "alignment.settingsButtonDesc",
-   "appearance.right"
+   "alignment.weather",
+   "alignment.weatherEnable",
+   "alignment.weatherEnableDesc",
+   "alignment.weatherPlacement",
+   "alignment.placementTray",
+   "alignment.placementTaskbar",
+   "alignment.weatherLocation",
+   "alignment.weatherLocationHint",
+   "alignment.startSidebar",
+   "alignment.sidebarPosition",
+   "appearance.right",
+   "alignment.visibleLinks",
+   "alignment.link.allApps",
+   "alignment.link.personalized",
+   "alignment.link.desktop",
+   "alignment.link.documents",
+   "alignment.link.downloads",
+   "alignment.link.pictures",
+   "alignment.link.music",
+   "alignment.link.videos"
   ],
-  "texts": [
-   "Wetter",
-   "Wetter-Widget aktivieren",
-   "Zeigt das aktuelle Wetter an",
-   "Anzeige-Position",
-   "Systembereich",
-   "Taskleiste",
-   "Standort",
-   "Stadt oder PLZ eingeben…",
-   "Startmenü Sidebar",
-   "Position",
-   "Sichtbare Links",
-   "Alle Apps",
-   "Personalisiert",
-   "Desktop",
-   "Dokumente",
-   "Downloads",
-   "Bilder",
-   "Musik",
-   "Videos"
-  ],
+  "texts": [],
   "extra": {}
  },
  {
@@ -278,12 +277,12 @@ var PAGES = [
    "apps.command",
    "apps.save",
    "apps.delete",
+   "apps.default",
    "apps.shellTitle",
    "apps.shellHint"
   ],
   "texts": [
-   "z.B. my-custom-app --flag",
-   "Standard"
+   "z.B. my-custom-app --flag"
   ],
   "extra": {
    "apps.shellTitle": "bash fish zsh terminal"

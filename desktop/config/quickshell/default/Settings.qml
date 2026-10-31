@@ -74,9 +74,60 @@ FloatingWindow {
     // Full-text settings search (sidebar): results come from settings/Search.js.
     property string settingsQuery: ""
     property var settingsResults: SettingsSearch.search(settingsQuery, uiLanguage, 30)
+    property string searchTargetText: ""
+    property int searchTargetTries: 0
     function openSearchResult(result) {
         currentCategory = result.page
         settingsQuery = ""
+        searchTargetText = result.isCategory ? "" : result.text
+        searchTargetTries = 0
+        if (searchTargetText !== "") searchLocateTimer.restart()
+    }
+    function currentPageItem() {
+        var loaders = { desktop: desktopLoader, monitors: monitorsLoader, background: backgroundSettingsLoader,
+                        appearance: appearanceLoader, alignment: alignmentLoader, input: inputLoader,
+                        power: powerLoader, apps: appsLoader, maintenance: maintenanceLoader,
+                        backups: backupsLoader, updates: updatesLoader, about: aboutLoader, help: helpLoader }
+        var loader = loaders[currentCategory]
+        return loader ? loader.item : null
+    }
+    // First visible item of the loaded page that shows exactly this text.
+    function findTextItem(root, text) {
+        var stack = [root]
+        while (stack.length > 0) {
+            var node = stack.pop()
+            if (node.visible === false) continue
+            if (typeof node.text === "string" && node.text === text && node.width > 0) return node
+            var kids = node.children
+            if (kids) for (var i = kids.length - 1; i >= 0; i--) stack.push(kids[i])
+        }
+        return null
+    }
+    // Scroll to the setting a search result names and flash its row.
+    function locateSearchTarget() {
+        var page = currentPageItem()
+        var item = page ? findTextItem(page, searchTargetText) : null
+        if (!item) return false
+        var row = item
+        while (row.parent && row.parent !== page && row.parent.height <= 140 && row.parent.width >= row.width)
+            row = row.parent
+        var spot = row.mapToItem(settingsFlickable.contentItem, 0, 0)
+        var maxY = Math.max(0, settingsFlickable.contentHeight - settingsFlickable.height)
+        settingsFlickable.contentY = Math.max(0, Math.min(maxY, spot.y - 60))
+        searchHighlight.x = spot.x - 8
+        searchHighlight.y = spot.y - 6
+        searchHighlight.width = row.width + 16
+        searchHighlight.height = row.height + 12
+        searchHighlightAnimation.restart()
+        return true
+    }
+    Timer {
+        id: searchLocateTimer
+        interval: 120
+        repeat: true
+        onTriggered: {
+            if (settingsMenu.locateSearchTarget() || ++settingsMenu.searchTargetTries > 20) stop()
+        }
     }
 
     // Scrollposition zurücksetzen beim Kategorie-Wechsel
@@ -1386,9 +1437,11 @@ FloatingWindow {
             "  border: 1px solid " + accent + ";\\n" +
             "  background-color: alpha(" + accent + ", 0.2);\\n" +
             "  border-radius: " + borderRadius + "px;\\n" +
-            "}\\n" +
-            // Nautilus pins a grey accent on its views and only draws a thin
-            // selection outline; give selected items the desktop icon look.
+            "}\\n"
+        // GTK4 only: GTK3 cannot parse custom properties and warns about them.
+        // Nautilus pins a grey accent on its views and only draws a thin
+        // selection outline; give selected items the desktop icon look.
+        var gtk4Css = css +
             ".nautilus-grid-view gridview,\\n" +
             ".nautilus-list-view listview,\\n" +
             ".nautilus-list-view columnview,\\n" +
@@ -1409,7 +1462,7 @@ FloatingWindow {
 
         var proc = Qt.createQmlObject(
             'import Quickshell.Io; Process { ' +
-            'command: ["bash", "-c", "mkdir -p ~/.config/gtk-4.0 ~/.config/gtk-3.0 && printf \'%b\' \'' + css.replace(/'/g, "'\\''") + '\' > ~/.config/gtk-4.0/gtk.css && cp ~/.config/gtk-4.0/gtk.css ~/.config/gtk-3.0/gtk.css; nautilus -q 2>/dev/null; true"]; ' +
+            'command: ["bash", "-c", "mkdir -p ~/.config/gtk-4.0 ~/.config/gtk-3.0 && printf \'%b\' \'' + css.replace(/'/g, "'\\''") + '\' > ~/.config/gtk-3.0/gtk.css && printf \'%b\' \'' + gtk4Css.replace(/'/g, "'\\''") + '\' > ~/.config/gtk-4.0/gtk.css; nautilus -q 2>/dev/null; true"]; ' +
             'running: true; }',
             settingsMenu
         )
@@ -2431,6 +2484,24 @@ FloatingWindow {
                             contentHeight: getCurrentCategoryHeight()
                             clip: true
                             boundsBehavior: Flickable.StopAtBounds
+
+                            // Flashes around the setting a search result points to
+                            Rectangle {
+                                id: searchHighlight
+                                z: 100
+                                visible: opacity > 0
+                                opacity: 0
+                                radius: 8
+                                color: Qt.rgba(1, 1, 1, 0.04)
+                                border.width: 2
+                                border.color: settingsMenu.accentColor
+                                SequentialAnimation {
+                                    id: searchHighlightAnimation
+                                    PropertyAction { target: searchHighlight; property: "opacity"; value: 1 }
+                                    PauseAnimation { duration: 1600 }
+                                    NumberAnimation { target: searchHighlight; property: "opacity"; to: 0; duration: 700 }
+                                }
+                            }
 
                             function getCurrentCategoryHeight() {
                                 // Dynamische Höhe basierend auf tatsächlichem Inhalt + padding

@@ -10,23 +10,31 @@ function fold(text) {
         .normalize("NFD").replace(/[̀-ͯ]/g, "")
 }
 
+// Texts of one setting in every language, so a query in any language finds it.
+function allLanguages(key, extra) {
+    var languages = Lang.getAvailableLanguages(), all = []
+    for (var i = 0; i < languages.length; i++) all.push(Lang.get(key, languages[i].code))
+    return fold(all.join(" ") + " " + (extra || ""))
+}
+
 function entriesFor(lang) {
     if (cache[lang]) return cache[lang]
     var list = [], seen = {}
-    function add(page, text, isTitle, extra) {
+    function add(page, text, isTitle, extra, key) {
         if (!text || text.length > 400) return
         var id = page + "|" + text
         if (seen[id]) return
         seen[id] = true
         var pageLabel = Lang.get("nav." + page, lang)
         list.push({ page: page, pageLabel: pageLabel, text: text,
-                    hay: fold(text) + " " + fold(pageLabel) + " " + fold(extra), words: fold(text).split(/[^a-z0-9]+/),
+                    hay: (key ? allLanguages(key, extra) : fold(text) + " " + fold(extra)) + " " + allLanguages("nav." + page),
+                    isCategory: key === "nav." + page, words: fold(text).split(/[^a-z0-9]+/),
                     title: isTitle || text.length <= 48 })
     }
     for (var i = 0; i < Index.PAGES.length; i++) {
         var page = Index.PAGES[i]
-        add(page.page, Lang.get("nav." + page.page, lang), true)
-        for (var k = 0; k < page.keys.length; k++) add(page.page, Lang.get(page.keys[k], lang), false, page.extra[page.keys[k]])
+        add(page.page, Lang.get("nav." + page.page, lang), true, "", "nav." + page.page)
+        for (var k = 0; k < page.keys.length; k++) add(page.page, Lang.get(page.keys[k], lang), false, page.extra[page.keys[k]], page.keys[k])
         for (var t = 0; t < page.texts.length; t++) add(page.page, page.texts[t], false)
     }
     cache[lang] = list
@@ -53,6 +61,6 @@ function search(query, lang, limit) {
     }
     hits.sort(function (a, b) { return b.score - a.score })
     return hits.slice(0, limit || 30).map(function (h) {
-        return { page: h.entry.page, pageLabel: h.entry.pageLabel, text: h.entry.text }
+        return { page: h.entry.page, pageLabel: h.entry.pageLabel, text: h.entry.text, isCategory: h.entry.isCategory }
     })
 }

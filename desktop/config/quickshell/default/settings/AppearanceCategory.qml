@@ -2029,7 +2029,7 @@ Column {
                 }
             }
             Text {
-                text: "0.5 (klein) bis 2.0 (groß)"
+                text: Lang.get("appearance.textSizeRange", _lang)
                 font.pixelSize: 11
                 color: settingsMenu.darkMode ? "#666" : "#888"
             }
