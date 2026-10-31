@@ -215,6 +215,146 @@ Column {
         color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
     }
 
+    // Border Radius Slider
+    Column {
+        width: parent.width
+        spacing: 10
+
+        Text {
+            text: Lang.get("alignment.borderRadius", _lang)
+            font.pixelSize: 18
+            font.bold: true
+            color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
+        }
+
+        Row {
+            width: parent.width
+            spacing: 12
+
+            Slider {
+                id: borderRadiusSlider
+                width: parent.width - 60
+                from: 0
+                to: 30
+                stepSize: 1
+                value: settingsMenu ? settingsMenu.borderRadius : 0
+
+                background: Rectangle {
+                    x: borderRadiusSlider.leftPadding
+                    y: borderRadiusSlider.topPadding + borderRadiusSlider.availableHeight / 2 - height / 2
+                    implicitWidth: 200
+                    implicitHeight: 4
+                    width: borderRadiusSlider.availableWidth
+                    height: implicitHeight
+                    radius: 2
+                    color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
+
+                    Rectangle {
+                        width: borderRadiusSlider.visualPosition * parent.width
+                        height: parent.height
+                        color: settingsMenu ? settingsMenu.accentColor : "#FE6F2D"
+                        radius: 2
+                    }
+                }
+
+                handle: Rectangle {
+                    x: borderRadiusSlider.leftPadding + borderRadiusSlider.visualPosition * (borderRadiusSlider.availableWidth - width)
+                    y: borderRadiusSlider.topPadding + borderRadiusSlider.availableHeight / 2 - height / 2
+                    implicitWidth: 20
+                    implicitHeight: 20
+                    radius: 10
+                    color: borderRadiusSlider.pressed ? Qt.darker(settingsMenu ? settingsMenu.accentColor : "#FE6F2D", 1.2) : (settingsMenu ? settingsMenu.accentColor : "#FE6F2D")
+                    border.color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
+                    border.width: 2
+                    Behavior on color { ColorAnimation { duration: 100 } }
+                }
+
+                onMoved: {
+                    if (settingsMenu) settingsMenu.borderRadius = value
+                }
+            }
+
+            Text {
+                text: (settingsMenu ? settingsMenu.borderRadius : 0) + "px"
+                font.pixelSize: 14
+                color: settingsMenu.darkMode ? "#aaa" : "#555"
+                width: 48
+                horizontalAlignment: Text.AlignRight
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
+    }
+
+    // Window Gaps Slider
+    Column {
+        width: parent.width
+        spacing: 10
+
+        Text {
+            text: Lang.get("alignment.windowGaps", _lang)
+            font.pixelSize: 18
+            font.bold: true
+            color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
+        }
+
+        Row {
+            width: parent.width
+            spacing: 12
+
+            Slider {
+                id: windowGapsSlider
+                width: parent.width - 60
+                from: 0
+                to: 20
+                stepSize: 1
+                value: settingsMenu ? settingsMenu.windowGaps : 0
+
+                background: Rectangle {
+                    x: windowGapsSlider.leftPadding
+                    y: windowGapsSlider.topPadding + windowGapsSlider.availableHeight / 2 - height / 2
+                    implicitWidth: 200
+                    implicitHeight: 4
+                    width: windowGapsSlider.availableWidth
+                    height: implicitHeight
+                    radius: 2
+                    color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
+
+                    Rectangle {
+                        width: windowGapsSlider.visualPosition * parent.width
+                        height: parent.height
+                        color: settingsMenu ? settingsMenu.accentColor : "#FE6F2D"
+                        radius: 2
+                    }
+                }
+
+                handle: Rectangle {
+                    x: windowGapsSlider.leftPadding + windowGapsSlider.visualPosition * (windowGapsSlider.availableWidth - width)
+                    y: windowGapsSlider.topPadding + windowGapsSlider.availableHeight / 2 - height / 2
+                    implicitWidth: 20
+                    implicitHeight: 20
+                    radius: 10
+                    color: windowGapsSlider.pressed ? Qt.darker(settingsMenu ? settingsMenu.accentColor : "#FE6F2D", 1.2) : (settingsMenu ? settingsMenu.accentColor : "#FE6F2D")
+                    border.color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
+                    border.width: 2
+                    Behavior on color { ColorAnimation { duration: 100 } }
+                }
+
+                onMoved: {
+                    if (settingsMenu) settingsMenu.windowGaps = value
+                }
+            }
+
+            Text {
+                text: (settingsMenu ? settingsMenu.windowGaps : 0) + "px"
+                font.pixelSize: 14
+                color: settingsMenu.darkMode ? "#aaa" : "#555"
+                width: 48
+                horizontalAlignment: Text.AlignRight
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
+    }
+
     // GTK Theme
     Column {
         width: parent.width
