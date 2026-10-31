@@ -1,0 +1,7 @@
+@define-color accent_color #FE6F2D;
+@define-color accent_bg_color #FE6F2D;
+rubberband {
+  border: 1px solid #FE6F2D;
+  background-color: alpha(#FE6F2D, 0.2);
+  border-radius: 6px;
+}
