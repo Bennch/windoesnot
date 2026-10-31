@@ -1377,13 +1377,30 @@ FloatingWindow {
             "  border: 1px solid " + accent + ";\\n" +
             "  background-color: alpha(" + accent + ", 0.2);\\n" +
             "  border-radius: " + borderRadius + "px;\\n" +
+            "}\\n" +
+            // Nautilus pins a grey accent on its views and only draws a thin
+            // selection outline; give selected items the desktop icon look.
+            ".nautilus-grid-view gridview,\\n" +
+            ".nautilus-list-view listview,\\n" +
+            ".nautilus-list-view columnview,\\n" +
+            ".nautilus-network-view listview {\\n" +
+            "  --accent-bg-color: " + accent + ";\\n" +
+            "  --accent-color: " + accent + ";\\n" +
+            "}\\n" +
+            ".nautilus-grid-view gridview > child:selected,\\n" +
+            ".nautilus-list-view columnview > listview > row:selected,\\n" +
+            ".nautilus-network-view listview > row:selected {\\n" +
+            "  background-color: alpha(" + accent + ", 0.22);\\n" +
+            "  box-shadow: inset 0 0 0 2px " + accent + ";\\n" +
             "}\\n"
 
+        // GTK only reads gtk.css when a process starts, so a running Nautilus
+        // keeps the old accent until it is restarted (done in the command below).
         console.log("Updating GTK accent CSS:", accent, "radius=" + borderRadius)
 
         var proc = Qt.createQmlObject(
             'import Quickshell.Io; Process { ' +
-            'command: ["bash", "-c", "mkdir -p ~/.config/gtk-4.0 ~/.config/gtk-3.0 && printf \'%b\' \'' + css.replace(/'/g, "'\\''") + '\' > ~/.config/gtk-4.0/gtk.css && cp ~/.config/gtk-4.0/gtk.css ~/.config/gtk-3.0/gtk.css"]; ' +
+            'command: ["bash", "-c", "mkdir -p ~/.config/gtk-4.0 ~/.config/gtk-3.0 && printf \'%b\' \'' + css.replace(/'/g, "'\\''") + '\' > ~/.config/gtk-4.0/gtk.css && cp ~/.config/gtk-4.0/gtk.css ~/.config/gtk-3.0/gtk.css; nautilus -q 2>/dev/null; true"]; ' +
             'running: true; }',
             settingsMenu
         )
