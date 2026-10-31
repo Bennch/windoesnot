@@ -64,7 +64,11 @@ Pane {
     // settles, and keep a fallback so the very first Tab/Return/Space the
     // user presses always lands somewhere useful instead of being dropped.
     function focusLoginField() {
-        passwordInput.password.forceActiveFocus();
+        if (typeof userModel !== "undefined" && userModel && userModel.count > 0) {
+            passwordInput.password.forceActiveFocus();
+        } else {
+            usernameInput.username.forceActiveFocus();
+        }
     }
 
     Component.onCompleted: {
