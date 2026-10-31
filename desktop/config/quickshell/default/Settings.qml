@@ -7,6 +7,7 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import Quickshell.Widgets
 import "i18n/Lang.js" as Lang
+import "settings/Search.js" as SettingsSearch
 import "widgets"
 
 FloatingWindow {
@@ -64,11 +65,19 @@ FloatingWindow {
     onVisibleChanged: {
         if (!visible) {
             colorPaletteVisible = false
+            settingsQuery = ""
         }
         syncFocusGrab()
     }
 
     property string currentCategory: "desktop"
+    // Full-text settings search (sidebar): results come from settings/Search.js.
+    property string settingsQuery: ""
+    property var settingsResults: SettingsSearch.search(settingsQuery, uiLanguage, 30)
+    function openSearchResult(result) {
+        currentCategory = result.page
+        settingsQuery = ""
+    }
 
     // Scrollposition zurücksetzen beim Kategorie-Wechsel
     onCurrentCategoryChanged: {
@@ -2119,9 +2128,130 @@ FloatingWindow {
                         width: parent.width
                     }
 
-                    Flickable {
+                    // Search field: type a word, pick a result, its page opens
+                    Item {
+                        id: searchBar
                         width: parent.width
-                        height: parent.height - 110
+                        height: 46
+
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.leftMargin: 10
+                            anchors.rightMargin: 10
+                            anchors.bottomMargin: 8
+                            radius: 6
+                            color: darkMode ? "#1e1e1e" : "#dedede"
+                            border.width: searchField.activeFocus ? 1 : 0
+                            border.color: settingsMenu.accentColor
+
+                            TextInput {
+                                id: searchField
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 12
+                                verticalAlignment: TextInput.AlignVCenter
+                                font.pixelSize: 13
+                                color: darkMode ? "#fff" : "#1a1a1a"
+                                selectionColor: settingsMenu.accentColor
+                                clip: true
+                                text: settingsMenu.settingsQuery
+                                onTextChanged: { settingsMenu.settingsQuery = text; searchResultsList.currentIndex = 0 }
+                                Keys.onDownPressed: searchResultsList.currentIndex = Math.min(searchResultsList.count - 1, searchResultsList.currentIndex + 1)
+                                Keys.onUpPressed: searchResultsList.currentIndex = Math.max(0, searchResultsList.currentIndex - 1)
+                                Keys.onReturnPressed: if (searchResultsList.count > 0) settingsMenu.openSearchResult(settingsMenu.settingsResults[searchResultsList.currentIndex])
+                                Keys.onEnterPressed: if (searchResultsList.count > 0) settingsMenu.openSearchResult(settingsMenu.settingsResults[searchResultsList.currentIndex])
+                                Keys.onEscapePressed: { settingsMenu.settingsQuery = ""; focus = false }
+
+                                Text {
+                                    anchors.fill: parent
+                                    verticalAlignment: Text.AlignVCenter
+                                    visible: searchField.text.length === 0
+                                    text: Lang.get("nav.search", settingsMenu.uiLanguage)
+                                    font.pixelSize: 13
+                                    color: darkMode ? "#777" : "#777"
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
+                    }
+
+                    Shortcut {
+                        sequence: "Ctrl+F"
+                        enabled: settingsMenu.visible
+                        onActivated: searchField.forceActiveFocus()
+                    }
+
+                    // Search results replace the page list while a query is typed
+                    ListView {
+                        id: searchResultsList
+                        visible: settingsMenu.settingsQuery.length > 0
+                        width: parent.width
+                        height: parent.height - 110 - searchBar.height
+                        clip: true
+                        model: settingsMenu.settingsResults
+                        spacing: 4
+                        boundsBehavior: Flickable.StopAtBounds
+                        topMargin: 0
+                        bottomMargin: 20
+
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            y: 20
+                            visible: searchResultsList.count === 0
+                            text: Lang.get("nav.searchNone", settingsMenu.uiLanguage)
+                            font.pixelSize: 13
+                            color: darkMode ? "#888" : "#666"
+                        }
+
+                        delegate: Rectangle {
+                            width: searchResultsList.width - 20
+                            x: 10
+                            height: resultColumn.implicitHeight + 16
+                            radius: 6
+                            color: ListView.isCurrentItem ? (darkMode ? "#2a2a2a" : "#c8c8c8")
+                                   : resultMouse.containsMouse ? (darkMode ? "#1e1e1e" : "#dedede") : "transparent"
+
+                            Column {
+                                id: resultColumn
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 12
+                                spacing: 2
+
+                                Text {
+                                    width: parent.width
+                                    text: modelData.pageLabel
+                                    font.pixelSize: 11
+                                    color: settingsMenu.accentColor
+                                    elide: Text.ElideRight
+                                }
+                                Text {
+                                    width: parent.width
+                                    text: modelData.text
+                                    font.pixelSize: 13
+                                    color: darkMode ? "#fff" : "#1a1a1a"
+                                    wrapMode: Text.Wrap
+                                    maximumLineCount: 3
+                                    elide: Text.ElideRight
+                                }
+                            }
+
+                            MouseArea {
+                                id: resultMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: settingsMenu.openSearchResult(modelData)
+                            }
+                        }
+                    }
+
+                    Flickable {
+                        visible: settingsMenu.settingsQuery.length === 0
+                        width: parent.width
+                        height: parent.height - 110 - searchBar.height
                         contentWidth: width
                         contentHeight: navColumn.height
                         clip: true

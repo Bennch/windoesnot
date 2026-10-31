@@ -284,6 +284,8 @@ var strings = {
 
     // === Settings Navigation ===
     "nav.settings": "Einstellungen",
+    "nav.search": "Einstellungen durchsuchen…",
+    "nav.searchNone": "Keine Treffer",
     "nav.desktop": "Desktop",
     "nav.background": "Hintergrund",
     "nav.appearance": "Aussehen",
