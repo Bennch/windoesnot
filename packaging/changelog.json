@@ -2,6 +2,28 @@
   "comment": "WinDoesNot changes per desktop package release, newest first. Shown in Settings > Updates; entries marked unreleased are never offered as an update.",
   "releases": [
     {
+      "version": "0.1.0-22",
+      "date": "2026-10-31",
+      "de": [
+        "Apps ohne eigenes Symbol zeigen ein passendes Ersatz-Symbol statt eines Platzhalterbilds.",
+        "Das Rechtsklick-Menü einer App im Startmenü schließt sich mit jedem Klick ins Menü.",
+        "Markierte Ordner und Dateien in Nautilus folgen der Akzentfarbe aus den Einstellungen. Beim Farbwechsel werden offene Nautilus-Fenster geschlossen.",
+        "Der Audio-Mixer in der Taskleiste öffnet WinDoesNot Audio, mit mitgelieferten EasyEffects-Voreinstellungen.",
+        "Akku und Energie: Helligkeit auch über DDC/CI und ein Augenschonmodus.",
+        "Bilder und PDFs öffnen in eigenen Betrachtern. Nautilus hat eine Seitenleiste mit den üblichen Ordnern und folgt der Systemsprache.",
+        "Neuer Anmeldebildschirm „Silent“: zeigt dein aktuelles Hintergrundbild vom Hauptmonitor."
+      ],
+      "en": [
+        "Apps without their own icon show a matching stand-in icon instead of a placeholder image.",
+        "The right-click menu of an app in the start menu closes with any click inside the menu.",
+        "Selected folders and files in Nautilus follow the accent color from Settings. Changing the color closes open Nautilus windows.",
+        "The audio mixer in the taskbar opens WinDoesNot Audio, with bundled EasyEffects presets.",
+        "Battery and power: brightness via DDC/CI as well, and an eye-care (night light) mode.",
+        "Images and PDFs open in dedicated viewers. Nautilus has a sidebar with the usual folders and follows the system language.",
+        "New login screen “Silent”: shows your current wallpaper from the main monitor."
+      ]
+    },
+    {
       "version": "0.1.0-21",
       "date": "2026-10-29",
       "de": [
