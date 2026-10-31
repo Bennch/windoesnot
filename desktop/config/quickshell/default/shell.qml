@@ -4095,6 +4095,7 @@ FloatingWindow {
                                                     if (mouse.button === Qt.RightButton) {
                                                         startAppContextMenu.openFor(myName, pinned, desktopPath, myCmd, myIcon, myCustomIcon, dragArea)
                                                     } else if (mouse.button === Qt.LeftButton) {
+                                                        startAppContextMenu.visible = false
                                                         var safeCmd = myCmd.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
                                                         Qt.createQmlObject(
                                                             'import Quickshell.Io; Process { command: ["bash", "-c", "setsid ' +
@@ -4289,6 +4290,7 @@ FloatingWindow {
                                                     if (mouse.button === Qt.RightButton) {
                                                         startAppContextMenu.openFor(myName, pinned, desktopPath, myCmd, myIcon, myCustomIcon, allAppDragArea)
                                                     } else {
+                                                        startAppContextMenu.visible = false
                                                         var safeCmd = myCmd.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
                                                         Qt.createQmlObject(
                                                             'import Quickshell.Io; Process { command: ["bash", "-c", "setsid ' +
@@ -4459,6 +4461,7 @@ FloatingWindow {
                                                         if (mouse.button === Qt.RightButton) {
                                                             startAppContextMenu.openFor(name, pinned, desktopPath, cmd, icon, customIcon, this)
                                                         } else {
+                                                            startAppContextMenu.visible = false
                                                             var safeCmd = cmd.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
                                                             Qt.createQmlObject(
                                                                 'import Quickshell.Io; Process { command: ["bash", "-c", "setsid ' + safeCmd + ' >/dev/null 2>&1 &"]; running: true }',
