@@ -485,7 +485,7 @@ var strings = {
     // === Colors Category ===
     "colors.accentColor": "Accent Color & Active Window Border",
     "colors.inactiveBorder": "Inactive Window Border",
-    "colors.changesApplied": "Changes are applied to all windows immediately",
+    "colors.changesApplied": "Changes are applied immediately. Open Nautilus windows may be closed in the process.",
 
     // === Alignment Category ===
     "alignment.taskbar": "Taskbar Alignment",

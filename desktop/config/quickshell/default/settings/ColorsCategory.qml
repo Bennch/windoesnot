@@ -329,6 +329,8 @@ Column {
 
         Text {
             text: Lang.get("colors.changesApplied", _lang)
+            width: parent.width
+            wrapMode: Text.WordWrap
             font.pixelSize: 11
             color: settingsMenu.darkMode ? "#666" : "#888"
             font.italic: true
