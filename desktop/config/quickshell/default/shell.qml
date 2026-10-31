@@ -3478,6 +3478,16 @@ FloatingWindow {
         anchors.fill: parent
         clip: true
 
+        MouseArea {
+            anchors.fill: parent
+            z: 1000
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            onPressed: {
+                startAppContextMenu.visible = false
+                mouse.accepted = false
+            }
+        }
+
         Rectangle {
             anchors.fill: parent
             color: settingsMenu.darkMode ? Qt.rgba(0.125, 0.125, 0.125, 0.93) : Qt.rgba(0.95, 0.95, 0.95, 0.97)
