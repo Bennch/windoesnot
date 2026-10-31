@@ -2,6 +2,26 @@
   "comment": "WinDoesNot changes per desktop package release, newest first. Shown in Settings > Updates; entries marked unreleased are never offered as an update.",
   "releases": [
     {
+      "version": "0.1.0-23",
+      "date": "2026-10-31",
+      "de": [
+        "Die Einstellungen haben eine Volltextsuche (Strg+F). Sie findet Einstellungen in jeder Sprache, springt zum Schalter und hebt ihn hervor.",
+        "Die Einstellungen sind neu gegliedert: „Taskleiste & Startmenü“, „Eingabe, Sprache & Zeit“, und Fenster-Radius und -Abstände stehen unter „Aussehen“.",
+        "Die Info-Seite zeigt die installierte Version statt einer festen Zahl.",
+        "Die Wetter- und Startmenü-Einstellungen sind übersetzt und erscheinen auch auf Englisch.",
+        "Behoben: GTK-3-Programme meldeten Fehler wegen der Nautilus-Farbregeln.",
+        "Bereits in 0.1.0-22 enthalten, dort aber nicht aufgeführt: Wetter nur mit Standort, sofortige Wahl der Terminal-Shell sowie überarbeitete Store-, Bluetooth- und Netzwerk-Fenster."
+      ],
+      "en": [
+        "Settings has a full-text search (Ctrl+F). It finds settings in any language, jumps to the switch and highlights it.",
+        "Settings are regrouped: “Taskbar & start menu”, “Input, language & time”, and window radius and gaps now sit under “Appearance”.",
+        "The About page shows the installed version instead of a fixed number.",
+        "The weather and start menu settings are translated and also appear in English.",
+        "Fixed: GTK 3 programs reported errors because of the Nautilus color rules.",
+        "Already in 0.1.0-22 but not listed there: weather only with a location, instant terminal shell choice, and reworked Store, Bluetooth and Network windows."
+      ]
+    },
+    {
       "version": "0.1.0-22",
       "date": "2026-10-31",
       "de": [
