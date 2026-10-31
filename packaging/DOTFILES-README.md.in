@@ -1,0 +1,50 @@
+# WinDoesNot portable desktop sources – @VERSION@
+
+This is a source export for experienced Arch/CachyOS users, not an operating
+system image or a prebuilt desktop. For the supported starting point, use the
+live ISO at https://windoesnot.me/download/.
+
+Requirements
+------------
+Arch/CachyOS with Hyprland and Quickshell, Python 3, base-devel, CMake, Ninja,
+pkgconf, Qt 6 (base, declarative, Wayland, SVG, multimedia and 5compat),
+qtermwidget, Wayland headers/protocols and the current Hyprland development
+headers. The generated PKGBUILD lists the complete runtime dependencies,
+including Ghostty, Nautilus, LocalSend and the desktop helpers.
+
+Do not copy native binaries from another installation. The plugins and terminal
+module must be built against the actual Hyprland, Qt and qtermwidget versions
+on the target machine. Installations made from the WinDoesNot packages receive
+updates through the signed update channel; see
+https://windoesnot.me/hilfe/paketupdates/ for the one-time setup.
+
+Build the split desktop packages
+-------------------------------
+From the extracted directory, as your normal user:
+
+    python3 tools/prepare-packages.py --output build/local-packages
+    cd build/local-packages
+    makepkg -s
+
+Review the generated PKGBUILD and package dependencies. After making an
+independent backup, the four locally built packages can be installed with:
+
+    sudo pacman -U ./*.pkg.tar.zst
+
+The packages supply the WinDoesNot login session and managed desktop code.
+Choose the WinDoesNot session at login. The user initializer creates missing
+defaults and preserves existing personal preferences; it does not replace a
+system backup. Do not blindly overwrite ~/.config with desktop/config.
+
+Contents and limitations
+------------------------
+- desktop/config: portable code; desktop/defaults: separate neutral defaults.
+- desktop/plugins and vendor: sources for native modules, with original notices.
+- packaging: dependency recipes, version, changelog and license notes.
+- No host settings, private histories, credentials, backups or compiled plugins.
+- The source package build path is used for the ISO. Installing this standalone
+  source export on other systems has not been separately smoke-tested.
+- Real hardware, BIOS boot and Secure Boot are not yet verified.
+
+Project code is GPL-3.0-or-later. Third-party components retain their licenses;
+read LICENSE, THIRD-PARTY.md and packaging/LICENSE-NOTES.md.
