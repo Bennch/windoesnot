@@ -485,7 +485,7 @@ var strings = {
     // === Colors Category ===
     "colors.accentColor": "Akzentfarbe & Aktiver Fenster-Rand",
     "colors.inactiveBorder": "Inaktiver Fenster-Rand",
-    "colors.changesApplied": "Änderungen werden sofort auf alle Fenster angewendet",
+    "colors.changesApplied": "Änderungen werden sofort angewendet. Dabei können geöffnete Nautilus-Fenster geschlossen werden.",
 
     // === Alignment Category ===
     "alignment.taskbar": "Taskbar Ausrichtung",
