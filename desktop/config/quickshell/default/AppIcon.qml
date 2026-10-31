@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import Quickshell.Io
 
 // Icon component with intelligent fallback handling
@@ -26,6 +27,26 @@ Image {
         "applications-system",
         "applications-system-symbolic"
     ]
+
+    // Apps whose .desktop icon ships in no installed theme: use a close stand-in
+    property var iconAliases: ({
+        "eog": ["org.gnome.Loupe", "image-x-generic"],
+        "org.gnome.eog": ["org.gnome.Loupe", "image-x-generic"],
+        "hwloc": ["cpu", "computer"],
+        "lstopo": ["cpu", "computer"]
+    })
+
+    // First candidate the icon theme really has; the "icon" provider would
+    // otherwise answer with a magenta placeholder instead of an error.
+    function resolveIcon(name) {
+        var candidates = generateCandidates(name).concat(iconAliases[name] || []);
+        for (var i = 0; i < candidates.length; i++) {
+            var found = Quickshell.iconPath(candidates[i], true);
+            if (found !== "")
+                return found;
+        }
+        return "";
+    }
 
     // Generate fallback candidates for an icon name
     function generateCandidates(name) {
@@ -67,7 +88,8 @@ Image {
         iconCandidates = generateCandidates(iconName);
         fallbackAttempt = 0;
 
-        return "image://icon/" + iconCandidates[0]
+        var resolved = resolveIcon(iconName);
+        return resolved !== "" ? resolved : fallbackIcon
     }
 
     // When image fails to load, try next candidate
