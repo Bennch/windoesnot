@@ -485,7 +485,7 @@ Column {
         spacing: 14
 
         Text {
-            text: "Wetter"
+            text: Lang.get("alignment.weather", _lang)
             font.pixelSize: 18; font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
@@ -498,12 +498,12 @@ Column {
                 spacing: 5
                 width: parent.width - 80
                 Text {
-                    text: "Wetter-Widget aktivieren"
+                    text: Lang.get("alignment.weatherEnable", _lang)
                     font.pixelSize: 14
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
                 }
                 Text {
-                    text: "Zeigt das aktuelle Wetter an"
+                    text: Lang.get("alignment.weatherEnableDesc", _lang)
                     font.pixelSize: 12; color: settingsMenu.darkMode ? "#666" : "#888"
                     wrapMode: Text.WordWrap; width: parent.width
                 }
@@ -542,7 +542,7 @@ Column {
             spacing: 8
 
             Text {
-                text: "Anzeige-Position"
+                text: Lang.get("alignment.weatherPlacement", _lang)
                 font.pixelSize: 14
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
@@ -551,8 +551,8 @@ Column {
                 spacing: 10
                 Repeater {
                     model: ListModel {
-                        ListElement { value: "tray";    label: "Systembereich" }
-                        ListElement { value: "taskbar"; label: "Taskleiste" }
+                        ListElement { value: "tray";    labelKey: "alignment.placementTray" }
+                        ListElement { value: "taskbar"; labelKey: "alignment.placementTaskbar" }
                     }
                     delegate: Rectangle {
                         width: 120; height: 36; radius: 6
@@ -562,7 +562,7 @@ Column {
                         Behavior on color { ColorAnimation { duration: 150 } }
                         Text {
                             anchors.centerIn: parent
-                            text: label
+                            text: Lang.get(labelKey, _lang)
                             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                             font.pixelSize: 13
                         }
@@ -581,7 +581,7 @@ Column {
             spacing: 8
 
             Text {
-                text: "Standort"
+                text: Lang.get("alignment.weatherLocation", _lang)
                 font.pixelSize: 14
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
@@ -595,7 +595,7 @@ Column {
                     width: parent.width - 100
                     height: 36
                     text: settingsMenu.weatherCity
-                    placeholderText: "Stadt oder PLZ eingeben…"
+                    placeholderText: Lang.get("alignment.weatherLocationHint", _lang)
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                     placeholderTextColor: settingsMenu.darkMode ? "#666" : "#999"
                     font.pixelSize: 13
@@ -694,7 +694,7 @@ Column {
         spacing: 14
 
         Text {
-            text: "Startmenü Sidebar"
+            text: Lang.get("alignment.startSidebar", _lang)
             font.pixelSize: 18; font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
@@ -705,7 +705,7 @@ Column {
             spacing: 8
 
             Text {
-                text: "Position"
+                text: Lang.get("alignment.sidebarPosition", _lang)
                 font.pixelSize: 14
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
@@ -741,28 +741,28 @@ Column {
 
         // Sidebar item toggles
         Text {
-            text: "Sichtbare Links"
+            text: Lang.get("alignment.visibleLinks", _lang)
             font.pixelSize: 14
             color: settingsMenu.darkMode ? "#aaa" : "#555"
         }
 
         Repeater {
             model: ListModel {
-                ListElement { label: "Alle Apps";     propName: "startMenuShowAllApps" }
-                ListElement { label: "Personalisiert"; propName: "startMenuShowPersonalized" }
-                ListElement { label: "Desktop";        propName: "startMenuShowDesktop" }
-                ListElement { label: "Dokumente";      propName: "startMenuShowDocuments" }
-                ListElement { label: "Downloads";      propName: "startMenuShowDownloads" }
-                ListElement { label: "Bilder";         propName: "startMenuShowPictures" }
-                ListElement { label: "Musik";          propName: "startMenuShowMusic" }
-                ListElement { label: "Videos";         propName: "startMenuShowVideos" }
+                ListElement { labelKey: "alignment.link.allApps";     propName: "startMenuShowAllApps" }
+                ListElement { labelKey: "alignment.link.personalized"; propName: "startMenuShowPersonalized" }
+                ListElement { labelKey: "alignment.link.desktop";        propName: "startMenuShowDesktop" }
+                ListElement { labelKey: "alignment.link.documents";      propName: "startMenuShowDocuments" }
+                ListElement { labelKey: "alignment.link.downloads";      propName: "startMenuShowDownloads" }
+                ListElement { labelKey: "alignment.link.pictures";         propName: "startMenuShowPictures" }
+                ListElement { labelKey: "alignment.link.music";          propName: "startMenuShowMusic" }
+                ListElement { labelKey: "alignment.link.videos";         propName: "startMenuShowVideos" }
             }
             delegate: Row {
                 width: parent.width
                 spacing: 15
 
                 Text {
-                    text: label
+                    text: Lang.get(labelKey, _lang)
                     font.pixelSize: 14
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
                     width: parent.width - 80
