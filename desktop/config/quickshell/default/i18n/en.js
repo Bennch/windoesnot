@@ -750,7 +750,7 @@ var strings = {
     "power.explorer": "Explorer",
     "power.settings": "Settings",
     "power.taskManager": "Task Manager",
-    "power.powerOptions": "Shut down or sign out",
+    "power.powerOptions": "Shut down / Sign out",
     "power.showDesktop": "Show Desktop",
     "power.shutdown": "Shut Down",
     "power.restart": "Restart",

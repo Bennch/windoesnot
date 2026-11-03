@@ -750,7 +750,7 @@ var strings = {
     "power.explorer": "Explorer",
     "power.settings": "Einstellungen",
     "power.taskManager": "Task-Manager",
-    "power.powerOptions": "Herunterfahren oder abmelden",
+    "power.powerOptions": "Herunterfahren / Abmelden",
     "power.showDesktop": "Desktop anzeigen",
     "power.shutdown": "Herunterfahren",
     "power.restart": "Neu starten",

@@ -5555,7 +5555,10 @@ FloatingWindow {
 
     HyprlandFocusGrab {
         id: powerMenuFocusGrab
-        windows: powerSubMenu.visible ? [powerMenu, powerSubMenu] : [powerMenu]
+        // Static list on purpose: swapping the whitelist while the grab is
+        // active (when the submenu appears on hover) re-creates the grab, and
+        // the first click into the submenu was then treated as an outside click.
+        windows: [powerMenu, powerSubMenu]
         onCleared: { powerMenu.visible = false; powerSubMenu.visible = false }
     }
 
@@ -5863,6 +5866,8 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("power.powerOptions", settingsMenu.uiLanguage)
+                    // Leave room for the › submenu arrow on the right
+                    width: parent.width - 36; elide: Text.ElideRight
                     color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
                 }
                 Text {
