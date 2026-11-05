@@ -17,6 +17,8 @@ the driver picked it, which is today's (already working, if mismatched)
 behavior -- never a reason to fail the login.
 """
 import base64
+import ctypes
+import ctypes.util
 import glob
 import json
 import pwd
@@ -69,6 +71,44 @@ def primary_monitor_name(home):
     return name if isinstance(name, str) and name else None
 
 
+def state_data(home):
+    state = home / '.config/hypr/lua/state.lua'
+    try:
+        first_line = state.read_text().splitlines()[0]
+        marker = '-- state-json:'
+        if not first_line.startswith(marker):
+            return {}
+        return json.loads(base64.b64decode(first_line[len(marker):]))
+    except (OSError, IndexError, ValueError, TypeError):
+        return {}
+
+
+# Hyprland transform -> xrandr rotation (flipped variants 4-7 map to the same rotation).
+ROTATIONS = {0: 'normal', 1: 'left', 2: 'inverted', 3: 'right'}
+
+
+def layout_args(monitors, candidates, edid_of):
+    """xrandr arguments that give every X11 output Hyprland's rotation and
+    position, so the greeter looks like the desktop on every monitor."""
+    args = []
+    for mon in monitors or []:
+        if not isinstance(mon, dict) or not isinstance(mon.get('output'), str):
+            continue
+        edid = edid_of(mon['output'])
+        out = next((o for o, h in candidates.items() if edid and h and h.lower() == edid.lower()), None)
+        if not out:
+            continue
+        try:
+            rotate = ROTATIONS[int(mon.get('transform', 0)) % 4]
+        except (TypeError, ValueError):
+            rotate = 'normal'
+        args += ['--output', out, '--rotate', rotate]
+        match = re.match(r'^(-?\d+)x(-?\d+)$', str(mon.get('position', '')))
+        if match and float(mon.get('scale') or 1) == 1:  # logical != pixel coords when scaled
+            args += ['--pos', f'{match.group(1)}x{match.group(2)}']
+    return args
+
+
 def connector_edid_hex(name, drm_root='/sys/class/drm'):
     for path in glob.glob(f'{drm_root}/card*-{name}/edid'):
         try:
@@ -112,6 +152,45 @@ def xrandr_output_edids(verbose_output):
     return outputs
 
 
+def output_center(verbose_output, output):
+    """Centre (x, y) of an xrandr output from its `WxH+X+Y` geometry."""
+    for line in verbose_output.splitlines():
+        head = re.match(r'^(\S+)\s+connected\s+(?:primary\s+)?(\d+)x(\d+)\+(\d+)\+(\d+)', line)
+        if head and head.group(1) == output:
+            w, h, x, y = (int(head.group(i)) for i in range(2, 6))
+            return x + w // 2, y + h // 2
+    return None
+
+
+def warp_pointer(x, y):
+    """Move the X11 pointer. Without a window manager the greeter's keyboard
+    focus follows the pointer, so this decides which screen's login form
+    receives the first keystrokes (no mouse hunt for the main monitor)."""
+    lib = ctypes.util.find_library('X11')
+    if not lib:
+        log('set-primary-monitor: libX11 not found, cannot warp pointer')
+        return
+    xlib = ctypes.CDLL(lib)
+    xlib.XOpenDisplay.restype = ctypes.c_void_p
+    xlib.XOpenDisplay.argtypes = [ctypes.c_char_p]
+    xlib.XDefaultRootWindow.restype = ctypes.c_ulong
+    xlib.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
+    xlib.XWarpPointer.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_ulong,
+                                  ctypes.c_int, ctypes.c_int, ctypes.c_uint, ctypes.c_uint,
+                                  ctypes.c_int, ctypes.c_int]
+    xlib.XFlush.argtypes = [ctypes.c_void_p]
+    xlib.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    display = xlib.XOpenDisplay(None)
+    if not display:
+        log('set-primary-monitor: cannot open X display to warp pointer')
+        return
+    try:
+        xlib.XWarpPointer(display, 0, xlib.XDefaultRootWindow(display), 0, 0, 0, 0, x, y)
+        xlib.XFlush(display)
+    finally:
+        xlib.XCloseDisplay(display)
+
+
 def main():
     user = last_user()
     if not user:
@@ -135,6 +214,11 @@ def main():
         log(f'set-primary-monitor: xrandr --verbose failed: {exc}')
         return
     candidates = xrandr_output_edids(verbose)
+    args = layout_args(state_data(home).get('monitors'), candidates, connector_edid_hex)
+    if args:
+        result = subprocess.run(['xrandr'] + args, capture_output=True, text=True)
+        log(f'set-primary-monitor: xrandr {" ".join(args)} -> '
+            f'{result.returncode} {result.stderr.strip()}')
     match = next((output for output, hexval in candidates.items() if hexval and hexval.lower() == edid.lower()), None)
     if not match:
         log(f'set-primary-monitor: no connected X11 output EDID matches Hyprland primary {name!r}; '
@@ -145,6 +229,14 @@ def main():
         log(f'set-primary-monitor: xrandr --output {match} --primary failed: {result.stderr.strip()}')
     else:
         log(f'set-primary-monitor: set X11 primary output to {match} (Hyprland main monitor: {name})')
+        try:
+            verbose = subprocess.run(['xrandr', '--verbose'], capture_output=True, text=True, check=True).stdout
+            center = output_center(verbose, match)
+            if center:
+                warp_pointer(*center)
+                log(f'set-primary-monitor: pointer moved to {center[0]},{center[1]} on {match}')
+        except Exception as exc:
+            log(f'set-primary-monitor: pointer warp failed: {exc!r}')
 
 
 if __name__ == '__main__':
