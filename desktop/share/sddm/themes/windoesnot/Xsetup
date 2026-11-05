@@ -9,12 +9,11 @@ fi
 if ! /usr/bin/setxkbmap; then
     printf '%s\n' 'WinDoesNot: could not initialize the greeter keyboard map' >&2
 fi
-# SDDM focuses the password field on whichever screen X11/RandR calls
-# "primary", which does not necessarily match the main monitor chosen in
-# Hyprland's own Settings. Best-effort, logs to
-# /var/log/windoesnot-sddm-primary.log, never blocks the login screen.
+# Best-effort: point X11's primary output / layout at Hyprland's main monitor.
+# Time-limited, never blocks or fails the login screen; the greeter theme
+# shows the login form on every screen regardless of the result.
 theme_dir=$(dirname -- "$0")
-/usr/bin/python3 "$theme_dir/set-primary-monitor.py" >>/var/log/windoesnot-sddm-primary.log 2>&1 || true
+timeout 10 /usr/bin/python3 "$theme_dir/set-primary-monitor.py" >>/var/log/windoesnot-sddm-primary.log 2>&1 || true
 # A keyboard-query or primary-monitor-detection failure must not prevent
 # the login screen from starting.
 exit 0

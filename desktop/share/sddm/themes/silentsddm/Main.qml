@@ -1,5 +1,6 @@
 import "."
 import QtQuick
+import QtQuick.Window
 import SddmComponents
 import QtQuick.Effects
 import QtMultimedia
@@ -12,6 +13,39 @@ Item {
     // TODO: Add own translations: https://github.com/sddm/sddm/wiki/Localization
     TextConstants {
         id: textConstants
+    }
+
+    // SDDM runs one greeter per screen with its own one-row screenModel;
+    // screenModel.primary is 0 on X11's primary output and -1 elsewhere.
+    // Only the primary screen shows the lock/login UI and takes keyboard
+    // input; the others just show the background. Fails open to "primary" if
+    // the model is missing, so the login can never disappear everywhere.
+    readonly property bool isPrimaryScreen: {
+        if (typeof screenModel === "undefined" || !screenModel)
+            return true;
+        try {
+            if (screenModel.rowCount() < 1)
+                return true;
+            return screenModel.primary >= 0;
+        } catch (e) {
+            return true;
+        }
+    }
+
+    // Only the active window receives key events: have the primary screen's
+    // window request input focus for a short while (the greeter creates its
+    // windows one after another and the last one would otherwise win).
+    Timer {
+        interval: 250
+        repeat: true
+        running: root.isPrimaryScreen
+        property int runs: 0
+        onTriggered: {
+            if (root.Window.window)
+                root.Window.window.requestActivate();
+            if (++runs >= 12)
+                stop();
+        }
     }
 
     property bool capsLockOn: false
@@ -215,6 +249,7 @@ Item {
         Item {
             id: screenContainer
             anchors.fill: parent
+            visible: root.isPrimaryScreen
             anchors.top: parent.top
 
             LockScreen {

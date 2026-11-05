@@ -75,6 +75,8 @@ DisplayServer=x11
 DisplayCommand=/usr/share/sddm/themes/windoesnot/Xsetup
 [Theme]
 Current=windoesnot
+CursorTheme=Adwaita
+CursorSize=24
 EOF
 
 # Preselect this user and the Hyprland session the first time.
