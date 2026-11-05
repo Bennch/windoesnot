@@ -142,6 +142,8 @@ command=(qemu-system-x86_64 -name "WinDoesNot-$vm_name" -machine q35 "${accel[@]
     -device virtio-rng-pci
     -device virtio-serial-pci -chardev "socket,path=$vm/guest-agent.sock,server=on,wait=off,id=guest0"
     -device virtserialport,chardev=guest0,name=org.qemu.guest_agent.0
+    -chardev qemu-vdagent,id=vdagent,name=vdagent,clipboard=on
+    -device virtserialport,chardev=vdagent,name=com.redhat.spice.0
     -serial "file:$vm/serial.log"
     -qmp "unix:$vm/qmp.sock,server=on,wait=off"
     -pidfile "$vm/qemu.pid" -monitor none)
