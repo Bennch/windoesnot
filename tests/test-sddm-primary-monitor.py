@@ -144,5 +144,33 @@ def _tmp_home():
         shutil.rmtree(directory, ignore_errors=True)
 
 
+class OutputCenter(unittest.TestCase):
+    XRANDR = ('DP-1 connected 1440x2560+1080+0 (0x43) right (normal) 600mm x 340mm\n'
+              'DP-2 connected primary 2560x1440+2520+0 (0x53) normal (normal) 600mm x 340mm\n'
+              'DP-3 disconnected (normal)\n')
+
+    def test_center_of_output(self):
+        self.assertEqual(mod.output_center(self.XRANDR, 'DP-2'), (3800, 720))
+        self.assertEqual(mod.output_center(self.XRANDR, 'DP-1'), (1800, 1280))
+
+    def test_unknown_or_disconnected_output(self):
+        self.assertIsNone(mod.output_center(self.XRANDR, 'DP-3'))
+        self.assertIsNone(mod.output_center(self.XRANDR, 'X'))
+
+
+class LayoutArgs(unittest.TestCase):
+    def test_rotation_and_position_by_edid(self):
+        monitors = [{'output': 'HDMI-A-1', 'transform': 1, 'position': '724x374'},
+                    {'output': 'DP-1', 'transform': 3, 'position': '4364x54'},
+                    {'output': 'DP-2', 'transform': 0, 'position': '1804x614'},
+                    {'output': 'DP-9', 'transform': 1, 'position': '0x0'}]
+        edids = {'HDMI-A-1': 'aa', 'DP-1': 'bb', 'DP-2': 'cc'}
+        cands = {'HDMI-A-1': 'AA', 'DP-4': 'bb', 'DP-5': 'cc'}
+        args = mod.layout_args(monitors, cands, edids.get)
+        self.assertEqual(args, ['--output', 'HDMI-A-1', '--rotate', 'left', '--pos', '724x374',
+                                '--output', 'DP-4', '--rotate', 'right', '--pos', '4364x54',
+                                '--output', 'DP-5', '--rotate', 'normal', '--pos', '1804x614'])
+
+
 if __name__ == '__main__':
     unittest.main()

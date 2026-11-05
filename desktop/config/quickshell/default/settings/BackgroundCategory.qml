@@ -1115,6 +1115,11 @@ Item {
             property string currentPreset: "cinder"
             property bool busy: false
             property string resultText: ""
+            // Theme/preset shown in the preview: the hovered button, else the active one.
+            property string hoverTheme: ""
+            property string hoverPreset: ""
+            readonly property string previewTheme: hoverTheme !== "" ? hoverTheme : currentTheme
+            readonly property string previewPreset: hoverTheme !== "" ? hoverPreset : currentPreset
 
             Component.onCompleted: sddmThemeStatusProc.running = true
 
@@ -1137,6 +1142,26 @@ Item {
                 font.pixelSize: 11
                 width: parent.width
                 wrapMode: Text.WordWrap
+            }
+
+            Rectangle {
+                width: Math.min(parent.width, 480)
+                height: width * 9 / 16
+                radius: 6
+                clip: true
+                color: settingsMenu.darkMode ? "#1e1e1e" : "#e0e0e0"
+                border.color: settingsMenu.darkMode ? "#4a4a4a" : "#c0c0c0"
+                border.width: 1
+
+                Image {
+                    anchors.fill: parent
+                    anchors.margins: 1
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                    cache: false
+                    source: "file:///usr/share/sddm/themes/" + sddmThemeSection.previewTheme
+                            + "/previews/" + sddmThemeSection.previewPreset + ".jpg"
+                }
             }
 
             Flow {
@@ -1171,7 +1196,17 @@ Item {
                         MouseArea {
                             anchors.fill: parent
                             enabled: !sddmThemeSection.busy
+                            hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
+                            onEntered: {
+                                sddmThemeSection.hoverTheme = modelData.theme
+                                sddmThemeSection.hoverPreset = modelData.preset
+                            }
+                            onExited: {
+                                if (sddmThemeSection.hoverTheme === modelData.theme
+                                        && sddmThemeSection.hoverPreset === modelData.preset)
+                                    sddmThemeSection.hoverTheme = ""
+                            }
                             onClicked: {
                                 // Live ISO: system_tools rejects SDDM writes; installed sessions can apply presets.
                                 sddmThemeSection.busy = true
