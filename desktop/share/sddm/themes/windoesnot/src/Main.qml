@@ -1,5 +1,6 @@
 // qmllint disable unqualified
 import QtQuick 2.15
+import QtQuick.Window 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Controls 2.15
 import SddmComponents 2.0 as SDDM
@@ -31,11 +32,16 @@ Pane {
     // screen model isn't available (e.g. a single-screen setup, or an older
     // SDDM), which is today's behavior on every screen.
     readonly property bool isPrimaryScreen: {
+        // SDDM gives every per-screen greeter its own one-row screenModel;
+        // screenModel.primary is 0 when this screen is X11's primary output
+        // and -1 when it is not (verified with sddm-greeter-qt6 --test-mode).
+        // Fail open to "primary" if the model is missing or unusable.
         if (typeof screenModel === "undefined" || !screenModel)
             return true;
         try {
-            var primaryGeometry = screenModel.geometry(screenModel.primary);
-            return !!primaryGeometry && Screen.virtualX === primaryGeometry.x && Screen.virtualY === primaryGeometry.y;
+            if (screenModel.rowCount() < 1)
+                return true;
+            return screenModel.primary >= 0;
         } catch (e) {
             return true;
         }
@@ -71,9 +77,34 @@ Pane {
         }
     }
 
+    // Each screen is its own window and only the active window receives key
+    // events. The primary screen's window asks the window system for input
+    // focus (repeatedly for a short while, because the greeter creates its
+    // windows one after another and the last one would otherwise win).
+    function activatePrimaryWindow() {
+        if (!root.isPrimaryScreen)
+            return;
+        if (root.Window.window)
+            root.Window.window.requestActivate();
+        focusLoginField();
+    }
+
+    Timer {
+        id: activateTimer
+        interval: 250
+        repeat: true
+        running: root.isPrimaryScreen
+        property int runs: 0
+        onTriggered: {
+            root.activatePrimaryWindow();
+            if (++runs >= 12)
+                stop();
+        }
+    }
+
     Component.onCompleted: {
         if (root.isPrimaryScreen)
-            Qt.callLater(focusLoginField);
+            Qt.callLater(activatePrimaryWindow);
     }
 
     Keys.onPressed: function (event) {
