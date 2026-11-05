@@ -8,6 +8,9 @@ var strings = {
 
     "apps.shellTitle": "Terminal shell",
     "apps.shellHint": "Choose Bash, Fish or Zsh for new terminals. Sign out and back in after changing it. Existing terminal settings are preserved. Install missing shells from the Store.",
+    "apps.vmClipboardTitle": "Clipboard with virtual machines",
+    "apps.vmClipboardHint": "Copy and paste works between this system and virtual machines such as VMware or QEMU. Turn this off when you work with sensitive data such as passwords. The change applies immediately.",
+    "apps.vmClipboardToggle": "Share clipboard with virtual machines",
     "apps.shellSaved": "Shell saved. Please sign out and back in.",
 
     "backups.restoreClickUnavailable": "One-click restore is not available here. Depending on your boot menu, you can start an earlier system state for inspection.",

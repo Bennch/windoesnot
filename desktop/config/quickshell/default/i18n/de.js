@@ -8,6 +8,9 @@ var strings = {
 
     "apps.shellTitle": "Terminal-Shell",
     "apps.shellHint": "Wähle Bash, Fish oder Zsh für neue Terminals. Nach dem Wechsel bitte ab- und wieder anmelden. Vorhandene Terminal-Einstellungen bleiben erhalten. Fehlende Shells kannst du im Store installieren.",
+    "apps.vmClipboardTitle": "Zwischenablage mit virtuellen Maschinen",
+    "apps.vmClipboardHint": "Kopieren und Einfügen funktioniert zwischen diesem System und virtuellen Maschinen wie VMware oder QEMU. Wenn du mit sensiblen Daten wie Passwörtern arbeitest, kannst du das hier abschalten. Die Änderung gilt sofort.",
+    "apps.vmClipboardToggle": "Zwischenablage mit virtuellen Maschinen teilen",
     "apps.shellSaved": "Shell gespeichert. Bitte ab- und wieder anmelden.",
 
     "backups.restoreClickUnavailable": "Wiederherstellen per Klick ist hier noch nicht verfügbar. Einen früheren Stand kannst du je nach Bootmenü zum Prüfen starten.",

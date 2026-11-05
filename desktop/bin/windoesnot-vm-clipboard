@@ -1,0 +1,31 @@
+#!/bin/sh
+# Switch shared clipboard with virtual machines on or off for this user.
+#   windoesnot-vm-clipboard status   prints "on" or "off"
+#   windoesnot-vm-clipboard on|off   saves the choice and applies it right away
+# The choice is a marker file; windoesnot-vm-guest and windoesnot-x11-clip-bridge
+# check it at start and do nothing while it exists.
+marker="${XDG_CONFIG_HOME:-$HOME/.config}/windoesnot/vm-clipboard-off"
+case "${1:-status}" in
+    status)
+        if [ -e "$marker" ]; then echo off; else echo on; fi
+        ;;
+    off)
+        mkdir -p "$(dirname "$marker")" && : > "$marker"
+        pkill -x spice-vdagent 2>/dev/null
+        pkill -x vmware-user-suid-wrapper 2>/dev/null
+        pkill -x vmtoolsd -u "$(id -u)" 2>/dev/null
+        pid=$(cat "${XDG_RUNTIME_DIR:-/tmp}/windoesnot-x11-clip-bridge.lock" 2>/dev/null)
+        [ -n "$pid" ] && kill "$pid" 2>/dev/null
+        echo off
+        ;;
+    on)
+        rm -f "$marker"
+        nohup windoesnot-vm-guest >/dev/null 2>&1 &
+        nohup windoesnot-x11-clip-bridge >/dev/null 2>&1 &
+        echo on
+        ;;
+    *)
+        echo "usage: $0 status|on|off" >&2
+        exit 2
+        ;;
+esac

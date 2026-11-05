@@ -18,7 +18,7 @@ PAGES = {
     'alignment': ['AlignmentCategory'],
     'input': ['InputCategory'],
     'power': ['PowerCategory'],
-    'apps': ['AppsCategory', 'ShellSettings'],
+    'apps': ['AppsCategory', 'ShellSettings', 'VmClipboardSettings'],
     'maintenance': ['SystemCategory', 'MaintenanceCategory', 'KernelCategory'],
     'backups': ['BackupsCategory'],
     'updates': ['UpdateCategory'],
@@ -28,7 +28,7 @@ PAGES = {
 # Settings that live in a panel opened from a page: found under that page.
 EXTRA_KEYS = {'power': ['power.brightness', 'power.nightLight']}
 # Extra search words for settings people name differently than the label does.
-SYNONYMS = {'power.nightLight': 'nachtlicht nachtmodus blaulicht night light blue light', 'power.brightness': 'dimmen heller dunkler dim', 'background.sddmThemeTitle': 'login sddm anmeldung lockscreen', 'apps.shellTitle': 'bash fish zsh terminal'}
+SYNONYMS = {'power.nightLight': 'nachtlicht nachtmodus blaulicht night light blue light', 'power.brightness': 'dimmen heller dunkler dim', 'background.sddmThemeTitle': 'login sddm anmeldung lockscreen', 'apps.shellTitle': 'bash fish zsh terminal', 'apps.vmClipboardTitle': 'vm vmware qemu spice virtualbox clipboard copy paste kopieren einfügen zwischenablage virtuelle maschine'}
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--check', action='store_true', help='fail if SearchIndex.js is out of date')
 args = parser.parse_args()

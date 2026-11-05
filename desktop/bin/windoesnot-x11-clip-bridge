@@ -34,11 +34,14 @@ def log(message):
 
 def single_instance():
     runtime = os.environ.get('XDG_RUNTIME_DIR') or '/tmp'
-    handle = open(os.path.join(runtime, 'windoesnot-x11-clip-bridge.lock'), 'w')
+    handle = open(os.path.join(runtime, 'windoesnot-x11-clip-bridge.lock'), 'a+')
     try:
         fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
         sys.exit(0)
+    handle.truncate(0)
+    handle.write(str(os.getpid()))  # lets windoesnot-vm-clipboard stop us
+    handle.flush()
     return handle
 
 
@@ -99,6 +102,9 @@ def run(display_name):
 
 
 def main():
+    if os.path.exists(os.path.join(os.environ.get('XDG_CONFIG_HOME') or os.path.expanduser('~/.config'),
+                                   'windoesnot', 'vm-clipboard-off')):
+        return  # switched off in Settings -> Apps
     lock = single_instance()  # keep the handle alive
     while True:
         name = os.environ.get('DISPLAY')

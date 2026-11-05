@@ -12,6 +12,7 @@ Column {
     spacing: 30
 
     ShellSettings { width: parent.width; settingsMenu: parent.settingsMenu }
+    VmClipboardSettings { width: parent.width; settingsMenu: parent.settingsMenu }
 
     Text {
         text: Lang.get("apps.optionalTools", _lang)
