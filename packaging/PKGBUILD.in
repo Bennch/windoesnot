@@ -70,7 +70,7 @@ package_windoesnot-desktop() {
 
 package_windoesnot-tools() {
     pkgdesc='WinDoesNot session, layout, settings and user-code migration tools'
-    depends=(python python-evdev python-gobject python-cairo hyprland polkit cachyos-rate-mirrors pacman-contrib btrfs-progs diffutils)
+    depends=(python python-evdev python-xlib xclip wl-clipboard python-gobject python-cairo hyprland polkit cachyos-rate-mirrors pacman-contrib btrfs-progs diffutils)
     cd "$srcdir/windoesnot-$pkgver"
     install -d "$pkgdir/usr/bin"
     for command in desktop/bin/*; do
