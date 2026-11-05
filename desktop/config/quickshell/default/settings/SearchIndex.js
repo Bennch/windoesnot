@@ -279,13 +279,17 @@ var PAGES = [
    "apps.delete",
    "apps.default",
    "apps.shellTitle",
-   "apps.shellHint"
+   "apps.shellHint",
+   "apps.vmClipboardTitle",
+   "apps.vmClipboardHint",
+   "apps.vmClipboardToggle"
   ],
   "texts": [
    "z.B. my-custom-app --flag"
   ],
   "extra": {
-   "apps.shellTitle": "bash fish zsh terminal"
+   "apps.shellTitle": "bash fish zsh terminal",
+   "apps.vmClipboardTitle": "vm vmware qemu spice virtualbox clipboard copy paste kopieren einfügen zwischenablage virtuelle maschine"
   }
  },
  {

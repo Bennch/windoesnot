@@ -3,6 +3,8 @@
 # copy and paste (and drag and drop) work between host and guest. Does nothing
 # on real hardware. The system side (spice-vdagentd, vmtoolsd) is started by
 # systemd; these are the parts that must run inside the user's session.
+# Sharing switched off in Settings -> Apps.
+[ -e "${XDG_CONFIG_HOME:-$HOME/.config}/windoesnot/vm-clipboard-off" ] && exit 0
 virt=$(systemd-detect-virt --vm 2>/dev/null) || exit 0
 # XWayland may not be announced yet when the session autostart runs.
 tries=0
