@@ -52,7 +52,7 @@ def main():
     if personal_path.exists():
         personal=export_lua(personal_path)
     else:
-        personal={'options':baseline['options'],'env':baseline['env'],'devices':baseline['devices'],'rules':{},'autostart':[x for x in baseline['autostart'] if 'nvidia-settings' in x or 'clipboard-sync.sh' in x]}
+        personal={'options':baseline['options'],'env':baseline['env'],'devices':baseline['devices'],'rules':{},'autostart':[x for x in baseline['autostart'] if 'nvidia-settings' in x]}
         for rule in baseline['rules']:
             fields={k:v for k,v in rule.items() if k in ['move','monitor']}
             if fields:
