@@ -60,9 +60,9 @@ systemctl disable systemd-networkd.service systemd-networkd.socket systemd-netwo
 systemctl enable getty@tty1.service
 ln -sfn /usr/lib/systemd/system/getty@.service /etc/systemd/system/autovt@.service
 systemctl enable windoesnot-super-tap@liveuser.service
-# Hypervisor guest services for host<->guest clipboard. Each unit is gated by
+# VMware guest services for host<->guest clipboard (spice-vdagentd is started by udev). Gated by
 # ConditionVirtualization, so they stay inert on real hardware.
-systemctl enable spice-vdagentd.socket vmtoolsd.service vmware-vmblock-fuse.service 2>/dev/null || true
+systemctl enable vmtoolsd.service vmware-vmblock-fuse.service 2>/dev/null || true
 # A serial console makes VM boot failures inspectable without a working GPU.
 systemctl enable serial-getty@ttyS0.service
 # Re-establish our offline settings after distro package hooks have run.

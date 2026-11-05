@@ -265,7 +265,7 @@ def main():
     cfg('displaymanager.conf', {'displaymanagers':['sddm'], 'sysconfigSetup':False, 'sddm':{'configuration_file':'/etc/sddm.conf'}})
     cfg('shellprocess-preparetarget.conf', {'dontChroot':False,'timeout':30,'script':['/usr/share/windoesnot/iso/prepare-target.sh']})
     cfg('shellprocess.conf', {'dontChroot':False,'timeout':120,'script':[{'command':'/usr/share/windoesnot/iso/finalize-install.sh "${USER}"','timeout':120}]})
-    cfg('services-systemd.conf', {'units':[{'name':n,'action':'enable','mandatory':False} for n in ['NetworkManager','bluetooth','systemd-timesyncd','fstrim.timer','spice-vdagentd.socket','vmtoolsd','vmware-vmblock-fuse','sddm']]})
+    cfg('services-systemd.conf', {'units':[{'name':n,'action':'enable','mandatory':False} for n in ['NetworkManager','bluetooth','systemd-timesyncd','fstrim.timer','vmtoolsd','vmware-vmblock-fuse','sddm']]})
     cfg('initcpiocfg.conf', {'useSystemdHook':True,'source':'/etc/mkinitcpio-windoesnot.conf','hooks':{'append':['windoesnot-boot-errors'],'remove':['archiso','archiso_loop_mnt','archiso_pxe_common','archiso_pxe_nbd','archiso_pxe_http','archiso_pxe_nfs']}})
     cfg('initcpio.conf', {'kernel':'all','be_unsafe':False})
     unpack = yaml.safe_load((modules / 'unpackfs/unpackfs.conf').read_text())

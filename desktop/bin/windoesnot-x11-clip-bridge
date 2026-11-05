@@ -45,6 +45,19 @@ def single_instance():
     return handle
 
 
+def wayland_has(data):
+    """True when the Wayland clipboard already holds this text, or holds
+    non-text data (an image) that a text copy must not clobber."""
+    try:
+        types = subprocess.run(['wl-paste', '--list-types'], capture_output=True, text=True, timeout=2).stdout.split()
+        if any(t.startswith('image/') for t in types):
+            return True
+        current = subprocess.run(['wl-paste', '--no-newline'], capture_output=True, timeout=2).stdout
+    except Exception:
+        return False
+    return current == data or current == data.rstrip(b'\n')
+
+
 def run(display_name):
     from Xlib import X, display
     from Xlib.ext import xfixes
@@ -72,33 +85,39 @@ def run(display_name):
             pid = int(prop.value[0]) if prop else None
         except Exception:
             pid = None
-        # Hyprland's own selection window has no _NET_WM_PID; skip it and ourselves.
-        if pid is None or pid == own_pid:
+        if pid == own_pid:
             continue
+        # Owners without _NET_WM_PID are either Hyprland re-exporting a Wayland
+        # copy to X11 (nothing to do) or a guest agent / tool that never sets a
+        # PID (spice-vdagent, xclip). Those are told apart below by comparing
+        # with the current Wayland clipboard.
+        anonymous = pid is None
         time.sleep(0.15)
         try:
             targets = subprocess.run(['xclip', '-selection', 'clipboard', '-o', '-t', 'TARGETS'],
                                      capture_output=True, text=True, timeout=3, env=env).stdout
             kind = 'UTF8_STRING' if 'UTF8_STRING' in targets else ('STRING' if 'STRING' in targets else None)
             if not kind:
-                log(f'owner pid={pid}: no text target, ignored')
+                log(f'owner pid={pid or "-"}: no text target, ignored')
                 continue
             data = subprocess.run(['xclip', '-selection', 'clipboard', '-o', '-t', kind],
                                   capture_output=True, timeout=3, env=env).stdout
         except Exception as exc:
-            log(f'owner pid={pid}: read failed ({exc.__class__.__name__})')
+            log(f'owner pid={pid or "-"}: read failed ({exc.__class__.__name__})')
+            continue
+        if anonymous and wayland_has(data):
             continue
         if not data or len(data) > MAX_BYTES or data == last:
-            log(f'owner pid={pid}: skipped ({len(data)} B)')
+            log(f'owner pid={pid or "-"}: skipped ({len(data)} B)')
             continue
         try:
             subprocess.run(['wl-copy'], input=data, timeout=5,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception as exc:
-            log(f'owner pid={pid}: wl-copy failed ({exc.__class__.__name__})')
+            log(f'owner pid={pid or "-"}: wl-copy failed ({exc.__class__.__name__})')
             continue
         last = data
-        log(f'owner pid={pid}: {len(data)} B copied to Wayland')
+        log(f'owner pid={pid or "-"}: {len(data)} B copied to Wayland')
 
 
 def main():
