@@ -74,6 +74,7 @@ json-c
 xorg-server
 xorg-xauth
 xorg-xrandr
+xorg-xsetroot
 cava
 boost
 extra-cmake-modules

@@ -34,7 +34,7 @@ for stray in /usr/lib/systemd/system/sddm.service; do
     fi
 done
 
-pacman -S --needed --noconfirm sddm qt6-multimedia-ffmpeg qt6-virtualkeyboard qt6-imageformats xorg-xrandr
+pacman -S --needed --noconfirm sddm qt6-multimedia-ffmpeg qt6-virtualkeyboard qt6-imageformats xorg-xrandr xorg-xsetroot
 [[ -d /usr/share/sddm/themes/windoesnot ]] && cp -a /usr/share/sddm/themes/windoesnot "$backup/theme"
 [[ -d /usr/share/sddm/themes/silentsddm ]] && cp -a /usr/share/sddm/themes/silentsddm "$backup/silentsddm-theme"
 [[ -f /etc/sddm.conf.d/windoesnot.conf ]] && cp -a /etc/sddm.conf.d/windoesnot.conf "$backup/"
