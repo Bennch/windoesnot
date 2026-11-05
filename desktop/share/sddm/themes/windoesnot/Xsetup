@@ -9,6 +9,10 @@ fi
 if ! /usr/bin/setxkbmap; then
     printf '%s\n' 'WinDoesNot: could not initialize the greeter keyboard map' >&2
 fi
+# Replace the bare "X" root cursor with the normal arrow (best-effort).
+if command -v xsetroot >/dev/null 2>&1; then
+    XCURSOR_THEME=Adwaita XCURSOR_SIZE=24 xsetroot -cursor_name left_ptr || true
+fi
 # Best-effort: point X11's primary output / layout at Hyprland's main monitor.
 # Time-limited, never blocks or fails the login screen; the greeter theme
 # shows the login form on every screen regardless of the result.

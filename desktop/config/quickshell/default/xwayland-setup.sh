@@ -12,3 +12,7 @@ fi
 
 # Load into X resources database
 xrdb -merge "$XRESOURCES"
+
+# XWayland shows its bare "X" root cursor over the empty desktop unless a real
+# default cursor is set.
+command -v xsetroot >/dev/null 2>&1 && xsetroot -cursor_name left_ptr
