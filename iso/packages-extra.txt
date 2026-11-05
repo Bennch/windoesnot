@@ -50,6 +50,7 @@ wl-clipboard
 wl-clip-persist
 cliphist
 xclip
+python-xlib
 jq
 libnotify
 libsecret
