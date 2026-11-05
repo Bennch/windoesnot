@@ -1,0 +1,23 @@
+#!/bin/sh
+# Start the per-user guest agent of the hypervisor this session runs in, so
+# copy and paste (and drag and drop) work between host and guest. Does nothing
+# on real hardware. The system side (spice-vdagentd, vmtoolsd) is started by
+# systemd; these are the parts that must run inside the user's session.
+virt=$(systemd-detect-virt --vm 2>/dev/null) || exit 0
+# XWayland may not be announced yet when the session autostart runs.
+tries=0
+while [ -z "${DISPLAY:-}" ] && [ "$tries" -lt 30 ]; do
+    sleep 1
+    tries=$((tries + 1))
+done
+case "$virt" in
+    vmware)
+        exec /usr/bin/vmware-user-suid-wrapper
+        ;;
+    kvm|qemu)
+        if [ -e /dev/virtio-ports/com.redhat.spice.0 ] && command -v spice-vdagent >/dev/null 2>&1; then
+            exec /usr/bin/spice-vdagent -x
+        fi
+        ;;
+esac
+exit 0

@@ -51,6 +51,8 @@ wl-clip-persist
 cliphist
 xclip
 python-xlib
+spice-vdagent
+open-vm-tools
 jq
 libnotify
 libsecret
