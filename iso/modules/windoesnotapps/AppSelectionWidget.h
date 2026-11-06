@@ -9,8 +9,10 @@ class QCheckBox;
 class QComboBox;
 class QLineEdit;
 class QLabel;
-class QGridLayout;
+class QVBoxLayout;
+class QPushButton;
 class QScrollArea;
+class QEvent;
 class AppSelectionWidget : public QWidget {
 public:
     explicit AppSelectionWidget(const QString& catalogPath, QWidget* parent = nullptr);
@@ -33,6 +35,7 @@ private:
     void filter();
     void updateCount();
     void notify();
+    bool eventFilter(QObject* watched, QEvent* event) override;
     QJsonObject m_catalog;
     QString m_catalogPath;
     QString m_shell;
@@ -40,10 +43,13 @@ private:
     QMap<QString, QCheckBox*> m_boxes;
     QList<QWidget*> m_cards;
     QComboBox* m_profiles = nullptr;
-    QComboBox* m_categories = nullptr;
+    QString m_category;
+    QList<QPushButton*> m_nav;
+    QList<QWidget*> m_headings;
+    QLabel* m_title = nullptr;
     QLineEdit* m_search = nullptr;
     QLabel* m_count = nullptr;
-    QGridLayout* m_grid = nullptr;
+    QVBoxLayout* m_list = nullptr;
     QScrollArea* m_scroll = nullptr;
     bool m_german = false;
     bool m_dark = true;
