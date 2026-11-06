@@ -53,5 +53,12 @@
   "hyprland": {
     "version": "0.57.0-1",
     "note": "Not a build pin — mkarchiso still installs whatever CachyOS currently ships. This is only the pacman hyprland version/release (CPU-rebuild .N suffix ignored) that the image was last actually booted and tested on. customize-image.sh compares against it and prints a loud, non-fatal warning in the build log when it changed, so a Hyprland bump (e.g. 0.57's quirks.skip_non_kms_dmabuf_formats breaking rendering on virtio-gpu, found 2026-10-30) doesn't slip into a build unnoticed. Update this value once you've confirmed a build with the new version is fine."
+  },
+  "windoesnot-graphics": {
+    "url": "https://github.com/Bennch/windoesnot-graphics",
+    "path": "graphics",
+    "commit": "f6aa6cd897cc09696d1d1b7bf6cbb38875af42fb",
+    "upstream": "https://github.com/ilya-zlobintsev/LACT",
+    "upstream_commit": "30dc182391e2c002f6f7c988e76aa477a4772aa2"
   }
 }
