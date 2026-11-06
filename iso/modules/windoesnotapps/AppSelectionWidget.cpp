@@ -117,7 +117,7 @@ void AppSelectionWidget::build() {
         auto* top = new QHBoxLayout(); auto* icon = new QLabel(card); icon->setFixedSize(32,32);
         QPixmap image;
         for (const auto& extension : {"svg", "png", "xpm"}) { const QString path = QDir(QFileInfo(m_catalogPath).absolutePath()).filePath("icons/"+id+"."+extension); if (QFile::exists(path)) { image = QIcon(path).pixmap(32,32); break; } }
-        if (image.isNull()) image = QIcon::fromTheme(app.value("packages").toArray().first().toString()).pixmap(32,32);
+        if (image.isNull()) image = QIcon::fromTheme(app.value("packages").toArray().at(0).toString()).pixmap(32,32);
         if (image.isNull()) { image = QPixmap(32,32); image.fill(Qt::transparent); QPainter p(&image); p.setRenderHint(QPainter::Antialiasing); p.setBrush(QColor("#fe6f2d")); p.setPen(Qt::NoPen); p.drawRoundedRect(image.rect(),7,7); p.setPen(Qt::white); QFont font = p.font(); font.setBold(true); font.setPixelSize(19); p.setFont(font); p.drawText(image.rect(), Qt::AlignCenter, localized(app,"name").left(1)); }
         icon->setPixmap(image); top->addWidget(icon);
         auto* box = new QCheckBox(localized(app, "name"), card); box->setObjectName("app-"+id); box->setChecked(m_selected.contains(id)); box->setEnabled(!app.value("required").toBool()); box->setAccessibleDescription(localized(app,"description")); QFont title = box->font(); title.setBold(true); box->setFont(title); m_boxes.insert(id,box); top->addWidget(box,1); v->addLayout(top);
