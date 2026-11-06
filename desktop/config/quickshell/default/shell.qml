@@ -3283,6 +3283,7 @@ FloatingWindow {
     onVisibleChanged: {
         panelWindow.syncFocusGrab(startMenuGrab, visible || startAppContextMenu.visible)
         if (visible) {
+            if (!desktopFilesProc.running) desktopFilesProc.running = true
             console.log("=== START MENU OPENED ===")
             // Reset beim Öffnen
             searchText = ""
@@ -4080,6 +4081,7 @@ FloatingWindow {
                                             }
 
                                             Text {
+                                                id: pinnedGridLabel
                                                 text: name
                                                 font.pixelSize: 11
                                                 color: settingsMenu.darkMode ? "#ccc" : "#333"
@@ -4094,6 +4096,19 @@ FloatingWindow {
                                             id: dragArea
                                             anchors.fill: parent
                                             hoverEnabled: true
+                                            ToolTip {
+                                                id: pinnedGridTip
+                                                visible: dragArea.containsMouse && !dragArea.pressed && pinnedGridLabel.truncated
+                                                delay: 650
+                                                timeout: -1
+                                                text: name
+                                                contentItem: Text { text: pinnedGridTip.text; color: settingsMenu.darkMode ? "#f2f2f2" : "#202124"; font.pixelSize: 12 }
+                                                background: Rectangle {
+                                                    color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
+                                                    border.color: settingsMenu.darkMode ? "#3a3a3f" : "#c0c0c0"
+                                                    radius: 6
+                                                }
+                                            }
                                             acceptedButtons: Qt.LeftButton | Qt.RightButton
                                             preventStealing: true
 
@@ -4312,6 +4327,7 @@ FloatingWindow {
                                             }
 
                                             Text {
+                                                id: allAppLabel
                                                 text: name
                                                 font.pixelSize: 11
                                                 color: settingsMenu.darkMode ? "#ccc" : "#333"
@@ -4326,6 +4342,19 @@ FloatingWindow {
                                             id: allAppDragArea
                                             anchors.fill: parent
                                             hoverEnabled: true
+                                            ToolTip {
+                                                id: allAppTip
+                                                visible: allAppDragArea.containsMouse && !allAppDragArea.pressed && allAppLabel.truncated
+                                                delay: 650
+                                                timeout: -1
+                                                text: name
+                                                contentItem: Text { text: allAppTip.text; color: settingsMenu.darkMode ? "#f2f2f2" : "#202124"; font.pixelSize: 12 }
+                                                background: Rectangle {
+                                                    color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
+                                                    border.color: settingsMenu.darkMode ? "#3a3a3f" : "#c0c0c0"
+                                                    radius: 6
+                                                }
+                                            }
                                             acceptedButtons: Qt.LeftButton | Qt.RightButton
 
                                             property bool dragActive: false
@@ -4547,6 +4576,7 @@ FloatingWindow {
                                                         }
                                                     }
                                                     Text {
+                                                        id: pinnedAppLabel
                                                         text: name
                                                         font.pixelSize: 11
                                                         color: settingsMenu.darkMode ? "#ccc" : "#333"
@@ -4557,8 +4587,22 @@ FloatingWindow {
                                                     }
                                                 }
                                                 MouseArea {
+                                                    id: pinnedAppMouseArea
                                                     anchors.fill: parent
                                                     hoverEnabled: true
+                                                    ToolTip {
+                                                        id: pinnedAppTip
+                                                        visible: pinnedAppMouseArea.containsMouse && !pinnedAppMouseArea.pressed && pinnedAppLabel.truncated
+                                                        delay: 650
+                                                        timeout: -1
+                                                        text: name
+                                                        contentItem: Text { text: pinnedAppTip.text; color: settingsMenu.darkMode ? "#f2f2f2" : "#202124"; font.pixelSize: 12 }
+                                                        background: Rectangle {
+                                                            color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
+                                                            border.color: settingsMenu.darkMode ? "#3a3a3f" : "#c0c0c0"
+                                                            radius: 6
+                                                        }
+                                                    }
                                                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                                                     onEntered: persAppItem.hovered = true
                                                     onExited: persAppItem.hovered = false
