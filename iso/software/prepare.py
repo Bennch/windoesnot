@@ -137,6 +137,7 @@ def main():
                     if any(term and (key == term or key.endswith('.' + term) or term in key) for term in terms):
                         if entry.size < 2 * 1024 * 1024:
                             candidates.append((0 if path.suffix == '.svg' and 'scalable' in path.parts else 1, entry.size, path.suffix, stream.extractfile(entry).read()))
+        process.stdout.read()  # drain the tar padding: otherwise zstd may die with SIGPIPE (exit 70) depending on package size
         process.stdout.close()
         if process.wait(): raise RuntimeError('Cannot read icon package')
         if candidates:
