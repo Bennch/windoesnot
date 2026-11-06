@@ -79,9 +79,21 @@ void AppSelectionWidget::build() {
     auto* side = new QVBoxLayout(sidebar); side->setContentsMargins(10, 24, 10, 12); side->setSpacing(6);
     auto* brand = new QLabel(text("Programme", "Apps"), sidebar); brand->setObjectName("appsBrand"); side->addWidget(brand); side->addSpacing(12);
     auto addNav = [&](const QString& id, const QString& label) {
-        auto* button = new QPushButton(label, sidebar); button->setObjectName("navEntry"); button->setCheckable(true); button->setChecked(id == m_category);
-        button->setProperty("catId", id); button->setCursor(Qt::PointingHandCursor); button->setFlat(true);
-        connect(button, &QPushButton::clicked, this, [this, id] { m_category = id; for (auto* other : m_nav) other->setChecked(other->property("catId").toString() == id); filter(); });
+        auto* button = new QPushButton(sidebar); button->setObjectName("navEntry"); button->setCheckable(true); button->setChecked(id == m_category);
+        button->setProperty("catId", id); button->setCursor(Qt::PointingHandCursor); button->setFlat(true); button->setAccessibleName(label); button->setFixedHeight(45);
+        // Accent bar like the Store's active entry: a small rounded element (3x22), not a border over the whole row.
+        auto* inner = new QHBoxLayout(button); inner->setContentsMargins(4, 0, 10, 0); inner->setSpacing(12);
+        auto* bar = new QFrame(button); bar->setObjectName("navBar"); bar->setFixedSize(3, 22); bar->setAttribute(Qt::WA_TransparentForMouseEvents); bar->setProperty("active", id == m_category);
+        auto* name = new QLabel(label, button); name->setObjectName("navText"); name->setAttribute(Qt::WA_TransparentForMouseEvents);
+        inner->addWidget(bar, 0, Qt::AlignVCenter); inner->addWidget(name, 1);
+        connect(button, &QPushButton::clicked, this, [this, id] {
+            m_category = id;
+            for (auto* other : m_nav) {
+                const bool active = other->property("catId").toString() == id; other->setChecked(active);
+                if (auto* mark = other->findChild<QFrame*>("navBar")) { mark->setProperty("active", active); mark->style()->unpolish(mark); mark->style()->polish(mark); }
+            }
+            filter();
+        });
         m_nav.append(button); side->addWidget(button);
     };
     addNav(QString(), text("Alle", "All"));
@@ -186,9 +198,12 @@ void AppSelectionWidget::updateStyle() {
         "QWidget#appsSidebar { background:@SIDEBAR@; }"
         "QLabel { color:@TEXT@; background:transparent; }"
         "QLabel#appsBrand { font-size:20px; font-weight:700; padding:0 4px; }"
-        "QPushButton#navEntry { background:transparent; color:@TEXT@; border:0; border-left:3px solid transparent; border-radius:6px; text-align:left; padding:0 12px; min-height:45px; font-size:14px; }"
+        "QPushButton#navEntry { background:transparent; border:0; border-radius:6px; }"
         "QPushButton#navEntry:hover { background:@HOVER@; }"
-        "QPushButton#navEntry:checked { background:@NAVSEL@; border-left:3px solid #fe6f2d; }"
+        "QPushButton#navEntry:checked { background:@NAVSEL@; }"
+        "QLabel#navText { font-size:14px; }"
+        "QFrame#navBar { background:transparent; border:0; border-radius:2px; }"
+        "QFrame#navBar[active=\"true\"] { background:#fe6f2d; }"
         "QLabel#pageTitle { font-size:24px; font-weight:700; padding-bottom:4px; }"
         "QFrame#divider { background:@BORDER@; border:0; }"
         "QLabel#helpText, QLabel#countText { color:@DIM@; }"
