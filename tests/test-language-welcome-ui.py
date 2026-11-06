@@ -49,6 +49,7 @@ ShellRoot {
  Window {
   id: testWindow; visible: true; width: 900; height: 720
   QtObject { id: localeProc; property var command: []; property bool running: false }
+  QtObject { id: userDirsProc; property var command: []; property bool running: false }
   QtObject { id: settingsMenu; PROPERTIES
 METHODS
   }
