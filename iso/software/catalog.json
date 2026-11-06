@@ -63,6 +63,13 @@
         "de": "KI und Assistenten",
         "en": "AI and assistants"
       }
+    },
+    {
+      "id": "streaming",
+      "name": {
+        "de": "Streaming und Web-Apps",
+        "en": "Streaming and web apps"
+      }
     }
   ],
   "profiles": [
@@ -1274,6 +1281,134 @@
       },
       "required": false,
       "aur_package": "openai-codex-bin"
+    },
+    {
+      "id": "netflix",
+      "name": {
+        "de": "Netflix",
+        "en": "Netflix"
+      },
+      "category": "streaming",
+      "source": "webapp",
+      "packages": [],
+      "url": "https://www.netflix.com/",
+      "description": {
+        "de": "Filme und Serien streamen. Öffnet netflix.com als eigene App.",
+        "en": "Stream films and series. Opens netflix.com as its own app."
+      },
+      "required": false
+    },
+    {
+      "id": "prime-video",
+      "name": {
+        "de": "Prime Video",
+        "en": "Prime Video"
+      },
+      "category": "streaming",
+      "source": "webapp",
+      "packages": [],
+      "url": "https://www.primevideo.com/",
+      "description": {
+        "de": "Filme und Serien von Amazon. Öffnet primevideo.com als eigene App.",
+        "en": "Films and series from Amazon. Opens primevideo.com as its own app."
+      },
+      "required": false
+    },
+    {
+      "id": "disney-plus",
+      "name": {
+        "de": "Disney+",
+        "en": "Disney+"
+      },
+      "category": "streaming",
+      "source": "webapp",
+      "packages": [],
+      "url": "https://www.disneyplus.com/",
+      "description": {
+        "de": "Disney, Pixar, Marvel und mehr. Öffnet disneyplus.com als eigene App.",
+        "en": "Disney, Pixar, Marvel and more. Opens disneyplus.com as its own app."
+      },
+      "required": false
+    },
+    {
+      "id": "youtube",
+      "name": {
+        "de": "YouTube",
+        "en": "YouTube"
+      },
+      "category": "streaming",
+      "source": "webapp",
+      "packages": [],
+      "url": "https://www.youtube.com/",
+      "description": {
+        "de": "Videos ansehen. Öffnet youtube.com als eigene App.",
+        "en": "Watch videos. Opens youtube.com as its own app."
+      },
+      "required": false
+    },
+    {
+      "id": "youtube-music",
+      "name": {
+        "de": "YouTube Music",
+        "en": "YouTube Music"
+      },
+      "category": "streaming",
+      "source": "webapp",
+      "packages": [],
+      "url": "https://music.youtube.com/",
+      "description": {
+        "de": "Musik streamen. Öffnet music.youtube.com als eigene App.",
+        "en": "Stream music. Opens music.youtube.com as its own app."
+      },
+      "required": false
+    },
+    {
+      "id": "whatsapp-web",
+      "name": {
+        "de": "WhatsApp Web",
+        "en": "WhatsApp Web"
+      },
+      "category": "internet",
+      "source": "webapp",
+      "packages": [],
+      "url": "https://web.whatsapp.com/",
+      "description": {
+        "de": "Chats am Rechner. Öffnet web.whatsapp.com als eigene App.",
+        "en": "Chats on your computer. Opens web.whatsapp.com as its own app."
+      },
+      "required": false
+    },
+    {
+      "id": "chatgpt",
+      "name": {
+        "de": "ChatGPT",
+        "en": "ChatGPT"
+      },
+      "category": "ai",
+      "source": "webapp",
+      "packages": [],
+      "url": "https://chatgpt.com/",
+      "description": {
+        "de": "KI-Assistent im Browser. Öffnet chatgpt.com als eigene App.",
+        "en": "AI assistant in the browser. Opens chatgpt.com as its own app."
+      },
+      "required": false
+    },
+    {
+      "id": "claude-ai",
+      "name": {
+        "de": "Claude",
+        "en": "Claude"
+      },
+      "category": "ai",
+      "source": "webapp",
+      "packages": [],
+      "url": "https://claude.ai/",
+      "description": {
+        "de": "KI-Assistent von Anthropic im Browser. Öffnet claude.ai als eigene App.",
+        "en": "Anthropic's AI assistant in the browser. Opens claude.ai as its own app."
+      },
+      "required": false
     }
   ]
 }

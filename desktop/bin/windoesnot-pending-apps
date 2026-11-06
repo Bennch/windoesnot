@@ -78,6 +78,38 @@ def install_flatpak(app, dry):
     return True
 
 
+def webapp_command(app_id, url):
+    """Exec line of a web app: Chromium family in app mode if present, else a plain Firefox window."""
+    profile = Path.home() / '.local/share/windoesnot/webapps' / app_id
+    for binary in ('google-chrome-stable', 'chromium', 'brave'):
+        if shutil.which(binary):
+            return [binary, f'--app={url}', f'--user-data-dir={profile}']
+    if shutil.which('flatpak') and subprocess.run(['flatpak', 'info', 'com.google.Chrome'], stdout=subprocess.DEVNULL,
+                                                  stderr=subprocess.DEVNULL).returncode == 0:
+        return ['flatpak', 'run', 'com.google.Chrome', f'--app={url}']
+    return ['firefox', '--new-window', url]
+
+
+def write_webapp(app, name, dry):
+    """Per-user launcher; idempotent, rewritten when the available browser changes. Returns True if (re)written."""
+    _, refs = pending_reference(app)
+    command = webapp_command(app['id'], refs[0])
+    quoted = ' '.join('"' + part.replace('\\', '\\\\').replace('"', '\\"') + '"' if any(c in part for c in ' "') else part for part in command)
+    comment = app['description']['de' if german else 'en']
+    text = ('[Desktop Entry]\nType=Application\nVersion=1.0\n'
+            f'Name={name}\nComment={comment}\nExec={quoted}\nIcon=web-browser\nTerminal=false\n'
+            'Categories=Network;AudioVideo;\nX-WinDoesNot-WebApp=true\n')
+    path = Path.home() / '.local/share/applications' / f'windoesnot-webapp-{app["id"]}.desktop'
+    if path.is_file() and path.read_text() == text:
+        return False
+    if dry:
+        print('WRITE:', path, '|', quoted)
+        return True
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dry-run', action='store_true', help='print what would run, change nothing')
@@ -88,8 +120,9 @@ def main():
     todo = remaining(catalog)
     if not todo:
         return 0
-    store_apps = [a for a in todo if a['source'] != 'flatpak']
+    store_apps = [a for a in todo if a['source'] in ('repo', 'aur')]
     flatpaks = [a for a in todo if a['source'] == 'flatpak']
+    webapps = [a for a in todo if a['source'] == 'webapp']
     name = lambda a: a['name']['de' if german else 'en']  # noqa: E731
     while flatpaks:
         if not args.dry_run and not online():
@@ -113,6 +146,9 @@ def main():
             return 1
         if failed:
             time.sleep(300)
+    created = [name(a) for a in webapps if write_webapp(a, name(a), args.dry_run)]
+    if created and not args.dry_run:
+        notify(tr('Web-Apps angelegt', 'Web apps created'), ', '.join(created), False)
     notified_path = STATE / 'pending-apps-notified.json'
     notified = set(read_json(notified_path, {}).get('notified', []))
     store_apps = [a for a in store_apps if a['id'] not in notified]   # tell the user once per app

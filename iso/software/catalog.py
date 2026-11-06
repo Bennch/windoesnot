@@ -4,7 +4,9 @@ import json
 from pathlib import Path
 import re
 
-SOURCES = ('offline', 'flatpak', 'repo', 'aur')
+SOURCES = ('offline', 'flatpak', 'repo', 'aur', 'webapp')
+# https only, plain host and path: no credentials, ports, queries or fragments, no shell metacharacters.
+WEBAPP_URL = re.compile(r'https://([a-z0-9-]+\.)+[a-z]{2,}(/[A-Za-z0-9._~%/-]*)?')
 
 
 def load_catalog(path):
@@ -26,7 +28,7 @@ def load_catalog(path):
                 raise ValueError('Invalid package name')
         # Deferred sources carry exactly one fixed reference and never offline packages.
         if source == 'offline':
-            if app.get('flatpak_id') or app.get('aur_package') or app.get('repo_packages'):
+            if app.get('flatpak_id') or app.get('aur_package') or app.get('repo_packages') or app.get('url'):
                 raise ValueError('Offline application with deferred reference')
         else:
             if app['packages'] or app.get('required') or app.get('services'):
@@ -35,6 +37,8 @@ def load_catalog(path):
                 raise ValueError('Invalid Flatpak ID')
             if source == 'aur' and not re.fullmatch(r'[a-z0-9][a-z0-9@._+-]*', app.get('aur_package', '')):
                 raise ValueError('Invalid AUR package')
+            if source == 'webapp' and not WEBAPP_URL.fullmatch(app.get('url', '')):
+                raise ValueError('Invalid web app URL')
             if source == 'repo' and not app.get('repo_packages'):
                 raise ValueError('Repository application without packages')
         if any(service != 'cups.service' for service in app.get('services', [])):
@@ -98,4 +102,6 @@ def pending_reference(app):
         return source, [app['aur_package']]
     if source == 'repo':
         return source, list(app['repo_packages'])
+    if source == 'webapp':
+        return source, [app['url']]
     raise ValueError('Not a deferred application')
