@@ -1017,6 +1017,7 @@ PanelWindow {
         var order = settingsMenu.trayOrder.split(",")
         if (order.indexOf("nearby") < 0) order.splice(Math.max(0, order.indexOf("network") + 1), 0, "nearby")
         if (order.indexOf("battery") < 0) order.splice(Math.max(0, order.indexOf("network") + 1), 0, "battery")
+        if (order.indexOf("graphics") < 0) order.splice(Math.max(0, order.indexOf("network") + 1), 0, "graphics")
         for (var i = 0; i < order.length; i++) {
             var t = order[i].trim()
             if (t === "weather") {
@@ -1031,10 +1032,17 @@ PanelWindow {
                 if (settingsMenu.showNearbyTray) trayIconModel.append({iconType: "nearby"})
             } else if (t === "battery") {
                 if (settingsMenu.showBatteryTray) trayIconModel.append({iconType: "battery"})
+            } else if (t === "graphics") {
+                if (settingsMenu.showGraphicsTray) trayIconModel.append({iconType: "graphics"})
             } else {
                 trayIconModel.append({iconType: t})
             }
         }
+    }
+
+    // Opens the graphics settings (the WinDoesNot Graphics app, "lact gui").
+    function openGraphics() {
+        Qt.createQmlObject('import Quickshell.Io; Process { command: ["lact", "gui"]; running: true }', panelWindow)
     }
 
     function reorderTrayIcons(fromIndex, toIndex) {
@@ -1068,6 +1076,7 @@ PanelWindow {
         function onShowOllamaTrayChanged() { panelWindow.rebuildTrayModel() }
         function onShowNearbyTrayChanged() { panelWindow.rebuildTrayModel() }
         function onShowBatteryTrayChanged() { panelWindow.rebuildTrayModel() }
+        function onShowGraphicsTrayChanged() { panelWindow.rebuildTrayModel() }
     }
 
     // Workspace Toggle Button - Position depends on alignment
@@ -1432,6 +1441,21 @@ PanelWindow {
                             Behavior on opacity { NumberAnimation { duration: 150 } }
                         }
 
+                        // Graphics icon content
+                        Image {
+                            visible: model.iconType === "graphics"
+                            anchors.centerIn: parent
+                            source: "img/Win11-dark/devices/symbolic/gpu-symbolic.svg"
+                            width: 18; height: 18
+                            sourceSize.width: 36; sourceSize.height: 36
+                            fillMode: Image.PreserveAspectFit
+                            smooth: true; antialiasing: true; mipmap: true
+                            opacity: trayDragArea.containsMouse ? 0.7 : 1.0
+                            layer.enabled: !settingsMenu.darkMode
+                            layer.effect: MultiEffect { colorization: 1.0; colorizationColor: "#333333" }
+                            Behavior on opacity { NumberAnimation { duration: 150 } }
+                        }
+
                         // Audio icon content
                         Image {
                             visible: model.iconType === "audio"
@@ -1571,6 +1595,7 @@ PanelWindow {
                                     + " · " + Lang.get(nearbyService.state.receiving ? "nearby.receivingOn" : "nearby.receivingOff", settingsMenu.uiLanguage)
                                 else if (model.iconType === "ollama") tipText = "Ollama"
                                 else if (model.iconType === "docker") tipText = "Docker"
+                                else if (model.iconType === "graphics") tipText = Lang.get("graphics.title", settingsMenu.uiLanguage) + " · " + Lang.get("graphics.hint", settingsMenu.uiLanguage)
                                 if (tipText.length > 0) unifiedTooltip.show(trayIconDelegate, tipText)
                             }
                             onExited: {
@@ -1596,6 +1621,13 @@ PanelWindow {
                                 }
                             }
 
+                            onDoubleClicked: function(mouse) {
+                                if (model.iconType === "graphics") {
+                                    unifiedTooltip.hide()
+                                    panelWindow.openGraphics()
+                                }
+                            }
+
                             onReleased: function(mouse) {
                                 if (dragActive) {
                                     var dropX = trayDragArea.mapToItem(quickSettingsIconsRow, mouse.x, mouse.y).x
@@ -1608,7 +1640,9 @@ PanelWindow {
                                 } else {
                                     unifiedTooltip.hide()
                                     if (mouse.button === Qt.RightButton) {
-                                        if (model.iconType === "network" || model.iconType === "bluetooth") {
+                                        if (model.iconType === "graphics") {
+                                            panelWindow.openGraphics()
+                                        } else if (model.iconType === "network" || model.iconType === "bluetooth") {
                                             startMenu.visible = false
                                             settingsMenu.visible = false
                                             audioWindow.visible = false
@@ -1660,6 +1694,8 @@ PanelWindow {
                                         calendarWindow.visible = false
                                         dockerWindow.visible = false
                                         ollamaWindow.visible = !ollamaWindow.visible
+                                    } else if (model.iconType === "graphics") {
+                                        // A single click does nothing; double-click and right-click open the settings.
                                     } else if (model.iconType === "docker") {
                                         audioWindow.visible = false
                                         bluetoothWindow.visible = false
