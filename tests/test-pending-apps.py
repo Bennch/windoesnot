@@ -47,3 +47,27 @@ with tempfile.TemporaryDirectory() as temp:
     subprocess.run([tool, '--no-wait'], env=env, check=True)
     assert not calls.exists() and not notes.exists()
 print('PASS pending-apps')
+
+# 3. Web apps: per-user launchers, Chromium app mode when a Chromium-family browser exists, else Firefox; idempotent.
+with tempfile.TemporaryDirectory() as temp:
+    d = Path(temp); home = d / 'home'; home.mkdir()
+    pend = d / 'pending.json'; pend.write_text(json.dumps({'schema_version': 1, 'pending': ['netflix', 'youtube', 'evil-site']}))
+    bins = d / 'bin'; bins.mkdir()
+    for name in ('notify-send', 'nm-online'): (bins / name).write_text('#!/bin/sh\nexit 0\n'); (bins / name).chmod(0o755)
+    env = {**os.environ, 'HOME': str(home), 'PATH': str(bins), 'WINDOESNOT_PENDING': str(pend), 'XDG_STATE_HOME': str(home / 's'), 'LANG': 'en_US.UTF-8'}
+    env.pop('WINDOESNOT_BASE', None)
+    tool = str(ROOT / 'desktop/bin/windoesnot-pending-apps')
+    desktop = home / '.local/share/applications/windoesnot-webapp-netflix.desktop'
+    subprocess.run([sys.executable, tool, '--no-wait'], env=env, check=True)   # no browser in PATH: Firefox fallback
+    text = desktop.read_text()
+    assert 'Exec=firefox --new-window https://www.netflix.com/' in text and 'X-WinDoesNot-WebApp=true' in text, text
+    assert (home / '.local/share/applications/windoesnot-webapp-youtube.desktop').is_file()
+    assert not list((home / '.local/share/applications').glob('*evil*')), 'unknown ids never create launchers'
+    (bins / 'chromium').write_text('#!/bin/sh\n'); (bins / 'chromium').chmod(0o755)
+    subprocess.run([sys.executable, tool, '--no-wait'], env=env, check=True)   # a Chromium browser appeared: rewritten
+    text = desktop.read_text()
+    assert f'Exec=chromium --app=https://www.netflix.com/ --user-data-dir={home}/.local/share/windoesnot/webapps/netflix' in text, text
+    before = desktop.stat().st_mtime_ns
+    subprocess.run([sys.executable, tool, '--no-wait'], env=env, check=True)   # nothing changed: untouched
+    assert desktop.stat().st_mtime_ns == before
+print('PASS pending-apps webapps')
