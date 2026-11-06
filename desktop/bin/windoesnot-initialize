@@ -48,8 +48,33 @@ if nearby_extension.is_file() and not nearby_target.exists() and not nearby_targ
     nearby_target.parent.mkdir(parents=True, exist_ok=True)
     nearby_target.symlink_to(nearby_extension)
 
-# Literal $HOME entries stay portable when initializing /etc/skel.
-for directory in ['Desktop','Downloads','Templates','Public','Documents','Music','Pictures','Videos']:
+# Standard folders follow the system language (live-switchable); skipped for /etc/skel,
+# whose literal $HOME entries stay portable.
+if home != Path('/etc/skel'):
+    tool = Path(__file__).resolve().parent / 'windoesnot-user-dirs'
+    tool = str(tool) if tool.is_file() else shutil.which('windoesnot-user-dirs')
+    if tool:
+        subprocess.run([tool], check=False, stderr=subprocess.DEVNULL)
+
+
+def user_folder(key, fallback):
+    """Folder name from user-dirs.dirs (so a German session never recreates 'Documents')."""
+    try:
+        for line in (config / 'user-dirs.dirs').read_text().splitlines():
+            if line.startswith(f'XDG_{key}_DIR='):
+                value = line.split('=', 1)[1].strip().strip('"').replace('$HOME', str(home))
+                path = Path(value)
+                if path.parent == home:
+                    return path.name
+    except OSError:
+        pass
+    return fallback
+
+
+folders = {key: user_folder(key, name) for key, name in
+           [('DESKTOP', 'Desktop'), ('DOWNLOAD', 'Downloads'), ('TEMPLATES', 'Templates'), ('PUBLICSHARE', 'Public'),
+            ('DOCUMENTS', 'Documents'), ('MUSIC', 'Music'), ('PICTURES', 'Pictures'), ('VIDEOS', 'Videos')]}
+for directory in folders.values():
     (home / directory).mkdir(exist_ok=True)
 
 # Nautilus/GTK sidebar favorites for the common folders. Bookmarks are plain
@@ -58,7 +83,7 @@ for directory in ['Desktop','Downloads','Templates','Public','Documents','Music'
 bookmarks_path = config / 'gtk-3.0/bookmarks'
 if not bookmarks_path.exists():
     from urllib.parse import quote
-    bookmark_dirs = ['Desktop', 'Documents', 'Downloads', 'Pictures', 'Music']
+    bookmark_dirs = [folders[k] for k in ('DESKTOP', 'DOCUMENTS', 'DOWNLOAD', 'PICTURES', 'MUSIC')]
     lines = [f'file://{quote(str(home / d))} {d}\n' for d in bookmark_dirs]
     bookmarks_path.parent.mkdir(parents=True, exist_ok=True)
     bookmarks_path.write_text(''.join(lines))

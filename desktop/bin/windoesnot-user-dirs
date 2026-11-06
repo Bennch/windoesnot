@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""Keep the standard folders (Documents, Pictures, ...) in the user's language.
+
+Run at session start, before the file manager opens and after a language change.
+Only folders still carrying a default name (of the recorded previous locale or
+English) are renamed, and never onto an existing folder, so no data is touched
+or merged. Customised folder paths are left alone."""
+import argparse
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+import tempfile
+from urllib.parse import quote, unquote
+
+KEYS = ('DESKTOP', 'DOWNLOAD', 'TEMPLATES', 'PUBLICSHARE', 'DOCUMENTS', 'MUSIC', 'PICTURES', 'VIDEOS')
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--locale', help='Target locale, e.g. de_DE.UTF-8 (default: /etc/locale.conf, then LANG)')
+args = parser.parse_args()
+home = Path(os.environ.get('HOME', '~')).expanduser()
+config = Path(os.environ.get('XDG_CONFIG_HOME', home / '.config'))
+dirs_file, locale_file = config / 'user-dirs.dirs', config / 'user-dirs.locale'
+
+
+def target_locale():
+    if args.locale:
+        return args.locale
+    try:
+        for line in Path('/etc/locale.conf').read_text().splitlines():
+            if line.startswith('LANG='):
+                return line.split('=', 1)[1].strip().strip('"')
+    except OSError:
+        pass
+    return os.environ.get('LANG', 'C')
+
+
+def default_names(locale):
+    """What xdg-user-dirs would name the folders for `locale` (nothing is created)."""
+    with tempfile.TemporaryDirectory() as temp:
+        fake_home, out = Path(temp) / 'home', Path(temp) / 'dirs'
+        fake_home.mkdir()
+        env = {**os.environ, 'HOME': str(fake_home), 'XDG_CONFIG_HOME': str(fake_home / '.config'),
+               'LANG': locale, 'LC_ALL': locale, 'LANGUAGE': locale.split('_')[0].split('.')[0]}
+        for var in ('XDG_DESKTOP_DIR', 'XDG_DOCUMENTS_DIR', 'XDG_DOWNLOAD_DIR'):
+            env.pop(var, None)
+        subprocess.run(['xdg-user-dirs-update', '--force', '--dummy-output', str(out)], env=env,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+        return parse(out.read_text(), str(home))
+
+
+def parse(text, home_dir):
+    result = {}
+    for match in re.finditer(r'^XDG_([A-Z]+)_DIR="(.*)"$', text, re.M):
+        path = match.group(2).replace('$HOME', home_dir)
+        result[match.group(1)] = Path(path)
+    return result
+
+
+def main():
+    if not dirs_file.is_file() or not shutil_which('xdg-user-dirs-update'):
+        return 0
+    locale = target_locale()
+    if locale in ('C', 'POSIX', ''):
+        return 0
+    previous = locale_file.read_text().strip() if locale_file.is_file() else ''
+    current = parse(dirs_file.read_text(), str(home))
+    wanted = default_names(locale)
+    known = [default_names('en_US.UTF-8')]
+    if previous and previous != locale:
+        try:
+            known.append(default_names(previous))
+        except (OSError, subprocess.CalledProcessError):
+            pass
+    changed = False
+    renamed = {}
+    for key in KEYS:
+        old, new = current.get(key), wanted.get(key)
+        if old is None or new is None or old.parent != home or new.parent != home or old == new:
+            continue
+        # Only a folder that still has a default name in a known language.
+        if not any(old.name == names.get(key, Path('')).name for names in known):
+            continue
+        if old.is_dir() and not old.is_symlink():
+            if not new.exists():
+                old.rename(new)
+            elif not any(old.iterdir()):
+                old.rmdir()      # empty leftover default, the localised folder exists
+            else:
+                continue         # both hold data: keep the user's choice
+        subprocess.run(['xdg-user-dirs-update', '--set', key, str(new)], check=False)
+        renamed[old] = new
+        changed = True
+    update_bookmarks(renamed)
+    locale_file.write_text(locale + '\n')
+    if changed:
+        subprocess.run(['xdg-user-dirs-update'], check=False)
+    return 0
+
+
+def update_bookmarks(renamed):
+    """Point our own sidebar favourites (plain file:// lines) at the renamed folders."""
+    path = config / 'gtk-3.0/bookmarks'
+    if not renamed or not path.is_file():
+        return
+    lines = []
+    for line in path.read_text().splitlines():
+        uri, _, label = line.partition(' ')
+        if uri.startswith('file://'):
+            target = Path(unquote(uri[7:]))
+            if target in renamed and label in ('', target.name):
+                line = f'file://{quote(str(renamed[target]))} {renamed[target].name}'
+        lines.append(line)
+    path.write_text('\n'.join(lines) + '\n')
+
+
+def shutil_which(name):
+    return any((Path(p) / name).exists() for p in os.environ.get('PATH', '').split(':'))
+
+
+if __name__ == '__main__':
+    sys.exit(main())

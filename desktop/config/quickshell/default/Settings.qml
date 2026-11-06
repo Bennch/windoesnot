@@ -882,6 +882,11 @@ FloatingWindow {
     }
 
     Process {
+        id: userDirsProc
+        running: false
+    }
+
+    Process {
         id: timezoneProc
         command: ["bash", "-c", ""]
         running: false
@@ -2044,8 +2049,12 @@ FloatingWindow {
     function finishLanguageChange(code) {
         localeChangeBusy = false
         localeChangeFailed = code !== 0
-        if (code === 0) systemLocale = pendingSystemLocale
-        else uiLanguage = previousUiLanguage
+        if (code === 0) {
+            systemLocale = pendingSystemLocale
+            // Documents, Pictures, ... follow the language, also when switched live
+            userDirsProc.command = ["bash", "-c", "windoesnot-user-dirs --locale \"$1\" >/dev/null 2>&1 || true", "bash", pendingSystemLocale]
+            userDirsProc.running = true
+        } else uiLanguage = previousUiLanguage
     }
 
     function updateTimeZone() {

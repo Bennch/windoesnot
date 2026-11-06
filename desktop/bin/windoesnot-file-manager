@@ -10,6 +10,9 @@ export LANG="$locale"
 export LANGUAGE="${locale%%_*}"
 export LC_ALL="$locale"
 
+# Standard folders follow the system language (idempotent, never blocks the launch)
+if command -v windoesnot-user-dirs >/dev/null 2>&1; then windoesnot-user-dirs --locale "$locale" >/dev/null 2>&1 || true; fi
+
 # Launch available file manager
 if command -v nautilus >/dev/null 2>&1; then
     exec nautilus "$@"
