@@ -231,7 +231,7 @@ def main():
                     # Normal expansion resizes past the tiled/reserved area; scroll the summary instead.
                     windowExpanding='noexpand')
     branding['strings'].update(productName='WinDoesNot',shortProductName='WinDoesNot',version='0.1-dev',shortVersion='0.1-dev',versionedName='WinDoesNot 0.1-dev',shortVersionedName='WinDoesNot',bootloaderEntryName='WinDoesNot',homeUrl='',supportUrl='',knownIssuesUrl='',releaseNotesUrl='',donateUrl='')
-    branding['images']={'productLogo':'windoesnot-icon-256.png', 'productIcon':'windoesnot-icon-256.png', 'productWelcome':'windoesnot-logo-dunkel.png'}
+    branding['images']={'productLogo':'windoesnot-icon-256.png', 'productIcon':'windoesnot-icon-256.png', 'productBanner':'windoesnot-banner.png'}
     branding['style']={'SidebarBackground':'#202024','SidebarText':'#eeeeee','SidebarTextCurrent':'#ffffff','SidebarBackgroundCurrent':'#fe6f2d'}
     branding.pop('uploadServer',None)
     shutil.copytree(ROOT/'iso/branding',cal/'branding/windoesnot')
@@ -259,6 +259,7 @@ def main():
     pages = next(x['show'] for x in settings['sequence'] if 'show' in x)
     pages.insert(pages.index('partition'), 'windoesnotboot')
     pages.insert(pages.index('users'), 'windoesnotapps')
+    pages.insert(pages.index('welcome') + 1, 'windoesnotintro')   # "About WinDoesNot" after the language choice
     # The finalizer has initialized the target keyring before offline app installation.
     execution.insert(execution.index('shellprocess') + 1, 'windoesnotapps_install')
     execution.insert(execution.index('windoesnotapps_install') + 1, 'windoesnotfinish')
@@ -281,6 +282,7 @@ def main():
     cfg('windoesnotboot.conf', {})
     for stage in ['preflight','guard','install','finish']:
         cfg('windoesnotbootreuse-'+stage+'.conf', {'stage':stage})
+    cfg('windoesnotintro.conf', {'qmlSearch': 'qrc'})
     cfg('windoesnotapps.conf', {'catalog':'/usr/share/windoesnot/iso/software/catalog.json', 'mode':'offline'})
     for job in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotfinish']:
         cfg(job + '.conf', {'mode':'offline'})
