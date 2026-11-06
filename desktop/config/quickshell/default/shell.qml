@@ -5249,7 +5249,7 @@ FloatingWindow {
     id: audioWindow
     visible: false
     implicitWidth: 320
-    implicitHeight: 400
+    implicitHeight: 440
     color: "transparent"
     title: "quickshell-audio"
     screen: {

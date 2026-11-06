@@ -687,6 +687,8 @@ var strings = {
     // === Audio Panel ===
     "audio.title": "Audio",
     "audio.volume": "Volume",
+    "audio.apps": "Mixer",
+    "audio.noApps": "No application is playing sound",
     "audio.outputDevice": "Output Device",
     "audio.default": "Default",
     "audio.mute": "Mute",
