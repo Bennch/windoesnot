@@ -46,7 +46,7 @@
   "windoesnot-audio": {
     "url": "https://github.com/Bennch/windoesnot-audio",
     "path": "audio",
-    "commit": "d160c76c41c1bb3f8329646b1053f7cb325535a1",
+    "commit": "46a60f3270c8a8e99eda19d245aa25a219066a4f",
     "upstream": "https://github.com/wwmm/easyeffects",
     "upstream_commit": "b4390ab3fec06fcfbd6dcf2c2fa1d12bca23bc68"
   },
