@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import re
 
+SOURCES = ('offline', 'flatpak', 'repo', 'aur')
+
 
 def load_catalog(path):
     data = json.loads(Path(path).read_text())
@@ -16,9 +18,25 @@ def load_catalog(path):
     for app in data['apps']:
         if not re.fullmatch(r'[a-z][a-z0-9-]*', app['id']) or app['category'] not in categories:
             raise ValueError('Invalid application ID or category')
-        for package in app['packages'] + sum(app.get('localizations', {}).values(), []):
+        source = app.get('source', 'offline')
+        if source not in SOURCES:
+            raise ValueError('Unknown application source')
+        for package in app['packages'] + sum(app.get('localizations', {}).values(), []) + app.get('repo_packages', []):
             if not re.fullmatch(r'[a-z0-9][a-z0-9@._+-]*', package):
                 raise ValueError('Invalid package name')
+        # Deferred sources carry exactly one fixed reference and never offline packages.
+        if source == 'offline':
+            if app.get('flatpak_id') or app.get('aur_package') or app.get('repo_packages'):
+                raise ValueError('Offline application with deferred reference')
+        else:
+            if app['packages'] or app.get('required') or app.get('services'):
+                raise ValueError('Deferred application with offline content')
+            if source == 'flatpak' and not re.fullmatch(r'[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+){2,}', app.get('flatpak_id', '')):
+                raise ValueError('Invalid Flatpak ID')
+            if source == 'aur' and not re.fullmatch(r'[a-z0-9][a-z0-9@._+-]*', app.get('aur_package', '')):
+                raise ValueError('Invalid AUR package')
+            if source == 'repo' and not app.get('repo_packages'):
+                raise ValueError('Repository application without packages')
         if any(service != 'cups.service' for service in app.get('services', [])):
             raise ValueError('Unsupported service')
     for profile in data['profiles']:
@@ -54,7 +72,7 @@ def packages_for(catalog, selected, language='en'):
     services = set()
     language = re.split('[-_.]', language)[0].lower()
     for app in catalog['apps']:
-        if app['id'] not in selected:
+        if app['id'] not in selected or app.get('source', 'offline') != 'offline':
             continue
         # Required apps are already in the image, but still need their language packs.
         packages.update(app.get('localizations', {}).get(language, []))
@@ -62,3 +80,22 @@ def packages_for(catalog, selected, language='en'):
             packages.update(app['packages'])
             services.update(app.get('services', []))
     return sorted(packages), sorted(services)
+
+
+def pending_for(catalog, selected):
+    """Deferred applications (installed after the first boot, when online): IDs only, in catalogue order."""
+    validate_selection(catalog, selected)
+    return [app['id'] for app in catalog['apps']
+            if app['id'] in selected and app.get('source', 'offline') != 'offline']
+
+
+def pending_reference(app):
+    """(source, fixed reference) of a deferred application, resolved from the catalogue, never from user data."""
+    source = app.get('source', 'offline')
+    if source == 'flatpak':
+        return source, [app['flatpak_id']]
+    if source == 'aur':
+        return source, [app['aur_package']]
+    if source == 'repo':
+        return source, list(app['repo_packages'])
+    raise ValueError('Not a deferred application')

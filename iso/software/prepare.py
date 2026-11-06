@@ -121,6 +121,8 @@ def main():
     # Pull the application icon from the very same signed package archives.
     icons = catalog_path.parent / 'icons'; icons.mkdir(exist_ok=True)
     for app in catalog['apps']:
+        if not app['packages']:
+            continue  # deferred (Flatpak/repo/AUR) applications have nothing in the offline vault
         archive = metadata.get(app['packages'][0])
         if archive is None:
             continue

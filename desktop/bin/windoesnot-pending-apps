@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+"""Install the apps chosen in the installer that were not in the offline vault.
+
+The installer writes only app IDs to /var/lib/windoesnot/pending-apps.json. This
+user service resolves each ID against the signed catalogue (fixed Flatpak IDs,
+repository packages or AUR names, never free text) and, once the network is up:
+  * installs Flatpak apps per user from Flathub, without a password;
+  * leaves repository and AUR apps for the Store (password / AUR review needed)
+    and tells the user about them with one notification.
+Finished apps are recorded in ~/.local/state/windoesnot/pending-apps-done.json."""
+import argparse
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import time
+
+BASE = Path(os.environ.get('WINDOESNOT_BASE', '/usr/share/windoesnot'))
+PENDING = Path(os.environ.get('WINDOESNOT_PENDING', '/var/lib/windoesnot/pending-apps.json'))
+STATE = Path(os.environ.get('XDG_STATE_HOME', Path.home() / '.local/state')) / 'windoesnot'
+FLATHUB = 'https://dl.flathub.org/repo/flathub.flatpakrepo'
+sys.path.insert(0, str(BASE / 'iso/software'))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / 'iso/software'))
+from catalog import load_catalog, pending_reference  # noqa: E402
+
+german = os.environ.get('LANG', '').lower().startswith('de')
+
+
+def tr(de, en):
+    return de if german else en
+
+
+def read_json(path, default):
+    try:
+        return json.loads(Path(path).read_text())
+    except (OSError, ValueError):
+        return default
+
+
+def remaining(catalog):
+    wanted = read_json(PENDING, {}).get('pending', [])
+    done = set(read_json(STATE / 'pending-apps-done.json', {}).get('done', []))
+    known = {app['id']: app for app in catalog['apps']}
+    return [known[i] for i in wanted if i in known and i not in done and known[i].get('source', 'offline') != 'offline']
+
+
+def mark_done(app_id):
+    STATE.mkdir(parents=True, exist_ok=True)
+    path = STATE / 'pending-apps-done.json'
+    done = set(read_json(path, {}).get('done', [])) | {app_id}
+    path.write_text(json.dumps({'schema_version': 1, 'done': sorted(done)}, indent=2) + '\n')
+
+
+def notify(title, body, dry):
+    if dry or not shutil.which('notify-send'):
+        print(f'NOTIFY: {title} | {body}')
+        return
+    subprocess.run(['notify-send', '-a', 'WinDoesNot', '-i', 'system-software-install', title, body], check=False)
+
+
+def online():
+    if shutil.which('nm-online'):
+        return subprocess.run(['nm-online', '-q', '-t', '5']).returncode == 0
+    return subprocess.run(['curl', '-fsI', '--max-time', '8', 'https://dl.flathub.org'], stdout=subprocess.DEVNULL).returncode == 0
+
+
+def install_flatpak(app, dry):
+    _, refs = pending_reference(app)
+    commands = [['flatpak', 'remote-add', '--user', '--if-not-exists', 'flathub', FLATHUB],
+                ['flatpak', 'install', '--user', '--noninteractive', '-y', 'flathub', refs[0]]]
+    for command in commands:
+        if dry:
+            print('RUN:', ' '.join(command))
+        elif subprocess.run(command, timeout=3600).returncode != 0:
+            return False
+    return True
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--dry-run', action='store_true', help='print what would run, change nothing')
+    parser.add_argument('--no-wait', action='store_true', help='do not wait for the network, try once')
+    args = parser.parse_args()
+    catalog = load_catalog(BASE / 'iso/software/catalog.json') if (BASE / 'iso/software/catalog.json').is_file() \
+        else load_catalog(Path(__file__).resolve().parent.parent.parent / 'iso/software/catalog.json')
+    todo = remaining(catalog)
+    if not todo:
+        return 0
+    store_apps = [a for a in todo if a['source'] != 'flatpak']
+    flatpaks = [a for a in todo if a['source'] == 'flatpak']
+    name = lambda a: a['name']['de' if german else 'en']  # noqa: E731
+    while flatpaks:
+        if not args.dry_run and not online():
+            if args.no_wait:
+                return 1
+            time.sleep(60)
+            continue
+        if not args.dry_run and not shutil.which('flatpak'):
+            notify(tr('Programme warten', 'Apps are waiting'), tr('Flatpak fehlt, bitte im Store installieren: ', 'Flatpak is missing, please use the Store: ') + ', '.join(map(name, flatpaks)), args.dry_run)
+            break
+        failed = []
+        for app in flatpaks:
+            if install_flatpak(app, args.dry_run):
+                if not args.dry_run:
+                    mark_done(app['id'])
+                    notify(tr('Programm installiert', 'App installed'), name(app), False)
+            else:
+                failed.append(app)
+        flatpaks = failed
+        if failed and args.no_wait:
+            return 1
+        if failed:
+            time.sleep(300)
+    notified_path = STATE / 'pending-apps-notified.json'
+    notified = set(read_json(notified_path, {}).get('notified', []))
+    store_apps = [a for a in store_apps if a['id'] not in notified]   # tell the user once per app
+    if store_apps:
+        if not args.dry_run:
+            STATE.mkdir(parents=True, exist_ok=True)
+            notified_path.write_text(json.dumps({'schema_version': 1, 'notified': sorted(notified | {a['id'] for a in store_apps})}) + '\n')
+        notify(tr('Programme warten auf dich', 'Apps are waiting for you'),
+               ', '.join(map(name, store_apps)) + tr(': im Store installieren (Passwort bzw. Prüfung nötig).', ': install them in the Store (password or review needed).'), args.dry_run)
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

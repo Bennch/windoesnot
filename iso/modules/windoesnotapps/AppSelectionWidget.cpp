@@ -122,6 +122,7 @@ void AppSelectionWidget::build() {
         icon->setPixmap(image); top->addWidget(icon);
         auto* box = new QCheckBox(localized(app, "name"), card); box->setObjectName("app-"+id); box->setChecked(m_selected.contains(id)); box->setEnabled(!app.value("required").toBool()); box->setAccessibleDescription(localized(app,"description")); QFont title = box->font(); title.setBold(true); box->setFont(title); m_boxes.insert(id,box); top->addWidget(box,1); v->addLayout(top);
         auto* description = new QLabel(localized(app,"description"),card); description->setWordWrap(true); v->addWidget(description,1);
+        if (app.value("source").toString("offline") != "offline") { auto* later = new QLabel(text("Wird nach der Installation geladen, sobald du online bist.", "Installed after setup, once you are online."), card); later->setWordWrap(true); later->setObjectName("deferred-note"); v->addWidget(later); }
         if (app.value("required").toBool()) { auto* required = new QLabel(text("In der Grundausstattung enthalten", "Included in the essentials"),card); required->setObjectName("includedLabel"); v->addWidget(required); }
         m_cards.append(card);
         connect(box,&QCheckBox::toggled,this,[this,id,card](bool checked) { if (m_updating) return; if (checked) m_selected.insert(id); else m_selected.remove(id); card->setProperty("selected",checked); card->style()->unpolish(card); card->style()->polish(card); QSignalBlocker block(m_profiles); m_profiles->setCurrentIndex(m_profiles->findData("custom")); notify(); });

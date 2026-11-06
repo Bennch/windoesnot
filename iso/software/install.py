@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 import subprocess
 import shutil
-from catalog import load_catalog, packages_for
+from catalog import load_catalog, packages_for, pending_for
 from repository import install_packages
 
 BASE = Path('/usr/share/windoesnot')
@@ -24,7 +24,7 @@ def main():
     Path('/var/lib/pacman/sync/windoesnot-apps.db').unlink(missing_ok=True)
 
 
-def install_selection(selected, language, base=BASE, record=Path('/var/lib/windoesnot/software-profile.json'), mode='offline'):
+def install_selection(selected, language, base=BASE, record=Path('/var/lib/windoesnot/software-profile.json'), mode='offline', pending=Path('/var/lib/windoesnot/pending-apps.json')):
     catalog = load_catalog(base / 'iso/software/catalog.json')
     packages, services = packages_for(catalog, selected, language)
     bundle = base / 'offline-apps'
@@ -32,6 +32,13 @@ def install_selection(selected, language, base=BASE, record=Path('/var/lib/windo
     for service in services:
         subprocess.run(['systemctl', 'enable', service], check=True)
     record.parent.mkdir(parents=True, exist_ok=True)
+    # Apps that are not in the offline vault are installed after the first boot (see windoesnot-pending-apps).
+    wishlist = pending_for(catalog, selected)
+    pending.parent.mkdir(parents=True, exist_ok=True)
+    if wishlist:
+        pending.write_text(json.dumps({'schema_version': 1, 'pending': wishlist}, indent=2) + '\n')
+    else:
+        pending.unlink(missing_ok=True)
     record.write_text(json.dumps({'schema_version': 1, 'selected': sorted(selected)}, indent=2) + '\n')
     # Optional archives belong to the live medium, not the installed desktop.
     shutil.rmtree(bundle)

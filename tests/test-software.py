@@ -10,10 +10,10 @@ from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parent.parent
 sys.path.insert(0,str(ROOT/'iso/software'))
-from catalog import load_catalog, read_profile, packages_for, validate_selection
+from catalog import load_catalog, read_profile, packages_for, validate_selection, pending_for, pending_reference
 import install as installer
 catalog=load_catalog(ROOT/'iso/software/catalog.json')
-assert len(catalog['apps'])==15
+assert len([a for a in catalog['apps'] if a.get('source','offline')=='offline'])==15 and len(catalog['apps'])>15
 for profile in catalog['profiles']:
  validate_selection(catalog,profile['selected'])
 packages,services=packages_for(catalog,['firefox','printing','libreoffice'],'de-DE')
@@ -23,6 +23,21 @@ assert not packages_for(catalog,['firefox','libreoffice'],'en-US')[0].__contains
 assert packages_for(catalog,['firefox'],'de_DE.UTF-8')==(['firefox-i18n-de'],[])
 assert packages_for(catalog,['firefox'],'en_US.UTF-8')==([],[])
 assert 'hunspell-de' in packages
+# Deferred apps never reach the offline vault; they go to the wishlist with fixed references only.
+sel=['firefox','google-chrome','ollama','codex-cli','gimp']
+assert 'google-chrome' not in packages_for(catalog,sel,'en')[0] and 'ollama' not in packages_for(catalog,sel,'en')[0]
+assert pending_for(catalog,sel)==['google-chrome','ollama','codex-cli']
+by_id={a['id']:a for a in catalog['apps']}
+assert pending_reference(by_id['google-chrome'])==('flatpak',['com.google.Chrome'])
+assert pending_reference(by_id['ollama'])==('repo',['ollama']) and pending_reference(by_id['codex-cli'])==('aur',['openai-codex-bin'])
+import copy
+for mutate in [lambda a:a.update(source='npm'),lambda a:a.update(flatpak_id='not an id'),lambda a:a.update(packages=['x']),lambda a:a.pop('flatpak_id')]:
+  broken=copy.deepcopy(catalog);mutate(next(a for a in broken['apps'] if a['id']=='google-chrome'))
+  with tempfile.TemporaryDirectory() as tmp0:
+    (Path(tmp0)/'c.json').write_text(json.dumps(broken))
+    try: load_catalog(Path(tmp0)/'c.json')
+    except ValueError: pass
+    else: raise AssertionError('Invalid deferred application accepted')
 for value in [['unknown'],['firefox','firefox'],['gimp'],'firefox']:
  try: validate_selection(catalog,value)
  except ValueError: pass

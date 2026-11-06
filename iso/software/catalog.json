@@ -56,6 +56,13 @@
         "de": "Drucker und Scanner",
         "en": "Printers and scanners"
       }
+    },
+    {
+      "id": "ai",
+      "name": {
+        "de": "KI und Assistenten",
+        "en": "AI and assistants"
+      }
     }
   ],
   "profiles": [
@@ -143,7 +150,8 @@
         "de": [
           "firefox-i18n-de"
         ]
-      }
+      },
+      "source": "offline"
     },
     {
       "id": "thunderbird",
@@ -164,7 +172,8 @@
         "de": [
           "thunderbird-i18n-de"
         ]
-      }
+      },
+      "source": "offline"
     },
     {
       "id": "libreoffice",
@@ -186,7 +195,8 @@
           "libreoffice-fresh-de",
           "hunspell-de"
         ]
-      }
+      },
+      "source": "offline"
     },
     {
       "id": "keepassxc",
@@ -202,7 +212,8 @@
         "de": "Passwörter in einer verschlüsselten lokalen Datenbank verwalten.",
         "en": "Manage passwords in an encrypted local database."
       },
-      "required": false
+      "required": false,
+      "source": "offline"
     },
     {
       "id": "vlc",
@@ -218,7 +229,8 @@
         "de": "Musik und Videos in vielen Formaten abspielen.",
         "en": "Play music and videos in many formats."
       },
-      "required": false
+      "required": false,
+      "source": "offline"
     },
     {
       "id": "gimp",
@@ -234,7 +246,8 @@
         "de": "Fotos bearbeiten und Grafiken gestalten.",
         "en": "Edit photos and create graphics."
       },
-      "required": false
+      "required": false,
+      "source": "offline"
     },
     {
       "id": "obs",
@@ -250,7 +263,8 @@
         "de": "Bildschirm aufnehmen und Live-Streams erstellen.",
         "en": "Record your screen and create live streams."
       },
-      "required": false
+      "required": false,
+      "source": "offline"
     },
     {
       "id": "steam",
@@ -267,7 +281,8 @@
         "de": "Spielebibliothek und Spieleinstallation. Spiele benötigen eigene Downloads.",
         "en": "Game library and game installation. Games require separate downloads."
       },
-      "required": false
+      "required": false,
+      "source": "offline"
     },
     {
       "id": "lutris",
@@ -283,7 +298,8 @@
         "de": "Spiele aus verschiedenen Quellen verwalten.",
         "en": "Manage games from different sources."
       },
-      "required": false
+      "required": false,
+      "source": "offline"
     },
     {
       "id": "geany",
@@ -299,7 +315,8 @@
         "de": "Schlanker Editor für Programmcode und Projekte.",
         "en": "Lightweight editor for code and projects."
       },
-      "required": false
+      "required": false,
+      "source": "offline"
     },
     {
       "id": "git",
@@ -315,7 +332,8 @@
         "de": "Änderungen an Code und Projekten versionieren.",
         "en": "Track changes in code and projects."
       },
-      "required": false
+      "required": false,
+      "source": "offline"
     },
     {
       "id": "archives",
@@ -331,7 +349,8 @@
         "de": "ZIP-Dateien und andere Archive öffnen und erstellen.",
         "en": "Open and create ZIP files and other archives."
       },
-      "required": false
+      "required": false,
+      "source": "offline"
     },
     {
       "id": "usb-writer",
@@ -347,7 +366,8 @@
         "de": "ISO-Abbilder auf USB-Sticks schreiben, etwa für WinDoesNot.",
         "en": "Write ISO images to USB drives, for example WinDoesNot."
       },
-      "required": false
+      "required": false,
+      "source": "offline"
     },
     {
       "id": "printing",
@@ -367,7 +387,8 @@
       "required": false,
       "services": [
         "cups.service"
-      ]
+      ],
+      "source": "offline"
     },
     {
       "id": "scanning",
@@ -383,7 +404,876 @@
         "de": "Papierdokumente mit einem unterstützten Scanner digitalisieren.",
         "en": "Digitise paper documents with a supported scanner."
       },
-      "required": false
+      "required": false,
+      "source": "offline"
+    },
+    {
+      "id": "inkscape",
+      "name": {
+        "de": "Inkscape",
+        "en": "Inkscape"
+      },
+      "category": "creative",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Vektorgrafiken, Logos und Illustrationen",
+        "en": "Vector graphics, logos and illustrations"
+      },
+      "required": false,
+      "flatpak_id": "org.inkscape.Inkscape"
+    },
+    {
+      "id": "krita",
+      "name": {
+        "de": "Krita",
+        "en": "Krita"
+      },
+      "category": "creative",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Digital malen und zeichnen",
+        "en": "Digital painting and drawing"
+      },
+      "required": false,
+      "flatpak_id": "org.kde.krita"
+    },
+    {
+      "id": "kdenlive",
+      "name": {
+        "de": "Kdenlive",
+        "en": "Kdenlive"
+      },
+      "category": "creative",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Videos schneiden wie ein Profi",
+        "en": "Edit videos like a pro"
+      },
+      "required": false,
+      "flatpak_id": "org.kde.kdenlive"
+    },
+    {
+      "id": "blender",
+      "name": {
+        "de": "Blender",
+        "en": "Blender"
+      },
+      "category": "creative",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "3D-Modelle, Animation und Rendering",
+        "en": "3D modelling, animation and rendering"
+      },
+      "required": false,
+      "flatpak_id": "org.blender.Blender"
+    },
+    {
+      "id": "audacity",
+      "name": {
+        "de": "Audacity",
+        "en": "Audacity"
+      },
+      "category": "creative",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Audio aufnehmen und bearbeiten",
+        "en": "Record and edit audio"
+      },
+      "required": false,
+      "flatpak_id": "org.audacityteam.Audacity"
+    },
+    {
+      "id": "darktable",
+      "name": {
+        "de": "darktable",
+        "en": "darktable"
+      },
+      "category": "creative",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "RAW-Fotos entwickeln und verwalten",
+        "en": "Develop and manage RAW photos"
+      },
+      "required": false,
+      "flatpak_id": "org.darktable.Darktable"
+    },
+    {
+      "id": "nextcloud-client",
+      "name": {
+        "de": "Nextcloud",
+        "en": "Nextcloud"
+      },
+      "category": "office",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Dateien mit deiner Cloud abgleichen",
+        "en": "Sync files with your cloud"
+      },
+      "required": false,
+      "flatpak_id": "com.nextcloud.desktopclient.nextcloud"
+    },
+    {
+      "id": "xournalpp",
+      "name": {
+        "de": "Xournal++",
+        "en": "Xournal++"
+      },
+      "category": "office",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Handschriftliche Notizen und PDFs",
+        "en": "Handwritten notes and PDFs"
+      },
+      "required": false,
+      "flatpak_id": "com.github.xournalpp.xournalpp"
+    },
+    {
+      "id": "okular",
+      "name": {
+        "de": "Okular",
+        "en": "Okular"
+      },
+      "category": "office",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "PDFs lesen und kommentieren",
+        "en": "Read and annotate PDFs"
+      },
+      "required": false,
+      "flatpak_id": "org.kde.okular"
+    },
+    {
+      "id": "heroic-games-launcher",
+      "name": {
+        "de": "Heroic",
+        "en": "Heroic"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Epic-, GOG- und Amazon-Spiele",
+        "en": "Epic, GOG and Amazon games"
+      },
+      "required": false,
+      "flatpak_id": "com.heroicgameslauncher.hgl"
+    },
+    {
+      "id": "prismlauncher",
+      "name": {
+        "de": "Prism Launcher",
+        "en": "Prism Launcher"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Minecraft mit Mods und Profilen",
+        "en": "Minecraft with mods and profiles"
+      },
+      "required": false,
+      "flatpak_id": "org.prismlauncher.PrismLauncher"
+    },
+    {
+      "id": "retroarch",
+      "name": {
+        "de": "RetroArch",
+        "en": "RetroArch"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Klassische Konsolen emulieren",
+        "en": "Emulate classic consoles"
+      },
+      "required": false,
+      "flatpak_id": "org.libretro.RetroArch"
+    },
+    {
+      "id": "discord",
+      "name": {
+        "de": "Discord",
+        "en": "Discord"
+      },
+      "category": "internet",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Chat, Sprache und Video für Gruppen",
+        "en": "Chat, voice and video for groups"
+      },
+      "required": false,
+      "flatpak_id": "com.discordapp.Discord"
+    },
+    {
+      "id": "telegram-desktop",
+      "name": {
+        "de": "Telegram",
+        "en": "Telegram"
+      },
+      "category": "internet",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Schneller Messenger",
+        "en": "Fast messenger"
+      },
+      "required": false,
+      "flatpak_id": "org.telegram.desktop"
+    },
+    {
+      "id": "signal-desktop",
+      "name": {
+        "de": "Signal",
+        "en": "Signal"
+      },
+      "category": "internet",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Privat und verschlüsselt schreiben",
+        "en": "Private, encrypted messaging"
+      },
+      "required": false,
+      "flatpak_id": "org.signal.Signal"
+    },
+    {
+      "id": "element-desktop",
+      "name": {
+        "de": "Element",
+        "en": "Element"
+      },
+      "category": "internet",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Offener Chat mit Matrix",
+        "en": "Open chat with Matrix"
+      },
+      "required": false,
+      "flatpak_id": "im.riot.Riot"
+    },
+    {
+      "id": "mpv",
+      "name": {
+        "de": "mpv",
+        "en": "mpv"
+      },
+      "category": "media",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Schlanker Videoplayer",
+        "en": "Lean video player"
+      },
+      "required": false,
+      "flatpak_id": "io.mpv.Mpv"
+    },
+    {
+      "id": "spotify-launcher",
+      "name": {
+        "de": "Spotify",
+        "en": "Spotify"
+      },
+      "category": "media",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Musik und Podcasts streamen",
+        "en": "Stream music and podcasts"
+      },
+      "required": false,
+      "flatpak_id": "com.spotify.Client"
+    },
+    {
+      "id": "strawberry",
+      "name": {
+        "de": "Strawberry",
+        "en": "Strawberry"
+      },
+      "category": "media",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Deine Musiksammlung abspielen",
+        "en": "Play your music collection"
+      },
+      "required": false,
+      "flatpak_id": "org.strawberrymusicplayer.strawberry"
+    },
+    {
+      "id": "handbrake",
+      "name": {
+        "de": "HandBrake",
+        "en": "HandBrake"
+      },
+      "category": "media",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Videos umwandeln und verkleinern",
+        "en": "Convert and shrink videos"
+      },
+      "required": false,
+      "flatpak_id": "fr.handbrake.ghb"
+    },
+    {
+      "id": "localsend",
+      "name": {
+        "de": "LocalSend",
+        "en": "LocalSend"
+      },
+      "category": "media",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Dateien an Geräte in der Nähe senden",
+        "en": "Send files to nearby devices"
+      },
+      "required": false,
+      "flatpak_id": "org.localsend.localsend_app"
+    },
+    {
+      "id": "code",
+      "name": {
+        "de": "Code - OSS",
+        "en": "Code - OSS"
+      },
+      "category": "development",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Code-Editor mit Erweiterungen",
+        "en": "Code editor with extensions"
+      },
+      "required": false,
+      "flatpak_id": "com.visualstudio.code"
+    },
+    {
+      "id": "kate",
+      "name": {
+        "de": "Kate",
+        "en": "Kate"
+      },
+      "category": "development",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Vielseitiger Texteditor",
+        "en": "Versatile text editor"
+      },
+      "required": false,
+      "flatpak_id": "org.kde.kate"
+    },
+    {
+      "id": "meld",
+      "name": {
+        "de": "Meld",
+        "en": "Meld"
+      },
+      "category": "development",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Dateien und Ordner vergleichen",
+        "en": "Compare files and folders"
+      },
+      "required": false,
+      "flatpak_id": "org.gnome.meld"
+    },
+    {
+      "id": "qbittorrent",
+      "name": {
+        "de": "qBittorrent",
+        "en": "qBittorrent"
+      },
+      "category": "media",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Torrents herunterladen",
+        "en": "Download torrents"
+      },
+      "required": false,
+      "flatpak_id": "org.qbittorrent.qBittorrent"
+    },
+    {
+      "id": "scribus",
+      "name": {
+        "de": "Scribus",
+        "en": "Scribus"
+      },
+      "category": "creative",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Flyer, Magazine und PDFs setzen",
+        "en": "Layout flyers, magazines and PDFs"
+      },
+      "required": false,
+      "flatpak_id": "net.scribus.Scribus"
+    },
+    {
+      "id": "shotcut",
+      "name": {
+        "de": "Shotcut",
+        "en": "Shotcut"
+      },
+      "category": "creative",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Einfacher Videoeditor für alle Formate",
+        "en": "Simple video editor for any format"
+      },
+      "required": false,
+      "flatpak_id": "org.shotcut.Shotcut"
+    },
+    {
+      "id": "rawtherapee",
+      "name": {
+        "de": "RawTherapee",
+        "en": "RawTherapee"
+      },
+      "category": "creative",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "RAW-Fotos entwickeln",
+        "en": "Develop RAW photos"
+      },
+      "required": false,
+      "flatpak_id": "com.rawtherapee.RawTherapee"
+    },
+    {
+      "id": "pinta",
+      "name": {
+        "de": "Pinta",
+        "en": "Pinta"
+      },
+      "category": "creative",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Schnell Bilder zeichnen und bearbeiten",
+        "en": "Quickly draw and edit images"
+      },
+      "required": false,
+      "flatpak_id": "com.github.PintaProject.Pinta"
+    },
+    {
+      "id": "ardour",
+      "name": {
+        "de": "Ardour",
+        "en": "Ardour"
+      },
+      "category": "creative",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Musik aufnehmen und produzieren",
+        "en": "Record and produce music"
+      },
+      "required": false,
+      "flatpak_id": "org.ardour.Ardour"
+    },
+    {
+      "id": "freecad",
+      "name": {
+        "de": "FreeCAD",
+        "en": "FreeCAD"
+      },
+      "category": "creative",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "3D-Konstruktion und CAD",
+        "en": "3D design and CAD"
+      },
+      "required": false,
+      "flatpak_id": "org.freecad.FreeCAD"
+    },
+    {
+      "id": "obsidian",
+      "name": {
+        "de": "Obsidian",
+        "en": "Obsidian"
+      },
+      "category": "office",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Notizen verknüpfen und sammeln",
+        "en": "Link and collect notes"
+      },
+      "required": false,
+      "flatpak_id": "md.obsidian.Obsidian"
+    },
+    {
+      "id": "bitwarden",
+      "name": {
+        "de": "Bitwarden",
+        "en": "Bitwarden"
+      },
+      "category": "office",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Passwörter in der Cloud verwalten",
+        "en": "Manage passwords in the cloud"
+      },
+      "required": false,
+      "flatpak_id": "com.bitwarden.desktop"
+    },
+    {
+      "id": "foliate",
+      "name": {
+        "de": "Foliate",
+        "en": "Foliate"
+      },
+      "category": "office",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "E-Books bequem lesen",
+        "en": "Read e-books comfortably"
+      },
+      "required": false,
+      "flatpak_id": "com.github.johnfactotum.Foliate"
+    },
+    {
+      "id": "flameshot",
+      "name": {
+        "de": "Flameshot",
+        "en": "Flameshot"
+      },
+      "category": "office",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Screenshots aufnehmen und markieren",
+        "en": "Take and annotate screenshots"
+      },
+      "required": false,
+      "flatpak_id": "org.flameshot.Flameshot"
+    },
+    {
+      "id": "protonup-qt",
+      "name": {
+        "de": "ProtonUp-Qt",
+        "en": "ProtonUp-Qt"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Proton-Versionen für Steam verwalten",
+        "en": "Manage Proton versions for Steam"
+      },
+      "required": false,
+      "flatpak_id": "net.davidotek.pupgui2"
+    },
+    {
+      "id": "goverlay",
+      "name": {
+        "de": "GOverlay",
+        "en": "GOverlay"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "FPS und Leistung im Spiel anzeigen",
+        "en": "Show FPS and performance in games"
+      },
+      "required": false,
+      "flatpak_id": "io.github.benjamimgois.goverlay"
+    },
+    {
+      "id": "chromium",
+      "name": {
+        "de": "Chromium",
+        "en": "Chromium"
+      },
+      "category": "internet",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Schneller Webbrowser",
+        "en": "Fast web browser"
+      },
+      "required": false,
+      "flatpak_id": "org.chromium.Chromium"
+    },
+    {
+      "id": "librewolf",
+      "name": {
+        "de": "LibreWolf",
+        "en": "LibreWolf"
+      },
+      "category": "internet",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Privater Browser auf Firefox-Basis",
+        "en": "Privacy-focused Firefox-based browser"
+      },
+      "required": false,
+      "flatpak_id": "io.gitlab.librewolf-community"
+    },
+    {
+      "id": "remmina",
+      "name": {
+        "de": "Remmina",
+        "en": "Remmina"
+      },
+      "category": "internet",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Fremde Rechner fernsteuern",
+        "en": "Control remote computers"
+      },
+      "required": false,
+      "flatpak_id": "org.remmina.Remmina"
+    },
+    {
+      "id": "transmission-gtk",
+      "name": {
+        "de": "Transmission",
+        "en": "Transmission"
+      },
+      "category": "media",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Schlanker Torrent-Client",
+        "en": "Lightweight torrent client"
+      },
+      "required": false,
+      "flatpak_id": "com.transmissionbt.Transmission"
+    },
+    {
+      "id": "mkvtoolnix-gui",
+      "name": {
+        "de": "MKVToolNix",
+        "en": "MKVToolNix"
+      },
+      "category": "media",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "MKV-Videos zusammenstellen und bearbeiten",
+        "en": "Merge and edit MKV videos"
+      },
+      "required": false,
+      "flatpak_id": "org.bunkus.mkvtoolnix-gui"
+    },
+    {
+      "id": "vscodium",
+      "name": {
+        "de": "VSCodium",
+        "en": "VSCodium"
+      },
+      "category": "development",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Code-Editor ohne Microsoft-Tracking",
+        "en": "Code editor without Microsoft telemetry"
+      },
+      "required": false,
+      "flatpak_id": "com.vscodium.codium"
+    },
+    {
+      "id": "dbeaver",
+      "name": {
+        "de": "DBeaver",
+        "en": "DBeaver"
+      },
+      "category": "development",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Datenbanken ansehen und abfragen",
+        "en": "Browse and query databases"
+      },
+      "required": false,
+      "flatpak_id": "io.dbeaver.DBeaverCommunity"
+    },
+    {
+      "id": "filezilla",
+      "name": {
+        "de": "FileZilla",
+        "en": "FileZilla"
+      },
+      "category": "development",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Dateien per FTP und SFTP übertragen",
+        "en": "Transfer files via FTP and SFTP"
+      },
+      "required": false,
+      "flatpak_id": "org.filezillaproject.Filezilla"
+    },
+    {
+      "id": "wireshark-qt",
+      "name": {
+        "de": "Wireshark",
+        "en": "Wireshark"
+      },
+      "category": "development",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Netzwerkverkehr analysieren",
+        "en": "Analyse network traffic"
+      },
+      "required": false,
+      "flatpak_id": "org.wireshark.Wireshark"
+    },
+    {
+      "id": "gitg",
+      "name": {
+        "de": "gitg",
+        "en": "gitg"
+      },
+      "category": "development",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Git-Verlauf grafisch ansehen",
+        "en": "Browse Git history graphically"
+      },
+      "required": false,
+      "flatpak_id": "org.gnome.gitg"
+    },
+    {
+      "id": "virt-manager",
+      "name": {
+        "de": "Virt-Manager",
+        "en": "Virt-Manager"
+      },
+      "category": "development",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Virtuelle Maschinen verwalten",
+        "en": "Manage virtual machines"
+      },
+      "required": false,
+      "flatpak_id": "org.virt_manager.virt-manager"
+    },
+    {
+      "id": "google-chrome",
+      "name": {
+        "de": "Google Chrome",
+        "en": "Google Chrome"
+      },
+      "category": "internet",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Der Webbrowser von Google, mit Synchronisierung und Chrome-Erweiterungen.",
+        "en": "Google's web browser with sync and Chrome extensions."
+      },
+      "required": false,
+      "flatpak_id": "com.google.Chrome"
+    },
+    {
+      "id": "sublime-text",
+      "name": {
+        "de": "Sublime Text",
+        "en": "Sublime Text"
+      },
+      "category": "development",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Schneller Texteditor für Code und Text.",
+        "en": "Fast text editor for code and prose."
+      },
+      "required": false,
+      "flatpak_id": "com.sublimetext.three"
+    },
+    {
+      "id": "alpaca",
+      "name": {
+        "de": "Alpaca",
+        "en": "Alpaca"
+      },
+      "category": "ai",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Chatte mit lokalen KI-Modellen über Ollama, ohne Cloud.",
+        "en": "Chat with local AI models through Ollama, no cloud needed."
+      },
+      "required": false,
+      "flatpak_id": "com.jeffser.Alpaca"
+    },
+    {
+      "id": "ollama",
+      "name": {
+        "de": "Ollama",
+        "en": "Ollama"
+      },
+      "category": "ai",
+      "source": "repo",
+      "packages": [],
+      "description": {
+        "de": "Lokale KI-Modelle auf dem eigenen Rechner ausführen.",
+        "en": "Run local AI models on your own computer."
+      },
+      "required": false,
+      "repo_packages": [
+        "ollama"
+      ]
+    },
+    {
+      "id": "claude-code",
+      "name": {
+        "de": "Claude Code",
+        "en": "Claude Code"
+      },
+      "category": "ai",
+      "source": "repo",
+      "packages": [],
+      "description": {
+        "de": "KI-Programmierassistent für das Terminal von Anthropic.",
+        "en": "Anthropic's AI coding assistant for the terminal."
+      },
+      "required": false,
+      "repo_packages": [
+        "claude-code"
+      ]
+    },
+    {
+      "id": "codex-cli",
+      "name": {
+        "de": "Codex CLI",
+        "en": "Codex CLI"
+      },
+      "category": "ai",
+      "source": "aur",
+      "packages": [],
+      "description": {
+        "de": "KI-Programmierassistent für das Terminal von OpenAI (AUR, wird vor der Installation geprüft).",
+        "en": "OpenAI's AI coding assistant for the terminal (AUR, reviewed before installing)."
+      },
+      "required": false,
+      "aur_package": "openai-codex-bin"
     }
   ]
 }
