@@ -3,7 +3,7 @@
 set -euo pipefail
 project=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 rootless=true; mode=both; iso=; dry=false; headless=false; fresh=false; installed=false
-memory=8192; cpus=4; graphics=auto; vm_name=debug; build_id=
+memory=8192; cpus=4; graphics=auto; vm_name=debug; build_id=; viewer=spice
 usage() {
     cat <<EOF
 Usage: $0 [options]
@@ -18,6 +18,7 @@ Usage: $0 [options]
   --memory MiB          RAM (default: 8192)
   --cpus N              vCPUs (default: 4)
   --graphics gl|soft    VirGL acceleration or software rendering
+  --gtk-display         QEMU's own GTK window instead of the SPICE viewer (no shared clipboard)
   --build-id ID         Resume this exact prepared build
   --dry-run             Show actions; do not build, download or launch
   --help                Show help
@@ -37,6 +38,7 @@ while (($#)); do
         --memory) memory=${2:?Missing memory}; shift 2;;
         --cpus) cpus=${2:?Missing CPU count}; shift 2;;
         --graphics) graphics=${2:?Missing graphics mode}; shift 2;;
+        --gtk-display) viewer=gtk; shift;;
         --build-id) build_id=${2:?Missing build ID}; shift 2;;
         --dry-run) dry=true; shift;;
         --help|-h) usage; exit 0;;
@@ -126,12 +128,23 @@ else accel=(-accel tcg,thread=multi -cpu max); echo 'KVM unavailable; using slow
 if [[ $graphics == auto ]]; then
     if $headless; then graphics=soft; else graphics=gl; fi
 fi
+# Shared clipboard with the guest: this QEMU build has no clipboard support in its own GTK
+# window (the qemu-vdagent channel then has nobody to talk to on the host). The SPICE viewer
+# (remote-viewer, started by QEMU itself) does it, over a spicevmc channel.
+if $headless || [[ $viewer == gtk ]]; then
+    gtk_display=gtk
+    clipboard_chardev=(-chardev qemu-vdagent,id=vdagent,name=vdagent,clipboard=on)
+else
+    gtk_display=spice-app
+    clipboard_chardev=(-chardev spicevmc,id=vdagent,name=vdagent)
+    command -v remote-viewer >/dev/null || { echo 'remote-viewer (virt-viewer) is needed for the shared clipboard; use --gtk-display without it.' >&2; exit 1; }
+fi
 if [[ $graphics == gl ]]; then
     display=(-device virtio-vga-gl)
-    if $headless; then display+=(-display egl-headless); else display+=(-display gtk,gl=on); fi
+    if $headless; then display+=(-display egl-headless); else display+=(-display "$gtk_display,gl=on"); fi
 else
     display=(-device virtio-vga)
-    if $headless; then display+=(-display none); else display+=(-display gtk,gl=off); fi
+    if $headless; then display+=(-display none); else display+=(-display "$gtk_display,gl=off"); fi
 fi
 command=(qemu-system-x86_64 -name "WinDoesNot-$vm_name" -machine q35 "${accel[@]}" -m "$memory" -smp "$cpus"
     -drive "if=pflash,format=raw,readonly=on,file=$firmware"
@@ -142,7 +155,7 @@ command=(qemu-system-x86_64 -name "WinDoesNot-$vm_name" -machine q35 "${accel[@]
     -device virtio-rng-pci
     -device virtio-serial-pci -chardev "socket,path=$vm/guest-agent.sock,server=on,wait=off,id=guest0"
     -device virtserialport,chardev=guest0,name=org.qemu.guest_agent.0
-    -chardev qemu-vdagent,id=vdagent,name=vdagent,clipboard=on
+    "${clipboard_chardev[@]}"
     -device virtserialport,chardev=vdagent,name=com.redhat.spice.0
     -serial "file:$vm/serial.log"
     -qmp "unix:$vm/qmp.sock,server=on,wait=off"
