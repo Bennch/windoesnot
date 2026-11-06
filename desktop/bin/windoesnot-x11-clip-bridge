@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
-"""Event-driven X11 -> Wayland clipboard bridge (no polling).
+"""Event-driven clipboard bridge between XWayland (X11) and Wayland (no polling).
 
 Hyprland imports CLIPBOARD changes from XWayland clients only while that
 client's window is focused. Some X11 applications (VMware Workstation, for
 example) announce a new selection owner only after losing focus, so the copy
 never reaches Wayland. This helper listens for XFixes selection-owner events on
 the XWayland display, reads the text with xclip and hands it to wl-copy.
+
+The other way round, a copy in a Wayland application is only exported to X11
+while an X11 window has focus. A guest agent (spice-vdagent) that watches the
+X11 selection would never see it, so a Wayland change is also put into the X11
+clipboard with xclip. Both directions compare the text first, so they never
+ping-pong.
 
 Text only. The log (~/.cache/windoesnot-x11-clip-bridge.log) holds sizes, never
 contents. Only one instance runs per session.
@@ -14,6 +20,7 @@ import fcntl
 import os
 import subprocess
 import sys
+import threading
 import time
 
 MAX_BYTES = 1_000_000
@@ -58,6 +65,47 @@ def wayland_has(data):
     return current == data or current == data.rstrip(b'\n')
 
 
+def wayland_text():
+    """Text on the Wayland clipboard, or None (empty, an image, too large)."""
+    try:
+        types = subprocess.run(['wl-paste', '--list-types'], capture_output=True, text=True, timeout=2).stdout.split()
+        if not types or any(t.startswith('image/') for t in types):
+            return None
+        data = subprocess.run(['wl-paste', '--no-newline'], capture_output=True, timeout=3).stdout
+    except Exception:
+        return None
+    return data if data and len(data) <= MAX_BYTES else None
+
+
+def watch_wayland(display_name):
+    """Put Wayland copies into the X11 clipboard (see the module docstring)."""
+    env = {**os.environ, 'DISPLAY': display_name}
+    last = None
+    while True:
+        try:
+            # One line per clipboard change (wl-paste also fires once at start).
+            watcher = subprocess.Popen(['wl-paste', '--no-newline', '--watch', 'sh', '-c', 'echo changed'],
+                                       stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+            for _ in watcher.stdout:
+                data = wayland_text()
+                if data is None or data == last:
+                    continue
+                try:
+                    current = subprocess.run(['xclip', '-selection', 'clipboard', '-o', '-t', 'UTF8_STRING'],
+                                             capture_output=True, timeout=2, env=env).stdout
+                except Exception:
+                    current = b''
+                if current == data or current == data.rstrip(b'\n'):
+                    continue
+                subprocess.run(['xclip', '-selection', 'clipboard', '-i'], input=data, timeout=5,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
+                last = data
+                log(f'wayland: {len(data)} B copied to X11')
+        except Exception as exc:
+            log(f'wayland watcher: {exc.__class__.__name__}')
+        time.sleep(3)
+
+
 def run(display_name):
     from Xlib import X, display
     from Xlib.ext import xfixes
@@ -73,6 +121,7 @@ def run(display_name):
     own_pid = os.getpid()
     last = None
     log(f'start display={display_name}')
+    threading.Thread(target=watch_wayland, args=(display_name,), daemon=True).start()
     while True:
         event = dpy.next_event()
         if getattr(event, 'selection', None) != clipboard:
