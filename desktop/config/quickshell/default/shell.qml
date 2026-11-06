@@ -106,6 +106,7 @@ SnapManager {
 
 PanelWindow {
     id: panelWindow
+    property var audioTrayItem: null
     anchors { bottom: true; left: true; right: true }
     implicitHeight: 45
     color: settingsMenu.darkMode ? Qt.rgba(0.11, 0.11, 0.12, 0.78) : Qt.rgba(0.95, 0.95, 0.95, 0.85)
@@ -1344,10 +1345,25 @@ PanelWindow {
                     model: SystemTray.items
                     delegate: Rectangle {
                         id: trayItemDelegate
-                        width: 32
+                        property bool isAudioTrayItem: modelData &&
+                            (String(modelData.id).toLowerCase().indexOf("windoesnot.audio") >= 0 ||
+                             String(modelData.id).toLowerCase().indexOf("easyeffects") >= 0)
+                        visible: !isAudioTrayItem
+                        width: isAudioTrayItem ? 0 : 32
                         height: 32
                         radius: 6
                         color: trayIconMouseArea.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.05)
+
+                        Component.onCompleted: {
+                            if (isAudioTrayItem) panelWindow.audioTrayItem = modelData
+                        }
+                        onIsAudioTrayItemChanged: {
+                            if (isAudioTrayItem) panelWindow.audioTrayItem = modelData
+                            else if (panelWindow.audioTrayItem === modelData) panelWindow.audioTrayItem = null
+                        }
+                        Component.onDestruction: {
+                            if (panelWindow.audioTrayItem === modelData) panelWindow.audioTrayItem = null
+                        }
 
                         Behavior on color { ColorAnimation { duration: 150 } }
 
@@ -1404,14 +1420,16 @@ PanelWindow {
                                 } else if (mouse.button === Qt.MiddleButton) {
                                     modelData.secondaryActivate()
                                 } else if (mouse.button === Qt.RightButton) {
-                                    // A right-click never opens the app's own menu: every tray
-                                    // icon shows the same menu with the tray settings.
-                                    startMenu.visible = false
-                                    settingsMenu.visible = false
-                                    audioWindow.visible = false
-                                    networkWindow.visible = false
-                                    bluetoothWindow.visible = false
-                                    quickSettingsContextMenu.openFor("apptray", trayItemDelegate)
+                                    if (modelData.hasMenu) {
+                                        desktopShell.closeTaskbarContextMenus()
+                                        // Anchor to this icon so the menu opens directly above it.
+                                        var pos = trayItemDelegate.mapToItem(panelWindow.contentItem, 0, 0)
+                                        trayMenuAnchor.anchor.rect.x = pos.x
+                                        trayMenuAnchor.anchor.rect.y = pos.y
+                                        trayMenuAnchor.anchor.rect.width = trayItemDelegate.width
+                                        trayMenuAnchor.anchor.rect.height = trayItemDelegate.height
+                                        trayMenuAnchor.open()
+                                    }
                                 }
                             }
                         }
@@ -1435,6 +1453,16 @@ PanelWindow {
 
                         property int visualIndex: index
                         property bool isBeingDragged: false
+
+                        QsMenuAnchor {
+                            id: audioMenuAnchor
+                            menu: model.iconType === "audio" && panelWindow.audioTrayItem
+                                  ? panelWindow.audioTrayItem.menu : null
+                            anchor.window: panelWindow
+                            anchor.edges: Edges.Top
+                            anchor.gravity: Edges.Top
+                            anchor.adjustment: PopupAdjustment.None
+                        }
 
                         // Hover background (all icon types)
                         Rectangle {
@@ -1674,7 +1702,18 @@ PanelWindow {
                                         audioWindow.visible = false
                                         networkWindow.visible = false
                                         bluetoothWindow.visible = false
-                                        quickSettingsContextMenu.openFor(model.iconType, trayIconDelegate)
+                                        if (model.iconType === "audio" && panelWindow.audioTrayItem
+                                                && panelWindow.audioTrayItem.hasMenu) {
+                                            desktopShell.closeTaskbarContextMenus()
+                                            var audioPos = trayIconDelegate.mapToItem(panelWindow.contentItem, 0, 0)
+                                            audioMenuAnchor.anchor.rect.x = audioPos.x
+                                            audioMenuAnchor.anchor.rect.y = audioPos.y
+                                            audioMenuAnchor.anchor.rect.width = trayIconDelegate.width
+                                            audioMenuAnchor.anchor.rect.height = trayIconDelegate.height
+                                            audioMenuAnchor.open()
+                                        } else {
+                                            quickSettingsContextMenu.openFor(model.iconType, trayIconDelegate)
+                                        }
                                         dragActive = false
                                         trayIconDelegate.isBeingDragged = false
                                         return
