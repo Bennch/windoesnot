@@ -59,3 +59,11 @@ contributors, under the MIT license; the license text ships with the package
 are recorded in `sources.json`. [WinDoesNot Audio](https://github.com/Bennch/windoesnot-audio)
 is based on [Easy Effects](https://github.com/wwmm/easyeffects) (GPL-3.0-or-later) and keeps
 its upstream license and credits.
+
+## Service and app logos in the installer
+
+The icons of web apps and AI tools in the installer's app list (`iso/software/icons/`) are taken from
+[Dashboard Icons](https://github.com/homarr-labs/dashboard-icons) (Apache-2.0) and scaled to 64 px; the app icons of
+Flatpak apps come from the Flathub catalogue. The logos and names shown (for example Netflix, Prime Video, Disney+,
+YouTube, WhatsApp, ChatGPT, Claude, Ollama) are trademarks of their respective owners and are used only to identify
+the service the entry opens. WinDoesNot is not affiliated with or endorsed by these companies.

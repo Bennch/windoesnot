@@ -1409,6 +1409,22 @@
         "en": "Anthropic's AI assistant in the browser. Opens claude.ai as its own app."
       },
       "required": false
+    },
+    {
+      "id": "vmware-workstation",
+      "name": {
+        "de": "VMware Workstation",
+        "en": "VMware Workstation"
+      },
+      "category": "development",
+      "source": "aur",
+      "packages": [],
+      "aur_package": "vmware-workstation",
+      "description": {
+        "de": "Virtuelle Maschinen ausführen. AUR-Paket, wird vor der Installation geprüft und braucht Kernel-Module.",
+        "en": "Run virtual machines. AUR package, reviewed before installing, needs kernel modules."
+      },
+      "required": false
     }
   ]
 }
