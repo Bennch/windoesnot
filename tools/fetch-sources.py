@@ -18,7 +18,7 @@ for name in ['cachyos-live-iso','cachyos-calamares']:
     subprocess.run(['git','-C',str(source),'checkout','--detach',pin['commit']],check=True)
 # The application fork is a separate working repository. Never reset its branch
 # or local edits: prepare-profile archives the recorded commit directly.
-for app in ('windoesnot-device-manager', 'windoesnot-bluetooth', 'windoesnot-network'):
+for app in ('windoesnot-device-manager', 'windoesnot-bluetooth', 'windoesnot-network', 'windoesnot-graphics'):
     pin = pins[app]
     source = ROOT / pin['path']
     if not (source / '.git').exists():
