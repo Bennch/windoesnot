@@ -60,6 +60,7 @@ systemctl disable systemd-networkd.service systemd-networkd.socket systemd-netwo
 systemctl enable getty@tty1.service
 ln -sfn /usr/lib/systemd/system/getty@.service /etc/systemd/system/autovt@.service
 systemctl enable windoesnot-super-tap@liveuser.service
+systemctl enable windoesnot-flathub-appstream.timer
 # VMware guest services for host<->guest clipboard (spice-vdagentd is started by udev). Gated by
 # ConditionVirtualization, so they stay inert on real hardware.
 systemctl enable vmtoolsd.service vmware-vmblock-fuse.service 2>/dev/null || true
