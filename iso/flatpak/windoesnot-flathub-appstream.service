@@ -4,6 +4,7 @@ ConditionPathExists=/etc/flatpak/remotes.d/flathub.flatpakrepo
 ConditionPathExists=/usr/bin/flatpak
 Wants=network-online.target
 After=network-online.target
+StartLimitIntervalSec=0
 
 [Service]
 Type=oneshot
@@ -12,4 +13,3 @@ TimeoutStartSec=600
 # Offline at the time: try again later instead of waiting for the next timer round.
 Restart=on-failure
 RestartSec=15min
-StartLimitIntervalSec=0
