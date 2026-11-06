@@ -6,7 +6,7 @@
       "date": "2026-11-06",
       "de": [
         "Neue App „Grafik“ (auf Basis von LACT): Grafikkarten von AMD, NVIDIA und Intel steuern und überwachen, mit Lüftern, Powerlimit, Takt und Temperaturen. Sie ist im WinDoesNot-Stil gestaltet und folgt Sprache, Hell/Dunkel und Akzentfarbe aus den Einstellungen.",
-        "Die Taskleiste hat ein Grafik-Symbol (Doppelklick öffnet die Grafik-App, ein- und ausblendbar unter Einstellungen → Apps). Ein Rechtsklick auf jedes Tray-Symbol öffnet ein Menü mit direktem Weg zu den Tray-Einstellungen. Das Lautstärke-Symbol zeigt jetzt die Lautstärke.",
+        "Die Taskleiste hat ein Grafik-Symbol (Doppelklick öffnet die Grafik-App, ein- und ausblendbar unter Einstellungen → Apps). App-Symbole im Tray behalten ihre eigenen Rechtsklick-Menüs; das Audio-App-Menü öffnet sich über das vorhandene Lautstärke-Symbol. Das Lautstärke-Symbol zeigt jetzt die Lautstärke.",
         "Store: Updates sind nach Quelle und Thema sortiert (Programme, System & Treiber, Werkzeuge, Bibliotheken), die Startseite hat eine Schnellsuche mit Treffern beim Tippen sowie beliebte und im Trend liegende Apps von Flathub. Die Detailseite zeigt Screenshots, formatierte Beschreibung und weitere Infos und weist auf nötige Systemupdates hin.",
         "Store: Flatpak wird bei neuen Installationen bevorzugt, wenn verfügbar. Ein Fortschrittsbalken mit aufklappbarem Protokoll, eine optionale Sofortausführung und aktualisierte Installationsanzeigen erleichtern die Paketverwaltung.",
         "Das Startmenü liest neue Programme beim Öffnen ein und zeigt lange App-Namen vollständig als Hinweis an.",
@@ -15,7 +15,7 @@
       ],
       "en": [
         "New app “Graphics” (based on LACT): control and monitor AMD, NVIDIA and Intel graphics cards, with fans, power limit, clocks and temperatures. It follows the WinDoesNot look and takes language, light/dark and accent colour from Settings.",
-        "The taskbar has a graphics icon (double-click opens the Graphics app; show or hide it under Settings → Apps). Right-clicking any tray icon opens a menu with a direct link to the tray settings. The volume icon now shows the volume.",
+        "The taskbar has a graphics icon (double-click opens the Graphics app; show or hide it under Settings → Apps). App icons in the tray keep their own right-click menus; the Audio app menu opens from the existing volume icon. The volume icon now shows the volume.",
         "Store: updates are sorted by source and topic (programs, system & drivers, tools, libraries); the home page has a quick search with results while typing, plus popular and trending apps from Flathub. The details page shows screenshots, a formatted description and more information, and says when a system update is required.",
         "Store: Flatpak is preferred for new installs when available. A progress bar with expandable logs, optional immediate actions and refreshed installation states make package management clearer.",
         "The Start menu refreshes newly installed apps when opened and shows full names for long app labels in tooltips.",
