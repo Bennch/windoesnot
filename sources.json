@@ -32,7 +32,7 @@
   "windoesnot-bluetooth": {
     "url": "https://github.com/Bennch/windoesnot-bluetooth",
     "path": "bluetooth",
-    "commit": "b3845300f3c8e7936a24b7fde381840886aa902a",
+    "commit": "f1d6327d483d8020e813f889388c24ff87930c97",
     "upstream": "https://github.com/kaii-lb/overskride",
     "upstream_commit": "31b8c15794bf07e69927d2f42ed12bd31241ca57"
   },
