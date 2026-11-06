@@ -65,6 +65,14 @@ GlobalShortcut {
 }
 
 Timer {
+    id: traySettingsGuardTimer
+    interval: 800
+    running: false
+    repeat: false
+    onTriggered: settingsMenu.fileDialogOpen = false
+}
+
+Timer {
     id: settingsReopenTimer
     interval: 100  // Erhöht von 10ms auf 100ms für mehr Zuverlässigkeit
     running: false
@@ -1265,6 +1273,21 @@ PanelWindow {
 
         property bool trayExpanded: false
 
+        // Right-click on the free space of the tray: same menu (icons have their own areas on top).
+        MouseArea {
+            anchors.fill: parent
+            z: -1
+            acceptedButtons: Qt.RightButton
+            onClicked: {
+                startMenu.visible = false
+                settingsMenu.visible = false
+                audioWindow.visible = false
+                networkWindow.visible = false
+                bluetoothWindow.visible = false
+                quickSettingsContextMenu.openFor("tray", systemTrayArea)
+            }
+        }
+
         Row {
             id: systemTrayRow
             anchors.centerIn: parent
@@ -1381,19 +1404,14 @@ PanelWindow {
                                 } else if (mouse.button === Qt.MiddleButton) {
                                     modelData.secondaryActivate()
                                 } else if (mouse.button === Qt.RightButton) {
-                                    if (modelData.hasMenu) {
-                                        desktopShell.closeTaskbarContextMenus()
-                                        // Anchor rect spans exactly the icon; gravity: Top (set on
-                                        // trayMenuAnchor above, no Left/Right flag) centers the menu
-                                        // horizontally on it and grows it upward by its real height,
-                                        // so no fixed size guess is needed here.
-                                        var pos = trayItemDelegate.mapToItem(panelWindow.contentItem, 0, 0)
-                                        trayMenuAnchor.anchor.rect.x = pos.x
-                                        trayMenuAnchor.anchor.rect.y = pos.y
-                                        trayMenuAnchor.anchor.rect.width = trayItemDelegate.width
-                                        trayMenuAnchor.anchor.rect.height = trayItemDelegate.height
-                                        trayMenuAnchor.open()
-                                    }
+                                    // A right-click never opens the app's own menu: every tray
+                                    // icon shows the same menu with the tray settings.
+                                    startMenu.visible = false
+                                    settingsMenu.visible = false
+                                    audioWindow.visible = false
+                                    networkWindow.visible = false
+                                    bluetoothWindow.visible = false
+                                    quickSettingsContextMenu.openFor("apptray", trayItemDelegate)
                                 }
                             }
                         }
@@ -1445,7 +1463,7 @@ PanelWindow {
                         Image {
                             visible: model.iconType === "graphics"
                             anchors.centerIn: parent
-                            source: "img/Win11-dark/devices/symbolic/gpu-symbolic.svg"
+                            source: "img/graphics-monitor-symbolic.svg"
                             width: 18; height: 18
                             sourceSize.width: 36; sourceSize.height: 36
                             fillMode: Image.PreserveAspectFit
@@ -1460,7 +1478,18 @@ PanelWindow {
                         Image {
                             visible: model.iconType === "audio"
                             anchors.centerIn: parent
-                            source: "img/Win11-dark/status/symbolic/ephy-audio-playing-symbolic.svg"
+                            // The sound waves follow the volume: none when muted or at 0,
+                            // then one, two and three waves (same steps as the volume overlay).
+                            source: {
+                                var vol = volumeOverlay.lastVolume
+                                if (volumeOverlay.lastMuted || vol === 0)
+                                    return "img/Win11-dark/status/symbolic/audio-volume-muted-symbolic.svg"
+                                if (vol >= 0 && vol < 0.33)
+                                    return "img/Win11-dark/status/symbolic/audio-volume-low-symbolic.svg"
+                                if (vol >= 0 && vol < 0.66)
+                                    return "img/Win11-dark/status/symbolic/audio-volume-medium-symbolic.svg"
+                                return "img/Win11-dark/status/symbolic/audio-volume-high-symbolic.svg"
+                            }
                             width: 18; height: 18
                             sourceSize.width: 36; sourceSize.height: 36
                             fillMode: Image.PreserveAspectFit
@@ -1640,16 +1669,12 @@ PanelWindow {
                                 } else {
                                     unifiedTooltip.hide()
                                     if (mouse.button === Qt.RightButton) {
-                                        if (model.iconType === "graphics") {
-                                            panelWindow.openGraphics()
-                                        } else if (model.iconType === "network" || model.iconType === "bluetooth") {
-                                            startMenu.visible = false
-                                            settingsMenu.visible = false
-                                            audioWindow.visible = false
-                                            networkWindow.visible = false
-                                            bluetoothWindow.visible = false
-                                            quickSettingsContextMenu.openFor(model.iconType, trayIconDelegate)
-                                        }
+                                        startMenu.visible = false
+                                        settingsMenu.visible = false
+                                        audioWindow.visible = false
+                                        networkWindow.visible = false
+                                        bluetoothWindow.visible = false
+                                        quickSettingsContextMenu.openFor(model.iconType, trayIconDelegate)
                                         dragActive = false
                                         trayIconDelegate.isBeingDragged = false
                                         return
@@ -2764,25 +2789,27 @@ PanelWindow {
 
 }
 
-// Context menu for the network/Bluetooth quick-settings icons.
-PopupWindow {
+// Context menu of the tray icons (right-click): actions of the icon, and always
+// a direct way to the tray settings (Settings > Apps).
+FloatingWindow {
     id: quickSettingsContextMenu
     visible: false
-    implicitWidth: 240
-    implicitHeight: 6 + 36 + 1 + 36 + 6
+    // Same window kind and Hyprland rule (title) as the taskbar menu: a PopupWindow was
+    // dismissed by the compositor the moment it opened.
+    title: "quickshell-tbgmenu"
     color: "transparent"
-    grabFocus: true
+    screen: {
+        for (var i = 0; i < Quickshell.screens.length; i++) {
+            if (Quickshell.screens[i].name === settingsMenu.primaryMonitor) return Quickshell.screens[i]
+        }
+        return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    }
+    implicitWidth: 240
+    implicitHeight: 12 + menuItems.length * 36 + Math.max(0, menuItems.length - 1)
 
     property string contextType: "network"
-
-    anchor {
-        window: panelWindow
-        edges: Edges.Top
-        gravity: Edges.Top
-        adjustment: PopupAdjustment.None
-    }
-
-    onVisibleChanged: panelWindow.syncFocusGrab(quickSettingsContextMenuGrab, visible)
+    // [{ kind, label }]; built per icon in openFor().
+    property var menuItems: []
 
     HyprlandFocusGrab {
         id: quickSettingsContextMenuGrab
@@ -2790,16 +2817,55 @@ PopupWindow {
         onCleared: quickSettingsContextMenu.visible = false
     }
 
+    // Quickshell clears a grab's `active` when it is dismissed; set it again on every open
+    // (same as the taskbar menu and Settings).
+    onVisibleChanged: {
+        if (visible) Qt.callLater(function() { quickSettingsContextMenuGrab.active = true })
+        else quickSettingsContextMenuGrab.active = false
+    }
+
+    function itemsFor(kind) {
+        var en = settingsMenu.uiLanguage === "en"
+        var items = []
+        if (kind === "bluetooth") {
+            items.push({ kind: "toggleBluetooth", label: en ? "Toggle Bluetooth" : "Bluetooth umschalten" })
+            items.push({ kind: "openBluetooth", label: en ? "Open Bluetooth" : "Bluetooth öffnen" })
+        } else if (kind === "network") {
+            items.push({ kind: "toggleWifi", label: en ? "Toggle Wi-Fi" : "WLAN umschalten" })
+            items.push({ kind: "openNetwork", label: en ? "Open Network" : "Netzwerk öffnen" })
+        } else if (kind === "graphics") {
+            items.push({ kind: "openGraphics", label: en ? "Open Graphics" : "Grafik öffnen" })
+        }
+        items.push({ kind: "traySettings", label: en ? "Tray settings" : "Tray-Einstellungen" })
+        return items
+    }
+
     function openFor(kind, iconItem) {
         desktopShell.closeTaskbarContextMenus()
+        var requestSerial = desktopShell.contextMenuRequestSerial
         contextType = kind
-        var pos = iconItem.mapToItem(panelWindow.contentItem, 0, 0)
-        anchor.rect.x = pos.x
-        // Match the StartOrb menu: its bottom edge meets the taskbar's top edge.
-        anchor.rect.y = 0
-        anchor.rect.width = iconItem.width
-        anchor.rect.height = iconItem.height
-        visible = true
+        menuItems = itemsFor(kind)
+
+        // Above the taskbar, centred on the icon, kept inside the screen.
+        var pScreen = null
+        for (var s = 0; s < Quickshell.screens.length; s++) {
+            if (Quickshell.screens[s].name === settingsMenu.primaryMonitor) { pScreen = Quickshell.screens[s]; break }
+        }
+        var monW = pScreen ? pScreen.width  : (panelWindow.screen ? panelWindow.screen.width : 1280)
+        var monH = pScreen ? pScreen.height : (panelWindow.screen ? panelWindow.screen.height : 800)
+        var iconPos = iconItem.mapToItem(panelWindow.contentItem, 0, 0)
+        var menuW = implicitWidth
+        var menuH = implicitHeight
+        var mx = Math.max(4, Math.min(iconPos.x + iconItem.width / 2 - menuW / 2, monW - menuW - 4))
+        var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', panelWindow)
+        proc.command = ["bash", "-c",
+            "windoesnot-hyprctl keyword 'windowrule[tbgmenu]:size " + menuW + " " + menuH + "' ; " +
+            "windoesnot-hyprctl keyword 'windowrule[tbgmenu]:move " + Math.round(mx) + " " + (monH - 45 - menuH) + "'"]
+        proc.exited.connect(function() {
+            if (requestSerial === desktopShell.contextMenuRequestSerial)
+                quickSettingsContextMenu.visible = true
+        })
+        proc.running = true
     }
 
     function run(command) {
@@ -2807,6 +2873,35 @@ PopupWindow {
         proc.command = ["bash", "-c", command]
         proc.running = true
         visible = false
+    }
+
+    function activate(kind) {
+        if (kind === "toggleBluetooth") {
+            run("state=$(bluetoothctl show 2>/dev/null | awk '/Powered:/ {print $2}'); bluetoothctl power $([ \"$state\" = yes ] && echo off || echo on)")
+        } else if (kind === "toggleWifi") {
+            run("state=$(nmcli radio wifi); nmcli radio wifi $([ \"$state\" = enabled ] && echo off || echo on)")
+        } else if (kind === "openBluetooth") {
+            visible = false
+            bluetoothWindow.visible = true
+        } else if (kind === "openNetwork") {
+            visible = false
+            networkWindow.visible = true
+        } else if (kind === "openGraphics") {
+            visible = false
+            panelWindow.openGraphics()
+        } else if (kind === "traySettings") {
+            visible = false
+            settingsMenu.currentCategory = "apps"
+            // Same as the settings shortcut: the menu's focus grab is still being released
+            // right now and would take the new window's focus away again, so the window
+            // opens a moment later through the timer.
+            // While it takes focus the window must not close itself again: for a short
+            // moment its focus grab is switched off (the same switch the file dialog uses).
+            settingsMenu.fileDialogOpen = true
+            settingsMenu.visible = false
+            settingsReopenTimer.start()
+            traySettingsGuardTimer.restart()
+        }
     }
 
     Item {
@@ -2824,67 +2919,31 @@ PopupWindow {
 
         Column {
             anchors { top: parent.top; left: parent.left; right: parent.right; margins: 6 }
-            spacing: 0
+            spacing: 1
 
-            Rectangle {
-                width: parent.width
-                height: 36
-                radius: 6
-                property bool hovered: false
-                color: hovered ? (settingsMenu.darkMode ? "#4A4A4D" : "#e0e0e0") : "transparent"
-                Text {
-                    anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
-                    text: quickSettingsContextMenu.contextType === "bluetooth"
-                        ? (settingsMenu.uiLanguage === "en" ? "Toggle Bluetooth" : "Bluetooth umschalten")
-                        : (settingsMenu.uiLanguage === "en" ? "Toggle Wi-Fi" : "WLAN umschalten")
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"
-                    font.pixelSize: 13
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onEntered: parent.hovered = true
-                    onExited: parent.hovered = false
-                    onClicked: {
-                        if (quickSettingsContextMenu.contextType === "bluetooth") {
-                            quickSettingsContextMenu.run("state=$(bluetoothctl show 2>/dev/null | awk '/Powered:/ {print $2}'); bluetoothctl power $([ \"$state\" = yes ] && echo off || echo on)")
-                        } else {
-                            quickSettingsContextMenu.run("state=$(nmcli radio wifi); nmcli radio wifi $([ \"$state\" = enabled ] && echo off || echo on)")
-                        }
+            Repeater {
+                model: quickSettingsContextMenu.menuItems
+
+                delegate: Rectangle {
+                    required property var modelData
+                    width: parent.width
+                    height: 36
+                    radius: 6
+                    property bool hovered: false
+                    color: hovered ? (settingsMenu.darkMode ? "#4A4A4D" : "#e0e0e0") : "transparent"
+                    Text {
+                        anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
+                        text: modelData.label
+                        color: settingsMenu.darkMode ? "white" : "#1a1a1a"
+                        font.pixelSize: 13
                     }
-                }
-            }
-
-            Item { width: parent.width; height: 1 }
-
-            Rectangle {
-                width: parent.width
-                height: 36
-                radius: 6
-                property bool hovered: false
-                color: hovered ? (settingsMenu.darkMode ? "#4A4A4D" : "#e0e0e0") : "transparent"
-                Text {
-                    anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
-                    text: quickSettingsContextMenu.contextType === "bluetooth"
-                        ? (settingsMenu.uiLanguage === "en" ? "Open Bluetooth" : "Bluetooth öffnen")
-                        : (settingsMenu.uiLanguage === "en" ? "Open Network" : "Netzwerk öffnen")
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"
-                    font.pixelSize: 13
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onEntered: parent.hovered = true
-                    onExited: parent.hovered = false
-                    onClicked: {
-                        quickSettingsContextMenu.visible = false
-                        if (quickSettingsContextMenu.contextType === "bluetooth") {
-                            bluetoothWindow.visible = true
-                        } else {
-                            networkWindow.visible = true
-                        }
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onEntered: parent.hovered = true
+                        onExited: parent.hovered = false
+                        onClicked: quickSettingsContextMenu.activate(modelData.kind)
                     }
                 }
             }
