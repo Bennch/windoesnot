@@ -49,3 +49,13 @@ is based on [Adwaita Network](https://github.com/PlayRood32/adw-network), copyri
 its upstream contributors, under GPL-3.0-or-later. Both retain the upstream
 license and credits. Exact commits are recorded in `sources.json`; the image
 build compiles these sources against its own GTK libraries.
+
+## Graphics control application
+
+[WinDoesNot Graphics](https://github.com/Bennch/windoesnot-graphics) is based on
+[LACT](https://github.com/ilya-zlobintsev/LACT), copyright Ilya Zlobintsev and its
+contributors, under the MIT license; the license text ships with the package
+(`/usr/share/licenses/windoesnot-graphics/LICENSE`). The exact upstream and fork commits
+are recorded in `sources.json`. [WinDoesNot Audio](https://github.com/Bennch/windoesnot-audio)
+is based on [Easy Effects](https://github.com/wwmm/easyeffects) (GPL-3.0-or-later) and keeps
+its upstream license and credits.
