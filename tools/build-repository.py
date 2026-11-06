@@ -28,7 +28,7 @@ output=args.output.resolve()
 if output.exists(): raise SystemExit('Use a new output directory; repositories are immutable snapshots')
 packages=sorted(args.packages.glob('*.pkg.tar.zst'))
 expected={'windoesnot-desktop','windoesnot-tools','windoesnot-plugins','windoesnot-components'}
-optional={'windoesnot-store'}
+optional={'windoesnot-store','windoesnot-device-manager','windoesnot-device-manager-core','windoesnot-bluetooth','windoesnot-network','windoesnot-audio','windoesnot-graphics'}
 metadata={}
 for package in packages:
     name,version=subprocess.check_output(['pacman','-Qp',str(package)],text=True).strip().split()

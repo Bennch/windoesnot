@@ -2,6 +2,18 @@
   "comment": "WinDoesNot changes per desktop package release, newest first. Shown in Settings > Updates; entries marked unreleased are never offered as an update.",
   "releases": [
     {
+      "version": "0.1.0-25",
+      "date": "2026-11-06",
+      "de": [
+        "Update-Kanal: Die Desktop-Pakete sind neu gegen die aktuellen Systembibliotheken gebaut. Damit blockiert der Schutz vor Teil-Updates das Systemupdate nicht mehr.",
+        "Der Kanal liefert jetzt auch Geräte-Manager, Bluetooth, Netzwerk, Audio, Grafik und den Store, damit Systeme der ISO 0.1.0-24 vollständig aktualisiert werden können."
+      ],
+      "en": [
+        "Update channel: the desktop packages are rebuilt against the current system libraries, so the partial-upgrade guard no longer blocks the system update.",
+        "The channel now also provides Device Manager, Bluetooth, Network, Audio, Graphics and the Store, so systems from the 0.1.0-24 ISO can be fully updated."
+      ]
+    },
+    {
       "version": "0.1.0-24",
       "date": "2026-11-06",
       "de": [
