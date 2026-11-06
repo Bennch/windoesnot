@@ -10,7 +10,7 @@ trap 'rm -rf -- "$work"' EXIT
 # runs as nobody, so it must be able to traverse the temporary build root.
 chown nobody:nobody "$work"
 printf '[options]\nArchitecture = auto\nSigLevel = Required DatabaseOptional\nLocalFileSigLevel = Optional\n' > "$work/local-install.conf"
-for app in windoesnot-bluetooth windoesnot-network windoesnot-audio; do
+for app in windoesnot-bluetooth windoesnot-network windoesnot-audio windoesnot-graphics; do
     mkdir -p "$work/$app/home"
     cp -a "$project/$app-build/." "$work/$app/"
     chown -R nobody:nobody "$work/$app"

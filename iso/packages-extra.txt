@@ -123,3 +123,7 @@ speexdsp
 gsl
 webrtc-audio-processing
 libmysofa
+libdisplay-info
+hwdata
+vulkan-tools
+ocl-icd

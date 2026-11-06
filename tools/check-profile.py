@@ -72,7 +72,7 @@ assert device_source['commit']==json.loads((a/'usr/share/windoesnot/sources.json
 assert device_source['archive_sha256']==hashlib.sha256((device/'windoesnot-device-manager-source.tar.gz').read_bytes()).hexdigest()
 assert device_source['archive_sha256'] in (device/'PKGBUILD').read_text()
 assert 'build-image-device-manager.sh' in (a/'root/customize_airootfs.sh').read_text()
-for app in ('windoesnot-bluetooth', 'windoesnot-network'):
+for app in ('windoesnot-bluetooth', 'windoesnot-network', 'windoesnot-graphics'):
     staged = a / 'usr/share/windoesnot' / (app + '-build')
     recipe = (staged / 'PKGBUILD').read_text()
     assert 'SKIP' not in recipe and '--frozen' in recipe and 'cargo fetch' not in recipe

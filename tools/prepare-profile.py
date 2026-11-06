@@ -29,7 +29,7 @@ def write(path, text, executable=False):
     if executable:
         path.chmod(0o755)
 
-def stage_store(pin, target, package='windoesnot-store'):
+def stage_store(pin, target, package='windoesnot-store', version_file='Cargo.toml'):
     """Stage a native Rust application from its exact pinned commit.
 
     The archive and PKGBUILD come only from git objects of that commit, so
@@ -42,7 +42,7 @@ def stage_store(pin, target, package='windoesnot-store'):
         return subprocess.check_output(['git', '-C', str(repo), 'show', f'{commit}:{name}'], text=True)
     if subprocess.run(['git', '-C', str(repo), 'cat-file', '-e', f'{commit}^{{commit}}']).returncode:
         raise SystemExit(f'Store pin not found in {repo}: {commit}')
-    version = re.search(r'^version = "([^"]+)"', show('Cargo.toml'), re.M).group(1)
+    version = re.search(r'^version = "([^"]+)"', show(version_file), re.M).group(1)
     pkgbuild = show('PKGBUILD')
     if f'pkgver={version}' not in pkgbuild:
         raise SystemExit(f'Store PKGBUILD does not match Cargo version {version}')
@@ -57,19 +57,37 @@ def stage_store(pin, target, package='windoesnot-store'):
         temp = Path(temp)
         subprocess.run(['tar', '-xzf', str(archive), '-C', str(temp)], check=True)
         source = temp / f'{package}-{version}'
-        subprocess.run(['cargo', 'vendor', '--locked', '--versioned-dirs', '--quiet', str(temp / 'vendor')],
-                       cwd=source, check=True, stdout=subprocess.DEVNULL)
+        # cargo prints the source-replacement config it needs; git dependencies need it too.
+        vendor_config = subprocess.run(['cargo', 'vendor', '--locked', '--versioned-dirs', str(temp / 'vendor')],
+                                       cwd=source, check=True, capture_output=True, text=True).stdout
+        # Keep the directory relative; the PKGBUILD points it at its own unpacked copy.
+        vendor_config = re.sub(r'(?m)^directory = ".*"$', 'directory = "vendor"', vendor_config)
         subprocess.run(f"tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -C {shlex.quote(str(temp))} -cf - vendor"
                        f" | gzip -n > {shlex.quote(str(vendor))}", shell=True, check=True)
-    digests = [hashlib.sha256(path.read_bytes()).hexdigest() for path in (archive, vendor)]
-    pkgbuild = re.sub(r'^source=.*$', f'source=("{archive.name}" "{vendor.name}")', pkgbuild, count=1, flags=re.M)
-    pkgbuild = re.sub(r"^sha256sums=.*$", f"sha256sums=('{digests[0]}' '{digests[1]}')", pkgbuild, count=1, flags=re.M)
-    offline_prepare = (
-        'prepare() {\n'
-        '  cd "$pkgname-$pkgver"\n'
-        '  mkdir -p .cargo\n'
-        '  printf \'[source.crates-io]\\nreplace-with = "vendored-sources"\\n[source.vendored-sources]\\ndirectory = "%s"\\n\' "$srcdir/vendor" > .cargo/config.toml\n'
-        '}\n')
+    git_sources = 'git+' in vendor_config
+    config_file = target / f'{package}-{version}-cargo-config.toml'
+    files = [archive, vendor]
+    if git_sources:
+        config_file.write_text(vendor_config)
+        files.append(config_file)
+    digests = [hashlib.sha256(path.read_bytes()).hexdigest() for path in files]
+    pkgbuild = re.sub(r'^source=.*$', 'source=(' + ' '.join(f'"{path.name}"' for path in files) + ')', pkgbuild, count=1, flags=re.M)
+    pkgbuild = re.sub(r"^sha256sums=.*$", 'sha256sums=(' + ' '.join(f"'{d}'" for d in digests) + ')', pkgbuild, count=1, flags=re.M)
+    if git_sources:
+        # crates.io plus git sources: use the config cargo generated, pointing at the unpacked vendor directory.
+        offline_prepare = (
+            'prepare() {\n'
+            '  cd "$pkgname-$pkgver"\n'
+            '  mkdir -p .cargo\n'
+            f'  sed "s#directory = \\"vendor\\"#directory = \\"$srcdir/vendor\\"#" "$srcdir/{config_file.name}" > .cargo/config.toml\n'
+            '}\n')
+    else:
+        offline_prepare = (
+            'prepare() {\n'
+            '  cd "$pkgname-$pkgver"\n'
+            '  mkdir -p .cargo\n'
+            '  printf \'[source.crates-io]\\nreplace-with = "vendored-sources"\\n[source.vendored-sources]\\ndirectory = "%s"\\n\' "$srcdir/vendor" > .cargo/config.toml\n'
+            '}\n')
     pkgbuild, count = re.subn(r'^prepare\(\) \{\n.*?^\}\n', lambda _: offline_prepare, pkgbuild, count=1, flags=re.M | re.S)
     if count != 1:
         raise SystemExit('Store PKGBUILD has no prepare() to replace')
@@ -154,6 +172,8 @@ def main():
     _device_module.stage(pins['windoesnot-device-manager'], payload / 'device-manager-build')
     for app in ('windoesnot-bluetooth', 'windoesnot-network'):
         stage_store(pins[app], payload / (app + '-build'), app)
+    # LACT workspace: the version lives in the lact crate, not the workspace root.
+    stage_store(pins['windoesnot-graphics'], payload / 'windoesnot-graphics-build', 'windoesnot-graphics', 'lact/Cargo.toml')
     stage_audio(pins['windoesnot-audio'], payload / 'windoesnot-audio-build')
     shutil.copytree(args.sources_root/'cachyos-calamares',payload/'vendor/calamares',ignore=shutil.ignore_patterns('.git','__pycache__','build'))
     # Keep the upstream checkout untouched; add our modules only to the generated build copy.
