@@ -81,12 +81,19 @@ for directory in folders.values():
 # file:// URIs with no $HOME-style substitution, so they must be written here
 # (where the real path is known) rather than shipped as a static default.
 bookmarks_path = config / 'gtk-3.0/bookmarks'
-if not bookmarks_path.exists():
+# The skeleton must not carry bookmarks: they hold absolute paths (an /etc/skel copy would point every
+# new user's sidebar into /etc/skel, with English names). Each real user gets their own, localised.
+if home != Path('/etc/skel'):
     from urllib.parse import quote
-    bookmark_dirs = [folders[k] for k in ('DESKTOP', 'DOCUMENTS', 'DOWNLOAD', 'PICTURES', 'MUSIC')]
-    lines = [f'file://{quote(str(home / d))} {d}\n' for d in bookmark_dirs]
-    bookmarks_path.parent.mkdir(parents=True, exist_ok=True)
-    bookmarks_path.write_text(''.join(lines))
+    existing = bookmarks_path.read_text().splitlines() if bookmarks_path.exists() else []
+    stale = any('/etc/skel/' in line for line in existing)
+    if not existing or stale:
+        bookmark_dirs = [folders[k] for k in ('DESKTOP', 'DOCUMENTS', 'DOWNLOAD', 'PICTURES', 'MUSIC')]
+        lines = [f'file://{quote(str(home / d))} {d}\n' for d in bookmark_dirs]
+        # keep what the user added themselves, drop only the broken skeleton entries
+        lines += [line + '\n' for line in existing if line and '/etc/skel/' not in line]
+        bookmarks_path.parent.mkdir(parents=True, exist_ok=True)
+        bookmarks_path.write_text(''.join(lines))
 
 # Clean up duplicate installer desktop files from language switching
 desktop_dir = home / 'Desktop'
