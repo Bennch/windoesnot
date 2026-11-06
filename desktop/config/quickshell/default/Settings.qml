@@ -153,6 +153,8 @@ FloatingWindow {
     property bool showDockerTray: false
     property bool showNearbyTray: true
     property bool showBatteryTray: false
+    property bool showGraphicsTray: false
+    property bool graphicsTraySeen: false  // not persisted; true once showGraphicsTray has been loaded or auto-detected
     property bool batteryTraySeen: false  // not persisted; true once showBatteryTray has been loaded or auto-detected
     property bool weatherEnabled: false
     property string weatherLocation: "tray"  // "tray" | "taskbar"
@@ -1032,6 +1034,7 @@ FloatingWindow {
             'else if (key === "showDockerTray") settingsMenu.showDockerTray = (value === "true"); ' +
             'else if (key === "showNearbyTray") settingsMenu.showNearbyTray = (value === "true"); ' +
             'else if (key === "showBatteryTray") { settingsMenu.showBatteryTray = (value === "true"); settingsMenu.batteryTraySeen = true; } ' +
+            'else if (key === "showGraphicsTray") { settingsMenu.showGraphicsTray = (value === "true"); settingsMenu.graphicsTraySeen = true; } ' +
             'else if (key === "weatherEnabled") settingsMenu.weatherEnabled = (value === "true"); ' +
             'else if (key === "weatherLocation") settingsMenu.weatherLocation = value; ' +
             'else if (key === "weatherTaskbarIndex") settingsMenu.weatherTaskbarIndex = parseInt(value); ' +
@@ -1059,6 +1062,7 @@ FloatingWindow {
             'settingsMenu.updateGtkColorScheme(); ' +
             'settingsMenu.updateIconTheme(); ' +
             'settingsMenu.detectBatteryTrayDefault(); ' +
+            'settingsMenu.detectGraphicsTrayDefault(); ' +
             'console.log("Settings loaded and applied to Hyprland"); ' +
             'currentGtkThemeLoader.running = true; ' +
             '} } }',
@@ -1179,6 +1183,7 @@ FloatingWindow {
                       "showDockerTray=" + (showDockerTray ? "true" : "false") + "\\n" +
                       "showNearbyTray=" + (showNearbyTray ? "true" : "false") + "\\n" +
                       "showBatteryTray=" + (showBatteryTray ? "true" : "false") + "\\n" +
+                      "showGraphicsTray=" + (showGraphicsTray ? "true" : "false") + "\\n" +
                       "weatherEnabled=" + (weatherEnabled ? "true" : "false") + "\\n" +
                       "weatherLocation=" + weatherLocation + "\\n" +
                       "weatherTaskbarIndex=" + weatherTaskbarIndex + "\\n" +
@@ -1473,6 +1478,22 @@ FloatingWindow {
     // (batteryTraySeen false means the key was never found in settings.txt).
     // After that it is a plain persisted user toggle like the other tray
     // icons, same as the rest of loadSettings()/saveSettings().
+    // Graphics tray icon: shown by default once, on a system that has the
+    // graphics control app (LACT) and a GPU; after that a plain persisted toggle.
+    function detectGraphicsTrayDefault() {
+        if (graphicsTraySeen) return
+        var proc = Qt.createQmlObject(
+            'import Quickshell.Io; Process { ' +
+            'command: ["bash", "-c", "command -v lact >/dev/null 2>&1 && ls /sys/class/drm/card*/device/vendor >/dev/null 2>&1 && echo yes || echo no"]; ' +
+            'running: true; ' +
+            'stdout: StdioCollector { onStreamFinished: { ' +
+            'settingsMenu.graphicsTraySeen = true; ' +
+            'if (this.text.trim() === "yes") { settingsMenu.showGraphicsTray = true; settingsMenu.saveSettings() } ' +
+            '} } }',
+            settingsMenu
+        )
+    }
+
     function detectBatteryTrayDefault() {
         if (batteryTraySeen) return
         var proc = Qt.createQmlObject(
