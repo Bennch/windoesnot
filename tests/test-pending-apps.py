@@ -51,7 +51,7 @@ print('PASS pending-apps')
 # 3. Web apps: per-user launchers, Chromium app mode when a Chromium-family browser exists, else Firefox; idempotent.
 with tempfile.TemporaryDirectory() as temp:
     d = Path(temp); home = d / 'home'; home.mkdir()
-    pend = d / 'pending.json'; pend.write_text(json.dumps({'schema_version': 1, 'pending': ['netflix', 'youtube', 'evil-site']}))
+    pend = d / 'pending.json'; pend.write_text(json.dumps({'schema_version': 1, 'pending': ['netflix', 'youtube', 'evil-site', 'gta2-rtx-remix-guide']}))
     bins = d / 'bin'; bins.mkdir()
     for name in ('notify-send', 'nm-online'): (bins / name).write_text('#!/bin/sh\nexit 0\n'); (bins / name).chmod(0o755)
     env = {**os.environ, 'HOME': str(home), 'PATH': str(bins), 'WINDOESNOT_PENDING': str(pend), 'XDG_STATE_HOME': str(home / 's'), 'LANG': 'en_US.UTF-8'}
@@ -63,6 +63,8 @@ with tempfile.TemporaryDirectory() as temp:
     assert 'Exec=firefox --new-window https://www.netflix.com/' in text and 'X-WinDoesNot-WebApp=true' in text, text
     assert (home / '.local/share/applications/windoesnot-webapp-youtube.desktop').is_file()
     assert not list((home / '.local/share/applications').glob('*evil*')), 'unknown ids never create launchers'
+    guide = (home / '.local/share/applications/windoesnot-link-gta2-rtx-remix-guide.desktop').read_text()
+    assert 'Exec=xdg-open https://github.com/Bennch/gta2-rtx-remix-linux' in guide and 'Categories=Game;' in guide, guide
     (bins / 'chromium').write_text('#!/bin/sh\n'); (bins / 'chromium').chmod(0o755)
     subprocess.run([sys.executable, tool, '--no-wait'], env=env, check=True)   # a Chromium browser appeared: rewritten
     text = desktop.read_text()
