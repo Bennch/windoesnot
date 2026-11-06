@@ -58,10 +58,17 @@ def parse(text, home_dir):
 
 
 def main():
-    if not dirs_file.is_file() or not shutil_which('xdg-user-dirs-update'):
+    if not shutil_which('xdg-user-dirs-update'):
         return 0
     locale = target_locale()
     if locale in ('C', 'POSIX', ''):
+        return 0
+    if not dirs_file.is_file():
+        # Fresh home without a skeleton file: let xdg-user-dirs create the folders in the target language.
+        env = {**os.environ, 'LANG': locale, 'LC_ALL': locale, 'LANGUAGE': locale.split('_')[0].split('.')[0]}
+        subprocess.run(['xdg-user-dirs-update', '--force'], env=env, check=False)
+        config.mkdir(parents=True, exist_ok=True)
+        locale_file.write_text(locale + '\n')
         return 0
     previous = locale_file.read_text().strip() if locale_file.is_file() else ''
     current = parse(dirs_file.read_text(), str(home))
@@ -88,6 +95,8 @@ def main():
                 old.rmdir()      # empty leftover default, the localised folder exists
             else:
                 continue         # both hold data: keep the user's choice
+        else:
+            new.mkdir(exist_ok=True)   # nothing to move yet (fresh account): xdg-user-dirs only accepts existing folders
         subprocess.run(['xdg-user-dirs-update', '--set', key, str(new)], check=False)
         renamed[old] = new
         changed = True

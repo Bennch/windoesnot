@@ -5,7 +5,8 @@ from pathlib import Path
 import subprocess
 import tempfile
 
-TOOL = Path(__file__).resolve().parent.parent / 'desktop/bin/windoesnot-user-dirs'
+ROOT = Path(__file__).resolve().parent.parent
+TOOL = ROOT / 'desktop/bin/windoesnot-user-dirs'
 
 
 def run(home, locale):
@@ -52,3 +53,17 @@ with tempfile.TemporaryDirectory() as temp:
     assert not (home / 'Dokumente').exists()
     run(home, 'en_US.UTF-8')           # idempotent
 print('PASS user-dirs')
+
+# Initialization: no skeleton bookmarks; a stale /etc/skel bookmark file is repaired for a real user (own entries kept).
+import shutil
+with tempfile.TemporaryDirectory() as temp:
+    d = Path(temp); home = d / 'home'; (home / '.config/gtk-3.0').mkdir(parents=True)
+    (home / '.config/gtk-3.0/bookmarks').write_text('file:///etc/skel/Desktop Desktop\nfile:///etc/skel/Documents Documents\nfile:///srv/data Daten\n')
+    env = {**os.environ, 'HOME': str(home), 'XDG_CONFIG_HOME': str(home / '.config'), 'XDG_DATA_HOME': str(home / '.local/share'),
+           'WINDOESNOT_SOURCE': str(ROOT), 'LANG': 'de_DE.UTF-8'}
+    subprocess.run([str(ROOT / 'desktop/bin/windoesnot-initialize')], env=env, check=True, stdout=subprocess.DEVNULL)
+    marks = (home / '.config/gtk-3.0/bookmarks').read_text()
+    assert '/etc/skel/' not in marks and 'Daten' in marks, marks
+    assert f'{home}/Dokumente'.replace(' ', '%20') in marks.replace('%2F', '/') or 'Dokumente' in marks, marks
+    assert (home / 'Dokumente').is_dir() and not (home / 'Documents').exists()
+print('PASS bookmarks')
