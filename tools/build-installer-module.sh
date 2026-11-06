@@ -7,6 +7,7 @@ work=$(mktemp -d /tmp/windoesnot-installer-module.XXXXXXXX)
 trap 'rm -rf -- "$work"' EXIT
 cp -a "$project/iso/modules/windoesnotapps" "$work/windoesnotapps"
 cp -a "$project/iso/modules/windoesnotboot" "$work/windoesnotboot"
+cp -a "$project/iso/modules/windoesnotintro" "$work/windoesnotintro"
 cat > "$work/CMakeLists.txt" <<'CMAKE'
 cmake_minimum_required(VERSION 3.22)
 project(WinDoesNotInstallerModule LANGUAGES CXX)
@@ -20,6 +21,7 @@ set(INSTALL_CONFIG OFF)
 set(BUILD_TESTING OFF)
 calamares_add_module_subdirectory(windoesnotapps)
 calamares_add_module_subdirectory(windoesnotboot)
+calamares_add_module_subdirectory(windoesnotintro)
 CMAKE
 cmake -S "$work" -B "$work/build" -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release
 cmake --build "$work/build" -j "${BUILD_JOBS:-4}"
@@ -31,3 +33,4 @@ for name in windoesnotprepare windoesnotsystem windoesnotapps_install windoesnot
 done
 if ldd /usr/lib/calamares/modules/windoesnotapps/libcalamares_viewmodule_windoesnotapps.so | grep -q 'not found'; then exit 1; fi
 if ldd /usr/lib/calamares/modules/windoesnotboot/libcalamares_viewmodule_windoesnotboot.so | grep -q 'not found'; then exit 1; fi
+if ldd /usr/lib/calamares/modules/windoesnotintro/libcalamares_viewmodule_windoesnotintro.so | grep -q 'not found'; then exit 1; fi
