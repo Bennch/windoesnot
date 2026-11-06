@@ -2,6 +2,25 @@
   "comment": "WinDoesNot changes per desktop package release, newest first. Shown in Settings > Updates; entries marked unreleased are never offered as an update.",
   "releases": [
     {
+      "version": "0.1.0-25",
+      "date": "2026-11-06",
+      "unreleased": true,
+      "de": [
+        "Der Installer hat eine neue Seite „Über WinDoesNot“, und das Logo auf der Willkommensseite ist kleiner.",
+        "Mehr Programme im Installer, auch Google Chrome, Sublime Text und KI-Werkzeuge. Sie werden nach der Installation geladen, sobald du online bist. Web-Apps wie Netflix oder YouTube werden als eigene Starter angelegt.",
+        "Die Standardordner (Dokumente, Bilder und so weiter) folgen der Systemsprache, auch wenn du sie später umstellst.",
+        "Flatpak mit Flathub ist vorbereitet, dazu kommt ein zusätzliches Icon-Theme, damit der Store mehr App-Symbole zeigt.",
+        "Der Store zeigt Programme aus dem Installer, die noch auf ihre Installation warten."
+      ],
+      "en": [
+        "The installer has a new page \"About WinDoesNot\", and the logo on the welcome page is smaller.",
+        "More apps in the installer, including Google Chrome, Sublime Text and AI tools. They are installed after setup, once you are online. Web apps such as Netflix or YouTube are created as their own launchers.",
+        "The standard folders (Documents, Pictures and so on) follow the system language, also when you change it later.",
+        "Flatpak with Flathub is prepared, plus an additional icon theme so the Store shows more app icons.",
+        "The Store lists apps from the installer that are still waiting to be installed."
+      ]
+    },
+    {
       "version": "0.1.0-24",
       "date": "2026-11-06",
       "de": [
