@@ -1,13 +1,14 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Effects
+import Quickshell
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
 
 Item {
     id: audioPanel
     width: 320
-    height: 400
+    height: 440
     signal closeRequested()
 
     property color accentColor: "#FE6F2D"
@@ -20,6 +21,10 @@ Item {
     property var outputDevices: []
     property string currentDevice: ""
     property string defaultSink: ""
+    property int tab: 0  // 0 = output devices (always shown first), 1 = mixer
+    // The lists fill the space between the tabs and the buttons at the bottom, so nothing can overlap them.
+    readonly property real listHeight: Math.max(90, audioPanel.height - 15 - quickActionsRow.height - 12
+                                                    - (15 + tabRow.y + tabRow.height + mainContent.spacing))
 
     // Sortiere Geräteliste neu, wenn sich der Standard-Sink ändert
     onDefaultSinkChanged: {
@@ -61,6 +66,7 @@ Item {
     // Update when panel becomes visible
     onVisibleChanged: {
         if (visible) {
+            audioPanel.tab = 0
             updateAudioState()
         }
     }
@@ -70,6 +76,7 @@ Item {
         getMuteStatusProc.running = true
         getDefaultSinkProc.running = true
         getOutputDevicesProc.running = true
+        getAppStreamsProc.running = true
     }
 
     Timer {
@@ -112,6 +119,77 @@ Item {
                 audioPanel.muted = (this.text.trim() === "yes")
             }
         }
+    }
+
+    // Per-app mixer: one row per playing stream (pactl sink inputs), kept in a ListModel that is updated in place
+    // so a slider being dragged is never rebuilt by the 2 second refresh.
+    ListModel { id: appModel }
+    property int draggingApp: -1
+
+    function syncApps(streams) {
+        var seen = {}
+        for (var i = 0; i < streams.length; i++) {
+            var st = streams[i]
+            seen[st.id] = true
+            var found = -1
+            for (var j = 0; j < appModel.count; j++) if (appModel.get(j).streamId === st.id) { found = j; break }
+            if (found < 0) {
+                appModel.append({ streamId: st.id, appName: st.name, appIcon: st.icon, appVolume: st.volume, appMuted: st.muted })
+            } else {
+                appModel.setProperty(found, "appName", st.name)
+                appModel.setProperty(found, "appIcon", st.icon)
+                appModel.setProperty(found, "appMuted", st.muted)
+                if (audioPanel.draggingApp !== st.id) appModel.setProperty(found, "appVolume", st.volume)
+            }
+        }
+        for (var k = appModel.count - 1; k >= 0; k--) if (!seen[appModel.get(k).streamId]) appModel.remove(k)
+    }
+
+    function setAppVolume(streamId, percent) {
+        var value = Math.max(0, Math.min(100, Math.round(percent)))
+        for (var j = 0; j < appModel.count; j++) if (appModel.get(j).streamId === streamId) appModel.setProperty(j, "appVolume", value)
+        setAppVolumeProc.command = ["pactl", "set-sink-input-volume", String(streamId), value + "%"]
+        setAppVolumeProc.running = false
+        setAppVolumeProc.running = true
+    }
+
+    function toggleAppMute(streamId) {
+        toggleAppMuteProc.command = ["pactl", "set-sink-input-mute", String(streamId), "toggle"]
+        toggleAppMuteProc.running = true
+    }
+
+    Process {
+        id: getAppStreamsProc
+        command: ["pactl", "-f", "json", "list", "sink-inputs"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var streams = []
+                try {
+                    var data = JSON.parse(this.text)
+                    for (var i = 0; i < data.length; i++) {
+                        var props = data[i].properties || {}
+                        var name = props["application.name"] || props["media.name"] || "?"
+                        if (name.indexOf("speech-dispatcher") === 0) continue
+                        var vol = 0
+                        for (var ch in data[i].volume) vol = Math.max(vol, parseInt(data[i].volume[ch].value_percent))
+                        streams.push({ id: data[i].index, name: name,
+                                       icon: props["application.icon_name"] || props["application.process.binary"] || "",
+                                       volume: isNaN(vol) ? 0 : vol, muted: data[i].mute === true })
+                    }
+                } catch (e) {}
+                audioPanel.syncApps(streams)
+            }
+        }
+    }
+
+    Process { id: setAppVolumeProc; command: ["true"]; running: false }
+
+    Process {
+        id: toggleAppMuteProc
+        command: ["true"]
+        running: false
+        onRunningChanged: if (!running) getAppStreamsProc.running = true
     }
 
     Process {
@@ -227,7 +305,12 @@ Item {
                 spacing: 10
 
                 Image {
-                    source: audioPanel.muted ? Qt.resolvedUrl("../img/Win11-dark/status/symbolic/audio-volume-muted-blocking-symbolic.svg") : Qt.resolvedUrl("../img/Win11-dark/status/symbolic/audio-volume-overamplified-symbolic.svg")
+                    // Same icons and steps as the tray: no waves when muted or 0, then one, two, three waves.
+                    source: Qt.resolvedUrl("../img/Win11-dark/status/symbolic/" + (audioPanel.muted || audioPanel.volume === 0 ? "audio-volume-muted-symbolic.svg"
+                            : audioPanel.volume < 33 ? "audio-volume-low-symbolic.svg"
+                            : audioPanel.volume < 66 ? "audio-volume-medium-symbolic.svg" : "audio-volume-high-symbolic.svg"))
+                    sourceSize.width: 40
+                    sourceSize.height: 40
                     width: 20
                     height: 20
                     smooth: true
@@ -289,20 +372,215 @@ Item {
             }
         }
 
-        // Output Device
+        // Switch between the per-app mixer and the output devices (saves space)
+        Row {
+            id: tabRow
+            width: parent.width
+            spacing: 6
+
+            Repeater {
+                model: [ { key: "audio.outputDevice", index: 0 }, { key: "audio.apps", index: 1 } ]
+
+                delegate: Rectangle {
+                    width: (tabRow.width - 6) / 2
+                    height: 32
+                    radius: 8
+                    property bool active: audioPanel.tab === modelData.index
+                    color: active ? Qt.rgba(audioPanel.accentColor.r, audioPanel.accentColor.g, audioPanel.accentColor.b, 0.2)
+                                  : (tabMouse.containsMouse ? (darkMode ? Qt.rgba(0.16, 0.16, 0.16, 0.6) : Qt.rgba(0.85, 0.85, 0.85, 0.8)) : "transparent")
+                    border.width: 1
+                    border.color: active ? audioPanel.accentColor : (darkMode ? Qt.rgba(0.23, 0.23, 0.23, 0.8) : Qt.rgba(0.7, 0.7, 0.7, 0.8))
+
+                    Behavior on color { ColorAnimation { duration: 150 } }
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: Lang.get(modelData.key, uiLanguage)
+                        font.pixelSize: 12
+                        font.weight: active ? Font.DemiBold : Font.Normal
+                        color: active ? audioPanel.accentColor : (darkMode ? "#cccccc" : "#333333")
+                    }
+
+                    MouseArea {
+                        id: tabMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: audioPanel.tab = modelData.index
+                    }
+                }
+            }
+        }
+
+        // Apps: one slider per playing application
         Column {
             width: parent.width
-            spacing: 10
-
-            Text {
-                text: Lang.get("audio.outputDevice", uiLanguage)
-                font.pixelSize: 13
-                color: darkMode ? "#999999" : "#666666"
-            }
+            visible: audioPanel.tab === 1
+            spacing: 8
 
             Rectangle {
                 width: parent.width
-                height: 180
+                height: audioPanel.listHeight
+                radius: 8
+                color: darkMode ? Qt.rgba(0.1, 0.1, 0.1, 0.5) : Qt.rgba(0.9, 0.9, 0.9, 0.8)
+                border.width: 1
+                border.color: darkMode ? Qt.rgba(0.23, 0.23, 0.23, 0.5) : Qt.rgba(0.7, 0.7, 0.7, 0.8)
+                clip: true
+
+                Text {
+                    anchors.centerIn: parent
+                    visible: appModel.count === 0
+                    text: Lang.get("audio.noApps", uiLanguage)
+                    font.pixelSize: 12
+                    color: darkMode ? "#777777" : "#777777"
+                }
+
+                ListView {
+                    id: appListView
+                    anchors.fill: parent
+                    anchors.margins: 5
+                    spacing: 4
+                    clip: true
+                    model: appModel
+
+                    delegate: Item {
+                        id: appRow
+                        width: appListView.width
+                        height: 40
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.leftMargin: 6
+                            anchors.rightMargin: 6
+                            spacing: 8
+
+                            // App icon, letter tile as fallback
+                            Item {
+                                width: 24
+                                height: 24
+                                anchors.verticalCenter: parent.verticalCenter
+                                Image {
+                                    id: appIconImage
+                                    anchors.fill: parent
+                                    source: model.appIcon !== "" ? Quickshell.iconPath(model.appIcon, true) : ""
+                                    sourceSize.width: 48
+                                    sourceSize.height: 48
+                                    fillMode: Image.PreserveAspectFit
+                                    smooth: true
+                                    visible: status === Image.Ready
+                                }
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: 6
+                                    color: audioPanel.accentColor
+                                    visible: !appIconImage.visible
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: model.appName.length > 0 ? model.appName.charAt(0).toUpperCase() : "?"
+                                        color: "#ffffff"
+                                        font.pixelSize: 13
+                                        font.bold: true
+                                    }
+                                }
+                            }
+
+                            Column {
+                                width: parent.width - 24 - 28 - 16
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 4
+
+                                Row {
+                                    width: parent.width
+                                    Text {
+                                        width: parent.width - appPercent.width
+                                        text: model.appName
+                                        elide: Text.ElideRight
+                                        font.pixelSize: 12
+                                        color: darkMode ? "#ffffff" : "#000000"
+                                    }
+                                    Text {
+                                        id: appPercent
+                                        text: model.appMuted ? "0%" : (model.appVolume + "%")
+                                        font.pixelSize: 11
+                                        color: darkMode ? "#999999" : "#666666"
+                                    }
+                                }
+
+                                Rectangle {
+                                    width: parent.width
+                                    height: 6
+                                    radius: 3
+                                    color: darkMode ? "#2a2a2a" : "#d0d0d0"
+
+                                    Rectangle {
+                                        width: model.appMuted ? 0 : parent.width * Math.min(1, model.appVolume / 100)
+                                        height: parent.height
+                                        radius: 3
+                                        color: audioPanel.accentColor
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        anchors.topMargin: -8
+                                        anchors.bottomMargin: -8
+                                        preventStealing: true
+                                        onPressed: function(mouse) {
+                                            audioPanel.draggingApp = model.streamId
+                                            audioPanel.setAppVolume(model.streamId, (mouse.x / width) * 100)
+                                        }
+                                        onPositionChanged: function(mouse) {
+                                            if (pressed) audioPanel.setAppVolume(model.streamId, (mouse.x / width) * 100)
+                                        }
+                                        onReleased: audioPanel.draggingApp = -1
+                                        onCanceled: audioPanel.draggingApp = -1
+                                    }
+                                }
+                            }
+
+                            // Mute this app only
+                            Item {
+                                width: 28
+                                height: 28
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Image {
+                                    anchors.centerIn: parent
+                                    width: 16
+                                    height: 16
+                                    sourceSize.width: 32
+                                    sourceSize.height: 32
+                                    source: Qt.resolvedUrl("../img/Win11-dark/status/symbolic/" + (model.appMuted ? "audio-volume-muted-symbolic.svg" : "audio-volume-high-symbolic.svg"))
+                                    opacity: appMuteArea.containsMouse ? 1.0 : 0.75
+                                    layer.enabled: !darkMode
+                                    layer.effect: MultiEffect {
+                                        colorization: 1.0
+                                        colorizationColor: "#333333"
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: appMuteArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: audioPanel.toggleAppMute(model.streamId)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Output Device
+        Column {
+            width: parent.width
+            visible: audioPanel.tab === 0
+            spacing: 10
+
+            Rectangle {
+                width: parent.width
+                height: audioPanel.listHeight
                 radius: 8
                 color: darkMode ? Qt.rgba(0.1, 0.1, 0.1, 0.5) : Qt.rgba(0.9, 0.9, 0.9, 0.8)
                 border.width: 1
