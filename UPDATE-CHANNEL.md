@@ -2,7 +2,7 @@
 
 [Deutsch](#deutsch)
 
-This channel supplies the four WinDoesNot desktop packages. CachyOS/Arch system
+This channel supplies the four WinDoesNot desktop packages and the WinDoesNot apps (Device Manager, Bluetooth, Network, Audio, Graphics, Store) exactly as shipped on the ISO. CachyOS/Arch system
 packages continue to come from their existing repositories. Use a full system
 upgrade so the desktop, native plugins and system libraries stay compatible.
 The published 0.1.0-18 ISO needs the one-time setup below; its download is unchanged.
@@ -67,7 +67,7 @@ separately; system snapshots are not a backup of your documents.
 
 ## Deutsch
 
-Der Kanal liefert die vier WinDoesNot-Desktop-Pakete. CachyOS-/Arch-Systempakete
+Der Kanal liefert die vier WinDoesNot-Desktop-Pakete und die WinDoesNot-Apps (Geräte-Manager, Bluetooth, Netzwerk, Audio, Grafik, Store) genau so, wie die ISO sie enthält. CachyOS-/Arch-Systempakete
 kommen weiterhin aus ihren bisherigen Quellen. Aktualisiere immer das ganze
 System, damit Desktop, native Plugins und Bibliotheken zusammenpassen.
 Die veröffentlichte ISO 0.1.0-18 bleibt unverändert und braucht diese einmalige
