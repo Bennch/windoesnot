@@ -1,0 +1,15 @@
+[Unit]
+Description=Refresh the Flathub app catalogue (icons and descriptions for the Store)
+ConditionPathExists=/etc/flatpak/remotes.d/flathub.flatpakrepo
+ConditionPathExists=/usr/bin/flatpak
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/flatpak update --appstream --noninteractive
+TimeoutStartSec=600
+# Offline at the time: try again later instead of waiting for the next timer round.
+Restart=on-failure
+RestartSec=15min
+StartLimitIntervalSec=0

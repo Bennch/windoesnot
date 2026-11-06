@@ -201,6 +201,12 @@ def main():
         elif p.is_dir(): shutil.rmtree(p)
     write(a / 'etc/skel/.bash_profile', 'if [[ $(tty) == /dev/tty1 && -z ${WAYLAND_DISPLAY:-} && $(id -un) == liveuser ]]; then\n    mkdir -p "$HOME/.local/state/windoesnot"\n    windoesnot-session >"$HOME/.local/state/windoesnot/live-session.log" 2>&1\n    session_status=$?\n    if (( session_status != 0 )); then cat "$HOME/.local/state/windoesnot/live-session.log"; read -r -p "Desktop start failed. Press Enter to return to login."; fi\n    exit "$session_status"\nfi\n[[ -f ~/.bashrc ]] && . ~/.bashrc\n')
     write(a / 'etc/skel/.hushlogin', '')
+    # Flathub as a system-wide Flatpak remote from the first start (flatpak adds remotes.d entries itself),
+    # and a timer that fetches its catalogue once online, so the Store has icons for Flatpak apps.
+    for name, target in [('flathub.flatpakrepo', 'etc/flatpak/remotes.d/flathub.flatpakrepo'),
+                         ('windoesnot-flathub-appstream.service', 'usr/lib/systemd/system/windoesnot-flathub-appstream.service'),
+                         ('windoesnot-flathub-appstream.timer', 'usr/lib/systemd/system/windoesnot-flathub-appstream.timer')]:
+        write(a / target, (ROOT / 'iso/flatpak' / name).read_text())
     write(a / 'etc/systemd/system/getty@tty1.service.d/autologin.conf', '[Service]\nExecStart=\nExecStart=-/usr/bin/agetty --noreset --noclear --noissue --skip-login --autologin liveuser - ${TERM}\n')
     write(a / 'etc/sddm.conf.d/windoesnot.conf', '[General]\nDisplayServer=x11\n[X11]\nDisplayCommand=/usr/share/sddm/themes/windoesnot/Xsetup\n[Theme]\nCurrent=windoesnot\nCursorTheme=Adwaita\nCursorSize=24\n[Wayland]\nSessionDir=/usr/share/windoesnot/wayland-sessions\n[Autologin]\nSession=windoesnot.desktop\n')
     # Explicit mode selection keeps the same native ABI in both installation paths.
@@ -285,7 +291,7 @@ def main():
     cfg('displaymanager.conf', {'displaymanagers':['sddm'], 'sysconfigSetup':False, 'sddm':{'configuration_file':'/etc/sddm.conf'}})
     cfg('shellprocess-preparetarget.conf', {'dontChroot':False,'timeout':30,'script':['/usr/share/windoesnot/iso/prepare-target.sh']})
     cfg('shellprocess.conf', {'dontChroot':False,'timeout':120,'script':[{'command':'/usr/share/windoesnot/iso/finalize-install.sh "${USER}"','timeout':120}]})
-    cfg('services-systemd.conf', {'units':[{'name':n,'action':'enable','mandatory':False} for n in ['NetworkManager','bluetooth','systemd-timesyncd','fstrim.timer','vmtoolsd','vmware-vmblock-fuse','sddm']]})
+    cfg('services-systemd.conf', {'units':[{'name':n,'action':'enable','mandatory':False} for n in ['NetworkManager','bluetooth','systemd-timesyncd','fstrim.timer','vmtoolsd','vmware-vmblock-fuse','windoesnot-flathub-appstream.timer','sddm']]})
     cfg('initcpiocfg.conf', {'useSystemdHook':True,'source':'/etc/mkinitcpio-windoesnot.conf','hooks':{'append':['windoesnot-boot-errors'],'remove':['archiso','archiso_loop_mnt','archiso_pxe_common','archiso_pxe_nbd','archiso_pxe_http','archiso_pxe_nfs']}})
     cfg('initcpio.conf', {'kernel':'all','be_unsafe':False})
     unpack = yaml.safe_load((modules / 'unpackfs/unpackfs.conf').read_text())
