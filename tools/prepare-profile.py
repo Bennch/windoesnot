@@ -231,7 +231,7 @@ def main():
                     # Normal expansion resizes past the tiled/reserved area; scroll the summary instead.
                     windowExpanding='noexpand')
     branding['strings'].update(productName='WinDoesNot',shortProductName='WinDoesNot',version='0.1-dev',shortVersion='0.1-dev',versionedName='WinDoesNot 0.1-dev',shortVersionedName='WinDoesNot',bootloaderEntryName='WinDoesNot',homeUrl='',supportUrl='',knownIssuesUrl='',releaseNotesUrl='',donateUrl='')
-    branding['images']={'productLogo':'windoesnot-icon-256.png', 'productIcon':'windoesnot-icon-256.png', 'productBanner':'windoesnot-banner.png'}
+    branding['images']={'productLogo':'windoesnot-icon-256.png', 'productIcon':'windoesnot-icon-256.png'}
     branding['style']={'SidebarBackground':'#202024','SidebarText':'#eeeeee','SidebarTextCurrent':'#ffffff','SidebarBackgroundCurrent':'#fe6f2d'}
     branding.pop('uploadServer',None)
     shutil.copytree(ROOT/'iso/branding',cal/'branding/windoesnot')
@@ -259,7 +259,7 @@ def main():
     pages = next(x['show'] for x in settings['sequence'] if 'show' in x)
     pages.insert(pages.index('partition'), 'windoesnotboot')
     pages.insert(pages.index('users'), 'windoesnotapps')
-    pages.insert(pages.index('welcome') + 1, 'windoesnotintro')   # "About WinDoesNot" after the language choice
+    pages[pages.index('welcome')] = 'welcomeq'   # one start page: logo, short text, language (iso/branding/welcomeq.qml)
     # The finalizer has initialized the target keyring before offline app installation.
     execution.insert(execution.index('shellprocess') + 1, 'windoesnotapps_install')
     execution.insert(execution.index('windoesnotapps_install') + 1, 'windoesnotfinish')
@@ -282,7 +282,6 @@ def main():
     cfg('windoesnotboot.conf', {})
     for stage in ['preflight','guard','install','finish']:
         cfg('windoesnotbootreuse-'+stage+'.conf', {'stage':stage})
-    cfg('windoesnotintro.conf', {'qmlSearch': 'qrc'})
     cfg('windoesnotapps.conf', {'catalog':'/usr/share/windoesnot/iso/software/catalog.json', 'mode':'offline'})
     for job in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotfinish']:
         cfg(job + '.conf', {'mode':'offline'})
@@ -313,6 +312,7 @@ def main():
     welcome['requirements']['check']=[x for x in welcome['requirements']['check'] if x!='internet']
     welcome['requirements']['required']=[x for x in welcome['requirements']['required'] if x!='internet'];welcome['geoip']={'style':'none'}
     cfg('welcome.conf', welcome)
+    cfg('welcomeq.conf', {**welcome, 'qmlSearch': 'both'})
     # Online downloads the exact ISO package snapshot; no rolling partial upgrade.
     online = cal / 'online'
     online.mkdir()
@@ -327,6 +327,7 @@ def main():
     welcome['requirements']['check']=list(dict.fromkeys(welcome['requirements']['check']+['internet']))
     welcome['requirements']['required']=list(dict.fromkeys(welcome['requirements']['required']+['internet']))
     write(online / 'modules/welcome.conf',yaml.safe_dump(welcome,sort_keys=False))
+    write(online / 'modules/welcomeq.conf',yaml.safe_dump({**welcome, 'qmlSearch': 'both'},sort_keys=False))
     shutil.copy2(ROOT / 'iso/customize-image.sh', a / 'root/customize_airootfs.sh')
     # mkarchiso applies these modes even when copied from a normal user's checkout.
     p=profile/'profiledef.sh'; t=p.read_text().replace('iso_name="cachyos"','iso_name="windoesnot"').replace('COS_','WDN_').replace('iso_publisher="CachyOS <https://cachyos.org>"','iso_publisher="WinDoesNot"').replace('iso_application="CachyOS Live/Rescue DVD"','iso_application="WinDoesNot Hyprland Live and Offline Installer"').replace("airootfs_image_tool_options=('-comp' 'xz' '-Xbcj' 'x86' '-b' '1M' '-Xdict-size' '1M')", "airootfs_image_tool_options=('-comp' 'zstd' '-Xcompression-level' '8' '-b' '1M')")
