@@ -3,3 +3,6 @@ contact_links:
   - name: Help and installation / Hilfe und Installation
     url: https://windoesnot.me/en/help/installation/
     about: Installation instructions and known preview limitations. Switch to DE for German.
+  - name: Questions and ideas / Fragen und Ideen
+    url: https://github.com/Bennch/windoesnot/discussions
+    about: Ask questions, share ideas and help each other. Use issues only for bugs and hardware reports.
