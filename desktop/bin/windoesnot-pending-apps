@@ -90,16 +90,16 @@ def webapp_command(app_id, url):
     return ['firefox', '--new-window', url]
 
 
-def write_webapp(app, name, dry):
+def write_webapp(app, name, dry, link=False):
     """Per-user launcher; idempotent, rewritten when the available browser changes. Returns True if (re)written."""
     _, refs = pending_reference(app)
-    command = webapp_command(app['id'], refs[0])
+    command = ['xdg-open', refs[0]] if link else webapp_command(app['id'], refs[0])
     quoted = ' '.join('"' + part.replace('\\', '\\\\').replace('"', '\\"') + '"' if any(c in part for c in ' "') else part for part in command)
     comment = app['description']['de' if german else 'en']
+    tail = 'Categories=Game;\nX-WinDoesNot-Link=true\n' if link else 'Categories=Network;AudioVideo;\nX-WinDoesNot-WebApp=true\n'
     text = ('[Desktop Entry]\nType=Application\nVersion=1.0\n'
-            f'Name={name}\nComment={comment}\nExec={quoted}\nIcon=web-browser\nTerminal=false\n'
-            'Categories=Network;AudioVideo;\nX-WinDoesNot-WebApp=true\n')
-    path = Path.home() / '.local/share/applications' / f'windoesnot-webapp-{app["id"]}.desktop'
+            f'Name={name}\nComment={comment}\nExec={quoted}\nIcon=web-browser\nTerminal=false\n') + tail
+    path = Path.home() / '.local/share/applications' / f'windoesnot-{"link" if link else "webapp"}-{app["id"]}.desktop'
     if path.is_file() and path.read_text() == text:
         return False
     if dry:
@@ -123,6 +123,7 @@ def main():
     store_apps = [a for a in todo if a['source'] in ('repo', 'aur')]
     flatpaks = [a for a in todo if a['source'] == 'flatpak']
     webapps = [a for a in todo if a['source'] == 'webapp']
+    links = [a for a in todo if a['source'] == 'link']
     name = lambda a: a['name']['de' if german else 'en']  # noqa: E731
     while flatpaks:
         if not args.dry_run and not online():
@@ -146,7 +147,7 @@ def main():
             return 1
         if failed:
             time.sleep(300)
-    created = [name(a) for a in webapps if write_webapp(a, name(a), args.dry_run)]
+    created = [name(a) for a in webapps if write_webapp(a, name(a), args.dry_run)] + [name(a) for a in links if write_webapp(a, name(a), args.dry_run, link=True)]
     if created and not args.dry_run:
         notify(tr('Web-Apps angelegt', 'Web apps created'), ', '.join(created), False)
     notified_path = STATE / 'pending-apps-notified.json'

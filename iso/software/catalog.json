@@ -1425,6 +1425,22 @@
         "en": "Run virtual machines. AUR package, reviewed before installing, needs kernel modules."
       },
       "required": false
+    },
+    {
+      "id": "gta2-rtx-remix-guide",
+      "name": {
+        "de": "GTA 2 mit RTX Remix (Anleitung)",
+        "en": "GTA 2 with RTX Remix (guide)"
+      },
+      "category": "games",
+      "source": "link",
+      "packages": [],
+      "url": "https://github.com/Bennch/gta2-rtx-remix-linux",
+      "description": {
+        "de": "Anleitung für GTA 2 mit dem Path-Tracing-Mod unter Linux. Enthält keine Spieldateien: Spiel, Mod und Remix holst du selbst. Braucht eine NVIDIA-RTX-Grafikkarte.",
+        "en": "Guide for running GTA 2 with the path-tracing mod on Linux. No game files included: you get the game, the mod and Remix yourself. Needs an NVIDIA RTX graphics card."
+      },
+      "required": false
     }
   ]
 }

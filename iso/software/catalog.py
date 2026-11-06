@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import re
 
-SOURCES = ('offline', 'flatpak', 'repo', 'aur', 'webapp')
+SOURCES = ('offline', 'flatpak', 'repo', 'aur', 'webapp', 'link')
 # https only, plain host and path: no credentials, ports, queries or fragments, no shell metacharacters.
 WEBAPP_URL = re.compile(r'https://([a-z0-9-]+\.)+[a-z]{2,}(/[A-Za-z0-9._~%/-]*)?')
 
@@ -37,7 +37,7 @@ def load_catalog(path):
                 raise ValueError('Invalid Flatpak ID')
             if source == 'aur' and not re.fullmatch(r'[a-z0-9][a-z0-9@._+-]*', app.get('aur_package', '')):
                 raise ValueError('Invalid AUR package')
-            if source == 'webapp' and not WEBAPP_URL.fullmatch(app.get('url', '')):
+            if source in ('webapp', 'link') and not WEBAPP_URL.fullmatch(app.get('url', '')):
                 raise ValueError('Invalid web app URL')
             if source == 'repo' and not app.get('repo_packages'):
                 raise ValueError('Repository application without packages')
@@ -102,6 +102,6 @@ def pending_reference(app):
         return source, [app['aur_package']]
     if source == 'repo':
         return source, list(app['repo_packages'])
-    if source == 'webapp':
+    if source in ('webapp', 'link'):
         return source, [app['url']]
     raise ValueError('Not a deferred application')

@@ -143,7 +143,7 @@ void AppSelectionWidget::build() {
         auto* name = new QLabel(localized(app, "name"), card); name->setObjectName("appName"); column->addWidget(name);
         auto* description = new QLabel(localized(app, "description"), card); description->setObjectName("appDescription"); description->setWordWrap(true); column->addWidget(description);
         if (app.value("source").toString("offline") != "offline") {
-            auto* later = new QLabel(app.value("source").toString() == "webapp" ? text("Wird nach der Installation als Web-App angelegt und öffnet die Webseite.", "Created as a web app after setup; it opens the website.")
+            auto* later = new QLabel(app.value("source").toString() == "link" ? text("Wird nach der Installation als Starter angelegt und öffnet die Anleitung im Browser.", "Created as a launcher after setup; it opens the guide in your browser.") : app.value("source").toString() == "webapp" ? text("Wird nach der Installation als Web-App angelegt und öffnet die Webseite.", "Created as a web app after setup; it opens the website.")
                                                                               : text("Wird nach der Installation geladen, sobald du online bist.", "Installed after setup, once you are online."), card);
             later->setWordWrap(true); later->setObjectName("deferredNote"); column->addWidget(later);
         }
