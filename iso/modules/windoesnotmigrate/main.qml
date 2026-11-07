@@ -303,6 +303,9 @@ Rectangle {
                             Label { visible: profile.items.some(function(item) { return item.warnings.indexOf("firefox_unavailable") >= 0 })
                                 Layout.fillWidth: true; color: "#f3c99d"; wrapMode: Text.WordWrap
                                 text: page.tr("Firefox-Profil nicht bereit: Firefox unter Windows schließen und erneut prüfen.", "Firefox profile unavailable: close Firefox in Windows and scan again.") }
+                            Label { visible: profile.browsers && profile.browsers.length > 0
+                                Layout.fillWidth: true; color: "#f3c99d"; wrapMode: Text.WordWrap
+                                text: (profile.browsers || []).join(", ") + ": " + page.tr("Passwörter können nur unter Windows exportiert werden. Browserprofile werden nicht kopiert.", "Passwords can only be exported in Windows. Browser profiles are not copied.") }
 
                             Repeater {
                                 model: profile.items
