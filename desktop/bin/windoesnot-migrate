@@ -15,8 +15,6 @@ from gi.repository import Adw, GLib, Gtk, Gdk
 
 BACKEND = Path('/usr/lib/windoesnot/migrate.py')
 if not BACKEND.is_file():
-    BACKEND = Path('/usr/share/windoesnot/desktop/lib/windoesnot/migrate.py')
-if not BACKEND.is_file():
     BACKEND = Path(__file__).resolve().parent.parent / 'lib/windoesnot/migrate.py'
 GERMAN = (os.environ.get('LANG') or '').startswith('de')
 PREVIEW = '--preview' in sys.argv

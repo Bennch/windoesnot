@@ -102,7 +102,7 @@ public:
     void start(const QString& action, const QStringList& args) {
         if (m_process.state() != QProcess::NotRunning) return;
         m_action = action; m_error.clear(); m_busy = true; emit changed();
-        m_process.start(QStringLiteral("/usr/bin/python3"), QStringList{QStringLiteral("/usr/share/windoesnot/desktop/lib/windoesnot/migrate.py"), action == QStringLiteral("unlock") ? QStringLiteral("scan") : action} + args);
+        m_process.start(QStringLiteral("/usr/bin/python3"), QStringList{QStringLiteral("/usr/lib/windoesnot/migrate.py"), action == QStringLiteral("unlock") ? QStringLiteral("scan") : action} + args);
     }
 signals:
     void changed();
