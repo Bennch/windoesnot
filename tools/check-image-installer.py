@@ -42,7 +42,7 @@ for path in ['usr/bin/windoesnot-bluetooth','usr/bin/windoesnot-network','usr/bi
              'usr/share/polkit-1/actions/me.windoesnot.DeviceManager.policy']:
     assert (root/path).is_file(),f'Missing Device Manager package file: {path}'
 assert (root/'usr/lib/windoesnot/boot_language.py').is_file(),'Missing boot language runtime'
-assert (base/'desktop/lib/windoesnot/migrate.py').is_file(),'Missing migration backend'
+assert (root/'usr/lib/windoesnot/migrate.py').is_file(),'Missing migration backend'
 assert (root/'usr/local/bin/windoesnot-migrate').is_file(),'Missing migration launcher'
 assert (root/'usr/share/applications/windoesnot-migrate.desktop').is_file(),'Missing migration menu entry'
 boot_language=root/'usr/lib/windoesnot/boot-language'

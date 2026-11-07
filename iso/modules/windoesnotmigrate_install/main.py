@@ -6,7 +6,7 @@ import re
 import sys
 import libcalamares
 
-sys.path.insert(0, '/usr/share/windoesnot/desktop/lib/windoesnot')
+sys.path.insert(0, '/usr/lib/windoesnot')
 import migrate
 
 
