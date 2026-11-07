@@ -113,6 +113,8 @@ class TerminalRebuildTests(unittest.TestCase):
         self.assertEqual((self.terminal_target / 'liblocalterminalplugin.so').read_text(), 'new-main')
         self.assertEqual(self.invoke(FAKE_CMAKE_FAIL='1').returncode, 0)
         self.assertEqual((self.terminal_target / 'liblocalterminalplugin.so').read_text(), 'new-main')
+        import stat
+        self.assertEqual(stat.S_IMODE(self.terminal_target.stat().st_mode), 0o755, 'normal users must be able to read the terminal module')
 
     def test_terminal_build_failure_keeps_original(self):
         self.assertEqual(self.invoke(FAKE_CMAKE_FAIL='1').returncode, 0)
