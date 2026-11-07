@@ -12,11 +12,16 @@ import uuid
 ROOT = Path(__file__).resolve().parent.parent
 # Prefix, guest destinations. Add narrow prefixes before broad ones.
 MAPPINGS = (
+    ('desktop/bin/windoesnot-migrate', ('/usr/bin/windoesnot-migrate', '/usr/local/bin/windoesnot-migrate')),
+    ('desktop/share/applications/', ('/usr/share/applications/',)),
     ('desktop/bin/', ('/usr/bin/',)),
     ('desktop/config/quickshell/default/', ('/etc/skel/.config/quickshell/default/', '/home/liveuser/.config/quickshell/default/')),
     ('desktop/share/libalpm/hooks/', ('/usr/share/libalpm/hooks/',)),
     ('desktop/config/hyprdesk/', ('/etc/skel/.config/hyprdesk/', '/home/liveuser/.config/hyprdesk/')),
     ('tools/check-image-installer.py', ('/usr/share/windoesnot/tools/check-image-installer.py',)),
+    ('tools/build-installer-module.sh', ('/usr/share/windoesnot/tools/build-installer-module.sh',)),
+    ('desktop/lib/windoesnot/', ('/usr/lib/windoesnot/', '/usr/share/windoesnot/desktop/lib/windoesnot/')),
+    ('iso/modules/', ('/usr/share/windoesnot/iso/modules/',)),
 )
 
 CHECKS = {
