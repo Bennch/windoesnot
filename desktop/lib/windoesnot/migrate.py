@@ -54,6 +54,9 @@ def unlock_bitlocker(device, secret, mapper):
     return '/dev/mapper/' + mapper
 
 
+LEGACY_JUNCTIONS = {'My Music', 'My Pictures', 'My Videos'}
+
+
 def mount_readonly(device, mountpoint):
     errors = []
     for argv in (['mount', '-t', 'ntfs3', '-o', 'ro,nosuid,nodev,noexec', device, str(mountpoint)],
@@ -380,7 +383,9 @@ def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, 
                     entry = Path(base) / name
                     if warning_flags(entry):
                         dirs.remove(name)
-                        failed(entry, 'link, reparse point or unreadable')
+                        # Windows' legacy junctions point at folders copied separately.
+                        if name not in LEGACY_JUNCTIONS:
+                            failed(entry, 'link, reparse point or unreadable')
                     else:
                         safe_target(target / relative / name)
                         make_target(target / relative / name)
@@ -480,4 +485,8 @@ def main():
     print(json.dumps(result if not getattr(args, 'progress_json', False) else {'event': 'summary', **result}, ensure_ascii=False))
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except (OSError, RuntimeError, ValueError) as error:
+        # Callers show stderr to the user; a traceback would be noise.
+        sys.exit(f'{error}')
