@@ -94,6 +94,14 @@ Rectangle {
         }
 
         Rectangle {
+            visible: !!page.disks && page.disks.length === 0 && !(page.bridge && (page.bridge.busy || page.bridge.error))
+            color: "#2a2a2e"; border.color: "#555555"; radius: 8
+            Layout.fillWidth: true; implicitHeight: noWindowsText.implicitHeight + 20
+            Label { id: noWindowsText; anchors.fill: parent; anchors.margins: 10; color: "#cccccc"; wrapMode: Text.WordWrap
+                text: page.tr("Keine Windows-Installation gefunden. Es gibt nichts zu übernehmen; mit „Weiter“ geht es ohne Datenübernahme weiter.", "No Windows installation found. There is nothing to bring over; click Next to continue without copying data.") }
+        }
+
+        Rectangle {
             visible: page.bridge && !!page.bridge.error
             color: "#432a22"
             border.color: "#fe6f2d"

@@ -390,6 +390,8 @@ def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, 
                         safe_target(target / relative / name)
                         make_target(target / relative / name)
                 for name in files:
+                    if name.lower() in ('desktop.ini', 'thumbs.db'):
+                        continue  # Windows folder metadata, useless on Linux
                     entry = Path(base) / name
                     if warning_flags(entry) or not entry.is_file():
                         failed(entry, 'link, reparse point or unreadable')
