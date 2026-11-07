@@ -1,10 +1,12 @@
 [Trigger]
 Operation = Install
 Operation = Upgrade
+Operation = Remove
 Type = Package
 Target = hyprland
 Target = gcc-libs
 Target = windoesnot-plugins
+Target = windoesnot-tools
 Target = qt6-base
 Target = qtermwidget
 Target = qt6-declarative
