@@ -1,42 +1,348 @@
-#!/usr/bin/env python3
-"""Rebuild installed Hyprland plugins after a pacman transaction."""
-import hashlib
+#!/usr/bin/python3
+"""Rebuild native modules after pacman transactions.
+
+The last verified local build lives outside pacman's paths. On failure it is
+restored only when its recorded dependency versions match the installed ones;
+otherwise the packaged files are left untouched and the failure is logged.
+"""
 import ctypes
+import fcntl
+import hashlib
 import logging
 import os
 from pathlib import Path
 import pwd
 import shutil
+import stat
+import struct
 import subprocess
 import sys
 import tempfile
 
-ROOT = Path(os.environ.get('WDN_REBUILD_TEST_ROOT', '/'))
+TEST = os.geteuid() != 0 and bool(os.environ.get('WDN_REBUILD_TEST_ROOT'))
+ROOT = Path(os.environ['WDN_REBUILD_TEST_ROOT']) if TEST else Path('/')
+BASE = ROOT / 'var/lib/windoesnot'
 SOURCE = ROOT / 'usr/share/windoesnot/plugins-src'
 TARGET = ROOT / 'usr/lib/windoesnot/plugins'
-MARKER = ROOT / 'var/lib/windoesnot/plugins-built-for'
+MARKER = BASE / 'plugins-built-for'
+BACKUP = BASE / 'plugins-last-good'
 LOG = ROOT / 'var/log/windoesnot-plugins-rebuild.log'
 COMPONENT_SOURCE = ROOT / 'usr/share/windoesnot/components-src/terminalmodule'
 COMPONENT_TARGET = ROOT / 'usr/lib/windoesnot/LocalTerminal'
-COMPONENT_MARKER = ROOT / 'var/lib/windoesnot/components-built-for'
+COMPONENT_MARKER = BASE / 'components-built-for'
 NAMES = ('hyprbars', 'hyprdrag')
+REQUIRED = ('qmldir', 'liblocalterminalplugin.so', 'liblocalterminalpluginplugin.so')
 CFLAGS = '-march=x86-64 -mtune=generic -O2 -pipe -fno-plt -fexceptions -Wp,-D_FORTIFY_SOURCE=3 -Wformat -Werror=format-security -fstack-clash-protection -fcf-protection'
+PYTHON = sys.executable if TEST else '/usr/bin/python3'
+TOOLS = {name: ('/usr/bin/' + name) for name in ('pacman', 'pkg-config', 'make', 'cmake', 'readelf', 'runuser', 'env', 'notify-send')}
+if TEST:
+    TOOLS = {name: str(ROOT / 'fake-bin' / name) for name in TOOLS}
 
 
 def run(*args, **kwargs):
+    kwargs.setdefault('env', {'PATH': '/usr/bin:/usr/sbin', 'LC_ALL': 'C', 'HOME': '/nonexistent'})
     return subprocess.run(args, check=True, **kwargs)
 
 
-def fingerprint():
-    versions = run('pacman', '-Q', 'hyprland', 'libstdc++', capture_output=True, text=True).stdout
+def safe_directory(path, create=False, mode=0o755):
+    if create and not path.exists() and not path.is_symlink():
+        safe_directory(path.parent, create=True)
+        path.mkdir(mode=mode)
+    for part in (path, *path.parents):
+        if part == part.parent or (TEST and part == ROOT.parent):
+            break
+        info = part.lstat()
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o022:
+            raise RuntimeError(f'Unsafe directory: {part}')
+
+
+def safe_tree(path):
+    safe_directory(path)
+    for base, dirs, files in os.walk(path, followlinks=False):
+        safe_directory(Path(base))
+        for name in dirs + files:
+            item = Path(base) / name
+            info = item.lstat()
+            if info.st_uid != os.geteuid() or info.st_mode & 0o022 or not (stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode)):
+                raise RuntimeError(f'Unsafe source or target: {item}')
+
+
+def safe_file(path):
+    try:
+        info = path.lstat()
+        return stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid() and not info.st_mode & 0o022
+    except FileNotFoundError:
+        return False
+
+
+def build_env(home):
+    env = {'PATH': '/usr/bin:/usr/sbin', 'LC_ALL': 'C', 'HOME': str(home),
+           'TMPDIR': str(home), 'CFLAGS': CFLAGS,
+           'CXXFLAGS': CFLAGS + ' -Wp,-D_GLIBCXX_ASSERTIONS'}
+    if TEST:
+        env.update({k: v for k, v in os.environ.items() if k.startswith('FAKE_')})
+    return env
+
+
+def digest_file(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def elf(path):
+    if not safe_file(path) or path.stat().st_size < 64:
+        return False
+    with path.open('rb') as stream:
+        head = stream.read(20)
+    return head[:4] == b'\x7fELF' and head[4:6] == b'\x02\x01' and struct.unpack('<HH', head[16:20]) == (3, 62)
+
+
+def hashes(folder, names):
+    return ''.join(f'{name} sha256 {digest_file(folder / name)}\n' for name in names)
+
+
+def matches(marker, versions, sources, folder, names, libraries=True, symbols=False):
+    if not safe_file(marker) or not folder.is_dir() or folder.is_symlink():
+        return False
+    try:
+        if libraries and not all(elf(folder / name) for name in names if name.endswith('.so')):
+            return False
+        if not all(safe_file(folder / name) and (folder / name).stat().st_size for name in names):
+            return False
+        if marker.read_text() != versions + sources + hashes(folder, names):
+            return False
+        if symbols:
+            with tempfile.TemporaryDirectory(prefix='windoesnot-check-') as home:
+                for name in names:
+                    run(PYTHON, str(SOURCE / 'check-plugin-symbols.py'), str(folder / name), env=build_env(home))
+        return True
+    except (OSError, ValueError, subprocess.CalledProcessError):
+        return False
+
+
+def versions(*names):
+    return run(TOOLS['pacman'], '-Q', *names, capture_output=True, text=True).stdout
+
+
+def source_hash(path):
     digest = hashlib.sha256()
-    for name in NAMES:
-        for path in sorted((SOURCE / name).rglob('*')):
-            if path.is_file():
-                digest.update(path.relative_to(SOURCE).as_posix().encode())
-                digest.update(path.read_bytes())
-    digest.update((SOURCE / 'check-plugin-symbols.py').read_bytes())
-    return versions + 'sources sha256 ' + digest.hexdigest() + '\n'
+    for file in sorted(path.rglob('*')):
+        if file.is_file():
+            digest.update(file.relative_to(path).as_posix().encode())
+            digest.update(file.read_bytes())
+    return 'sources sha256 ' + digest.hexdigest() + '\n'
+
+
+def exchange_directories(first, second):
+    result = ctypes.CDLL(None, use_errno=True).renameat2(-100, os.fsencode(first), -100, os.fsencode(second), 2)
+    if result:
+        error = ctypes.get_errno()
+        raise OSError(error, os.strerror(error))
+
+
+def sync_dir(path):
+    fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def write_marker(marker, content):
+    safe_directory(marker.parent, create=True)
+    if marker.exists() and not safe_file(marker):
+        raise RuntimeError(f'Unsafe marker: {marker}')
+    fd, path = tempfile.mkstemp(prefix=f'.{marker.name}.', dir=marker.parent)
+    try:
+        with os.fdopen(fd, 'w') as output:
+            output.write(content)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(path, marker)
+        sync_dir(marker.parent)
+    finally:
+        Path(path).unlink(missing_ok=True)
+
+
+def save_backup(content):
+    staged = Path(tempfile.mkdtemp(prefix='.plugins-last-good.', dir=BASE))
+    try:
+        for name in NAMES:
+            shutil.copy2(TARGET / f'{name}.so', staged / f'{name}.so')
+        (staged / 'marker').write_text(content)
+        for file in staged.iterdir():
+            with file.open('rb') as stream:
+                os.fsync(stream.fileno())
+        if BACKUP.exists():
+            exchange_directories(staged, BACKUP)
+        else:
+            os.replace(staged, BACKUP)
+        sync_dir(BASE)
+    finally:
+        if staged.exists():
+            shutil.rmtree(staged)
+
+
+def restore_backup(versions_now):
+    if not BACKUP.is_dir() or BACKUP.is_symlink():
+        return False
+    safe_tree(BACKUP)
+    saved = BACKUP / 'marker'
+    if not safe_file(saved):
+        return False
+    content = saved.read_text()
+    if not content.startswith(versions_now):
+        return False
+    names = tuple(f'{name}.so' for name in NAMES)
+    if not matches(saved, versions_now, content[len(versions_now):].split('hyprbars.so sha256 ')[0], BACKUP, names):
+        return False
+    staged = Path(tempfile.mkdtemp(prefix='.plugins-restore.', dir=TARGET.parent))
+    try:
+        for name in names:
+            shutil.copy2(BACKUP / name, staged / name)
+        if TARGET.exists():
+            exchange_directories(staged, TARGET)
+        else:
+            os.replace(staged, TARGET)
+        sync_dir(TARGET.parent)
+        write_marker(MARKER, content)
+        return True
+    finally:
+        if staged.exists():
+            shutil.rmtree(staged)
+
+
+def rebuild():
+    safe_tree(SOURCE)
+    safe_directory(TARGET.parent)
+    if TARGET.exists() or TARGET.is_symlink():
+        safe_tree(TARGET)
+    safe_directory(BASE, create=True)
+    if BACKUP.exists() or BACKUP.is_symlink():
+        safe_tree(BACKUP)
+    current_versions = versions('hyprland', 'libstdc++')
+    sources = source_hash(SOURCE)
+    names = tuple(f'{name}.so' for name in NAMES)
+    if matches(MARKER, current_versions, sources, TARGET, names, symbols=True):
+        logging.info('Already current')
+        return
+    # A prior process may have died after the directory exchange but before the marker.
+    if BACKUP.exists() and restore_backup(current_versions):
+        if matches(MARKER, current_versions, sources, TARGET, names, symbols=True):
+            logging.info('Recovered plugins after interrupted exchange')
+            return
+    try:
+        run(TOOLS['pkg-config'], '--exists', 'hyprland')
+        with tempfile.TemporaryDirectory(prefix='windoesnot-plugins-') as temp:
+            work = Path(temp)
+            env = build_env(work)
+            for name in NAMES:
+                shutil.copytree(SOURCE / name, work / name, symlinks=True)
+                run(TOOLS['make'], '-C', str(work / name), '-j', str(os.cpu_count() or 1), 'CXX=g++', env=env)
+                so = work / name / f'{name}.so'
+                if not elf(so):
+                    raise RuntimeError(f'Invalid build result: {name}')
+                run(PYTHON, str(SOURCE / 'check-plugin-symbols.py'), str(so), env=env)
+            staged = Path(tempfile.mkdtemp(prefix='.plugins.', dir=TARGET.parent))
+            try:
+                for name in NAMES:
+                    shutil.copy2(work / name / f'{name}.so', staged / f'{name}.so')
+                    os.chmod(staged / f'{name}.so', 0o755)
+                    with (staged / f'{name}.so').open('rb') as stream:
+                        os.fsync(stream.fileno())
+                os.chmod(staged, 0o755)
+                content = current_versions + sources + hashes(staged, names)
+                if TARGET.exists():
+                    exchange_directories(staged, TARGET)
+                else:
+                    os.replace(staged, TARGET)
+                sync_dir(TARGET.parent)
+                if TEST and os.environ.get('WDN_REBUILD_TEST_KILL_AFTER_REPLACE'):
+                    os._exit(0)
+                if TEST and os.environ.get('WDN_REBUILD_TEST_FAIL_AFTER_FIRST_REPLACE'):
+                    raise RuntimeError('Injected replacement failure')
+                save_backup(content)
+                write_marker(MARKER, content)
+                logging.info('Rebuilt plugins for %s', current_versions.splitlines())
+            except Exception:
+                if staged.exists() and TARGET.exists():
+                    exchange_directories(staged, TARGET)
+                    sync_dir(TARGET.parent)
+                elif TARGET.exists() and not staged.exists():
+                    os.replace(TARGET, staged)
+                raise
+            finally:
+                if staged.exists():
+                    shutil.rmtree(staged)
+    except Exception:
+        restore_backup(current_versions)
+        raise
+
+
+def rebuild_components():
+    safe_tree(COMPONENT_SOURCE)
+    safe_directory(COMPONENT_TARGET.parent)
+    if COMPONENT_TARGET.exists() or COMPONENT_TARGET.is_symlink():
+        safe_tree(COMPONENT_TARGET)
+    safe_directory(BASE, create=True)
+    current_versions = versions('qt6-base', 'qtermwidget', 'qt6-declarative')
+    sources = source_hash(COMPONENT_SOURCE)
+    if (COMPONENT_TARGET.exists() and stat.S_IMODE(COMPONENT_TARGET.stat().st_mode) == 0o755 and
+            all((COMPONENT_TARGET / name).stat().st_mode & 0o004 for name in REQUIRED if (COMPONENT_TARGET / name).exists()) and
+            matches(COMPONENT_MARKER, current_versions, sources, COMPONENT_TARGET, REQUIRED)):
+        logging.info('Terminal already current')
+        return
+    with tempfile.TemporaryDirectory(prefix='windoesnot-terminal-') as temp:
+        work = Path(temp)
+        env = build_env(work)
+        shutil.copytree(COMPONENT_SOURCE, work / 'terminalmodule', symlinks=True)
+        run(TOOLS['cmake'], '-S', str(work / 'terminalmodule'), '-B', str(work / 'terminal-build'), '-G', 'Ninja',
+            '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON', '-DCMAKE_INSTALL_RPATH=$ORIGIN', env=env)
+        run(TOOLS['cmake'], '--build', str(work / 'terminal-build'), '-j', str(os.cpu_count() or 1), env=env)
+        built = work / 'widgets/terminalmodule/LocalTerminal'
+        for name in REQUIRED:
+            if not safe_file(built / name) or not (built / name).stat().st_size or (name.endswith('.so') and not elf(built / name)):
+                raise RuntimeError(f'Invalid terminal build result: {name}')
+        for library in built.glob('*.so'):
+            dynamic = run(TOOLS['readelf'], '-d', str(library), capture_output=True, text=True).stdout
+            for line in dynamic.splitlines():
+                if ('(RUNPATH)' in line or '(RPATH)' in line) and '[$ORIGIN]' not in line:
+                    raise RuntimeError(f'Unexpected terminal RUNPATH: {library}')
+        staged = Path(tempfile.mkdtemp(prefix='.LocalTerminal.', dir=COMPONENT_TARGET.parent))
+        os.chmod(staged, 0o755)
+        exchanged = installed = False
+        try:
+            for path in built.iterdir():
+                destination = staged / path.name
+                if path.is_dir():
+                    shutil.copytree(path, destination)
+                else:
+                    shutil.copy2(path, destination)
+            for root_dir, directories, files in os.walk(staged):
+                for name in directories:
+                    os.chmod(os.path.join(root_dir, name), 0o755)
+                for name in files:
+                    full = os.path.join(root_dir, name)
+                    os.chmod(full, 0o755 if os.access(full, os.X_OK) else 0o644)
+            if COMPONENT_TARGET.exists():
+                exchange_directories(staged, COMPONENT_TARGET)
+                exchanged = True
+            else:
+                os.replace(staged, COMPONENT_TARGET)
+                installed = True
+            sync_dir(COMPONENT_TARGET.parent)
+            if TEST and os.environ.get('WDN_REBUILD_TEST_FAIL_AFTER_COMPONENT_REPLACE'):
+                raise RuntimeError('Injected terminal replacement failure')
+            write_marker(COMPONENT_MARKER, current_versions + sources + hashes(COMPONENT_TARGET, REQUIRED))
+        except Exception:
+            if exchanged:
+                exchange_directories(staged, COMPONENT_TARGET)
+            elif installed:
+                os.replace(COMPONENT_TARGET, staged)
+            raise
+        finally:
+            if staged.exists():
+                shutil.rmtree(staged)
+    logging.info('Rebuilt terminal for %s', current_versions.splitlines())
 
 
 def notify_failure(component):
@@ -60,205 +366,49 @@ def notify_failure(component):
         uid = int(user_dir.name)
         try:
             user = pwd.getpwuid(uid).pw_name
-            run('runuser', '-u', user, '--', 'env',
-                f'XDG_RUNTIME_DIR=/run/user/{uid}',
-                f'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/{uid}/bus',
-                'notify-send', 'WinDoesNot', message, timeout=10,
+            run(TOOLS['runuser'], '-u', user, '--', TOOLS['env'],
+                f'XDG_RUNTIME_DIR=/run/user/{uid}', f'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/{uid}/bus',
+                TOOLS['notify-send'], 'WinDoesNot', message, timeout=10,
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except (KeyError, OSError, subprocess.CalledProcessError):
             logging.exception('Could not notify UID %s', uid)
 
 
-def rebuild():
-    if os.geteuid() != 0 and 'WDN_REBUILD_TEST_ROOT' not in os.environ:
-        raise PermissionError('Run as root')
-    expected = fingerprint()
-    if MARKER.exists() and MARKER.read_text() == expected and all((TARGET / f'{n}.so').is_file() for n in NAMES):
-        logging.info('Already current')
-        return
-    run('pkg-config', '--exists', 'hyprland')
-    TARGET.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix='windoesnot-plugins-') as temp:
-        work = Path(temp)
-        env = os.environ.copy()
-        env['CFLAGS'] = CFLAGS
-        env['CXXFLAGS'] = CFLAGS + ' -Wp,-D_GLIBCXX_ASSERTIONS'
-        for name in NAMES:
-            shutil.copytree(SOURCE / name, work / name)
-            run('make', '-C', str(work / name), '-j', str(os.cpu_count() or 1), 'CXX=g++', env=env)
-            so = work / name / f'{name}.so'
-            if not so.is_file() or not so.stat().st_size:
-                raise RuntimeError(f'Missing build result: {name}')
-            run(sys.executable, str(SOURCE / 'check-plugin-symbols.py'), str(so), env=env)
-        # Stage both binaries on the target filesystem before touching either original.
-        staged = []
-        backups = {}
-        replaced = []
-        try:
-            for name in NAMES:
-                destination = TARGET / f'{name}.so'
-                fd, path = tempfile.mkstemp(prefix=f'.{name}.', dir=TARGET)
-                with os.fdopen(fd, 'wb') as output, (work / name / f'{name}.so').open('rb') as source:
-                    shutil.copyfileobj(source, output)
-                    output.flush()
-                    os.fsync(output.fileno())
-                os.chmod(path, 0o755)
-                staged.append((Path(path), destination))
-                if destination.exists():
-                    backups[destination] = destination.read_bytes()
-            for source, destination in staged:
-                os.replace(source, destination)
-                replaced.append(destination)
-                if 'WDN_REBUILD_TEST_ROOT' in os.environ and os.environ.get('WDN_REBUILD_TEST_FAIL_AFTER_FIRST_REPLACE') and len(replaced) == 1:
-                    raise RuntimeError('Injected replacement failure')
-            MARKER.parent.mkdir(parents=True, exist_ok=True)
-            fd, path = tempfile.mkstemp(prefix='.plugins-built-for.', dir=MARKER.parent)
-            try:
-                with os.fdopen(fd, 'w') as output:
-                    output.write(expected)
-                    output.flush()
-                    os.fsync(output.fileno())
-                os.replace(path, MARKER)
-            finally:
-                Path(path).unlink(missing_ok=True)
-        except Exception:
-            for destination in reversed(replaced):
-                if destination in backups:
-                    fd, path = tempfile.mkstemp(prefix='.restore.', dir=TARGET)
-                    with os.fdopen(fd, 'wb') as output:
-                        output.write(backups[destination])
-                    os.chmod(path, 0o755)
-                    os.replace(path, destination)
-                else:
-                    destination.unlink(missing_ok=True)
-            raise
-        finally:
-            for source, _ in staged:
-                source.unlink(missing_ok=True)
-    logging.info('Rebuilt plugins for %s', expected.splitlines()[:2])
-
-
-def component_fingerprint():
-    versions = run('pacman', '-Q', 'qt6-base', 'qtermwidget', 'qt6-declarative',
-                   capture_output=True, text=True).stdout
-    digest = hashlib.sha256()
-    for path in sorted(COMPONENT_SOURCE.rglob('*')):
-        if path.is_file():
-            digest.update(path.relative_to(COMPONENT_SOURCE).as_posix().encode())
-            digest.update(path.read_bytes())
-    return versions + 'sources sha256 ' + digest.hexdigest() + '\n'
-
-
-def exchange_directories(first, second):
-    # Linux renameat2 exchanges nonempty directories in one filesystem operation.
-    result = ctypes.CDLL(None, use_errno=True).renameat2(
-        -100, os.fsencode(first), -100, os.fsencode(second), 2)
-    if result != 0:
-        error = ctypes.get_errno()
-        raise OSError(error, os.strerror(error))
-
-
-def write_marker(marker, content):
-    marker.parent.mkdir(parents=True, exist_ok=True)
-    fd, path = tempfile.mkstemp(prefix=f'.{marker.name}.', dir=marker.parent)
-    try:
-        with os.fdopen(fd, 'w') as output:
-            output.write(content)
-            output.flush()
-            os.fsync(output.fileno())
-        os.replace(path, marker)
-    finally:
-        Path(path).unlink(missing_ok=True)
-
-
-def rebuild_components():
-    if os.geteuid() != 0 and 'WDN_REBUILD_TEST_ROOT' not in os.environ:
-        raise PermissionError('Run as root')
-    expected = component_fingerprint()
-    required = ('qmldir', 'liblocalterminalplugin.so', 'liblocalterminalpluginplugin.so')
-    if (COMPONENT_MARKER.exists() and COMPONENT_MARKER.read_text() == expected and
-            all((COMPONENT_TARGET / name).is_file() for name in required)):
-        logging.info('Terminal already current')
-        return
-    env = os.environ.copy()
-    env['CFLAGS'] = CFLAGS
-    env['CXXFLAGS'] = CFLAGS + ' -Wp,-D_GLIBCXX_ASSERTIONS'
-    COMPONENT_TARGET.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix='windoesnot-terminal-') as temp:
-        work = Path(temp)
-        shutil.copytree(COMPONENT_SOURCE, work / 'terminalmodule')
-        run('cmake', '-S', str(work / 'terminalmodule'), '-B', str(work / 'terminal-build'),
-            '-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Release',
-            '-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON', '-DCMAKE_INSTALL_RPATH=$ORIGIN', env=env)
-        run('cmake', '--build', str(work / 'terminal-build'), '-j',
-            str(os.cpu_count() or 1), env=env)
-        built = work / 'widgets/terminalmodule/LocalTerminal'
-        for name in required:
-            path = built / name
-            if not path.is_file() or not path.stat().st_size:
-                raise RuntimeError(f'Missing terminal build result: {name}')
-        for library in built.glob('*.so'):
-            dynamic = run('readelf', '-d', str(library), capture_output=True, text=True).stdout
-            for line in dynamic.splitlines():
-                if '(RUNPATH)' in line or '(RPATH)' in line:
-                    if '[$ORIGIN]' not in line:
-                        raise RuntimeError(f'Unexpected terminal RUNPATH: {library}')
-        staged = Path(tempfile.mkdtemp(prefix='.LocalTerminal.', dir=COMPONENT_TARGET.parent))
-        # mkdtemp creates the directory 0700; the desktop session runs as a normal user and must read the terminal module.
-        os.chmod(staged, 0o755)
-        exchanged = False
-        installed = False
-        try:
-            for path in built.iterdir():
-                destination = staged / path.name
-                if path.is_dir():
-                    shutil.copytree(path, destination)
-                else:
-                    shutil.copy2(path, destination)
-            for root_dir, directories, files in os.walk(staged):
-                for name in directories:
-                    os.chmod(os.path.join(root_dir, name), 0o755)
-                for name in files:
-                    full = os.path.join(root_dir, name)
-                    os.chmod(full, 0o755 if os.access(full, os.X_OK) else 0o644)
-            if COMPONENT_TARGET.exists():
-                exchange_directories(staged, COMPONENT_TARGET)
-                exchanged = True
-            else:
-                os.replace(staged, COMPONENT_TARGET)
-                installed = True
-            if os.environ.get('WDN_REBUILD_TEST_FAIL_AFTER_COMPONENT_REPLACE'):
-                raise RuntimeError('Injected terminal replacement failure')
-            write_marker(COMPONENT_MARKER, expected)
-        except Exception:
-            if exchanged:
-                exchange_directories(staged, COMPONENT_TARGET)
-            elif installed:
-                os.replace(COMPONENT_TARGET, staged)
-            raise
-        finally:
-            if staged.exists():
-                shutil.rmtree(staged)
-    logging.info('Rebuilt terminal for %s', expected.splitlines()[:3])
-
-
 def main():
     try:
-        LOG.parent.mkdir(parents=True, exist_ok=True)
-        logging.basicConfig(filename=LOG, level=logging.INFO,
-                            format='%(asctime)s %(levelname)s %(message)s')
-        for source, action, label in ((SOURCE, rebuild, 'Plugin'),
-                                      (COMPONENT_SOURCE, rebuild_components, 'Terminal')):
-            if not source.is_dir():
-                continue
+        if os.geteuid() != 0 and not TEST:
+            raise PermissionError('Run as root')
+        safe_directory(LOG.parent, create=True)
+        logging.basicConfig(filename=LOG, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+        safe_directory(BASE, create=True)
+        lock = BASE / 'rebuild.lock'
+        if lock.exists() and not safe_file(lock):
+            raise RuntimeError('Unsafe rebuild lock')
+        with lock.open('a+') as handle:
             try:
-                action()
-            except Exception:
-                logging.exception('%s rebuild failed', label)
+                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                logging.info('Rebuild already running')
+                return 0
+            for source, action, label in ((SOURCE, rebuild, 'Plugin'), (COMPONENT_SOURCE, rebuild_components, 'Terminal')):
                 try:
-                    notify_failure('terminal' if label == 'Terminal' else 'plugins')
+                    if source.exists() or source.is_symlink():
+                        action()
+                    else:
+                        marker = MARKER if label == 'Plugin' else COMPONENT_MARKER
+                        if marker.exists():
+                            if not safe_file(marker):
+                                raise RuntimeError(f'Unsafe marker: {marker}')
+                            marker.unlink()
+                        if label == 'Plugin' and BACKUP.exists():
+                            safe_tree(BACKUP)
+                            shutil.rmtree(BACKUP)
                 except Exception:
-                    logging.exception('Failure notification failed')
+                    logging.exception('%s rebuild failed', label)
+                    try:
+                        notify_failure('terminal' if label == 'Terminal' else 'plugins')
+                    except Exception:
+                        logging.exception('Failure notification failed')
     except Exception:
         logging.exception('Rebuild setup failed')
     return 0
