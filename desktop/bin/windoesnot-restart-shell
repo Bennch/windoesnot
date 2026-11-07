@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Restart the desktop interface: taskbar, start menu, popups and overlays.
+# One implementation for the taskbar menu, the desktop menu and windoesnot-layout (after monitor changes).
+# Same steps as the original taskbar entry: stop the shell, wait a moment, start it again.
+#
+# The desktop menu (hyprdesk) runs with LD_PRELOAD=libgtk4-layer-shell and passes it on. The new shell must not
+# inherit it, it breaks the start and the interface stays down.
+unset LD_PRELOAD
+setsid bash -c 'sleep 0.2; killall quickshell >/dev/null 2>&1; sleep 0.4; QT_QPA_PLATFORMTHEME=gtk3 quickshell' >/dev/null 2>&1 </dev/null &

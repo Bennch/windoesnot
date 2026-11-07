@@ -406,7 +406,7 @@ var strings = {
     "monitors.rotation": "Rotation",
     "monitors.scale": "Skalierung",
     "monitors.primary": "Primärmonitor",
-    "monitors.primaryDesc": "Quickshell und Workspace 1 erscheinen hier",
+    "monitors.primaryDesc": "Die Oberfläche und Workspace 1 erscheinen hier",
     "monitors.enabled": "Aktiviert",
     "monitors.apply": "Anwenden",
     "monitors.reset": "Zurücksetzen",

@@ -95,7 +95,7 @@ def main():
         if result.returncode:raise SystemExit('Host candidate Lua failed verification; live files untouched')
     print(f'{len(changes)} changed/new files; host-specific Lua candidate verified; personal settings and monitor modes retained')
     if not args.apply:return
-    for command in ['windoesnot-hyprctl','windoesnot-settings','windoesnot-layout']:
+    for command in ['windoesnot-hyprctl','windoesnot-settings','windoesnot-layout','windoesnot-restart-shell']:
         if not Path('/usr/local/bin',command).is_file():raise SystemExit('Run sudo tools/install-system.sh before deploying shared commands')
     backup=home/'Backups/windoesnot-release'/time.strftime('%Y%m%d-%H%M%S-deploy')
     backup.mkdir(parents=True)

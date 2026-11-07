@@ -61,6 +61,7 @@ _TR = {
         "show_trash":       "Papierkorb anzeigen",
         "hide_trash":       "Papierkorb ausblenden",
         "change_wallpaper": "Hintergrund ändern",
+        "restart_shell": "Oberfläche neu starten",
         "delete_n":         "{n} Icons löschen",
         "new":              "Neu",
         "new_folder":       "Ordner",
@@ -80,6 +81,7 @@ _TR = {
         "show_trash":       "Show Trash",
         "hide_trash":       "Hide Trash",
         "change_wallpaper": "Change Wallpaper",
+        "restart_shell": "Restart interface",
         "delete_n":         "Delete {n} Icons",
         "new":              "New",
         "new_folder":       "Folder",
@@ -591,6 +593,174 @@ def launch_command(cmd):
     except Exception as e:
         debug(f"launch failed {cmd}: {e}", file=sys.stderr)
 
+def context_menu_css(r, g, b, border_radius, dark):
+    """CSS of the desktop context menu: light/dark, accent colour (r, g, b) and corner radius from the settings."""
+    bg = "rgba(32, 32, 32, 0.95)" if dark else "rgba(243, 243, 243, 0.98)"
+    fg = "#ffffff" if dark else "#1a1a1a"
+    border = "rgba(255, 255, 255, 0.12)" if dark else "rgba(0, 0, 0, 0.14)"
+    sep = "rgba(255, 255, 255, 0.14)" if dark else "rgba(0, 0, 0, 0.12)"
+    item_radius = max(0, border_radius - 2) if border_radius > 0 else 0
+    return f"""
+        popover.desktop-context-menu > contents {{
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+        }}
+        .desktop-menu-column {{
+            background-color: {bg};
+            border: 1px solid {border};
+            border-radius: {border_radius}px;
+            padding: 6px;
+        }}
+        .desktop-context-menu button.menu-item {{
+            background: transparent;
+            border: none;
+            border-radius: {item_radius}px;
+            color: {fg};
+            padding: 0 12px;
+            margin: 0;
+            min-height: 32px;
+            min-width: 0px;
+            box-shadow: none;
+        }}
+        .desktop-context-menu button.menu-item:hover,
+        .desktop-context-menu button.menu-item.active {{
+            background-color: rgba({r}, {g}, {b}, 0.35);
+        }}
+        .desktop-context-menu separator {{
+            margin: 6px 0;
+            min-height: 1px;
+            background-color: {sep};
+        }}
+    """
+
+def plain_menu_popover(model, action_group):
+    """Build the context menu as a plain popover with buttons.
+
+    GTK's PopoverMenu wraps its pages in a ScrolledWindow that grows a scrollbar as soon as it gets a pixel
+    less height than it wants. A plain popover has no scrolled area, so the menu is always drawn in full.
+    The menu model and its actions stay as they are: items become buttons, sections become separators.
+    A submenu opens as a second menu column right next to its item, like the shutdown menu at the start
+    button. Both columns live in the same popover, so the pointer reaches the submenu without a second
+    popup (a nested popover needs its own input grab and is unreliable under layer shell).
+    """
+    popover = Gtk.Popover()
+    popover.add_css_class("desktop-context-menu")
+    popover.set_halign(Gtk.Align.START)
+    # No gap between the columns (as at the start button menu), so the pointer goes straight across.
+    row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+    main = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+    main.add_css_class("desktop-menu-column")
+    main.set_valign(Gtk.Align.START)
+    row.append(main)
+    flyouts = []  # (revealer, anchor button, column)
+    pending = [None]
+
+    def hide_flyouts(keep=None):
+        for revealer, anchor, _column in flyouts:
+            if revealer is not keep:
+                revealer.set_reveal_child(False)
+                anchor.remove_css_class("active")
+
+    def cancel_hide():
+        if pending[0] is not None:
+            GLib.source_remove(pending[0])
+            pending[0] = None
+
+    def hide_soon():
+        # A short delay: on the way from the item to its submenu the pointer often crosses another row of the
+        # main menu. Closing at once made the submenu vanish under the pointer.
+        cancel_hide()
+
+        def later():
+            pending[0] = None
+            hide_flyouts()
+            return False
+
+        pending[0] = GLib.timeout_add(300, later)
+
+    def item_button(label, arrow=False):
+        button = Gtk.Button()
+        button.add_css_class("menu-item")
+        button.set_has_frame(False)
+        content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        text = Gtk.Label(label=label, xalign=0)
+        text.set_hexpand(True)
+        content.append(text)
+        if arrow:
+            content.append(Gtk.Image.new_from_icon_name("go-next-symbolic"))
+        button.set_child(content)
+        return button
+
+    def on_hover(button, callback):
+        motion = Gtk.EventControllerMotion()
+        motion.connect("enter", lambda *_args: callback())
+        button.add_controller(motion)
+
+    def fill(items, box, nested=False):
+        for i in range(items.get_n_items()):
+            section = items.get_item_link(i, "section")
+            submenu = items.get_item_link(i, "submenu")
+            if section is not None:
+                if box.get_last_child() is not None:
+                    box.append(Gtk.Separator())
+                fill(section, box, nested)
+                continue
+            label = items.get_item_attribute_value(i, "label")
+            if label is None:
+                continue
+            if submenu is not None:
+                button = item_button(label.get_string(), arrow=True)
+                column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+                column.add_css_class("desktop-menu-column")
+                column.set_valign(Gtk.Align.START)
+                fill(submenu, column, nested=True)
+                revealer = Gtk.Revealer()
+                revealer.set_transition_type(Gtk.RevealerTransitionType.NONE)
+                revealer.set_valign(Gtk.Align.START)
+                revealer.set_child(column)
+                row.append(revealer)
+                flyouts.append((revealer, button, column))
+
+                def show(_b=None, revealer=revealer, button=button, column=column):
+                    cancel_hide()
+                    hide_flyouts(keep=revealer)
+                    # line the submenu up with its item
+                    found, point = button.compute_point(main, Graphene.Point().init(0, 0))
+                    top = int(point.y) if found else 0
+                    column.set_margin_top(max(0, top - 6))
+                    revealer.set_reveal_child(True)
+                    button.add_css_class("active")  # the item stays highlighted while its submenu is open
+
+                button.connect("clicked", show)
+                on_hover(button, show)
+                on_hover(column, cancel_hide)  # pointer reached the submenu: keep it open
+                box.append(button)
+                continue
+            action = items.get_item_attribute_value(i, "action")
+            if action is None:
+                continue
+            name = action.get_string().split(".", 1)[-1]
+            button = item_button(label.get_string())
+
+            def clicked(_button, name=name):
+                popover.popdown()
+                target = action_group.lookup_action(name)
+                if target is not None:
+                    GLib.idle_add(lambda: target.activate(None) or False)
+
+            button.connect("clicked", clicked)
+            # Items of the main menu close an open submenu after a short delay, items inside it keep it open.
+            on_hover(button, cancel_hide if nested else hide_soon)
+            box.append(button)
+
+    fill(model, main)
+    popover.set_child(row)
+    popover.connect("closed", lambda _p: (cancel_hide(), hide_flyouts()))
+    return popover
+
+
 class DesktopIcon(Gtk.Box):
     def __init__(self, manager, spec, pos=None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=4)
@@ -893,10 +1063,7 @@ class DesktopIcon(Gtk.Box):
         self.insert_action_group("icon", action_group)
 
         # Popover erstellen - am Cursor
-        popover = Gtk.PopoverMenu()
-        popover.add_css_class("desktop-context-menu")
-        popover.set_menu_model(menu)
-        popover.insert_action_group("icon", action_group)
+        popover = plain_menu_popover(menu, action_group)
         popover.set_parent(self)
         popover.set_has_arrow(False)
         # Offset nach rechts, damit es nicht links erscheint
@@ -1580,6 +1747,9 @@ class MonitorWindow:
         except Exception:
             r, g, b = 100, 150, 255  # Fallback
 
+        # Context menu follows light/dark, accent and radius from the desktop settings
+        menu_dark = settings.get("darkMode", True)
+
         # WICHTIG: Globalen CSS-Provider wiederverwenden statt neue zu erstellen!
         if not hasattr(self.app, '_global_css_provider'):
             self.app._global_css_provider = Gtk.CssProvider()
@@ -1622,31 +1792,7 @@ class MonitorWindow:
                 text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
                 margin-top: -20px;
             }}
-            .desktop-context-menu {{
-                background: transparent;
-                border: none;
-                box-shadow: none;
-                padding: 0;
-            }}
-            .desktop-context-menu button {{
-                background: transparent;
-                border: none;
-                border-radius: 0px;
-                color: white;
-                padding: 6px 12px;
-                margin: 0 {2 if border_radius > 0 else 0}px;
-                min-width: 0px;
-            }}
-            .desktop-context-menu button:hover {{
-                background-color: rgba({r}, {g}, {b}, 0.35);
-                border-radius: {max(0, border_radius - 2) if border_radius > 0 else 0}px;
-            }}
-            popover.desktop-context-menu > contents {{
-                border-radius: {border_radius}px;
-                background-color: rgba(28, 28, 28, 0.97);
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                box-shadow: none;
-            }}
+            {context_menu_css(r, g, b, border_radius, menu_dark)}
         """
         # Gleichen Provider mit neuen Daten laden
         self.app._global_css_provider.load_from_data(css.encode())
@@ -1929,7 +2075,17 @@ class MonitorWindow:
         new_submenu.append(tr("new_document", _lang), "desktopbg.new_document")
         menu.append_submenu(tr("new", _lang), new_submenu)
 
+        # Restart the panel and popups (own section at the bottom)
+        system_section = Gio.Menu()
+        system_section.append(tr("restart_shell", _lang), "desktopbg.restart_shell")
+        menu.append_section(None, system_section)
+
         action_group = Gio.SimpleActionGroup()
+        rs_action = Gio.SimpleAction.new("restart_shell", None)
+        rs_action.connect("activate", lambda a, p: subprocess.Popen(
+            ["windoesnot-restart-shell"], start_new_session=True,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+        action_group.add_action(rs_action)
         wp_action = Gio.SimpleAction.new("change_wallpaper", None)
         wp_action.connect("activate", self.on_change_wallpaper)
         action_group.add_action(wp_action)
@@ -1946,12 +2102,13 @@ class MonitorWindow:
         nd_action.connect("activate", lambda a, p, cx=x, cy=y: self.on_new_document(_lang, cx, cy))
         action_group.add_action(nd_action)
 
-        popover = Gtk.PopoverMenu()
-        popover.add_css_class("desktop-context-menu")
-        popover.set_menu_model(menu)
-        popover.insert_action_group("desktopbg", action_group)
+        popover = plain_menu_popover(menu, action_group)
         popover.set_parent(self.event_catcher)
         popover.set_has_arrow(False)
+        # GTK scrolls a menu that does not fit below the click. Grow upwards when the click is in the lower
+        # part of the screen, so the full menu is drawn instead of a scrollbar.
+        room_below = self.monitor.get_geometry().height - y
+        popover.set_position(Gtk.PositionType.TOP if room_below < 420 and y > room_below else Gtk.PositionType.BOTTOM)
         rect = Gdk.Rectangle()
         rect.x = int(x)
         rect.y = int(y)

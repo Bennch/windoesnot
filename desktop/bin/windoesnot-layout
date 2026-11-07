@@ -18,6 +18,72 @@ from hypr_bridge import lua, dispatch, checked_run, require_ok
 from display_geometry import window_rules
 
 
+def read_settings():
+    settings_path = config / 'quickshell/default/settings.txt'
+    if not settings_path.exists():
+        return {}
+    return dict(line.split('=', 1) for line in settings_path.read_text().splitlines() if '=' in line)
+
+
+def choose_primary(monitors, settings=None):
+    settings = read_settings() if settings is None else settings
+    preferred = settings.get('primaryMonitor') or read_state(root).get('primary_monitor')
+    primary = next((m for m in monitors if m['name'] == preferred), None)
+    primary = primary or next((m for m in monitors if m.get('focused')), monitors[0])
+    return primary, settings
+
+
+def shell_layers():
+    """Monitors that currently carry a Quickshell layer surface (the taskbar)."""
+    result = subprocess.run(['/usr/bin/hyprctl', 'layers', '-j'], capture_output=True, text=True)
+    if result.returncode:
+        return None
+    try:
+        layers = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return None
+    return {name for name, data in layers.items()
+            if any(item.get('namespace') == 'quickshell' for items in data.get('levels', {}).values() for item in items)}
+
+
+def shell_is_placed(monitors, with_shell, preferred):
+    """The taskbar belongs on the primary monitor. If that monitor is gone, any monitor will do."""
+    names = {m['name'] for m in monitors}
+    if preferred in names:
+        return preferred in with_shell
+    return bool(with_shell & names)
+
+
+_last_restart = 0.0
+
+
+def ensure_shell():
+    """After a monitor event: bring the Quickshell panel back if it vanished or sits on the wrong monitor.
+
+    Quickshell keeps running when its monitor is unplugged but loses the panel's layer surface and does not
+    create a new one when the monitor returns. A clean restart is the reliable fix.
+    """
+    global _last_restart
+    result = subprocess.run(['/usr/bin/hyprctl', 'monitors', '-j'], capture_output=True, text=True)
+    try:
+        monitors = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return
+    if not monitors:
+        return
+    with_shell = shell_layers()
+    if with_shell is None:
+        return
+    primary, _ = choose_primary(monitors)
+    if shell_is_placed(monitors, with_shell, primary['name']):
+        return
+    if time.monotonic() - _last_restart < 20:
+        return
+    _last_restart = time.monotonic()
+    subprocess.Popen(['windoesnot-restart-shell'], start_new_session=True,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 def refresh():
     result = subprocess.run(['/usr/bin/hyprctl', 'monitors', '-j'], capture_output=True, text=True)
     if result.returncode:
@@ -28,14 +94,7 @@ def refresh():
         return
     if not monitors:
         return
-    settings_path = config / 'quickshell/default/settings.txt'
-    settings = {}
-    if settings_path.exists():
-        settings = dict(line.split('=', 1) for line in settings_path.read_text().splitlines() if '=' in line)
-    state = read_state(root)
-    preferred = settings.get('primaryMonitor') or state.get('primary_monitor')
-    primary = next((m for m in monitors if m['name'] == preferred), None)
-    primary = primary or next((m for m in monitors if m.get('focused')), monitors[0])
+    primary, settings = choose_primary(monitors)
     geometry = window_rules(primary, settings)
     content = '-- Generated from current monitor geometry; do not edit.\nreturn ' + lua(geometry) + '\n'
     path = root / 'geometry.lua'
@@ -80,11 +139,19 @@ def main():
         connection = socket.socket(socket.AF_UNIX)
         connection.connect(str(runtime / 'hypr' / signature / '.socket2.sock'))
         stream = connection.makefile('r')
+        last_check = 0.0
         for event in stream:
-            if event.split('>>', 1)[0] in {'monitoradded','monitoraddedv2','monitorremoved','monitorremovedv2','configreloaded'}:
+            name = event.split('>>', 1)[0]
+            if name in {'monitoradded','monitoraddedv2','monitorremoved','monitorremovedv2','configreloaded'}:
                 # The compositor may need a moment to settle output/reservation state.
                 time.sleep(0.15)
                 refresh()
+            if name in {'monitoradded','monitoraddedv2','monitorremoved','monitorremovedv2'} and time.monotonic() - last_check > 8:
+                # Let Quickshell react first (it often recovers alone), then check once; a cable plugged in
+                # produces a burst of events, so only the first one of a burst waits and checks.
+                time.sleep(3)
+                ensure_shell()
+                last_check = time.monotonic()
 
 if __name__ == '__main__':
     main()
