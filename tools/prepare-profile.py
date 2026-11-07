@@ -276,7 +276,8 @@ def main():
     pages.insert(pages.index('partition'), 'windoesnotboot')
     pages.insert(pages.index('users'), 'windoesnotmigrate')
     pages.insert(pages.index('users'), 'windoesnotapps')
-    pages.insert(pages.index('finished'), 'windoesnotmigrate@result')
+    final_pages = [x['show'] for x in settings['sequence'] if 'show' in x][-1]   # upstream: separate trailing block ['finished']
+    final_pages.insert(final_pages.index('finished'), 'windoesnotmigrate@result')
     pages[pages.index('welcome')] = 'welcomeq'   # one start page: logo, short text, language (iso/branding/welcomeq.qml)
     # The finalizer has initialized the target keyring before offline app installation.
     insert_post_user_jobs(execution)

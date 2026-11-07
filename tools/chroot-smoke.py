@@ -119,7 +119,10 @@ def main():
             subprocess.run(['podman', 'unshare', 'install', '-d', '-m', '755', str(target.parent)], check=True)
             subprocess.run(['podman', 'unshare', 'cp', '-a', str(source), str(target)], check=True)
             print('OVERLAY', source.relative_to(ROOT), '=>', destination)
-        checks = [
+        checks = []
+        if any(str(src.relative_to(ROOT)) == 'tools/build-installer-module.sh' for src, _ in transfers):
+            checks.append(('installer module build', ['/usr/bin/bash', '/usr/share/windoesnot/tools/build-installer-module.sh']))
+        checks += [
             ('installer', ['/usr/bin/python3', '/usr/share/windoesnot/tools/check-image-installer.py']),
             ('rebuild hook', ['/usr/bin/windoesnot-rebuild-plugins']),
             ('permissions', ['/usr/bin/python3', '-c', PERMISSIONS, '/']),
