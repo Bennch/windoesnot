@@ -24,6 +24,8 @@ def size(value): return f'{value / 1073741824:.1f} GiB' if value >= 1073741824 e
 CSS = b'''
 window, window.background { background: #202020; color: #eeeeee; }
 .card, .folder, .card label, .folder label, checkbutton { color: #eeeeee; }
+label.wdn-text, label.wdn-heading { color: #eeeeee; }
+label.wdn-heading { font-weight: 700; }
 .card .dim, .folder .dim { color: #aaaaaa; }
 .card { background: #141414; border: 1px solid #3a3a3a; border-radius: 10px; padding: 14px; }
 .folder { background: #202020; border: 1px solid #3a3a3a; border-radius: 6px; padding: 8px; }
@@ -31,6 +33,10 @@ window, window.background { background: #202020; color: #eeeeee; }
 .error { background: #432a22; border: 1px solid #fe6f2d; border-radius: 8px; padding: 10px; color: #ffd0bc; }
 .accent { color: #fe6f2d; }
 .dim { color: #aaaaaa; }
+checkbutton check { background: #141414; border: 1px solid #777777; color: #202020; }
+checkbutton check:checked { background: #fe6f2d; border-color: #fe6f2d; color: #202020; }
+progressbar trough { background: #3a3a3a; min-height: 8px; border-radius: 4px; }
+progressbar progress { background: #fe6f2d; min-height: 8px; border-radius: 4px; }
 button.suggested-action { background: #fe6f2d; color: #202020; }
 '''
 
@@ -45,8 +51,6 @@ class Window(Adw.ApplicationWindow):
         toolbar.add_top_bar(Adw.HeaderBar())
         toolbar.set_content(outer)
         self.set_content(toolbar)
-        title = Gtk.Label(label=tr('Windows-Daten übernehmen', 'Bring your Windows data'), xalign=0)
-        title.add_css_class('title-1'); outer.append(title)
         intro = Gtk.Label(label=tr('Ordner auswählen. Windows bleibt unverändert; vorhandene Zieldateien können aktualisiert werden.', 'Choose folders. Windows stays unchanged; existing target files may be updated.'), xalign=0, wrap=True)
         intro.add_css_class('dim'); outer.append(intro)
         self.disks = Gtk.DropDown.new_from_strings([])
@@ -56,6 +60,7 @@ class Window(Adw.ApplicationWindow):
         outer.append(self.status)
         self.handoff_note = Gtk.Label(xalign=0, wrap=True)
         self.handoff_note.add_css_class('card')
+        self.handoff_note.add_css_class('wdn-text')
         self.handoff_note.set_visible(False)
         outer.append(self.handoff_note)
         self.wlan_check = Gtk.CheckButton(label=tr('Gespeicherte WLAN-Verbindungen übernehmen', 'Import saved Wi-Fi connections'))
@@ -183,22 +188,31 @@ class Window(Adw.ApplicationWindow):
             card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
             card.add_css_class('card'); self.items.append(card)
             heading = Gtk.Label(label=profile['name'] + '   ·   ' + size(sum(item['bytes'] for item in profile['items'])), xalign=0)
-            heading.add_css_class('title-3'); card.append(heading)
+            heading.add_css_class('title-3'); heading.add_css_class('wdn-heading'); card.append(heading)
             if 'onedrive_files_may_be_online_only' in profile['warnings']:
                 warning = Gtk.Label(label=tr('OneDrive: Dateien, die nur in der Cloud liegen, können nicht übernommen werden.', 'OneDrive: cloud-only files cannot be copied.'), xalign=0, wrap=True)
                 warning.add_css_class('warning'); card.append(warning)
             if any('firefox_unavailable' in item['warnings'] for item in profile['items']):
                 note = Gtk.Label(label=tr('Firefox-Profil nicht bereit: Firefox unter Windows schließen und erneut prüfen.', 'Firefox profile unavailable: close Firefox in Windows and scan again.'), xalign=0, wrap=True)
                 note.add_css_class('warning'); card.append(note)
+            if profile.get('browsers'):
+                note = Gtk.Label(label=', '.join(profile['browsers']) + ': ' + tr('Passwörter können nur unter Windows exportiert werden. Browserprofile werden nicht kopiert.', 'Passwords can only be exported in Windows. Browser profiles are not copied.'), xalign=0, wrap=True)
+                note.add_css_class('warning'); card.append(note)
             for item in profile['items']:
                 row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
                 row.add_css_class('folder'); card.append(row)
                 names = {'Documents':'Dokumente','Pictures':'Bilder','Music':'Musik'}
                 name = names.get(item['kind'], item['kind']) if GERMAN else item['kind']
-                check = Gtk.CheckButton(label=name + ('  ⚠' if item['warnings'] else ''), hexpand=True)
+                check = Gtk.CheckButton()
                 check.set_active(item['selected'])
                 check.connect('toggled', lambda button, entry=item: (entry.__setitem__('selected', button.get_active()), self.update_total()))
                 row.append(check)
+                name_label = Gtk.Label(label=name + ('  ⚠' if item['warnings'] else ''), xalign=0, hexpand=True)
+                name_label.add_css_class('wdn-text')
+                click = Gtk.GestureClick()
+                click.connect('released', lambda *_args, button=check: button.set_active(not button.get_active()))
+                name_label.add_controller(click)
+                row.append(name_label)
                 amount = Gtk.Label(label=size(item['bytes'])); amount.add_css_class('dim'); row.append(amount)
         self.update_total()
 
@@ -224,7 +238,12 @@ class Window(Adw.ApplicationWindow):
                 self.message(result.stderr or tr('Kopieren fehlgeschlagen.', 'Copy failed.'), 'error'); return
             summary = json.loads(result.stdout.splitlines()[-1])
             errors = summary.get('errors', [])
-            self.message((tr('Fertig. Fehler bei ', 'Done. Errors for ') + str(len(errors)) + tr(' Dateien.', ' files.')) if errors else tr('Kopieren abgeschlossen.', 'Copy complete.'), 'error' if errors else 'warning')
+            if errors:
+                details = '\n'.join(f"• {entry['path']}: {entry['error']}" for entry in errors[:5])
+                extra = tr('\nWeitere Fehler: ', '\nMore errors: ') + str(len(errors) - 5) if len(errors) > 5 else ''
+                self.message(tr('Umzug mit Fehlern abgeschlossen:\n', 'Migration completed with errors:\n') + details + extra, 'error')
+            else:
+                self.message(tr('Kopieren abgeschlossen.', 'Copy complete.'))
         self.run_backend('copy', args, done, secret=self.secret, progress=progress)
 
 class App(Adw.Application):

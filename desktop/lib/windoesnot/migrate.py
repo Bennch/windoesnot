@@ -46,8 +46,8 @@ def unlock_bitlocker(device, secret, mapper):
         raise ValueError('Invalid mapper name')
     if not secret or ('\n' in secret) or ('\x00' in secret):
         raise ValueError('Invalid BitLocker secret')
-    if re.fullmatch(r'[\d-]+', secret) and len(secret.replace('-', '')) != 48:
-        raise ValueError('Recovery key must contain 48 digits')
+    if re.fullmatch(r'[\d-]+', secret) and not (re.fullmatch(r'\d{48}', secret) or re.fullmatch(r'(?:\d{6}-){7}\d{6}', secret)):
+        raise ValueError('Recovery key must contain eight groups of six digits')
     result = subprocess.run(['cryptsetup', 'open', '--readonly', '--type', 'bitlk', '--key-file', '-', device, mapper], input=secret + '\n', text=True, capture_output=True)
     if result.returncode:
         raise RuntimeError(result.stderr.strip() or 'BitLocker unlock failed')
@@ -136,14 +136,21 @@ def scan_tree(root, device='fixture', filesystem='ntfs', locale='en'):
                     warnings.append('firefox_unavailable')
                 selected = 'Firefox' in handoff['profiles'].get(profile.name, []) if handoff else False
                 items.append({'kind': 'Firefox', 'source': str(firefox.relative_to(root)), 'bytes': size, 'selected': selected, 'warnings': warnings})
-            if items:
+            browsers = []
+            for name, relative in (('Edge', 'Microsoft/Edge'), ('Chrome', 'Google/Chrome'), ('Chromium', 'Chromium')):
+                browser = profile / 'AppData/Local' / relative / 'User Data'
+                if not warning_flags(browser) and browser.is_dir():
+                    browsers.append(name)
+            if items or browsers:
                 warnings = []
                 onedrive = profile / 'OneDrive'
                 if onedrive.exists():
                     warnings.append('onedrive_files_may_be_online_only')
                     _, flags = measure(onedrive)
                     warnings.extend(flags)
-                profiles.append({'name': profile.name, 'items': items, 'warnings': sorted(set(warnings))})
+                if browsers:
+                    warnings.append('chromium_passwords_windows_export_only')
+                profiles.append({'name': profile.name, 'items': items, 'warnings': sorted(set(warnings)), 'browsers': browsers})
     if (root / 'hiberfil.sys').exists():
         root_warnings.append('hibernation_possible')
     return {'schema': SCHEMA, 'device': device, 'filesystem': filesystem, 'locale': locale, 'profiles': profiles,

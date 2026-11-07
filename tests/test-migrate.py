@@ -74,10 +74,27 @@ with tempfile.TemporaryDirectory() as tmp:
         try: m.unlock_bitlocker('/dev/test', 'password', 'migrate_test')
         except RuntimeError as error: assert 'wrong key' in str(error)
         else: raise AssertionError('cryptsetup failure accepted')
-    for invalid in ('1234', 'foo\nbar'):
+    for invalid in ('1234', 'foo\nbar', '12345-6123456-' + '123456-' * 6 + '123456'):
         try: m.unlock_bitlocker('/dev/test', invalid, 'migrate_test')
         except ValueError: pass
         else: raise AssertionError('invalid secret accepted')
+    bitlocker_device = [{'device': '/dev/locked', 'filesystem': 'bitlocker'}]
+    with patch.object(m, 'partitions', return_value=bitlocker_device):
+        locked_plan = m.scan_device('/dev/locked')
+        assert locked_plan['warnings'] == ['bitlocker_locked'] and locked_plan['profiles'] == []
+        with patch.object(m.subprocess, 'run', return_value=Mock(returncode=2, stderr='wrong key')), patch.object(m, 'command', return_value=Mock(returncode=0)):
+            try: m.scan_device('/dev/locked', secret='wrong-password')
+            except RuntimeError as error: assert 'wrong key' in str(error)
+            else: raise AssertionError('bad BitLocker password accepted')
+        recovery = '-'.join(['123456'] * 8)
+        with patch.object(m.subprocess, 'run', return_value=Mock(returncode=0, stderr='')) as crypt, patch.object(m, 'mount_readonly') as mounted_ok, patch.object(m, 'scan_tree', return_value={'profiles': []}), patch.object(m, 'command', return_value=Mock(returncode=0)):
+            assert m.scan_device('/dev/locked', secret=recovery) == {'profiles': []}
+            assert crypt.call_args.kwargs['input'] == recovery + '\n'
+            assert mounted_ok.call_args.args[0].startswith('/dev/mapper/')
+    with patch.object(m, 'command', return_value=Mock(returncode=1, stderr='Windows is hibernated')):
+        try: m.mount_readonly('/dev/test', Path(tmp) / 'mount')
+        except RuntimeError as error: assert 'Fast Startup or hibernation' in str(error)
+        else: raise AssertionError('hibernation mount failure accepted')
     (home / 'Bilder').unlink()
     (root / 'Users/Ada/Pictures/Grüße.txt').write_text('äöü')
     long_name = 'ü' * 100 + '.txt'
@@ -168,6 +185,14 @@ with tempfile.TemporaryDirectory() as tmp:
     (handoff_root / 'WinDoesNotHandoff/manifest.json').write_text('{bad json')
     invalid_handoff = m.scan_tree(handoff_root, '/dev/test')
     assert 'handoff_invalid' in invalid_handoff['warnings'] and invalid_handoff['handoff'] is None
+    browser_root = Path(tmp) / 'browser-windows'
+    (browser_root / 'Users/Ada/AppData/Local/Google/Chrome/User Data').mkdir(parents=True)
+    (browser_root / 'Users/Ada/AppData/Local/Microsoft/Edge/User Data').mkdir(parents=True)
+    (browser_root / 'Users/Ada/AppData/Local/Google/Chrome/User Data/Login Data').write_text('do-not-copy')
+    browser_plan = m.scan_tree(browser_root)
+    assert browser_plan['profiles'][0]['browsers'] == ['Edge', 'Chrome']
+    assert 'chromium_passwords_windows_export_only' in browser_plan['profiles'][0]['warnings']
+    assert browser_plan['profiles'][0]['items'] == []
     target_root = Path(tmp) / 'installed'; (target_root / 'etc').mkdir(parents=True)
     (target_root / 'etc/windoesnot-image-build').touch()
     (target_root / 'home/ada').mkdir(parents=True)
@@ -184,4 +209,16 @@ with tempfile.TemporaryDirectory() as tmp:
                 assert str(failure) in values['windoesnotMigrateWarning']
                 assert values['windoesnotMigrateSecret'] == ''
     assert len(warnings_logged) == 2
+    with patch.dict(sys.modules, {'libcalamares': fake_calamares, 'migrate': m}):
+        with patch.object(job.migrate, 'copy_manifest', return_value={'errors': [{'path': 'Users/Ada/Pictures/photo.txt', 'error': 'rsync code 23'}]}):
+            assert job.run() is None
+            assert 'photo.txt' in values['windoesnotMigrateWarning'] and 'rsync code 23' in values['windoesnotMigrateWarning']
+    with patch.object(m.shutil, 'disk_usage', return_value=SimpleNamespace(free=0)):
+        try: m.copy_manifest(manifest, home, source_root=root)
+        except OSError as error: assert 'Not enough free space' in str(error)
+        else: raise AssertionError('insufficient space accepted')
+    with patch.object(m, 'command', side_effect=FileNotFoundError('Windows disk disappeared')):
+        try: m.copy_manifest(manifest, home, source_root=root)
+        except FileNotFoundError as error: assert 'disappeared' in str(error)
+        else: raise AssertionError('vanished disk accepted')
 print('PASS migrate')

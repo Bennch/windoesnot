@@ -117,7 +117,33 @@ class PLUGINDLLEXPORT MigrateViewStep : public Calamares::ViewStep {
 public:
     explicit MigrateViewStep(QObject* parent = nullptr) : Calamares::ViewStep(parent) {}
     QString prettyName() const override { return m_resultMode ? (QLocale().language() == QLocale::German ? QStringLiteral("Umzugsergebnis") : QStringLiteral("Migration result")) : (QLocale().language() == QLocale::German ? QStringLiteral("Windows-Daten") : QStringLiteral("Windows data")); }
-    QString prettyStatus() const override { return prettyName(); }
+    QString prettyStatus() const override {
+        const bool german = QLocale().language() == QLocale::German;
+        if (m_resultMode) return prettyName();
+        if (!m_bridge || m_bridge->skipped()) return german ? QStringLiteral("Keine Windows-Daten") : QStringLiteral("No Windows data");
+        const auto plan = QJsonDocument::fromJson(m_bridge->manifest().toUtf8()).object();
+        QStringList folders;
+        qint64 bytes = 0;
+        for (const auto& person : plan.value("profiles").toArray()) {
+            for (const auto& value : person.toObject().value("items").toArray()) {
+                const auto item = value.toObject();
+                if (!item.value("selected").toBool()) continue;
+                QString name = item.value("kind").toString();
+                if (german) {
+                    if (name == QStringLiteral("Documents")) name = QStringLiteral("Dokumente");
+                    else if (name == QStringLiteral("Pictures")) name = QStringLiteral("Bilder");
+                    else if (name == QStringLiteral("Music")) name = QStringLiteral("Musik");
+                }
+                folders << name;
+                bytes += qint64(item.value("bytes").toDouble());
+            }
+        }
+        if (plan.value("handoff").toObject().value("wlan_selected").toBool()) folders << (german ? QStringLiteral("WLAN") : QStringLiteral("Wi-Fi"));
+        if (folders.isEmpty()) return german ? QStringLiteral("Keine Windows-Daten") : QStringLiteral("No Windows data");
+        const QString amount = bytes >= 1073741824 ? QString::number(double(bytes) / 1073741824.0, 'f', 1) + QStringLiteral(" GiB") : QString::number(double(bytes) / 1048576.0, 'f', 1) + QStringLiteral(" MiB");
+        const QString names = folders.size() > 4 ? folders.mid(0, 4).join(QStringLiteral(", ")) + QStringLiteral(" …") : folders.join(QStringLiteral(", "));
+        return names + QStringLiteral(" · ") + amount;
+    }
     QWidget* widget() override {
         if (!m_widget) {
             m_widget = new QWidget;
