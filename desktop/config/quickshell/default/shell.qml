@@ -1632,6 +1632,24 @@ PanelWindow {
 
                         MouseArea {
                             id: trayDragArea
+
+                            // Graphics: a single click is held back for the
+                            // double-click interval so a double-click can open
+                            // LACT instead of toggling the popup twice.
+                            property bool graphicsDoubleClicked: false
+                            Timer {
+                                id: graphicsClickTimer
+                                interval: Qt.styleHints.mouseDoubleClickInterval
+                                onTriggered: {
+                                    audioWindow.visible = false
+                                    bluetoothWindow.visible = false
+                                    networkWindow.visible = false
+                                    nearbyWindow.visible = false
+                                    calendarWindow.visible = false
+                                    batteryWindow.visible = false
+                                    graphicsWindow.visible = !graphicsWindow.visible
+                                }
+                            }
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
@@ -1681,6 +1699,9 @@ PanelWindow {
                             onDoubleClicked: function(mouse) {
                                 if (model.iconType === "graphics") {
                                     unifiedTooltip.hide()
+                                    graphicsClickTimer.stop()
+                                    trayDragArea.graphicsDoubleClicked = true
+                                    graphicsWindow.visible = false
                                     panelWindow.openGraphics()
                                 }
                             }
@@ -1759,7 +1780,10 @@ PanelWindow {
                                         dockerWindow.visible = false
                                         ollamaWindow.visible = !ollamaWindow.visible
                                     } else if (model.iconType === "graphics") {
-                                        // A single click does nothing; double-click and right-click open the settings.
+                                        // Single click: live readings popup. Double-click and the
+                                        // popup's button open LACT; right-click has "Open Graphics".
+                                        if (trayDragArea.graphicsDoubleClicked) trayDragArea.graphicsDoubleClicked = false
+                                        else graphicsClickTimer.restart()
                                     } else if (model.iconType === "docker") {
                                         audioWindow.visible = false
                                         bluetoothWindow.visible = false
@@ -5394,6 +5418,47 @@ FloatingWindow {
 }
 
 FloatingWindow {
+    id: graphicsWindow
+    visible: false
+    implicitWidth: 340
+    implicitHeight: 410
+    color: "transparent"
+    title: "quickshell-graphics"
+    screen: {
+        for (var i = 0; i < Quickshell.screens.length; i++) {
+            if (Quickshell.screens[i].name === settingsMenu.primaryMonitor)
+                return Quickshell.screens[i]
+        }
+        return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    }
+
+    HyprlandFocusGrab {
+        id: graphicsFocusGrab
+        windows: [graphicsWindow]
+        onCleared: graphicsWindow.visible = false
+    }
+
+    onVisibleChanged: panelWindow.syncFocusGrab(graphicsFocusGrab, visible)
+
+    Loader {
+        anchors.fill: parent
+        source: "widgets/GraphicsPanel.qml"
+
+        onLoaded: {
+            item.accentColor = Qt.binding(function() { return settingsMenu.accentColor })
+            item.borderRadius = Qt.binding(function() { return settingsMenu.borderRadius })
+            item.windowVisible = Qt.binding(function() { return graphicsWindow.visible })
+            item.darkMode = Qt.binding(function() { return settingsMenu.darkMode })
+            item.uiLanguage = Qt.binding(function() { return settingsMenu.uiLanguage })
+            item.openLact.connect(function() {
+                graphicsWindow.visible = false
+                panelWindow.openGraphics()
+            })
+        }
+    }
+}
+
+FloatingWindow {
     id: networkWindow
     visible: false
     implicitWidth: 320
@@ -5771,7 +5836,7 @@ FloatingWindow {
                     onExited: parent.hovered = false
                     onClicked: {
                         powerMenu.visible = false; powerSubMenu.visible = false
-                        Qt.createQmlObject('import Quickshell.Io; Process { command: ["bash", "-c", "gnome-software & disown"]; running: true }', powerMenu)
+                        Qt.createQmlObject('import Quickshell.Io; Process { command: ["windoesnot-store", "--installed"]; running: true }', powerMenu)
                     }
                 }
             }
@@ -7093,6 +7158,7 @@ Connections {
     function onShowOllamaTrayChanged() { if (!settingsMenu.showOllamaTray) ollamaWindow.visible = false }
     function onShowNearbyTrayChanged() { if (!settingsMenu.showNearbyTray) nearbyWindow.visible = false }
     function onShowBatteryTrayChanged() { if (!settingsMenu.showBatteryTray) batteryWindow.visible = false }
+    function onShowGraphicsTrayChanged() { if (!settingsMenu.showGraphicsTray) graphicsWindow.visible = false }
 }
 
 // Does (AI panel). A window closed by the compositor (title bar X) cannot be
