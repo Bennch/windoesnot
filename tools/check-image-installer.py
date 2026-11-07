@@ -42,6 +42,9 @@ for path in ['usr/bin/windoesnot-bluetooth','usr/bin/windoesnot-network','usr/bi
              'usr/share/polkit-1/actions/me.windoesnot.DeviceManager.policy']:
     assert (root/path).is_file(),f'Missing Device Manager package file: {path}'
 assert (root/'usr/lib/windoesnot/boot_language.py').is_file(),'Missing boot language runtime'
+assert (base/'desktop/lib/windoesnot/migrate.py').is_file(),'Missing migration backend'
+assert (root/'usr/local/bin/windoesnot-migrate').is_file(),'Missing migration launcher'
+assert (root/'usr/share/applications/windoesnot-migrate.desktop').is_file(),'Missing migration menu entry'
 boot_language=root/'usr/lib/windoesnot/boot-language'
 boot_manifest=json.loads((boot_language/'manifest.json').read_text())
 assert boot_manifest['runtime_sha256']==hashlib.sha256((root/'usr/lib/windoesnot/boot_language.py').read_bytes()).hexdigest(),'Stale boot language runtime'
@@ -53,22 +56,27 @@ for name,data in boot_manifest['loaders'].items():
         assert hashlib.sha256((boot_language/name/filename).read_bytes()).hexdigest()==checksum,'Boot language artifact mismatch'
 assert (root/'usr/lib/os-probes/55windoesnot-btrfs').read_bytes()==(base/'iso/os-prober-btrfs').read_bytes(),'Missing Btrfs os-prober extension'
 assert (root/'usr/lib/os-probes/55windoesnot-btrfs').stat().st_mode & 0o111
-for name in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotfinish','windoesnotbootreuse']:
+for name in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotmigrate_install','windoesnotfinish','windoesnotbootreuse']:
     for filename in ['main.py','module.desc']:
         source=base/'iso/modules'/name/filename
         installed=root/'usr/lib/calamares/modules'/name/filename
         assert source.read_bytes()==installed.read_bytes(),f'Stale installed installer job: {name}/{filename}'
-for name in ['windoesnotapps','windoesnotboot']:
+for name in ['windoesnotapps','windoesnotboot','windoesnotmigrate']:
     assert (root/'usr/lib/calamares/modules'/name/f'libcalamares_viewmodule_{name}.so').is_file(),name
 for mode,directory in [('offline',root/'etc/windoesnot-calamares'),('online',root/'etc/windoesnot-calamares/online')]:
     settings=yaml.safe_load((directory/'settings.conf').read_text())
-    assert 'windoesnotboot' in settings['sequence'][0]['show']
+    pages=settings['sequence'][0]['show']
+    assert 'windoesnotboot' in pages
+    assert pages.index('partition') < pages.index('windoesnotmigrate') < pages.index('users')
+    assert (base/'iso/modules/windoesnotmigrate/main.qml').is_file()
     execution=next(step['exec'] for step in settings['sequence'] if 'exec' in step)
+    assert execution.index('users') < execution.index('windoesnotmigrate_install')
+    assert execution.index('windoesnotmigrate_install') < execution.index('windoesnotfinish')
     assert execution.index('windoesnotbootreuse@preflight') < execution.index('partition')
     assert execution.index('windoesnotbootreuse@guard') < execution.index('unpackfs')
     assert execution.index('windoesnotbootreuse@finish') < execution.index('umount')
     assert yaml.safe_load((directory/'modules/bootloader.conf').read_text())['efiBootLoaderVar']=='windoesnotBootInstall'
-    for name in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotfinish','windoesnotapps']:
+    for name in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotmigrate_install','windoesnotfinish','windoesnotapps','windoesnotmigrate']:
         assert yaml.safe_load((directory/'modules'/(name+'.conf')).read_text())['mode']==mode
 for name in ['windoesnot-installer','calamares-online.sh']:
     assert (root/'usr/local/bin'/name).read_bytes()==(base/'iso/windoesnot-installer').read_bytes(),name

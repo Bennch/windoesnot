@@ -39,7 +39,7 @@ _license() {
 
 package_windoesnot-desktop() {
     pkgdesc='WinDoesNot desktop code and new-user defaults'
-    depends=("windoesnot-tools=$pkgver-$pkgrel" "windoesnot-plugins=$pkgver-$pkgrel" "windoesnot-components=$pkgver-$pkgrel" windoesnot-device-manager windoesnot-bluetooth windoesnot-network quickshell hyprland hyprpaper hyprpicker hyprlock hypridle hyprsunset ddcutil imagemagick upower power-profiles-daemon hyprshot ghostty nautilus localsend xorg-setxkbmap xorg-xrandr xorg-xsetroot python-gobject python-cairo python-evdev python-requests python-websockets qt6-5compat qt6-svg qt6-multimedia qt6-virtualkeyboard qt6-imageformats qt6-wayland qt6-declarative gtk4-layer-shell adw-gtk-theme swaync wl-clipboard wl-clip-persist cliphist jq libnotify grim slurp xdg-desktop-portal-hyprland xdg-desktop-portal-gtk xdg-user-dirs ttf-jetbrains-mono-nerd ttf-nerd-fonts-symbols noto-fonts-emoji fish polkit-gnome network-manager-applet nm-connection-editor pavucontrol blueman)
+    depends=("windoesnot-tools=$pkgver-$pkgrel" "windoesnot-plugins=$pkgver-$pkgrel" "windoesnot-components=$pkgver-$pkgrel" windoesnot-device-manager windoesnot-bluetooth windoesnot-network quickshell hyprland hyprpaper hyprpicker hyprlock hypridle hyprsunset ddcutil imagemagick upower power-profiles-daemon hyprshot ghostty nautilus localsend xorg-setxkbmap xorg-xrandr xorg-xsetroot python-gobject gtk4 rsync ntfs-3g cryptsetup python-cairo python-evdev python-requests python-websockets qt6-5compat qt6-svg qt6-multimedia qt6-virtualkeyboard qt6-imageformats qt6-wayland qt6-declarative gtk4-layer-shell adw-gtk-theme swaync wl-clipboard wl-clip-persist cliphist jq libnotify grim slurp xdg-desktop-portal-hyprland xdg-desktop-portal-gtk xdg-user-dirs ttf-jetbrains-mono-nerd ttf-nerd-fonts-symbols noto-fonts-emoji fish polkit-gnome network-manager-applet nm-connection-editor pavucontrol blueman)
     if [[ $WINDOESNOT_PLUGIN_PIN == 0 || $WINDOESNOT_COMPONENT_PIN == 0 ]]; then
         local dependency
         local -a optional_components=()
@@ -62,6 +62,7 @@ package_windoesnot-desktop() {
     install -Dm644 desktop/share/wayland-sessions/windoesnot.desktop "$pkgdir/usr/share/wayland-sessions/windoesnot.desktop"
     install -Dm644 desktop/share/wayland-sessions/windoesnot.desktop "$pkgdir/usr/share/windoesnot/wayland-sessions/windoesnot.desktop"
     install -Dm644 desktop/share/applications/windoesnot-settings.desktop "$pkgdir/usr/share/applications/windoesnot-settings.desktop"
+    install -Dm644 desktop/share/applications/windoesnot-migrate.desktop "$pkgdir/usr/share/applications/windoesnot-migrate.desktop"
     install -Dm644 desktop/share/applications/eog.desktop "$pkgdir/usr/share/applications/eog.desktop"
     install -Dm644 desktop/share/applications/evince.desktop "$pkgdir/usr/share/applications/evince.desktop"
     install -d "$pkgdir/usr/share/icons/Win11"
@@ -86,12 +87,13 @@ package_windoesnot-desktop() {
 
 package_windoesnot-tools() {
     pkgdesc='WinDoesNot session, layout, settings and user-code migration tools'
-    depends=(python python-evdev python-xlib xclip wl-clipboard python-gobject python-cairo hyprland polkit cachyos-rate-mirrors pacman-contrib btrfs-progs diffutils)
+    depends=(python python-evdev python-xlib xclip wl-clipboard python-gobject gtk4 libadwaita rsync ntfs-3g cryptsetup python-cairo hyprland polkit cachyos-rate-mirrors pacman-contrib btrfs-progs diffutils)
     cd "$srcdir/windoesnot-$pkgver"
     install -d "$pkgdir/usr/bin"
     for command in desktop/bin/*; do
         install -m755 "$command" "$pkgdir/usr/bin/$(basename "$command")"
     done
+    install -Dm644 desktop/lib/windoesnot/migrate.py "$pkgdir/usr/lib/windoesnot/migrate.py"
     install -Dm755 desktop/lib/windoesnot/system_tools.py "$pkgdir/usr/lib/windoesnot/system_tools.py"
     install -Dm644 desktop/share/polkit-1/actions/org.windoesnot.system.policy "$pkgdir/usr/share/polkit-1/actions/org.windoesnot.system.policy"
     install -Dm755 desktop/lib/windoesnot/snapshots.py "$pkgdir/usr/lib/windoesnot/snapshots.py"

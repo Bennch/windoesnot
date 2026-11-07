@@ -7,6 +7,7 @@ work=$(mktemp -d /tmp/windoesnot-installer-module.XXXXXXXX)
 trap 'rm -rf -- "$work"' EXIT
 cp -a "$project/iso/modules/windoesnotapps" "$work/windoesnotapps"
 cp -a "$project/iso/modules/windoesnotboot" "$work/windoesnotboot"
+cp -a "$project/iso/modules/windoesnotmigrate" "$work/windoesnotmigrate"
 cat > "$work/CMakeLists.txt" <<'CMAKE'
 cmake_minimum_required(VERSION 3.22)
 project(WinDoesNotInstallerModule LANGUAGES CXX)
@@ -20,14 +21,17 @@ set(INSTALL_CONFIG OFF)
 set(BUILD_TESTING OFF)
 calamares_add_module_subdirectory(windoesnotapps)
 calamares_add_module_subdirectory(windoesnotboot)
+calamares_add_module_subdirectory(windoesnotmigrate)
 CMAKE
 cmake -S "$work" -B "$work/build" -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release
 cmake --build "$work/build" -j "${BUILD_JOBS:-4}"
 cmake --install "$work/build"
 # Our Python jobs have no compiled target; refresh them alongside the views.
-for name in windoesnotprepare windoesnotsystem windoesnotapps_install windoesnotfinish windoesnotbootreuse; do
+for name in windoesnotprepare windoesnotsystem windoesnotapps_install windoesnotmigrate_install windoesnotfinish windoesnotbootreuse; do
     install -d "/usr/lib/calamares/modules/$name"
     install -m644 "$project/iso/modules/$name/main.py" "$project/iso/modules/$name/module.desc" "/usr/lib/calamares/modules/$name/"
 done
 if ldd /usr/lib/calamares/modules/windoesnotapps/libcalamares_viewmodule_windoesnotapps.so | grep -q 'not found'; then exit 1; fi
 if ldd /usr/lib/calamares/modules/windoesnotboot/libcalamares_viewmodule_windoesnotboot.so | grep -q 'not found'; then exit 1; fi
+
+if ldd /usr/lib/calamares/modules/windoesnotmigrate/libcalamares_viewmodule_windoesnotmigrate.so | grep -q 'not found'; then exit 1; fi

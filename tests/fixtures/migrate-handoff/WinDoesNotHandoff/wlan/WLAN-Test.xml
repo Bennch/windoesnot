@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1">
+  <name>Test WLAN</name>
+  <MSM><security><authEncryption><authentication>WPA2PSK</authentication><encryption>AES</encryption></authEncryption><sharedKey><keyType>passPhrase</keyType><protected>false</protected><keyMaterial>example-only-123</keyMaterial></sharedKey></security></MSM>
+</WLANProfile>

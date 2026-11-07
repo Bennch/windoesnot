@@ -84,8 +84,19 @@ def find_hypr_instance_signature() -> Optional[str]:
     if not candidates:
         return None
 
-    candidates.sort()
-    return candidates[-1][1]
+    candidates.sort(reverse=True)
+    import socket as _socket
+    for _mtime, name in candidates:
+        probe = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
+        probe.settimeout(0.5)
+        try:
+            probe.connect(str(hypr_dir / name / ".socket.sock"))
+            return name
+        except OSError:
+            continue  # stale socket of a dead Hyprland instance
+        finally:
+            probe.close()
+    return None
 
 
 def trigger_startmenu() -> None:
