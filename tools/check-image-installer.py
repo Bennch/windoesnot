@@ -3,8 +3,10 @@
 import argparse
 import json
 import hashlib
+import os
 import re
 import subprocess
+import tempfile
 from pathlib import Path
 import yaml
 
@@ -25,7 +27,9 @@ assert (root/'etc/pacman.d/windoesnot.conf').read_text()=='[windoesnot]\nSigLeve
 fingerprint='ED9530A990C6D39EB7D4BA8F9BDCA578FBF1DDB0'
 keyrings=root/'usr/share/pacman/keyrings'
 assert (keyrings/'windoesnot-trusted').read_text()==fingerprint+':4:\n'
-key_listing=subprocess.check_output(['gpg','--batch','--with-colons','--show-keys',str(keyrings/'windoesnot.gpg')],text=True)
+# The image chroot has no usable home directory for gpg: give it a throw-away one.
+with tempfile.TemporaryDirectory() as gnupg_home:
+    key_listing=subprocess.check_output(['gpg','--batch','--with-colons','--show-keys',str(keyrings/'windoesnot.gpg')],text=True,env={**os.environ,'GNUPGHOME':gnupg_home})
 assert next(line.split(':')[9] for line in key_listing.splitlines() if line.startswith('fpr:'))==fingerprint
 assert "'archlinux', 'cachyos', 'windoesnot'" in (root/'usr/share/windoesnot/iso/installation.py').read_text()
 assert 'ExecStart=/usr/bin/pacman-key --populate' in (root/'etc/systemd/system/pacman-init.service').read_text()
