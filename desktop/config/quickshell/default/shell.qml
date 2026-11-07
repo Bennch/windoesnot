@@ -6621,7 +6621,7 @@ FloatingWindow {
                 }
             }
 
-            // Quickshell neu starten
+            // Oberfläche neu starten (gleiches Skript wie im Desktop-Menü)
             Rectangle {
                 width: parent.width; height: 36; radius: 6
                 property bool hovered: false
@@ -6629,14 +6629,13 @@ FloatingWindow {
                 Behavior on color { ColorAnimation { duration: 80 } }
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
-                    text: settingsMenu.uiLanguage === "en" ? "Restart Quickshell" : "Quickshell neu starten"
+                    text: settingsMenu.uiLanguage === "en" ? "Restart interface" : "Oberfläche neu starten"
                     color: settingsMenu.darkMode ? "white" : "#1a1a1a"
                     font.pixelSize: 13
                 }
                 Process {
                     id: tbgRestartProc
-                    command: ["bash", "-c",
-                        "setsid bash -c 'sleep 0.2; killall quickshell; sleep 0.4; QT_QPA_PLATFORMTHEME=gtk3 quickshell' &>/dev/null &"]
+                    command: ["windoesnot-restart-shell"]
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
