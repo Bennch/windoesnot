@@ -8,6 +8,20 @@ import yaml
 
 parser=argparse.ArgumentParser();parser.add_argument('profile',type=Path);args=parser.parse_args()
 p=args.profile;a=p/'airootfs';cal=a/'usr/share/windoesnot/iso/calamares'
+language=(a/'etc/windoesnot-live-language').read_text().strip()
+assert language in ('en', 'de')
+locale='de_DE.UTF-8' if language=='de' else 'en_US.UTF-8'
+layout='de' if language=='de' else 'us'
+zone='Europe/Berlin' if language=='de' else 'UTC'
+assert (a/'etc/locale.conf').read_text()=='LANG='+locale+'\n'
+assert {line.split()[0] for line in (a/'etc/locale.gen').read_text().splitlines()}=={'de_DE.UTF-8','en_US.UTF-8'}
+assert (a/'etc/default/keyboard').read_text()=='XKBLAYOUT="'+layout+'"\n'
+assert (a/'etc/vconsole.conf').read_text()=='KEYMAP='+layout+'\n'
+assert (a/'etc/localtime').readlink()==Path('/usr/share/zoneinfo/'+zone)
+assert 'GreeterEnvironment=LANG='+locale in (a/'etc/sddm.conf.d/windoesnot.conf').read_text()
+assert (a/'usr/lib/systemd/system/windoesnot-live-language.service').is_file()
+assert 'enable windoesnot-live-language.service' in (a/'root/customize_airootfs.sh').read_text()
+assert 'iso_version=' in (p/'profiledef.sh').read_text() and ')-'+language+'"' in (p/'profiledef.sh').read_text()
 assert 'file_permissions["/usr/lib/os-probes/55windoesnot-btrfs"]="0:0:755"' in (p/'profiledef.sh').read_text()
 assert (cal/'qml').is_symlink() and (cal/'qml').readlink()==Path('/usr/share/calamares/qml')
 settings=yaml.safe_load((cal/'settings.conf').read_text())
@@ -51,6 +65,7 @@ packages=set((p/'packages.x86_64').read_text().split())
 for required in ['hyprland','quickshell','sddm','linux-cachyos','linux-cachyos-lts','cachyos-calamares-next']:
     assert required in packages,required
 assert 'plymouth' in packages
+assert {'firefox-i18n-de','firefox-i18n-en-us'} <= packages
 assert 'windoesnot-boot-errors' in yaml.safe_load((cal/'modules/initcpiocfg.conf').read_text())['hooks']['append']
 assert 'Theme=windoesnot' in (a/'etc/plymouth/plymouthd.conf').read_text()
 assert (a/'usr/share/plymouth/themes/windoesnot/watermark.png').is_file()
@@ -107,8 +122,17 @@ grubmenu=(p/'grub/grub.cfg').read_text()
 assert 'default=windoesnot-offline' in grubmenu
 assert grubmenu.count('windoesnot.install=offline')==3
 assert grubmenu.count('windoesnot.install=online')==3
+assert ('Willkommen bei WinDoesNot' if language=='de' else 'Welcome to WinDoesNot') in grubmenu
+assert ('Offline-Installation' if language=='de' else 'offline install') in grubmenu
+loopback=(p/'grub/loopback.cfg').read_text()
+assert ('Willkommen bei WinDoesNot' if language=='de' else 'Welcome to WinDoesNot') in loopback
 bios=(p/'syslinux/archiso_sys-linux.cfg').read_text()
 assert bios.count('windoesnot.install=offline')==2 and bios.count('windoesnot.install=online')==2
+assert ('Offline-Installation' if language=='de' else 'offline install') in bios
+pxe=(p/'syslinux/archiso_pxe-linux.cfg').read_text()
+assert ('WinDoesNot-Installationsmedium' if language=='de' else 'WinDoesNot install medium') in pxe
+efi=(p/'efiboot/loader/entries/02-archiso-linux-cachyos.conf').read_text()
+assert ('UEFI-Standard' if language=='de' else 'UEFI Default') in efi
 assert 'DEFAULT wdn-offline' in (p/'syslinux/archiso_sys.cfg').read_text()
 assert 'subject.user === "liveuser"' in (a/'etc/polkit-1/rules.d/49-nopasswd_global.rules').read_text()
 assert 'rm -f /etc/polkit-1/rules.d/49-nopasswd_global.rules' in (a/'usr/share/windoesnot/iso/finalize-install.sh').read_text()

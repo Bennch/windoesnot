@@ -6,6 +6,7 @@ install_user=${1:?Missing target username}
 getent passwd "$install_user" >/dev/null
 # These are live-only; never carry autologin, live services or temporary keys over.
 rm -f /etc/systemd/system/getty@tty1.service.d/autologin.conf
+systemctl disable windoesnot-live-language.service 2>/dev/null || true
 rm -f /etc/polkit-1/rules.d/49-nopasswd_global.rules
 rm -f /etc/systemd/system/etc-pacman.d-gnupg.mount
 systemctl disable pacman-init.service windoesnot-super-tap@liveuser.service serial-getty@ttyS0.service 2>/dev/null || true

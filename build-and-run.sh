@@ -4,6 +4,7 @@ set -euo pipefail
 project=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 rootless=true; mode=both; iso=; dry=false; headless=false; fresh=false; installed=false
 memory=8192; cpus=4; graphics=auto; vm_name=debug; build_id=; viewer=spice
+language=en
 usage() {
     cat <<EOF
 Usage: $0 [options]
@@ -20,6 +21,7 @@ Usage: $0 [options]
   --graphics gl|soft    VirGL acceleration or software rendering
   --gtk-display         QEMU's own GTK window instead of the SPICE viewer (no shared clipboard)
   --build-id ID         Resume this exact prepared build
+  --language en|de      ISO language (default: en)
   --dry-run             Show actions; do not build, download or launch
   --help                Show help
 Only the build subprocess uses sudo. The VM uses its own qcow2 disk.
@@ -40,6 +42,7 @@ while (($#)); do
         --graphics) graphics=${2:?Missing graphics mode}; shift 2;;
         --gtk-display) viewer=gtk; shift;;
         --build-id) build_id=${2:?Missing build ID}; shift 2;;
+        --language) language=${2:?Missing language}; shift 2;;
         --dry-run) dry=true; shift;;
         --help|-h) usage; exit 0;;
         *) echo "Unknown argument: $1" >&2; usage >&2; exit 2;;
@@ -48,6 +51,7 @@ done
 [[ $memory =~ ^[0-9]+$ && $cpus =~ ^[0-9]+$ && $vm_name =~ ^[a-zA-Z0-9_-]+$ ]] || { echo 'Invalid VM arguments' >&2; exit 2; }
 ((memory >= 4096 && cpus >= 1 && cpus <= 64)) || { echo 'Minimum: 4096 MiB and 1 vCPU' >&2; exit 2; }
 [[ $graphics == auto || $graphics == gl || $graphics == soft ]] || exit 2
+[[ $language == en || $language == de ]] || { echo 'Language must be en or de' >&2; exit 2; }
 [[ -z $build_id || $build_id =~ ^[a-zA-Z0-9_-]+$ ]] || exit 2
 if ((EUID == 0)) && [[ $mode != build ]]; then
     echo 'Run as your regular user; only mkarchiso is elevated.' >&2; exit 2
@@ -56,13 +60,15 @@ show() { printf '%q ' "$@"; printf '\n'; }
 if ((EUID == 0)); then rootless=false; fi
 if [[ $mode != run ]]; then
     if $dry; then show python3 "$project/tools/fetch-sources.py"; else python3 "$project/tools/fetch-sources.py"; fi
-    build_id=${build_id:-$(date +%Y%m%d-%H%M%S)}
+    build_id=${build_id:-$(date +%Y%m%d-%H%M%S)-$language}
     profile="$project/build/$build_id/profile"
     work="$project/build/$build_id/work"
     output="$project/out/$build_id"
     if [[ ! -e $profile ]]; then
-        if $dry; then show python3 "$project/tools/prepare-profile.py" --output "$profile"
-        else python3 "$project/tools/prepare-profile.py" --output "$profile"; fi
+        if $dry; then show python3 "$project/tools/prepare-profile.py" --output "$profile" --language "$language"
+        else python3 "$project/tools/prepare-profile.py" --output "$profile" --language "$language"; fi
+    elif [[ $(cat "$profile/airootfs/etc/windoesnot-live-language" 2>/dev/null || true) != "$language" ]]; then
+        echo "Prepared profile language differs from --language $language: $profile" >&2; exit 1
     fi
     # Never let a partially generated profile fall through to mkarchiso. This
     # marker is written only after all WinDoesNot staging and branding steps
@@ -102,7 +108,7 @@ if [[ $mode != run ]]; then
         # The checksum remains usable when the ISO is copied to another machine.
         (cd -- "$output" && sha256sum -- "$(basename -- "$iso")" > "$(basename -- "$iso").sha256")
     fi
-    iso=${iso:-"$output/windoesnot-<date>-x86_64.iso"}
+    iso=${iso:-"$output/windoesnot-<date>-$language-x86_64.iso"}
 fi
 [[ $mode != build ]] || exit 0
 if ! $installed; then

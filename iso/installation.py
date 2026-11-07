@@ -242,11 +242,13 @@ def prepare(bootloader, firmware, mode, base=BASE, root=Path('/')):
     subprocess.run(['/usr/lib/windoesnot/boot_language.py', 'prepare'], check=True)
 
 
-def finish(bootloader, firmware, mode, root=Path('/')):
-    validate_choice(bootloader, firmware, mode)
-    # The base image may contain English category overrides. Match the selected
-    # installer language for messages and the login screen's date/time format.
+def apply_selected_locale(root, selected_locale):
+    """Commit Calamares' choice before boot language files are generated."""
     locale_path = root / 'etc/locale.conf'
+    if selected_locale:
+        if not re.fullmatch(r'[A-Za-z]{2,3}_[A-Za-z]{2}\.UTF-8', selected_locale):
+            raise ValueError('Invalid selected locale')
+        locale_path.write_text('LANG=' + selected_locale + '\n')
     if locale_path.is_file():
         locale_text = locale_path.read_text()
         language = re.search(r'(?m)^LANG=(.*)$', locale_text)
@@ -257,6 +259,14 @@ def finish(bootloader, firmware, mode, root=Path('/')):
                     locale_text = re.sub(r'(?m)^' + key + r'=.*\n?', '', locale_text)
                     locale_text = locale_text.rstrip() + '\n' + key + '=' + values[0] + '\n'
                 locale_path.write_text(locale_text)
+                greeter = root / 'etc/sddm.conf.d/windoesnot.conf'
+                if greeter.is_file():
+                    greeter.write_text(re.sub(r'(?m)^GreeterEnvironment=.*$', 'GreeterEnvironment=LANG=' + values[0], greeter.read_text()))
+
+
+def finish(bootloader, firmware, mode, root=Path('/'), selected_locale=None):
+    validate_choice(bootloader, firmware, mode)
+    apply_selected_locale(root, selected_locale)
     if bootloader == 'systemd-boot':
         subprocess.run(['sdboot-manage', 'gen'], check=True)
     elif bootloader == 'limine':
@@ -290,10 +300,14 @@ def main():
     parser.add_argument('--bootloader', required=True, choices=list(BOOT_PACKAGES))
     parser.add_argument('--firmware', required=True, choices=['efi', 'bios'])
     parser.add_argument('--mode', required=True, choices=['online', 'offline'])
+    parser.add_argument('--locale')
     args = parser.parse_args()
     if os.geteuid() != 0 or os.environ.get('WINDOESNOT_INSTALL_TARGET') != '1' or not Path('/etc/windoesnot-image-build').is_file():
         raise SystemExit('Calamares installation target only')
-    (prepare if args.stage == 'prepare' else finish)(args.bootloader, args.firmware, args.mode)
+    if args.stage == 'prepare':
+        prepare(args.bootloader, args.firmware, args.mode)
+    else:
+        finish(args.bootloader, args.firmware, args.mode, selected_locale=args.locale)
 
 
 if __name__ == '__main__':
