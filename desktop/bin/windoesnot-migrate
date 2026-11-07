@@ -22,7 +22,9 @@ def tr(de, en): return de if GERMAN else en
 def size(value): return f'{value / 1073741824:.1f} GiB' if value >= 1073741824 else f'{value / 1048576:.1f} MiB'
 
 CSS = b'''
-window { background: #202020; color: #eeeeee; }
+window, window.background { background: #202020; color: #eeeeee; }
+.card, .folder, .card label, .folder label, checkbutton { color: #eeeeee; }
+.card .dim, .folder .dim { color: #aaaaaa; }
 .card { background: #141414; border: 1px solid #3a3a3a; border-radius: 10px; padding: 14px; }
 .folder { background: #202020; border: 1px solid #3a3a3a; border-radius: 6px; padding: 8px; }
 .warning { background: #382d22; border: 1px solid #b8804b; border-radius: 8px; padding: 10px; color: #f3c99d; }
@@ -228,6 +230,8 @@ class Window(Adw.ApplicationWindow):
 class App(Adw.Application):
     def __init__(self): super().__init__(application_id='me.windoesnot.Migrate')
     def do_activate(self):
+        # The stylesheet is dark; keep libadwaita's own colors consistent with it.
+        Adw.StyleManager.get_default().set_color_scheme(Adw.ColorScheme.FORCE_DARK)
         provider = Gtk.CssProvider(); provider.load_from_data(CSS)
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         self.window = Window(self)
