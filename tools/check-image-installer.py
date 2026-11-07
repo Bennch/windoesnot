@@ -33,6 +33,8 @@ with tempfile.TemporaryDirectory() as gnupg_home:
 assert next(line.split(':')[9] for line in key_listing.splitlines() if line.startswith('fpr:'))==fingerprint
 assert "'archlinux', 'cachyos', 'windoesnot'" in (root/'usr/share/windoesnot/iso/installation.py').read_text()
 assert 'ExecStart=/usr/bin/pacman-key --populate' in (root/'etc/systemd/system/pacman-init.service').read_text()
+terminal=root/'usr/lib/windoesnot/LocalTerminal'
+assert terminal.is_dir() and terminal.stat().st_mode & 0o005==0o005,'LocalTerminal must be readable by normal users (the desktop session fails to start otherwise)'
 base=root/'usr/share/windoesnot'
 assert (root/'etc/windoesnot-image-build').is_file(),'Not a prepared live image'
 for path in ['usr/bin/windoesnot-bluetooth','usr/bin/windoesnot-network','usr/bin/lact','usr/share/applications/me.windoesnot.Graphics.desktop','usr/lib/systemd/system/lactd.service','usr/bin/windoesnot-device-manager','usr/bin/windoesnot-drivers',

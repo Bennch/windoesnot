@@ -204,6 +204,8 @@ def rebuild_components():
                     if '[$ORIGIN]' not in line:
                         raise RuntimeError(f'Unexpected terminal RUNPATH: {library}')
         staged = Path(tempfile.mkdtemp(prefix='.LocalTerminal.', dir=COMPONENT_TARGET.parent))
+        # mkdtemp creates the directory 0700; the desktop session runs as a normal user and must read the terminal module.
+        os.chmod(staged, 0o755)
         exchanged = False
         installed = False
         try:
@@ -213,6 +215,12 @@ def rebuild_components():
                     shutil.copytree(path, destination)
                 else:
                     shutil.copy2(path, destination)
+            for root_dir, directories, files in os.walk(staged):
+                for name in directories:
+                    os.chmod(os.path.join(root_dir, name), 0o755)
+                for name in files:
+                    full = os.path.join(root_dir, name)
+                    os.chmod(full, 0o755 if os.access(full, os.X_OK) else 0o644)
             if COMPONENT_TARGET.exists():
                 exchange_directories(staged, COMPONENT_TARGET)
                 exchanged = True
