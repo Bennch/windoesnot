@@ -21,8 +21,9 @@ assert 'cups' in packages and 'libreoffice-fresh-de' in packages and services==[
 assert not packages_for(catalog,['firefox','libreoffice'],'en-US')[0].__contains__('libreoffice-fresh-de')
 # Required apps come from the image, yet their language packs follow the chosen language.
 assert packages_for(catalog,['firefox'],'de_DE.UTF-8')==(['firefox-i18n-de'],[])
-assert packages_for(catalog,['firefox'],'en_US.UTF-8')==([],[])
+assert packages_for(catalog,['firefox'],'en_US.UTF-8')==(['firefox-i18n-en-us'],[])
 assert 'hunspell-de' in packages
+assert 'hunspell-en_us' in packages_for(catalog,['firefox','libreoffice'],'en-US')[0]
 # Deferred apps never reach the offline vault; they go to the wishlist with fixed references only.
 sel=['firefox','google-chrome','ollama','codex-cli','gimp']
 assert 'google-chrome' not in packages_for(catalog,sel,'en')[0] and 'ollama' not in packages_for(catalog,sel,'en')[0]
@@ -63,7 +64,7 @@ with tempfile.TemporaryDirectory(prefix='wdn-software-unit-') as tmp:
   return Result()
  record=d/'record.json'
  with patch.object(installer.subprocess,'run',side_effect=run), patch.object(installer.subprocess,'check_output',return_value='firefox-i18n-de 1\ngimp 1\n'):
-  installer.install_selection(['firefox','gimp'],'de',base,record)
+  installer.install_selection(['firefox','gimp'],'de',base,record,pending=d/'pending.json')
  assert json.loads(record.read_text())['selected']==['firefox','gimp']
  assert not bundle.exists()
  assert any('-Sy' in c and '--config' in c for c in calls)
@@ -74,7 +75,7 @@ with tempfile.TemporaryDirectory(prefix='wdn-software-unit-') as tmp:
  (bundle/'repository').mkdir(parents=True);(bundle/'manifest.json').write_text(json.dumps(manifest));archive.write_bytes(b'changed');langpack.write_bytes(b'language fixture')
  calls.clear()
  with patch.object(installer.subprocess,'run',side_effect=run):
-  try:installer.install_selection(['firefox','gimp'],'de',base,record)
+  try:installer.install_selection(['firefox','gimp'],'de',base,record,pending=d/'pending.json')
   except RuntimeError:pass
   else:raise AssertionError('Corrupt archive accepted')
  assert not any('-Sy' in c or '-S' in c for c in calls)

@@ -137,6 +137,7 @@ def main():
     parser.add_argument('--sources-root', type=Path, default=ROOT / 'upstream')
     parser.add_argument('--source-manifest', type=Path, default=ROOT / 'sources.json')
     parser.add_argument('--output', type=Path, default=ROOT / 'build/profile')
+    parser.add_argument('--language', choices=('en', 'de'), default='en')
     args = parser.parse_args()
     profile = args.output.resolve()
     if profile == ROOT or ROOT not in profile.parents or profile.name in ['desktop', 'upstream']:
@@ -185,13 +186,20 @@ def main():
     write(a / 'etc/windoesnot-image-build', 'development\n')
     write(a / 'usr/lib/os-probes/55windoesnot-btrfs', (ROOT / 'iso/os-prober-btrfs').read_text(), True)
     write(a/'etc/hostname','windoesnot-live\n')
-    # German live preview; Calamares applies the chosen language to the target.
-    write(a/'etc/locale.conf','LANG=de_DE.UTF-8\n')
+    # These live defaults also initialize the Calamares locale and keyboard choices.
+    live_locale = 'de_DE.UTF-8' if args.language == 'de' else 'en_US.UTF-8'
+    live_zone = 'Europe/Berlin' if args.language == 'de' else 'UTC'
+    live_layout = 'de' if args.language == 'de' else 'us'
+    write(a/'etc/windoesnot-live-language', args.language + '\n')
+    write(a/'etc/locale.conf','LANG=' + live_locale + '\n')
     write(a/'etc/locale.gen','de_DE.UTF-8 UTF-8\nen_US.UTF-8 UTF-8\n')
+    write(a/'etc/default/keyboard', 'XKBLAYOUT="' + live_layout + '"\n')
+    write(a/'etc/vconsole.conf', 'KEYMAP=' + live_layout + '\n')
     live_localtime = a/'etc/localtime'
     if live_localtime.is_symlink() or live_localtime.is_file():
         live_localtime.unlink()
-    live_localtime.symlink_to('/usr/share/zoneinfo/Europe/Berlin')
+    live_localtime.symlink_to('/usr/share/zoneinfo/' + live_zone)
+    write(a/'usr/lib/systemd/system/windoesnot-live-language.service', (ROOT/'iso/windoesnot-live-language.service').read_text())
     # Passwordless administration belongs only to the disposable live account.
     write(a/'etc/polkit-1/rules.d/49-nopasswd_global.rules', 'polkit.addRule(function(action, subject) {\n    if (subject.user === "liveuser" && subject.isInGroup("wheel")) {\n        return polkit.Result.YES;\n    }\n});\n')
     # Do not start any other graphical session in the live image.
@@ -208,7 +216,7 @@ def main():
                          ('windoesnot-flathub-appstream.timer', 'usr/lib/systemd/system/windoesnot-flathub-appstream.timer')]:
         write(a / target, (ROOT / 'iso/flatpak' / name).read_text())
     write(a / 'etc/systemd/system/getty@tty1.service.d/autologin.conf', '[Service]\nExecStart=\nExecStart=-/usr/bin/agetty --noreset --noclear --noissue --skip-login --autologin liveuser - ${TERM}\n')
-    write(a / 'etc/sddm.conf.d/windoesnot.conf', '[General]\nDisplayServer=x11\n[X11]\nDisplayCommand=/usr/share/sddm/themes/windoesnot/Xsetup\n[Theme]\nCurrent=windoesnot\nCursorTheme=Adwaita\nCursorSize=24\n[Wayland]\nSessionDir=/usr/share/windoesnot/wayland-sessions\n[Autologin]\nSession=windoesnot.desktop\n')
+    write(a / 'etc/sddm.conf.d/windoesnot.conf', '[General]\nDisplayServer=x11\nGreeterEnvironment=LANG=' + live_locale + '\n[X11]\nDisplayCommand=/usr/share/sddm/themes/windoesnot/Xsetup\n[Theme]\nCurrent=windoesnot\nCursorTheme=Adwaita\nCursorSize=24\n[Wayland]\nSessionDir=/usr/share/windoesnot/wayland-sessions\n[Autologin]\nSession=windoesnot.desktop\n')
     # Explicit mode selection keeps the same native ABI in both installation paths.
     launch=(ROOT / 'iso/windoesnot-installer').read_text()
     write(a / 'usr/local/bin/windoesnot-installer', launch, True)
@@ -331,6 +339,7 @@ def main():
     shutil.copy2(ROOT / 'iso/customize-image.sh', a / 'root/customize_airootfs.sh')
     # mkarchiso applies these modes even when copied from a normal user's checkout.
     p=profile/'profiledef.sh'; t=p.read_text().replace('iso_name="cachyos"','iso_name="windoesnot"').replace('COS_','WDN_').replace('iso_publisher="CachyOS <https://cachyos.org>"','iso_publisher="WinDoesNot"').replace('iso_application="CachyOS Live/Rescue DVD"','iso_application="WinDoesNot Hyprland Live and Offline Installer"').replace("airootfs_image_tool_options=('-comp' 'xz' '-Xbcj' 'x86' '-b' '1M' '-Xdict-size' '1M')", "airootfs_image_tool_options=('-comp' 'zstd' '-Xcompression-level' '8' '-b' '1M')")
+    t=t.replace('iso_version="$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y.%m.%d)"', 'iso_version="$(date --date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y.%m.%d)-' + args.language + '"')
     t+='\nfile_permissions["/root/customize_airootfs.sh"]="0:0:755"\n'
     t+='file_permissions["/usr/lib/windoesnot/boot-error"]="0:0:755"\n'
     t+='file_permissions["/usr/lib/os-probes/55windoesnot-btrfs"]="0:0:755"\n'
@@ -345,12 +354,16 @@ def main():
     write(profile/'pacman.conf',conf)
     write(a/'etc/pacman.conf',conf)
     for f in (profile/'grub').rglob('*.cfg') if (profile/'grub').exists() else []:
-        f.write_text(f.read_text().replace('CachyOS','WinDoesNot').replace('CACHYOS_VERSION="GIT"','CACHYOS_VERSION="0.1-dev"').replace('copytoram=auto','copytoram=n').replace('nvme_load=yes','nvme_load=yes console=tty0 console=ttyS0,115200n8'))
+        menu=f.read_text().replace('CachyOS','WinDoesNot').replace('CACHYOS_VERSION="GIT"','CACHYOS_VERSION="0.1-dev"').replace('copytoram=auto','copytoram=n').replace('nvme_load=yes','nvme_load=yes console=tty0 console=ttyS0,115200n8')
+        if args.language == 'de':
+            for english,german in {'Welcome to WinDoesNot':'Willkommen bei WinDoesNot', 'Legacy Hardware (GPU nomodeset)':'Ältere Hardware (GPU nomodeset)', 'Run Memtest86+ (RAM test)':'Memtest86+ starten (RAM-Test)', 'UEFI Firmware Settings':'UEFI-Firmware-Einstellungen', 'System shutdown':'System ausschalten', 'System restart':'System neu starten', 'System shutting down...':'System wird ausgeschaltet...', 'System rebooting...':'System wird neu gestartet...'}.items():
+                menu=menu.replace(english,german)
+        f.write_text(menu)
     # Brand only the generated image, leaving upstream and the host bootloader alone.
     theme = profile / 'grub/themes/windoesnot'
     shutil.copytree(ROOT / 'desktop/share/grub/themes/windoesnot', theme)
     boot_cfg = profile / 'grub/grub.cfg'
-    boot_cfg.write_text(grub_modes(boot_cfg.read_text()).replace('set gfxmode="auto"', 'set gfxmode="1280x800,1024x768,800x600,auto"').replace('    terminal_output gfxterm', '    terminal_output gfxterm\n    insmod png\n    insmod gfxmenu\n    if [ -f "(${root})/boot/grub/themes/windoesnot/theme.txt" ]; then\n        set theme="(${root})/boot/grub/themes/windoesnot/theme.txt"\n    fi'))
+    boot_cfg.write_text(grub_modes(boot_cfg.read_text(), args.language).replace('set gfxmode="auto"', 'set gfxmode="1280x800,1024x768,800x600,auto"').replace('    terminal_output gfxterm', '    terminal_output gfxterm\n    insmod png\n    insmod gfxmenu\n    if [ -f "(${root})/boot/grub/themes/windoesnot/theme.txt" ]; then\n        set theme="(${root})/boot/grub/themes/windoesnot/theme.txt"\n    fi'))
     # Upstream's grubcfg defaults are absent from the offline sequence: keep stable before LTS
     # and detect Windows via os-prober. GRUB 2.16 BootNext would list PXE/HTTP/shell entries.
     write(a / 'etc/default/grub.d/90-windoesnot.cfg', 'GRUB_THEME="/boot/grub/themes/windoesnot/theme.txt"\nGRUB_TOP_LEVEL="/boot/vmlinuz-linux-cachyos"\nGRUB_DISABLE_OS_PROBER=false\nGRUB_DISABLE_BOOTNEXT=true\n')
@@ -361,11 +374,20 @@ def main():
     svg = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="640" height="480"><rect width="640" height="480" fill="#141414"/><image x="80" y="28" width="480" height="90" preserveAspectRatio="xMidYMid meet" xlink:href="data:image/png;base64,' + png + '"/></svg>'
     subprocess.run(['rsvg-convert', '-o', str(profile / 'syslinux/splash.png')], input=svg.encode(), check=True)
     for cfg_path in (profile / 'syslinux').glob('*.cfg'):
-        cfg_path.write_text(cfg_path.read_text().replace('CachyOS', 'WinDoesNot').replace('#9033ccff', '#fffe6f2d'))
+        menu = cfg_path.read_text().replace('CachyOS', 'WinDoesNot').replace('#9033ccff', '#fffe6f2d')
+        if args.language == 'de':
+            for english, german in {'Boot the WinDoesNot install medium on BIOS.':'WinDoesNot-Installationsmedium im BIOS-Modus starten.', 'Boot the WinDoesNot install medium on Bios in fallback mode':'WinDoesNot-Installationsmedium im BIOS-Ersatzmodus starten.', 'Boot the WinDoesNot install medium using':'WinDoesNot-Installationsmedium starten mit', 'Boot the WinDoesNot live medium using':'WinDoesNot-Live-System starten mit', 'It allows you to install WinDoesNot or perform system maintenance.':'Damit kannst du WinDoesNot installieren oder das System warten.', 'WinDoesNot default':'WinDoesNot Standard', 'WinDoesNot install medium':'WinDoesNot-Installationsmedium', 'Boot an existing operating system.':'Vorhandenes Betriebssystem starten.', 'Press TAB to edit the disk and partition number to boot.':'Mit TAB kannst du Laufwerk und Partition ändern.', 'Reboot computer.':'Computer neu starten.', 'Power off computer.':'Computer ausschalten.', "The computer's firmware must support APM.":'Die Firmware muss APM unterstützen.', 'Boot existing OS':'Vorhandenes Betriebssystem starten', 'Run Memtest86+ (RAM test)':'Memtest86+ starten (RAM-Test)', 'Hardware Information (HDT)':'Hardwareinformationen (HDT)', 'Reboot':'Neustarten', 'Power Off':'Ausschalten', 'Fallback':'Ersatzmodus'}.items():
+                menu = menu.replace(english, german)
+        cfg_path.write_text(menu)
     bios=profile/'syslinux/archiso_sys-linux.cfg'
-    bios.write_text(syslinux_modes(bios.read_text()))
+    bios.write_text(syslinux_modes(bios.read_text(), args.language))
     bios=profile/'syslinux/archiso_sys.cfg'
     bios.write_text(bios.read_text().replace('DEFAULT arch64','DEFAULT wdn-offline'))
+    for entry in (profile/'efiboot/loader/entries').glob('*.conf'):
+        menu = entry.read_text().replace('CachyOS', 'WinDoesNot')
+        if args.language == 'de':
+            menu = menu.replace('Legacy Hardware Fallback', 'Ältere Hardware, Ersatzmodus').replace('UEFI Default', 'UEFI-Standard')
+        entry.write_text(menu)
     for directory,pattern in [('grub',r'^(\s*linux )(.*)$'),('syslinux',r'^(APPEND )(.*)$')]:
         for menu in (profile/directory).glob('*.cfg'):
             menu.write_text(re.sub(pattern,lambda match:match.group(1)+quiet_commandline(match.group(2)),menu.read_text(),flags=re.M))

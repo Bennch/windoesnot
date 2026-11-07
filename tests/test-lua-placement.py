@@ -60,11 +60,11 @@ with tempfile.TemporaryDirectory(prefix='windoesnot-placement-') as temporary:
                 (fixture / 'geometry.lua').write_text('return ' + lua(geometry) + '\n')
                 result = subprocess.run(['lua', fixture / 'runner.lua', fixture], env=env, capture_output=True, text=True)
                 assert result.returncode == 0, result.stderr
-                assert result.stdout.strip() == 'PLACEMENT_OK 15', result.stdout
+                assert result.stdout.strip() == 'PLACEMENT_OK 16', result.stdout
                 cases += 1
     # Verify the regression test really rejects the original contradictory payload.
     patched = (fixture / 'init.lua').read_text()
     (fixture / 'init.lua').write_text(patched.replace('    if copy.move ~= nil then copy.center = nil end\n', ''))
     previous = subprocess.run(['lua', fixture / 'runner.lua', fixture], env=env, capture_output=True, text=True)
     assert previous.returncode != 0 and 'conflicting move and center effects' in previous.stderr
-    print(f'PASS: {cases} fresh Lua states, all 15 shell placement rules, original regression detected')
+    print(f'PASS: {cases} fresh Lua states, all 16 shell placement rules, original regression detected')

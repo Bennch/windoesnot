@@ -156,6 +156,9 @@
       "localizations": {
         "de": [
           "firefox-i18n-de"
+        ],
+        "en": [
+          "firefox-i18n-en-us"
         ]
       },
       "source": "offline"
@@ -201,6 +204,9 @@
         "de": [
           "libreoffice-fresh-de",
           "hunspell-de"
+        ],
+        "en": [
+          "hunspell-en_us"
         ]
       },
       "source": "offline"

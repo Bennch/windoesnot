@@ -15,6 +15,9 @@ def run():
     if bootloader not in ('grub', 'refind', 'systemd-boot', 'limine') or firmware not in ('efi', 'bios') or mode not in ('online', 'offline'):
         return ('Invalid installation choices', 'The selected bootloader or installation mode is missing.')
     command = ['/usr/bin/env', 'WINDOESNOT_INSTALL_TARGET=1', '/usr/bin/python3', '/usr/share/windoesnot/iso/installation.py', 'finish', '--bootloader', bootloader, '--firmware', firmware, '--mode', mode]
+    selected_locale = str(libcalamares.globalstorage.value('locale') or '')
+    if re.fullmatch(r'[A-Za-z]{2,3}_[A-Za-z]{2}(?:\.UTF-8)?', selected_locale):
+        command += ['--locale', selected_locale if selected_locale.endswith('.UTF-8') else selected_locale + '.UTF-8']
     try:
         # The native users job has already created the account. Keep its default
         # unless the user explicitly selected another installed shell.

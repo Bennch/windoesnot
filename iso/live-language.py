@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply Calamares' supported UI language and keyboard layout to the disposable live desktop only."""
+"""Apply installer and early boot language choices to the disposable live desktop."""
 import os
 from pathlib import Path
 import pwd
@@ -13,6 +13,33 @@ def desktop_locale(language):
     return ('de', 'de_DE.UTF-8') if language.lower().startswith('de') else ('en', 'en_US.UTF-8')
 
 
+def boot_choice(command_line):
+    values = {key: value for word in command_line.split() if (parts := word.partition('='))[1]
+              for key, value in [(parts[0], parts[2])]
+              if key in ('windoesnot.lang', 'windoesnot.keymap')}
+    language = values.get('windoesnot.lang')
+    keymap = values.get('windoesnot.keymap')
+    return (language if language in ('en', 'de') else None,
+            keymap if keymap in ('us', 'de') else None)
+
+
+def set_live_defaults(language, keymap):
+    locale = desktop_locale(language)[1]
+    zone = 'Europe/Berlin' if language == 'de' else 'UTC'
+    Path('/etc/locale.conf').write_text('LANG=' + locale + '\n')
+    Path('/etc/default/keyboard').write_text('XKBLAYOUT="' + keymap + '"\n')
+    Path('/etc/vconsole.conf').write_text('KEYMAP=' + keymap + '\n')
+    localtime = Path('/etc/localtime')
+    localtime.unlink(missing_ok=True)
+    localtime.symlink_to('/usr/share/zoneinfo/' + zone)
+    # SDDM reads its own greeter environment after a later installed-system boot.
+    greeter = Path('/etc/sddm.conf.d/windoesnot.conf')
+    if greeter.is_file():
+        content = re.sub(r'(?m)^GreeterEnvironment=.*\n?', '', greeter.read_text())
+        greeter.write_text(content.replace('[General]\n', '[General]\nGreeterEnvironment=LANG=' + locale + '\n', 1))
+    subprocess.run(['runuser', '-u', 'liveuser', '--', '/usr/bin/windoesnot-initialize', '--adopt-system'], check=True)
+
+
 def settings_ipc(base, account, method, value):
     command = [*base, 'quickshell', 'ipc', '--path', account.pw_dir + '/.config/quickshell/default/shell.qml', 'call', 'windoesnot-settings', method, value]
     for attempt in range(12):
@@ -24,9 +51,17 @@ def settings_ipc(base, account, method, value):
 
 
 def main():
+    if sys.argv[1:] == ['--boot']:
+        if not Path('/etc/windoesnot-image-build').is_file() or os.geteuid() != 0:
+            raise SystemExit('Live image only')
+        language, keymap = boot_choice(Path('/proc/cmdline').read_text())
+        if language or keymap:
+            language = language or Path('/etc/windoesnot-live-language').read_text().strip()
+            set_live_defaults(language, keymap or ('de' if language == 'de' else 'us'))
+        return
     if sys.argv[1:] == ['--read-preference']:
         path = Path.home() / '.config/quickshell/default/settings.txt'
-        language = 'de'
+        language = 'de' if os.environ.get('LANG', '').startswith('de') else 'en'
         if path.is_file():
             for line in path.read_text().splitlines():
                 if line.startswith('uiLanguage='): language = line.split('=', 1)[1]

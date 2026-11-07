@@ -129,3 +129,5 @@ vulkan-tools
 ocl-icd
 flatpak
 papirus-icon-theme
+firefox-i18n-de
+firefox-i18n-en-us
