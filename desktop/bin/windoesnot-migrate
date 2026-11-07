@@ -1,0 +1,240 @@
+#!/usr/bin/env python3
+"""Windows data migration window; privileged backend calls use polkit."""
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import threading
+
+import gi
+gi.require_version('Gtk', '4.0')
+gi.require_version('Adw', '1')
+from gi.repository import Adw, GLib, Gtk, Gdk
+
+BACKEND = Path('/usr/lib/windoesnot/migrate.py')
+if not BACKEND.is_file():
+    BACKEND = Path('/usr/share/windoesnot/desktop/lib/windoesnot/migrate.py')
+if not BACKEND.is_file():
+    BACKEND = Path(__file__).resolve().parent.parent / 'lib/windoesnot/migrate.py'
+GERMAN = (os.environ.get('LANG') or '').startswith('de')
+PREVIEW = '--preview' in sys.argv
+def tr(de, en): return de if GERMAN else en
+def size(value): return f'{value / 1073741824:.1f} GiB' if value >= 1073741824 else f'{value / 1048576:.1f} MiB'
+
+CSS = b'''
+window { background: #202020; color: #eeeeee; }
+.card { background: #141414; border: 1px solid #3a3a3a; border-radius: 10px; padding: 14px; }
+.folder { background: #202020; border: 1px solid #3a3a3a; border-radius: 6px; padding: 8px; }
+.warning { background: #382d22; border: 1px solid #b8804b; border-radius: 8px; padding: 10px; color: #f3c99d; }
+.error { background: #432a22; border: 1px solid #fe6f2d; border-radius: 8px; padding: 10px; color: #ffd0bc; }
+.accent { color: #fe6f2d; }
+.dim { color: #aaaaaa; }
+button.suggested-action { background: #fe6f2d; color: #202020; }
+'''
+
+class Window(Adw.ApplicationWindow):
+    def __init__(self, app):
+        super().__init__(application=app, title=tr('Windows-Daten übernehmen', 'Bring Windows data'), default_width=760, default_height=680)
+        self.plan = None
+        self.devices = []
+        self.secret = None
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=18, margin_bottom=18, margin_start=24, margin_end=24)
+        toolbar = Adw.ToolbarView()
+        toolbar.add_top_bar(Adw.HeaderBar())
+        toolbar.set_content(outer)
+        self.set_content(toolbar)
+        title = Gtk.Label(label=tr('Windows-Daten übernehmen', 'Bring your Windows data'), xalign=0)
+        title.add_css_class('title-1'); outer.append(title)
+        intro = Gtk.Label(label=tr('Ordner auswählen. Windows bleibt unverändert; vorhandene Zieldateien können aktualisiert werden.', 'Choose folders. Windows stays unchanged; existing target files may be updated.'), xalign=0, wrap=True)
+        intro.add_css_class('dim'); outer.append(intro)
+        self.disks = Gtk.DropDown.new_from_strings([])
+        self.disks.connect('notify::selected', self.choose)
+        outer.append(self.disks)
+        self.status = Gtk.Label(xalign=0, wrap=True)
+        outer.append(self.status)
+        self.handoff_note = Gtk.Label(xalign=0, wrap=True)
+        self.handoff_note.add_css_class('card')
+        self.handoff_note.set_visible(False)
+        outer.append(self.handoff_note)
+        self.wlan_check = Gtk.CheckButton(label=tr('Gespeicherte WLAN-Verbindungen übernehmen', 'Import saved Wi-Fi connections'))
+        self.wlan_check.set_visible(False)
+        self.wlan_check.connect('toggled', self.choose_wlan)
+        outer.append(self.wlan_check)
+        self.unlock_button = Gtk.Button(label=tr('BitLocker entsperren', 'Unlock BitLocker'))
+        self.unlock_button.connect('clicked', self.ask_secret)
+        self.unlock_button.set_visible(False); outer.append(self.unlock_button)
+        summary = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        summary.add_css_class('card'); outer.append(summary)
+        self.total = Gtk.Label(xalign=0); self.total.add_css_class('accent'); summary.append(self.total)
+        self.free = Gtk.Label(xalign=1, hexpand=True); self.free.add_css_class('dim'); summary.append(self.free)
+        scroll = Gtk.ScrolledWindow(vexpand=True)
+        self.items = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        scroll.set_child(self.items); outer.append(scroll)
+        self.progress = Gtk.ProgressBar(); outer.append(self.progress)
+        self.copy_button = Gtk.Button(label=tr('Ausgewählte Daten kopieren', 'Copy selected data'))
+        self.copy_button.add_css_class('suggested-action')
+        self.copy_button.connect('clicked', self.copy)
+        outer.append(self.copy_button)
+        self.update_total()
+        if PREVIEW:
+            fixture = {'warnings': ['hibernation_possible'], 'profiles': [{'name': 'Benni', 'warnings': ['onedrive_files_may_be_online_only'], 'items': [{'kind': kind, 'bytes': amount, 'selected': kind != 'Videos', 'warnings': []} for kind, amount in [('Documents', 429916160), ('Pictures', 2109734912), ('Music', 899678208), ('Videos', 4304404480), ('Downloads', 82313216), ('Desktop', 1048576)]]}]}
+            self.devices = [{'device': '/dev/nvme0n1p3', 'label': 'Windows'}]
+            self.disks.set_model(Gtk.StringList.new(['/dev/nvme0n1p3  Windows']))
+            self.show_plan(subprocess.CompletedProcess([], 0, json.dumps(fixture), ''))
+        else:
+            self.run_backend('partitions', [], self.show_disks, privileged=False)
+
+    def message(self, value, style='warning'):
+        self.status.set_text(value)
+        self.status.remove_css_class('warning'); self.status.remove_css_class('error')
+        if value: self.status.add_css_class(style)
+
+    def run_backend(self, action, args, done, privileged=True, secret=None, progress=None):
+        self.message(tr('Bitte warten …', 'Please wait …'))
+        cmd = (['pkexec'] if privileged and os.geteuid() != 0 else []) + [sys.executable, str(BACKEND), action] + args
+        def work():
+            if progress:
+                with subprocess.Popen(cmd, stdin=subprocess.PIPE if secret else subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1) as process:
+                    if secret:
+                        process.stdin.write(secret + '\n'); process.stdin.close()
+                    lines = []
+                    for line in process.stdout:
+                        lines.append(line)
+                        try: GLib.idle_add(progress, json.loads(line))
+                        except json.JSONDecodeError: pass
+                    error = process.stderr.read()
+                    result = subprocess.CompletedProcess(cmd, process.wait(), ''.join(lines), error)
+            else:
+                result = subprocess.run(cmd, input=(secret + '\n') if secret else None, text=True, capture_output=True)
+            GLib.idle_add(done, result)
+        threading.Thread(target=work, daemon=True).start()
+
+    def show_disks(self, result):
+        if result.returncode:
+            self.message(result.stderr or tr('Partitionssuche fehlgeschlagen.', 'Partition scan failed.'), 'error'); return
+        self.devices = json.loads(result.stdout)
+        self.disks.set_model(Gtk.StringList.new([x['device'] + '  ' + x['label'] for x in self.devices]))
+        if self.devices: self.disks.set_selected(0); self.choose()
+        else: self.message(tr('Keine Windows-Partition gefunden.', 'No Windows partition found.'))
+
+    def choose(self, *_):
+        if PREVIEW: return
+        index = self.disks.get_selected()
+        if index >= len(self.devices): return
+        device = self.devices[index]['device']
+        args = [device, '--locale', 'de_DE.UTF-8' if GERMAN else 'en_US.UTF-8']
+        if self.secret: args.append('--secret-stdin')
+        self.run_backend('scan', args, self.show_plan, secret=self.secret)
+
+    def ask_secret(self, *_):
+        dialog = Gtk.Dialog(title=tr('BitLocker entsperren', 'Unlock BitLocker'), transient_for=self, modal=True)
+        dialog.add_button(tr('Abbrechen', 'Cancel'), Gtk.ResponseType.CANCEL)
+        dialog.add_button(tr('Entsperren', 'Unlock'), Gtk.ResponseType.OK)
+        box = dialog.get_content_area(); box.set_spacing(12)
+        box.set_margin_top(16); box.set_margin_bottom(16); box.set_margin_start(16); box.set_margin_end(16)
+        help_text = Gtk.Label(label=tr('Passwort ODER 48-stelligen Wiederherstellungsschlüssel eingeben. Den Schlüssel finden Sie im Microsoft-Konto unter account.microsoft.com/devices/recoverykey oder in Ihrem Ausdruck.', 'Enter a password OR a 48-digit recovery key. Find it in your Microsoft account at account.microsoft.com/devices/recoverykey or on your printout.'), xalign=0, wrap=True)
+        box.append(help_text)
+        entry = Gtk.PasswordEntry(placeholder_text=tr('Passwort oder Wiederherstellungsschlüssel', 'Password or recovery key'))
+        box.append(entry)
+        def response(_, code):
+            if code == Gtk.ResponseType.OK and entry.get_text():
+                self.secret = entry.get_text(); self.choose()
+            dialog.destroy()
+        dialog.connect('response', response)
+        dialog.present()
+
+    def update_total(self):
+        selected = sum(item['bytes'] for profile in self.plan['profiles'] for item in profile['items'] if item['selected']) if self.plan else 0
+        self.total.set_text(tr('Auswahl: ', 'Selected: ') + size(selected))
+        free = os.statvfs(Path.home())
+        available = free.f_bavail * free.f_frsize
+        self.free.set_text(tr('Frei: ', 'Free: ') + size(available))
+        wlan_selected = bool(self.plan and self.plan.get('handoff') and self.plan['handoff'].get('wlan_selected'))
+        self.copy_button.set_sensitive(not PREVIEW and (bool(selected) or wlan_selected) and selected <= available)
+
+    def choose_wlan(self, button):
+        if self.plan and self.plan.get('handoff'):
+            self.plan['handoff']['wlan_selected'] = button.get_active()
+            self.update_total()
+
+    def show_plan(self, result):
+        if result.returncode:
+            self.message(result.stderr or tr('Prüfung fehlgeschlagen.', 'Scan failed.'), 'error'); return
+        self.plan = json.loads(result.stdout)
+        handoff = self.plan.get('handoff')
+        self.handoff_note.set_visible(bool(handoff))
+        if handoff:
+            self.handoff_note.set_text(tr('Windows-Vorauswahl übernommen (', 'Windows selection loaded (') + handoff['windows_version'] + '). ' + tr('WLAN-Exporte: ', 'WLAN exports: ') + str(handoff['wlan_exports']) + (tr(' · Chromium-Passwortexport vorhanden', ' · Chromium password export available') if handoff['chromium_passwords'] else ''))
+        self.wlan_check.set_visible(bool(handoff and handoff['wlan_exports']))
+        self.wlan_check.set_active(bool(handoff and handoff['wlan_selected']))
+        while child := self.items.get_first_child(): self.items.remove(child)
+        warnings = self.plan.get('warnings', [])
+        self.unlock_button.set_visible('bitlocker_locked' in warnings)
+        if 'bitlocker_locked' in warnings:
+            self.message(tr('BitLocker ist gesperrt. Zum Lesen Passwort oder Wiederherstellungsschlüssel eingeben.', 'BitLocker is locked. Enter a password or recovery key to read it.'))
+        elif 'handoff_invalid' in warnings:
+            self.message(tr('Windows-Vorauswahl konnte nicht gelesen werden. Ordner bitte selbst auswählen.', 'Windows selection could not be read. Choose folders manually.'))
+        elif 'hibernation_possible' in warnings:
+            self.message(tr('Ruhezustand / Schnellstart: Windows vollständig herunterfahren und Schnellstart deaktivieren, falls Dateien nicht gelesen werden können.', 'Hibernation / Fast Startup: Shut down Windows fully and disable Fast Startup if files cannot be read.'))
+        else: self.message('')
+        for profile in self.plan['profiles']:
+            card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+            card.add_css_class('card'); self.items.append(card)
+            heading = Gtk.Label(label=profile['name'] + '   ·   ' + size(sum(item['bytes'] for item in profile['items'])), xalign=0)
+            heading.add_css_class('title-3'); card.append(heading)
+            if 'onedrive_files_may_be_online_only' in profile['warnings']:
+                warning = Gtk.Label(label=tr('OneDrive: Dateien, die nur in der Cloud liegen, können nicht übernommen werden.', 'OneDrive: cloud-only files cannot be copied.'), xalign=0, wrap=True)
+                warning.add_css_class('warning'); card.append(warning)
+            if any('firefox_unavailable' in item['warnings'] for item in profile['items']):
+                note = Gtk.Label(label=tr('Firefox-Profil nicht bereit: Firefox unter Windows schließen und erneut prüfen.', 'Firefox profile unavailable: close Firefox in Windows and scan again.'), xalign=0, wrap=True)
+                note.add_css_class('warning'); card.append(note)
+            for item in profile['items']:
+                row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+                row.add_css_class('folder'); card.append(row)
+                names = {'Documents':'Dokumente','Pictures':'Bilder','Music':'Musik'}
+                name = names.get(item['kind'], item['kind']) if GERMAN else item['kind']
+                check = Gtk.CheckButton(label=name + ('  ⚠' if item['warnings'] else ''), hexpand=True)
+                check.set_active(item['selected'])
+                check.connect('toggled', lambda button, entry=item: (entry.__setitem__('selected', button.get_active()), self.update_total()))
+                row.append(check)
+                amount = Gtk.Label(label=size(item['bytes'])); amount.add_css_class('dim'); row.append(amount)
+        self.update_total()
+
+    def copy(self, *_):
+        if not self.plan: return
+        self.copy_button.set_sensitive(False)
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as stream:
+            json.dump(self.plan, stream)
+            manifest_path = stream.name
+        args = [manifest_path, str(Path.home()), '--progress-json']
+        if self.plan.get('handoff') and self.plan['handoff'].get('wlan_selected'):
+            args += ['--nm-dir', '/etc/NetworkManager/system-connections']
+        if self.secret: args.append('--secret-stdin')
+        def progress(event):
+            if event.get('event') == 'file' and event.get('total_bytes'):
+                self.progress.set_fraction(min(1, event['copied_bytes'] / event['total_bytes']))
+            if event.get('event') == 'file_error':
+                self.message(tr('Einige Dateien konnten nicht kopiert werden.', 'Some files could not be copied.'), 'error')
+        def done(result):
+            Path(manifest_path).unlink(missing_ok=True)
+            self.update_total()
+            if result.returncode:
+                self.message(result.stderr or tr('Kopieren fehlgeschlagen.', 'Copy failed.'), 'error'); return
+            summary = json.loads(result.stdout.splitlines()[-1])
+            errors = summary.get('errors', [])
+            self.message((tr('Fertig. Fehler bei ', 'Done. Errors for ') + str(len(errors)) + tr(' Dateien.', ' files.')) if errors else tr('Kopieren abgeschlossen.', 'Copy complete.'), 'error' if errors else 'warning')
+        self.run_backend('copy', args, done, secret=self.secret, progress=progress)
+
+class App(Adw.Application):
+    def __init__(self): super().__init__(application_id='me.windoesnot.Migrate')
+    def do_activate(self):
+        provider = Gtk.CssProvider(); provider.load_from_data(CSS)
+        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        self.window = Window(self)
+        self.window.present()
+
+if __name__ == '__main__':
+    if PREVIEW: sys.argv.remove('--preview')
+    raise SystemExit(App().run(sys.argv))

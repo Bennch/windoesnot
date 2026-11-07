@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Bring Windows Data
+Name[de]=Windows-Daten übernehmen
+Comment=Copy selected files from a Windows installation
+Comment[de]=Ausgewählte Dateien aus einer Windows-Installation kopieren
+Exec=windoesnot-migrate
+Icon=folder-download
+Terminal=false
+Categories=System;Utility;

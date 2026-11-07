@@ -29,6 +29,11 @@ def write(path, text, executable=False):
     if executable:
         path.chmod(0o755)
 
+def insert_post_user_jobs(execution):
+    """Run optional app and migration work only after Calamares creates the user."""
+    anchor = max(execution.index('shellprocess'), execution.index('users')) + 1
+    execution[anchor:anchor] = ['windoesnotapps_install', 'windoesnotmigrate_install', 'windoesnotfinish', 'windoesnotbootreuse@finish']
+
 def stage_store(pin, target, package='windoesnot-store', version_file='Cargo.toml'):
     """Stage a native Rust application from its exact pinned commit.
 
@@ -223,6 +228,8 @@ def main():
     write(a / 'usr/local/bin/calamares-online.sh', launch, True)
     write(a / 'usr/share/applications/windoesnot-installer.desktop', '[Desktop Entry]\nType=Application\nName=Install WinDoesNot\nName[de]=WinDoesNot installieren\nExec=windoesnot-installer\nIcon=windoesnot\nTerminal=false\nCategories=System;\n')
     write(a / 'etc/skel/Desktop/windoesnot-installer.desktop', (a / 'usr/share/applications/windoesnot-installer.desktop').read_text(), True)
+    write(a / 'usr/local/bin/windoesnot-migrate', (ROOT / 'desktop/bin/windoesnot-migrate').read_text(), True)
+    write(a / 'usr/share/applications/windoesnot-migrate.desktop', (ROOT / 'desktop/share/applications/windoesnot-migrate.desktop').read_text())
     write(a / 'etc/xdg/xdg-desktop-portal/hyprland-portals.conf', '[preferred]\ndefault=hyprland;gtk\norg.freedesktop.impl.portal.FileChooser=gtk\n')
     # Use supported distro hooks to generate installed initramfs without archiso hooks.
     write(a / 'etc/mkinitcpio-windoesnot.conf', add_hook('MODULES=()\nBINARIES=()\nFILES=()\nHOOKS=(base systemd autodetect microcode modconf kms keyboard sd-vconsole block filesystems fsck)\n'))
@@ -250,6 +257,7 @@ def main():
     settings['instances'] = [{'id':'preparetarget','module':'shellprocess','config':'shellprocess-preparetarget.conf'}]
     settings['instances'] += [{'id':stage,'module':'windoesnotbootreuse','config':'windoesnotbootreuse-'+stage+'.conf'}
                               for stage in ['preflight','guard','install','finish']]
+    settings['instances'].append({'id':'result','module':'windoesnotmigrate','config':'windoesnotmigrate-result.conf'})
     execution = next(x['exec'] for x in settings['sequence'] if 'exec' in x)
     execution[:] = [x for x in execution if x not in ['zfs','zfshostid','packages@offline','shellprocess@before']]
     (cal / 'modules').mkdir(exist_ok=True)
@@ -266,12 +274,12 @@ def main():
     needed.add('grubcfg')
     pages = next(x['show'] for x in settings['sequence'] if 'show' in x)
     pages.insert(pages.index('partition'), 'windoesnotboot')
+    pages.insert(pages.index('users'), 'windoesnotmigrate')
     pages.insert(pages.index('users'), 'windoesnotapps')
+    pages.insert(pages.index('finished'), 'windoesnotmigrate@result')
     pages[pages.index('welcome')] = 'welcomeq'   # one start page: logo, short text, language (iso/branding/welcomeq.qml)
     # The finalizer has initialized the target keyring before offline app installation.
-    execution.insert(execution.index('shellprocess') + 1, 'windoesnotapps_install')
-    execution.insert(execution.index('windoesnotapps_install') + 1, 'windoesnotfinish')
-    execution.insert(execution.index('windoesnotfinish') + 1, 'windoesnotbootreuse@finish')
+    insert_post_user_jobs(execution)
     for name in needed:
         p = modules / name / f'{name}.conf'
         if p.exists(): shutil.copy2(p, cal / 'modules' / p.name)
@@ -291,7 +299,9 @@ def main():
     for stage in ['preflight','guard','install','finish']:
         cfg('windoesnotbootreuse-'+stage+'.conf', {'stage':stage})
     cfg('windoesnotapps.conf', {'catalog':'/usr/share/windoesnot/iso/software/catalog.json', 'mode':'offline'})
-    for job in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotfinish']:
+    cfg('windoesnotmigrate.conf', {'mode':'offline'})
+    cfg('windoesnotmigrate-result.conf', {'mode':'result'})
+    for job in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotmigrate_install','windoesnotfinish']:
         cfg(job + '.conf', {'mode':'offline'})
     locale=yaml.safe_load((modules/'locale/locale.conf').read_text())
     locale['geoip']={'style':'none'}
@@ -328,7 +338,7 @@ def main():
     (online / 'branding').symlink_to('../branding',target_is_directory=True)
     shutil.copytree(cal / 'modules', online / 'modules')
     write(online / 'settings.conf',yaml.safe_dump(settings,sort_keys=False))
-    for job in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotfinish','windoesnotapps']:
+    for job in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotmigrate_install','windoesnotfinish','windoesnotapps','windoesnotmigrate']:
         config=yaml.safe_load((online / 'modules' / (job+'.conf')).read_text())
         config['mode']='online'
         write(online / 'modules' / (job+'.conf'),yaml.safe_dump(config,sort_keys=False))
