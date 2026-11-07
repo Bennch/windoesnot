@@ -2,6 +2,27 @@
   "comment": "WinDoesNot changes per desktop package release, newest first. Shown in Settings > Updates; entries marked unreleased are never offered as an update.",
   "releases": [
     {
+      "version": "0.1.0-26",
+      "date": "2026-11-08",
+      "unreleased": true,
+      "de": [
+        "Systemupdates bleiben möglich: Die Fensterleisten (Hyprland-Plugins) und der eingebettete Terminal hängen nicht mehr an einer festen Hyprland-, Qt- oder C++-Version. Nach einem Update werden sie automatisch neu gebaut. Der WinDoesNot-Update-Kanal ist ab Werk eingerichtet.",
+        "Im Store warnt eine Sperre, wenn ein Systemupdate schneller ist als unsere Fensterleisten. Du kannst warten oder trotzdem aktualisieren.",
+        "Es gibt eine englische und eine deutsche ISO. Startmenü, Installer, Anmeldebildschirm und die Bootmenüs folgen der gewählten Sprache. Mit dem Startparameter windoesnot.lang=en oder de lässt sich die Sprache beim Start ändern.",
+        "Die Taskleiste kommt zurück, wenn du das Kabel des Hauptmonitors ziehst und wieder einsteckst. Neu im Kontextmenü von Desktop und Taskleiste: „Oberfläche neu starten“.",
+        "Die Kontextmenüs auf dem Desktop haben keinen Scrollbalken mehr. „Neu“ öffnet ein eigenes Menü daneben, und die Menüs folgen Hell/Dunkel, Akzentfarbe und Eckenradius aus den Einstellungen.",
+        "Neu im Installer: Symbol für die GTA-2-Anleitung."
+      ],
+      "en": [
+        "System updates stay possible: the window bars (Hyprland plugins) and the embedded terminal no longer depend on a fixed Hyprland, Qt or C++ library version. They are rebuilt automatically after an update. The WinDoesNot update channel is set up from the start.",
+        "A guard in the Store warns when a system update outruns our window bars. You can wait or update anyway.",
+        "There is an English and a German ISO. The start menu, installer, login screen and boot menus follow the chosen language. The kernel parameter windoesnot.lang=en or de changes the language at boot.",
+        "The taskbar comes back when you unplug and replug the main monitor's cable. New in the desktop and taskbar context menus: \"Restart interface\".",
+        "The desktop context menus no longer have a scrollbar. \"New\" opens its own menu next to it, and the menus follow light/dark, accent colour and corner radius from the settings.",
+        "New in the installer: icon for the GTA 2 guide."
+      ]
+    },
+    {
       "version": "0.1.0-25",
       "date": "2026-11-07",
       "de": [

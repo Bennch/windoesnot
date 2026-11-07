@@ -3,13 +3,32 @@
 import argparse
 import json
 import hashlib
+import re
+import subprocess
 from pathlib import Path
 import yaml
 
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--root',type=Path,default=Path('/'))
+parser.add_argument('--build-pacman-conf',type=Path)
 args=parser.parse_args()
 root=args.root
+if args.build_pacman_conf:
+    build_pacman=args.build_pacman_conf.read_text()
+    assert 'windoesnot' not in build_pacman.lower(),'Build pacman.conf must exclude WinDoesNot'
+config=(root/'etc/pacman.conf').read_text()
+include='Include = /etc/pacman.d/windoesnot.conf'
+assert config.count(include)==1 and config.count('[windoesnot]')==0
+lines=config.splitlines()
+assert lines.index(include)<next(i for i,line in enumerate(lines) if re.match(r'^\[(?!options\])',line))
+assert (root/'etc/pacman.d/windoesnot.conf').read_text()=='[windoesnot]\nSigLevel = Required DatabaseRequired TrustedOnly\nServer = https://download.windoesnot.me/repo/x86_64\n'
+fingerprint='ED9530A990C6D39EB7D4BA8F9BDCA578FBF1DDB0'
+keyrings=root/'usr/share/pacman/keyrings'
+assert (keyrings/'windoesnot-trusted').read_text()==fingerprint+':4:\n'
+key_listing=subprocess.check_output(['gpg','--batch','--with-colons','--show-keys',str(keyrings/'windoesnot.gpg')],text=True)
+assert next(line.split(':')[9] for line in key_listing.splitlines() if line.startswith('fpr:'))==fingerprint
+assert "'archlinux', 'cachyos', 'windoesnot'" in (root/'usr/share/windoesnot/iso/installation.py').read_text()
+assert 'ExecStart=/usr/bin/pacman-key --populate' in (root/'etc/systemd/system/pacman-init.service').read_text()
 base=root/'usr/share/windoesnot'
 assert (root/'etc/windoesnot-image-build').is_file(),'Not a prepared live image'
 for path in ['usr/bin/windoesnot-bluetooth','usr/bin/windoesnot-network','usr/bin/lact','usr/share/applications/me.windoesnot.Graphics.desktop','usr/lib/systemd/system/lactd.service','usr/bin/windoesnot-device-manager','usr/bin/windoesnot-drivers',

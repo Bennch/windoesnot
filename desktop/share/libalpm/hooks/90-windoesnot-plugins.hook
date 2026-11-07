@@ -1,0 +1,16 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = hyprland
+Target = gcc-libs
+Target = windoesnot-plugins
+Target = qt6-base
+Target = qtermwidget
+Target = qt6-declarative
+Target = windoesnot-components
+
+[Action]
+Description = Rebuild WinDoesNot native desktop modules...
+When = PostTransaction
+Exec = /usr/bin/windoesnot-rebuild-plugins

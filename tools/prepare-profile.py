@@ -353,6 +353,18 @@ def main():
     conf=(profile/'pacman.conf').read_text().replace('Include = /etc/pacman.d/mirrorlist','Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch')
     write(profile/'pacman.conf',conf)
     write(a/'etc/pacman.conf',conf)
+    # Live pacman-init imports all keyrings; the installation target imports
+    # this one explicitly after unpackfs copies the immutable image.
+    key_source = ROOT / 'packaging/release-key/RELEASE-KEY.asc'
+    fingerprint = (ROOT / 'packaging/release-key/RELEASE-KEY.fingerprint').read_text().strip()
+    key_listing = subprocess.check_output(['gpg', '--batch', '--with-colons', '--show-keys', str(key_source)], text=True)
+    primary = next(line.split(':')[9] for line in key_listing.splitlines() if line.startswith('fpr:'))
+    if primary != fingerprint or fingerprint != 'ED9530A990C6D39EB7D4BA8F9BDCA578FBF1DDB0':
+        raise SystemExit('WinDoesNot release key fingerprint mismatch')
+    keyrings = a / 'usr/share/pacman/keyrings'
+    keyrings.mkdir(parents=True, exist_ok=True)
+    subprocess.run(['gpg', '--batch', '--yes', '--dearmor', '--output', str(keyrings / 'windoesnot.gpg'), str(key_source)], check=True)
+    write(keyrings / 'windoesnot-trusted', fingerprint + ':4:\n')
     for f in (profile/'grub').rglob('*.cfg') if (profile/'grub').exists() else []:
         menu=f.read_text().replace('CachyOS','WinDoesNot').replace('CACHYOS_VERSION="GIT"','CACHYOS_VERSION="0.1-dev"').replace('copytoram=auto','copytoram=n').replace('nvme_load=yes','nvme_load=yes console=tty0 console=ttyS0,115200n8')
         if args.language == 'de':

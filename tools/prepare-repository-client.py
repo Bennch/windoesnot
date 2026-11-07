@@ -100,7 +100,8 @@ config=pathlib.Path('/etc/pacman.conf')
 text=config.read_text()
 include='Include = /etc/pacman.d/windoesnot.conf'
 if include in text or re.search(r'^\\[windoesnot\\]',text,re.M):
-    sys.exit('Repository already configured; review the existing configuration first')
+    print('Repository already configured; no changes made.')
+    sys.exit(0)
 fingerprint=(source/'RELEASE-KEY.fingerprint').read_text().strip()
 keys=subprocess.check_output(['gpg','--batch','--with-colons','--show-keys',str(source/'RELEASE-KEY.asc')],text=True)
 actual=next(line.split(':')[9] for line in keys.splitlines() if line.startswith('fpr:'))

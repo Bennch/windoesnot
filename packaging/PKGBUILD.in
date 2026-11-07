@@ -10,6 +10,10 @@ makedepends=(gcc make cmake ninja pkgconf binutils wayland-protocols hyprland qu
 options=('!strip' '!debug' '!lto')
 source=("windoesnot-${pkgver}.tar.gz")
 sha256sums=('@SHA256@')
+# Allow system updates to reach the rebuild hook. A failed rebuild keeps the
+# previous binaries; set either pin to 1 to block package ABI changes instead.
+WINDOESNOT_PLUGIN_PIN=${WINDOESNOT_PLUGIN_PIN:-0}
+WINDOESNOT_COMPONENT_PIN=${WINDOESNOT_COMPONENT_PIN:-0}
 
 build() {
     cd "$srcdir/windoesnot-$pkgver"
@@ -36,6 +40,18 @@ _license() {
 package_windoesnot-desktop() {
     pkgdesc='WinDoesNot desktop code and new-user defaults'
     depends=("windoesnot-tools=$pkgver-$pkgrel" "windoesnot-plugins=$pkgver-$pkgrel" "windoesnot-components=$pkgver-$pkgrel" windoesnot-device-manager windoesnot-bluetooth windoesnot-network quickshell hyprland hyprpaper hyprpicker hyprlock hypridle hyprsunset ddcutil imagemagick upower power-profiles-daemon hyprshot ghostty nautilus localsend xorg-setxkbmap xorg-xrandr xorg-xsetroot python-gobject python-cairo python-evdev python-requests python-websockets qt6-5compat qt6-svg qt6-multimedia qt6-virtualkeyboard qt6-imageformats qt6-wayland qt6-declarative gtk4-layer-shell adw-gtk-theme swaync wl-clipboard wl-clip-persist cliphist jq libnotify grim slurp xdg-desktop-portal-hyprland xdg-desktop-portal-gtk xdg-user-dirs ttf-jetbrains-mono-nerd ttf-nerd-fonts-symbols noto-fonts-emoji fish polkit-gnome network-manager-applet nm-connection-editor pavucontrol blueman)
+    if [[ $WINDOESNOT_PLUGIN_PIN == 0 || $WINDOESNOT_COMPONENT_PIN == 0 ]]; then
+        local dependency
+        local -a optional_components=()
+        for dependency in "${depends[@]}"; do
+            [[ $WINDOESNOT_PLUGIN_PIN == 0 && $dependency == "windoesnot-plugins=$pkgver-$pkgrel" ]] && continue
+            [[ $WINDOESNOT_COMPONENT_PIN == 0 && $dependency == "windoesnot-components=$pkgver-$pkgrel" ]] && continue
+            optional_components+=("$dependency")
+        done
+        depends=("${optional_components[@]}")
+    fi
+    [[ $WINDOESNOT_PLUGIN_PIN == 0 ]] && optdepends+=("windoesnot-plugins: Hyprland window title bars and drag plugin")
+    [[ $WINDOESNOT_COMPONENT_PIN == 0 ]] && optdepends+=("windoesnot-components: embedded terminal and Snappy window switcher")
     cd "$srcdir/windoesnot-$pkgver"
     install -d "$pkgdir/usr/share/windoesnot/desktop"
     cp -a desktop/config desktop/defaults "$pkgdir/usr/share/windoesnot/desktop/"
@@ -82,6 +98,7 @@ package_windoesnot-tools() {
     install -Dm644 desktop/share/polkit-1/actions/org.windoesnot.snapshots.policy "$pkgdir/usr/share/polkit-1/actions/org.windoesnot.snapshots.policy"
     install -Dm644 desktop/share/systemd/system/windoesnot-super-tap@.service "$pkgdir/usr/lib/systemd/system/windoesnot-super-tap@.service"
     install -Dm644 desktop/share/systemd/system/windoesnot-first-network.service "$pkgdir/usr/lib/systemd/system/windoesnot-first-network.service"
+    install -Dm644 desktop/share/libalpm/hooks/90-windoesnot-plugins.hook "$pkgdir/usr/share/libalpm/hooks/90-windoesnot-plugins.hook"
     install -Dm755 desktop/share/NetworkManager/dispatcher.d/90-windoesnot-first-network "$pkgdir/usr/lib/NetworkManager/dispatcher.d/90-windoesnot-first-network"
     # Public verification material for future images; repository setup is explicit.
     install -Dm644 packaging/release-key/RELEASE-KEY.asc "$pkgdir/usr/share/windoesnot/repository/RELEASE-KEY.asc"
@@ -91,17 +108,31 @@ package_windoesnot-tools() {
 
 package_windoesnot-plugins() {
     pkgdesc='WinDoesNot hyprbars and hyprdrag built for a specific Hyprland package'
-    depends=($(_abi hyprland) $(_abi libstdc++))
+    depends=(gcc make pkgconf python binutils)
+    if [[ $WINDOESNOT_PLUGIN_PIN == 1 ]]; then
+        depends+=($(_abi hyprland) $(_abi libstdc++))
+    else
+        depends+=(hyprland libstdc++)
+    fi
     install -d "$pkgdir/usr/lib/windoesnot/plugins"
     install -m755 "$srcdir/components/plugins/"*.so "$pkgdir/usr/lib/windoesnot/plugins/"
     install -Dm644 "$srcdir/components/BUILD-PACKAGES.txt" "$pkgdir/usr/share/windoesnot/plugins-build.txt"
     install -Dm644 "$srcdir/components/NATIVE-FLAGS.txt" "$pkgdir/usr/share/windoesnot/plugins-flags.txt"
+    cd "$srcdir/windoesnot-$pkgver"
+    install -d "$pkgdir/usr/share/windoesnot/plugins-src"
+    cp -a desktop/plugins/hyprbars desktop/plugins/hyprdrag "$pkgdir/usr/share/windoesnot/plugins-src/"
+    install -Dm644 tools/check-plugin-symbols.py "$pkgdir/usr/share/windoesnot/plugins-src/check-plugin-symbols.py"
     _license
 }
 
 package_windoesnot-components() {
     pkgdesc='WinDoesNot embedded terminal and patched Snappy window switcher'
-    depends=($(_abi qt6-base) $(_abi qtermwidget) qt6-declarative wayland cairo pango libxkbcommon glib2 librsvg json-c)
+    depends=(gcc cmake ninja pkgconf binutils qt6-declarative wayland cairo pango libxkbcommon glib2 librsvg json-c)
+    if [[ $WINDOESNOT_COMPONENT_PIN == 1 ]]; then
+        depends+=($(_abi qt6-base) $(_abi qtermwidget))
+    else
+        depends+=(qt6-base qtermwidget)
+    fi
     conflicts=(snappy-switcher snappy-switcher-git)
     provides=(snappy-switcher=2.1.2)
     install -d "$pkgdir/usr/lib/windoesnot/LocalTerminal"
@@ -109,5 +140,8 @@ package_windoesnot-components() {
     install -Dm755 "$srcdir/components/bin/snappy-switcher" "$pkgdir/usr/bin/snappy-switcher"
     install -Dm644 "$srcdir/components/BUILD-PACKAGES.txt" "$pkgdir/usr/share/windoesnot/components-build.txt"
     install -Dm644 "$srcdir/components/NATIVE-FLAGS.txt" "$pkgdir/usr/share/windoesnot/components-flags.txt"
+    cd "$srcdir/windoesnot-$pkgver"
+    install -d "$pkgdir/usr/share/windoesnot/components-src"
+    cp -a desktop/config/quickshell/default/terminalmodule "$pkgdir/usr/share/windoesnot/components-src/"
     _license
 }
