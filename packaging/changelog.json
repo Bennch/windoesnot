@@ -3,15 +3,16 @@
   "releases": [
     {
       "version": "0.1.0-25",
-      "date": "2026-11-06",
-      "unreleased": true,
+      "date": "2026-11-07",
       "de": [
         "Der Installer hat eine neue Seite „Über WinDoesNot“, und das Logo auf der Willkommensseite ist kleiner.",
         "Mehr Programme im Installer, auch Google Chrome, Sublime Text und KI-Werkzeuge. Sie werden nach der Installation geladen, sobald du online bist. Web-Apps wie Netflix oder YouTube werden als eigene Starter angelegt.",
         "Die Standardordner (Dokumente, Bilder und so weiter) folgen der Systemsprache, auch wenn du sie später umstellst.",
         "Flatpak mit Flathub ist vorbereitet, dazu kommt ein zusätzliches Icon-Theme, damit der Store mehr App-Symbole zeigt.",
         "Der Store zeigt Programme aus dem Installer, die noch auf ihre Installation warten.",
-        "Das Audio-Widget hat einen Mixer: Lautstärke und Stumm für jede Anwendung einzeln, umschaltbar mit den Ausgabegeräten. Das Lautstärke-Symbol entspricht jetzt dem in der Taskleiste."
+        "Das Audio-Widget hat einen Mixer: Lautstärke und Stumm für jede Anwendung einzeln, umschaltbar mit den Ausgabegeräten. Das Lautstärke-Symbol entspricht jetzt dem in der Taskleiste.",
+        "Das Grafik-Symbol in der Taskleiste zeigt mit einem Klick Temperatur, Auslastung, Lüfter, Leistung und Speicher der Grafikkarte, mit Schalter für den Grafikdienst. Ein Doppelklick öffnet weiter die Grafikeinstellungen.",
+        "Im Kontextmenü des Startsymbols öffnet „Installierte Apps“ jetzt den WinDoesNot Store direkt auf der Seite „Installiert“."
       ],
       "en": [
         "The installer has a new page \"About WinDoesNot\", and the logo on the welcome page is smaller.",
@@ -19,7 +20,9 @@
         "The standard folders (Documents, Pictures and so on) follow the system language, also when you change it later.",
         "Flatpak with Flathub is prepared, plus an additional icon theme so the Store shows more app icons.",
         "The Store lists apps from the installer that are still waiting to be installed.",
-        "The audio widget has a mixer: volume and mute for each application, switchable with the output devices. The volume icon now matches the one in the taskbar."
+        "The audio widget has a mixer: volume and mute for each application, switchable with the output devices. The volume icon now matches the one in the taskbar.",
+        "The graphics icon in the taskbar shows temperature, load, fan, power and memory of the graphics card with one click, with a switch for the graphics service. A double-click still opens the graphics settings.",
+        "In the Start button's context menu, \"Installed apps\" now opens the WinDoesNot Store directly on the Installed page."
       ]
     },
     {
