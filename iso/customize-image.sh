@@ -70,6 +70,24 @@ systemctl enable serial-getty@ttyS0.service
 # Re-establish our offline settings after distro package hooks have run.
 mkdir -p /etc/windoesnot-calamares
 cp -a /usr/share/windoesnot/iso/calamares/. /etc/windoesnot-calamares/
+# Add the channel only after the image's package transactions are complete.
+cat > /etc/pacman.d/windoesnot.conf <<'EOF'
+[windoesnot]
+SigLevel = Required DatabaseRequired TrustedOnly
+Server = https://download.windoesnot.me/repo/x86_64
+EOF
+python3 - <<'PY'
+from pathlib import Path
+import re
+config = Path('/etc/pacman.conf')
+lines = config.read_text().splitlines(keepends=True)
+include = 'Include = /etc/pacman.d/windoesnot.conf'
+if include in ''.join(lines) or re.search(r'^\[windoesnot\]', ''.join(lines), re.M):
+    raise SystemExit('WinDoesNot repository already present before final image setup')
+position = next((i for i, line in enumerate(lines) if re.match(r'^\[(?!options\])', line)), len(lines))
+lines.insert(position, include + '\n\n')
+config.write_text(''.join(lines))
+PY
 python3 "$project/tools/check-image-installer.py"
 printf 'WinDoesNot development image\n' > /etc/issue
 pacman -Q > /usr/share/windoesnot/IMAGE-PACKAGES.txt

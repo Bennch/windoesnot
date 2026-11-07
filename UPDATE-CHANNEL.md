@@ -41,8 +41,8 @@ sudo pacman -Syu
 
 The bootstrap adds only the WinDoesNot public key and repository configuration,
 backs up `/etc/pacman.conf`, and preserves the existing distribution repositories.
-It requires signed packages and a signed database from trusted keys. It refuses
-to overwrite an existing WinDoesNot repository configuration. After updating,
+It requires signed packages and a signed database from trusted keys. An already
+configured repository is reported without making changes. After updating,
 log out and back in; follow any reboot instructions for system updates.
 Once configured and refreshed, Settings and the Store use the normal package
 databases to show available WinDoesNot updates.
@@ -82,7 +82,7 @@ entpackst du das Bündel und startest `sudo ./bootstrap.sh`, danach `sudo pacman
 Das Skript sichert `/etc/pacman.conf`, trägt den öffentlichen WinDoesNot-Schlüssel
 und die Paketquelle ein und erhält deine bestehenden Systemquellen. Pakete und
 Datenbank müssen gültig signiert sein. Eine vorhandene WinDoesNot-Konfiguration
-wird nicht überschrieben. Nach dem Update einmal ab- und wieder anmelden;
+wird als bereits eingerichtet gemeldet und nicht überschrieben. Nach dem Update einmal ab- und wieder anmelden;
 Neustarthinweise für Systemupdates beachten. Einstellungen und Store zeigen den
 Kanal über die normalen Paketdatenbanken an, sobald er eingerichtet und geprüft ist.
 

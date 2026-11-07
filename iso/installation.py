@@ -230,7 +230,7 @@ def prepare(bootloader, firmware, mode, base=BASE, root=Path('/')):
             raise RuntimeError('Mount the FAT EFI system partition at /boot before installing.')
     # unpackfs copies an uninitialized keyring, not the live tmpfs keyring.
     subprocess.run(['pacman-key', '--init'], check=True)
-    subprocess.run(['pacman-key', '--populate', 'archlinux', 'cachyos'], check=True)
+    subprocess.run(['pacman-key', '--populate', 'archlinux', 'cachyos', 'windoesnot'], check=True)
     filesystem = subprocess.check_output(['findmnt', '-n', '-o', 'FSTYPE', '--target', '/'], text=True).strip()
     packages = selected_packages(bootloader, filesystem)
     install_packages(packages, mode, base)

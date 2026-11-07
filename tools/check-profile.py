@@ -3,11 +3,29 @@
 import argparse
 import hashlib
 import json
+import re
+import subprocess
 from pathlib import Path
 import yaml
 
 parser=argparse.ArgumentParser();parser.add_argument('profile',type=Path);args=parser.parse_args()
 p=args.profile;a=p/'airootfs';cal=a/'usr/share/windoesnot/iso/calamares'
+build_pacman=(p/'pacman.conf').read_text()
+assert not re.search(r'(?m)^\s*(?:\[windoesnot\]|Include\s*=\s*/etc/pacman.d/windoesnot.conf\s*$)', build_pacman)
+assert 'windoesnot' not in build_pacman.lower()
+assert (a/'etc/pacman.conf').read_text()==build_pacman
+customize=(a/'root/customize_airootfs.sh').read_text()
+assert customize.index('build-image-packages.sh') < customize.index('cat > /etc/pacman.d/windoesnot.conf')
+assert 'SigLevel = Required DatabaseRequired TrustedOnly' in customize
+assert 'Server = https://download.windoesnot.me/repo/x86_64' in customize
+assert "lines.insert(position, include + '\\n\\n')" in customize
+fingerprint='ED9530A990C6D39EB7D4BA8F9BDCA578FBF1DDB0'
+keyrings=a/'usr/share/pacman/keyrings'
+assert (keyrings/'windoesnot-trusted').read_text()==fingerprint+':4:\n'
+key_listing=subprocess.check_output(['gpg','--batch','--with-colons','--show-keys',str(keyrings/'windoesnot.gpg')],text=True)
+assert next(line.split(':')[9] for line in key_listing.splitlines() if line.startswith('fpr:'))==fingerprint
+assert "'archlinux', 'cachyos', 'windoesnot'" in (a/'usr/share/windoesnot/iso/installation.py').read_text()
+assert 'ExecStart=/usr/bin/pacman-key --populate' in (a/'etc/systemd/system/pacman-init.service').read_text()
 language=(a/'etc/windoesnot-live-language').read_text().strip()
 assert language in ('en', 'de')
 locale='de_DE.UTF-8' if language=='de' else 'en_US.UTF-8'
