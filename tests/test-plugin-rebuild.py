@@ -147,6 +147,8 @@ class RebuildTests(unittest.TestCase):
             self.assertEqual(binary(self.target / f'{name}.so'), f'new-{name}')
         self.assertEqual(marker.read_text(), saved)
         self.assertIn('Plugin rebuild failed', (self.root / 'var/log/windoesnot-plugins-rebuild.log').read_text())
+        import stat
+        self.assertEqual(stat.S_IMODE(self.target.stat().st_mode), 0o755, 'normal users must be able to read the plugin directory after a restore')
 
     def test_package_remove_cleans_marker_and_backup(self):
         self.assertEqual(self.invoke().returncode, 0)

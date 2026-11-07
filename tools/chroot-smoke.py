@@ -43,7 +43,11 @@ sys.exit(not all(checks))'''
 
 
 def chroot_command(tree, *command):
-    return ['podman', 'unshare', 'chroot', str(tree), *command]
+    # Like arch-chroot in the real image build: /proc and /dev must exist inside, or cmake/ninja cannot even
+    # start a test compile. A private mount and PID namespace inside the user namespace keeps this rootless.
+    script = f'mount --rbind /dev {tree}/dev && mount --rbind /sys {tree}/sys 2>/dev/null; exec chroot {tree} "$@"'
+    return ['podman', 'unshare', 'unshare', '--mount', '--pid', '--fork', f'--mount-proc={tree}/proc',
+            'sh', '-c', script, 'sh', *command]
 
 
 def check(name, command):
@@ -55,7 +59,8 @@ def check(name, command):
 
 
 def self_test():
-    assert chroot_command(Path('/tmp/image'), '/usr/bin/true') == ['podman', 'unshare', 'chroot', '/tmp/image', '/usr/bin/true']
+    command = chroot_command(Path('/tmp/image'), '/usr/bin/true')
+    assert command[:4] == ['podman', 'unshare', 'unshare', '--mount'] and command[-1] == '/usr/bin/true' and '--mount-proc=/tmp/image/proc' in command
     assert '/usr/lib/windoesnot' in PERMISSIONS and '/var/lib/windoesnot' in PERMISSIONS
     assert 'windoesnot.gpg' in PACMAN and 'windoesnot.conf' in PACMAN
     assert overlay.destinations('desktop/bin/windoesnot-rebuild-plugins') == ('/usr/bin/windoesnot-rebuild-plugins',)

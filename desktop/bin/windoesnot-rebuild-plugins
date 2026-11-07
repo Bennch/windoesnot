@@ -197,8 +197,11 @@ def restore_backup(versions_now):
         return False
     staged = Path(tempfile.mkdtemp(prefix='.plugins-restore.', dir=TARGET.parent))
     try:
+        # mkdtemp creates 0700: the desktop session runs as a normal user and must be able to read the plugins.
+        os.chmod(staged, 0o755)
         for name in names:
             shutil.copy2(BACKUP / name, staged / name)
+            os.chmod(staged / name, 0o755)
         if TARGET.exists():
             exchange_directories(staged, TARGET)
         else:
