@@ -2,6 +2,17 @@
 
 Generated from `packaging/changelog.json` (newest first). Releases with downloads: https://github.com/Bennch/windoesnot/releases
 
+## 0.1.0-25 (2026-11-07)
+
+- The installer has a new page "About WinDoesNot", and the logo on the welcome page is smaller.
+- More apps in the installer, including Google Chrome, Sublime Text and AI tools. They are installed after setup, once you are online. Web apps such as Netflix or YouTube are created as their own launchers.
+- The standard folders (Documents, Pictures and so on) follow the system language, also when you change it later.
+- Flatpak with Flathub is prepared, plus an additional icon theme so the Store shows more app icons.
+- The Store lists apps from the installer that are still waiting to be installed.
+- The audio widget has a mixer: volume and mute for each application, switchable with the output devices. The volume icon now matches the one in the taskbar.
+- The graphics icon in the taskbar shows temperature, load, fan, power and memory of the graphics card with one click, with a switch for the graphics service. A double-click still opens the graphics settings.
+- In the Start button's context menu, "Installed apps" now opens the WinDoesNot Store directly on the Installed page.
+
 ## 0.1.0-24 (2026-11-06)
 
 - New app “Graphics” (based on LACT): control and monitor AMD, NVIDIA and Intel graphics cards, with fans, power limit, clocks and temperatures. It follows the WinDoesNot look and takes language, light/dark and accent colour from Settings.
@@ -81,3 +92,4 @@ Generated from `packaging/changelog.json` (newest first). Releases with download
 
 - The WinDoesNot Store has a fixed taskbar button (can be turned off in the settings).
 - Programs installed during a session get their taskbar icon right away.
+
