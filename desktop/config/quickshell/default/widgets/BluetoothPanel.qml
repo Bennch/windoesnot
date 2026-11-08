@@ -693,7 +693,7 @@ Item {
                     spacing: 8
 
                     Image {
-                        source: Qt.resolvedUrl("../img/Win11-dark/status/symbolic/blueberry-tray-symbolic.svg")
+                        source: Qt.resolvedUrl("../img/Win11-dark/status/symbolic/_blueberry-tray-active-symbolic.svg")
                         width: 16
                         height: 16
                         smooth: true
@@ -748,7 +748,7 @@ Item {
                     spacing: 8
 
                     Image {
-                        source: Qt.resolvedUrl("../img/Win11-dark/actions/symbolic/settings-symbolic.svg")
+                        source: Qt.resolvedUrl("../img/Win11-dark/categories/symbolic/preferences-system-symbolic.svg")
                         width: 16
                         height: 16
                         smooth: true
