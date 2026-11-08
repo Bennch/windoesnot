@@ -53,6 +53,13 @@ install -Dm755 "$project/iso/ghostty-wrapper.sh" /usr/local/bin/ghostty
 python3 "$project/iso/software/prepare.py"
 # Bootstrap both skel and the live account using the exact shared code/defaults.
 HOME=/etc/skel XDG_CONFIG_HOME=/etc/skel/.config XDG_STATE_HOME=/etc/skel/.local/state /usr/bin/windoesnot-initialize
+# Terminal greeting (wordmark, slogan, info boxes) in every shell offered by the
+# installer. Fish overrides CachyOS's stock fastfetch greeting. Users opt out in
+# Settings (writes ~/.config/windoesnot/no-greeting, checked by the script).
+install -d /etc/skel/.config/fish
+printf '\nfunction fish_greeting\n    command -sq windoesnot-greeting; and windoesnot-greeting\nend\n' >> /etc/skel/.config/fish/config.fish
+printf '\ncommand -v windoesnot-greeting >/dev/null && windoesnot-greeting\n' >> /etc/skel/.zshrc
+printf '\n[[ $- == *i* ]] && command -v windoesnot-greeting >/dev/null && windoesnot-greeting\n' >> /etc/skel/.bashrc
 cp -a /etc/skel/. /home/liveuser/
 chown -R liveuser:liveuser /home/liveuser
 systemctl disable sddm.service 2>/dev/null || true

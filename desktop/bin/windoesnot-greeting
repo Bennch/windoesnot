@@ -1,0 +1,139 @@
+#!/usr/bin/env python3
+"""Terminal greeting: WinDoesNot wordmark, slogan and three info boxes."""
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+
+WIDTH = 52
+WORDMARK = ['█▌ ▐█▖ ▐██▌     ████▖               ▐█  ▐█      ▄   ', '▐█ ▐█▌ █▌▝▘     █▛▀▜█▖              ▐█▙ ▐█      █▌  ', '▐█ ██▙ █▌█▌█▙██ █▌  ▜▌▗██▙ ▗██▙ ▟██▖▐▛█▖▐█ ▟██▖███▖ ', ' █▖█ █▗█ █▌█▛▝█▌█▌  ▐▙█▛ █▌█▌ █▖█▖▝▀▐▌▐▙▐█▐█ ▐█ █▌  ', ' █▙█ █▟█ █▌█▌ █▌█▌  █▛█▌ ▐█████▌▜██▖▐▌ ███▐▌  █ █▌  ', ' ▐█▌ ▜█▌ █▌█▌ █▌█▙▄▟█▘█▙ █▌█▌ ▄▄▄ ▐█▐▌ ▝██▐█▖▟█ █▌▗▄', ' ▝█▌ ▐█▘ █▌█▌ █▌███▛▘ ▝██▛ ▝██▛ ▜██▘▐▌  ▜█ ▜██▘ ▜█▜█']
+WORDMARK_ACCENT = ['0000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000000', '0000000000000000000000000000000000000000000000000011', '0000000000000000000000000000000000000000000000000011']
+SLOGAN = {'de': 'Vertrauter Desktop. Freies System.', 'en': 'A familiar desktop. A free system.'}
+LABELS = {
+    'de': {'disk': 'Speicher', 'desktop': 'Desktop', 'packages': 'Pakete', 'up': 'Laufzeit', 'boot': 'Start', 'ver': 'Version'},
+    'en': {'disk': 'Disk', 'desktop': 'Desktop', 'packages': 'Packages', 'up': 'Uptime', 'boot': 'Boot', 'ver': 'Version'},
+}
+
+
+def preferences():
+    values = {}
+    try:
+        for line in (Path.home() / '.config/quickshell/default/settings.txt').read_text().splitlines():
+            key, sep, value = line.partition('=')
+            if sep:
+                values[key] = value
+    except OSError:
+        pass
+    return values
+
+
+def rgb(color):
+    match = re.fullmatch(r'#?([0-9a-fA-F]{6})', color or '')
+    value = match.group(1) if match else 'FE6F2D'
+    return tuple(int(value[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def paint(text, color, bold=False):
+    return '\x1b[%s38;2;%d;%d;%dm%s\x1b[0m' % ('1;' if bold else '', *color, text)
+
+
+def fit(text, width):
+    return text if len(text) <= width else text[:width - 1] + '…'
+
+
+def fetch():
+    modules = 'CPU:GPU:Memory:Disk:Kernel:WM:Packages:Uptime'
+    try:
+        raw = subprocess.run(['fastfetch', '-s', modules, '--format', 'json'], capture_output=True, text=True, timeout=10, check=True).stdout
+        return {item['type']: item['result'] for item in json.loads(raw)}
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return {}
+
+
+def gib(size):
+    return '%.1f GiB' % (size / 2**30) if size < 2**40 else '%.2f TiB' % (size / 2**40)
+
+
+def duration(seconds):
+    minutes = int(seconds // 60)
+    days, minutes = divmod(minutes, 1440)
+    hours, minutes = divmod(minutes, 60)
+    return ' '.join(part for part in ((str(days) + 'd') if days else '', (str(hours) + 'h') if hours else '', str(minutes) + 'm') if part)
+
+
+def read_json(*paths):
+    for path in paths:
+        try:
+            return json.loads(Path(path).read_text())
+        except (OSError, ValueError):
+            continue
+    return {}
+
+
+def rows(data, label, lang):
+    info = {}
+    cpu = data.get('CPU') or {}
+    if cpu.get('cpu'):
+        freq = (cpu.get('frequency') or {}).get('max')
+        info['CPU'] = cpu['cpu'].replace('(R)', '').replace('(TM)', '').replace('  ', ' ') + (' @ %.1f GHz' % (freq / 1000) if freq else '')
+    gpus = [g for g in (data.get('GPU') or []) if g.get('type') != 'Integrated'] or (data.get('GPU') or [])
+    if gpus:
+        info['GPU'] = gpus[0].get('name', '').replace('NVIDIA ', '')
+    memory = data.get('Memory') or {}
+    if memory.get('total'):
+        info['RAM'] = '%s / %s' % (gib(memory['used']), gib(memory['total']))
+    disks = [d for d in (data.get('Disk') or []) if d.get('mountpoint') == '/']
+    if disks:
+        total, free = disks[0]['bytes']['total'], disks[0]['bytes']['free']
+        info[label['disk']] = '%s / %s (%d%%)' % (gib(total - free), gib(total), round(100 * (total - free) / total))
+    system = [('CPU', info.get('CPU')), ('GPU', info.get('GPU')), ('RAM', info.get('RAM')), (label['disk'], info.get(label['disk']))]
+    kernel = (data.get('Kernel') or {}).get('release')
+    wm = data.get('WM') or {}
+    packages = data.get('Packages') or {}
+    count = packages.get('pacman', 0) + packages.get('flatpakSystem', 0) + packages.get('flatpakUser', 0)
+    desktop = [('Kernel', kernel),
+               (label['desktop'], ('%s %s' % (wm.get('prettyName'), wm.get('version', ''))).strip() if wm.get('prettyName') else None),
+               ('Shell', Path(os.environ.get('SHELL', '')).name or None),
+               (label['packages'], str(count) if count else None)]
+    version = read_json('/usr/share/windoesnot/packaging/version.json', Path.home() / '.local/share/windoesnot/packaging/version.json').get('version')
+    boot = read_json('/var/lib/windoesnot/installation.json').get('bootloader')
+    uptime = (data.get('Uptime') or {}).get('uptime')
+    brand = [(label['ver'], version), (label['boot'], boot), (label['up'], duration(uptime / 1000) if uptime else None)]
+    return [('System', system), ('Desktop', desktop), ('WinDoesNot', brand)]
+
+
+def box(title, items, accent, grey):
+    inner = WIDTH - 2
+    left = (inner - len(title) - 2) // 2
+    out = [paint('╭' + '─' * left + ' ', grey) + paint(title, accent, True) + paint(' ' + '─' * (inner - left - len(title) - 2) + '╮', grey)]
+    for key, value in items:
+        if not value:
+            continue
+        text = fit(str(value), inner - 11)
+        out.append(paint('│ ', grey) + paint('%-8s' % key, accent) + ' ' + text + ' ' * (inner - 11 - len(text)) + paint(' │', grey))
+    out.append(paint('╰' + '─' * inner + '╯', grey))
+    return out
+
+
+def main():
+    prefs = preferences()
+    if (Path.home() / '.config/windoesnot/no-greeting').exists() or not sys.stdout.isatty() or not shutil.which('fastfetch'):
+        return
+    lang = 'de' if (prefs.get('uiLanguage') or os.environ.get('LANG', 'en'))[:2] == 'de' else 'en'
+    accent, grey, light = rgb(prefs.get('accentColor')), (110, 110, 110), (244, 241, 235)
+    lines = []
+    for text, mask in zip(WORDMARK, WORDMARK_ACCENT):
+        lines.append(''.join(paint(ch, accent if flag == '1' else light) if ch != ' ' else ' ' for ch, flag in zip(text, mask)))
+    slogan = SLOGAN[lang]
+    lines.append(' ' * ((WIDTH - len(slogan)) // 2) + paint(slogan, grey))
+    lines.append('')
+    for title, items in rows(fetch(), LABELS[lang], lang):
+        lines.extend(box(title, items, accent, grey))
+    print('\n'.join(lines))
+
+
+if __name__ == '__main__':
+    main()
