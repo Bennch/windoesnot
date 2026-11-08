@@ -261,7 +261,7 @@ def main():
     execution = next(x['exec'] for x in settings['sequence'] if 'exec' in x)
     execution[:] = [x for x in execution if x not in ['zfs','zfshostid','packages@offline','shellprocess@before']]
     (cal / 'modules').mkdir(exist_ok=True)
-    needed = set(execution) | {'welcome','keyboard','locale','partition','users','finished','summary'}
+    needed = set(execution) | {'welcome','keyboard','locale','partition','users','summary'}
     execution.insert(execution.index('initcpiocfg'), 'shellprocess@preparetarget')
     execution.insert(execution.index('initcpiocfg'), 'windoesnotprepare')
     # CPU-level repositories, chwd drivers and mirrors; before initcpio so
@@ -278,7 +278,7 @@ def main():
     pages.insert(pages.index('users'), 'windoesnotmigrate')
     pages.insert(pages.index('users'), 'windoesnotapps')
     final_pages = [x['show'] for x in settings['sequence'] if 'show' in x][-1]   # upstream: separate trailing block ['finished']
-    final_pages.insert(final_pages.index('finished'), 'windoesnotmigrate@result')
+    final_pages[final_pages.index('finished')] = 'windoesnotmigrate@result'  # replaces finished: result page has restart button
     pages[pages.index('welcome')] = 'welcomeq'   # one start page: logo, short text, language (iso/branding/welcomeq.qml)
     # The finalizer has initialized the target keyring before offline app installation.
     insert_post_user_jobs(execution)
