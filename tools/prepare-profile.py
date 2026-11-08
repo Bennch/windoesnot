@@ -143,6 +143,7 @@ def main():
     parser.add_argument('--source-manifest', type=Path, default=ROOT / 'sources.json')
     parser.add_argument('--output', type=Path, default=ROOT / 'build/profile')
     parser.add_argument('--language', choices=('en', 'de'), default='en')
+    parser.add_argument('--version', default='0.1-dev')
     args = parser.parse_args()
     profile = args.output.resolve()
     if profile == ROOT or ROOT not in profile.parents or profile.name in ['desktop', 'upstream']:
@@ -244,7 +245,7 @@ def main():
     branding.update(componentName='windoesnot',sidebar='widget',slideshow='show.qml',slideshowAPI=2,windowSize='1000px,600px',
                     # Normal expansion resizes past the tiled/reserved area; scroll the summary instead.
                     windowExpanding='noexpand')
-    branding['strings'].update(productName='WinDoesNot',shortProductName='WinDoesNot',version='0.1-dev',shortVersion='0.1-dev',versionedName='WinDoesNot 0.1-dev',shortVersionedName='WinDoesNot',bootloaderEntryName='WinDoesNot',homeUrl='',supportUrl='',knownIssuesUrl='',releaseNotesUrl='',donateUrl='')
+    branding['strings'].update(productName='WinDoesNot',shortProductName='WinDoesNot',version=args.version,shortVersion=args.version,versionedName=f'WinDoesNot {args.version}',shortVersionedName='WinDoesNot',bootloaderEntryName='WinDoesNot',homeUrl='',supportUrl='',knownIssuesUrl='',releaseNotesUrl='',donateUrl='')
     branding['images']={'productLogo':'windoesnot-icon-256.png', 'productIcon':'windoesnot-icon-256.png'}
     branding['style']={'SidebarBackground':'#202024','SidebarText':'#eeeeee','SidebarTextCurrent':'#ffffff','SidebarBackgroundCurrent':'#fe6f2d'}
     branding.pop('uploadServer',None)

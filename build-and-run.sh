@@ -64,9 +64,10 @@ if [[ $mode != run ]]; then
     profile="$project/build/$build_id/profile"
     work="$project/build/$build_id/work"
     output="$project/out/$build_id"
+    _ver=$(python3 -c "import json; d=json.load(open('$project/packaging/version.json')); print(d['version'])" 2>/dev/null || echo "0.1-dev")
     if [[ ! -e $profile ]]; then
-        if $dry; then show python3 "$project/tools/prepare-profile.py" --output "$profile" --language "$language"
-        else python3 "$project/tools/prepare-profile.py" --output "$profile" --language "$language"; fi
+        if $dry; then show python3 "$project/tools/prepare-profile.py" --output "$profile" --language "$language" --version "$_ver"
+        else python3 "$project/tools/prepare-profile.py" --output "$profile" --language "$language" --version "$_ver"; fi
     elif [[ $(cat "$profile/airootfs/etc/windoesnot-live-language" 2>/dev/null || true) != "$language" ]]; then
         echo "Prepared profile language differs from --language $language: $profile" >&2; exit 1
     fi
