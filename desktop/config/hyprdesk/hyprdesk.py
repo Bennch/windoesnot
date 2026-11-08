@@ -641,26 +641,22 @@ def plain_menu_popover(model, action_group):
     GTK's PopoverMenu wraps its pages in a ScrolledWindow that grows a scrollbar as soon as it gets a pixel
     less height than it wants. A plain popover has no scrolled area, so the menu is always drawn in full.
     The menu model and its actions stay as they are: items become buttons, sections become separators.
-    A submenu opens as a second menu column right next to its item, like the shutdown menu at the start
-    button. Both columns live in the same popover, so the pointer reaches the submenu without a second
-    popup (a nested popover needs its own input grab and is unreliable under layer shell).
+    Submenus open as a separate child Gtk.Popover anchored to the item button, so their appearance causes
+    no layout change in the main menu and cannot trigger spurious hover re-entry events.
     """
     popover = Gtk.Popover()
     popover.add_css_class("desktop-context-menu")
     popover.set_halign(Gtk.Align.START)
-    # No gap between the columns (as at the start button menu), so the pointer goes straight across.
-    row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
     main = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     main.add_css_class("desktop-menu-column")
     main.set_valign(Gtk.Align.START)
-    row.append(main)
-    flyouts = []  # (revealer, anchor button, column)
+    flyouts = []  # (sub_popover, anchor_button)
     pending = [None]
 
     def hide_flyouts(keep=None):
-        for revealer, anchor, _column in flyouts:
-            if revealer is not keep:
-                revealer.set_reveal_child(False)
+        for sub, anchor in flyouts:
+            if sub is not keep:
+                sub.popdown()
                 anchor.remove_css_class("active")
 
     def cancel_hide():
@@ -693,10 +689,10 @@ def plain_menu_popover(model, action_group):
         button.set_child(content)
         return button
 
-    def on_hover(button, callback):
+    def on_hover(widget, callback):
         motion = Gtk.EventControllerMotion()
         motion.connect("enter", lambda *_args: callback())
-        button.add_controller(motion)
+        widget.add_controller(motion)
 
     def fill(items, box, nested=False):
         for i in range(items.get_n_items()):
@@ -712,32 +708,32 @@ def plain_menu_popover(model, action_group):
                 continue
             if submenu is not None:
                 button = item_button(label.get_string(), arrow=True)
+                # Submenu lives in its own child popover anchored to the button — no layout change
+                # in the parent menu means no spurious hover re-entry that would cause a freeze.
+                sub = Gtk.Popover()
+                sub.set_has_arrow(False)
+                sub.add_css_class("desktop-context-menu")
+                sub.set_position(Gtk.PositionType.RIGHT)
+                sub.set_offset(0, 0)
                 column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
                 column.add_css_class("desktop-menu-column")
-                column.set_valign(Gtk.Align.START)
                 fill(submenu, column, nested=True)
-                revealer = Gtk.Revealer()
-                revealer.set_transition_type(Gtk.RevealerTransitionType.NONE)
-                revealer.set_valign(Gtk.Align.START)
-                revealer.set_child(column)
-                row.append(revealer)
-                flyouts.append((revealer, button, column))
+                sub.set_child(column)
+                sub.set_parent(button)
+                flyouts.append((sub, button))
+                sub.connect("closed", lambda _s, b=button: b.remove_css_class("active"))
 
-                def show(_b=None, revealer=revealer, button=button, column=column):
+                def show(_b=None, sub=sub, button=button):
                     cancel_hide()
-                    if revealer.get_reveal_child():
-                        return  # already open: cancel any pending hide and stop — no layout changes that would re-fire enter
-                    hide_flyouts(keep=revealer)
-                    # line the submenu up with its item
-                    found, point = button.compute_point(main, Graphene.Point().init(0, 0))
-                    top = int(point.y) if found else 0
-                    column.set_margin_top(max(0, top - 6))
-                    revealer.set_reveal_child(True)
-                    button.add_css_class("active")  # the item stays highlighted while its submenu is open
+                    if sub.get_visible():
+                        return
+                    hide_flyouts(keep=sub)
+                    sub.popup()
+                    button.add_css_class("active")
 
                 button.connect("clicked", show)
                 on_hover(button, show)
-                on_hover(column, cancel_hide)  # pointer reached the submenu: keep it open
+                on_hover(column, cancel_hide)
                 box.append(button)
                 continue
             action = items.get_item_attribute_value(i, "action")
@@ -753,12 +749,11 @@ def plain_menu_popover(model, action_group):
                     GLib.idle_add(lambda: target.activate(None) or False)
 
             button.connect("clicked", clicked)
-            # Items of the main menu close an open submenu after a short delay, items inside it keep it open.
             on_hover(button, cancel_hide if nested else hide_soon)
             box.append(button)
 
     fill(model, main)
-    popover.set_child(row)
+    popover.set_child(main)
     popover.connect("closed", lambda _p: (cancel_hide(), hide_flyouts()))
     return popover
 
