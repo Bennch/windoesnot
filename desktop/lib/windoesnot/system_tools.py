@@ -415,6 +415,92 @@ def _ini_parser():
     return parser
 
 
+def bootloader_theme_status():
+    """Current bootloader theme state (unprivileged)."""
+    loader = bootloader()
+    supported = loader in ('grub', 'refind', 'limine')
+    enabled = False
+    if loader == 'grub':
+        path = Path('/etc/default/grub.d/90-windoesnot.cfg')
+        try:
+            enabled = path.exists() and 'GRUB_THEME=' in path.read_text()
+        except OSError:
+            pass
+    elif loader == 'refind':
+        try:
+            enabled = REFIND_CONF.exists() and 'include themes/windoesnot/theme.conf' in REFIND_CONF.read_text()
+        except OSError:
+            pass
+    elif loader == 'limine':
+        path = Path('/boot/limine.conf')
+        try:
+            enabled = path.exists() and 'wallpaper:' in path.read_text()
+        except OSError:
+            pass
+    return {'bootloader': loader, 'enabled': enabled, 'supported': supported}
+
+
+def bootloader_theme_set(payload):
+    """Enable or disable the WinDoesNot bootloader theme (privileged)."""
+    loader = bootloader()
+    enable = payload['enabled']
+    if loader == 'grub':
+        path = Path('/etc/default/grub.d/90-windoesnot.cfg')
+        text = path.read_text()
+        theme_line = 'GRUB_THEME="/boot/grub/themes/windoesnot/theme.txt"\n'
+        if enable:
+            if theme_line not in text:
+                new_text = re.sub(r'(?m)^GRUB_THEME=.*\n?', '', text).rstrip() + '\n' + theme_line
+                atomic_write(path, new_text)
+        else:
+            new_text = re.sub(r'(?m)^GRUB_THEME=.*\n?', '', text).rstrip() + '\n'
+            atomic_write(path, new_text)
+        command('/usr/bin/grub-mkconfig', '-o', '/boot/grub/grub.cfg', timeout=180)
+    elif loader == 'refind':
+        include_line = 'include themes/windoesnot/theme.conf\n'
+        text = REFIND_CONF.read_text()
+        if enable:
+            if include_line not in text:
+                atomic_write(REFIND_CONF, text.rstrip() + '\n' + include_line, mode=None)
+        else:
+            new_text = text.replace(include_line, '')
+            if new_text != text:
+                atomic_write(REFIND_CONF, new_text, mode=None)
+    elif loader == 'limine':
+        config = Path('/boot/limine.conf')
+        text = config.read_text()
+        if enable:
+            if 'wallpaper:' not in text:
+                efi_dir = 'limine'
+                for d in ('limine', 'LIMINE'):
+                    if Path('/boot/EFI/' + d).is_dir():
+                        efi_dir = d
+                        break
+                wallpaper_path = 'boot():/EFI/' + efi_dir + '/background.png'
+                theme_lines = (
+                    'wallpaper: ' + wallpaper_path + '\n'
+                    'interface_branding_color: fe6f2d\n'
+                    'interface_help_color: f4f1eb\n'
+                    'term_background: 80141414\n'
+                    'term_foreground: f4f1eb\n'
+                    'term_foreground_bright: fe6f2d\n'
+                )
+                atomic_write(config, theme_lines + text)
+        else:
+            new_text = re.sub(r'(?m)^wallpaper:.*\n?', '', text)
+            new_text = re.sub(r'(?m)^interface_branding_color:.*\n?', '', new_text)
+            new_text = re.sub(r'(?m)^interface_help_color:.*\n?', '', new_text)
+            new_text = re.sub(r'(?m)^term_background:.*\n?', '', new_text)
+            new_text = re.sub(r'(?m)^term_foreground:.*\n?', '', new_text)
+            new_text = re.sub(r'(?m)^term_foreground_bright:.*\n?', '', new_text)
+            if new_text != text:
+                atomic_write(config, new_text)
+        command('/usr/bin/limine-update')
+    else:
+        raise ValueError('Bootloader theme is not supported for this bootloader')
+    return {'reboot': False}
+
+
 def sddm_theme_status():
     """Current SDDM login-screen theme and preset, as last written by sddm-set-theme."""
     current = 'windoesnot'
@@ -555,10 +641,14 @@ def validate(action, payload):
     if type(payload) is not dict:
         raise ValueError('Arguments must be an object')
     if action in ('kernel-status', 'maintenance-status', 'shell-status', 'power-status', 'sddm-theme-status',
+                  'bootloader-theme-status',
                   'scx-install', 'scx-stop', 'mirrors-rank', 'cache-clean', 'keyring-repair', 'lock-remove',
                   'drivers-configure'):
         if payload:
             raise ValueError('This action takes no arguments')
+    elif action == 'bootloader-theme-set':
+        if set(payload) != {'enabled'} or type(payload['enabled']) is not bool:
+            raise ValueError('Invalid bootloader-theme-set payload')
     elif action == 'sddm-set-theme':
         theme = payload.get('theme')
         if (set(payload) != {'theme', 'preset'} or theme not in SDDM_PRESETS
@@ -742,6 +832,8 @@ def apply(action, payload):
         return set_shell(payload['shell'])
     if action == 'sddm-set-theme':
         return sddm_set_theme(payload)
+    if action == 'bootloader-theme-set':
+        return bootloader_theme_set(payload)
     if action in ('mirrors-rank', 'cache-clean', 'keyring-repair', 'lock-remove', 'orphans-remove', 'drivers-configure'):
         return maintenance_apply(action, payload)
     if action in ('kernel-install', 'kernel-remove'):
@@ -774,10 +866,12 @@ def main():
     action = sys.argv[1]
     payload = json.loads(sys.argv[2]) if len(sys.argv) == 3 else {}
     validate(action, payload)
-    if action in ('kernel-status', 'maintenance-status', 'shell-status', 'power-status', 'sddm-theme-status'):
+    if action in ('kernel-status', 'maintenance-status', 'shell-status', 'power-status', 'sddm-theme-status',
+                  'bootloader-theme-status'):
         print(json.dumps({'kernel-status': kernel_status, 'maintenance-status': maintenance_status,
                           'shell-status': shell_status, 'power-status': power_status,
-                          'sddm-theme-status': sddm_theme_status}[action]())); return
+                          'sddm-theme-status': sddm_theme_status,
+                          'bootloader-theme-status': bootloader_theme_status}[action]())); return
     if os.geteuid() != 0:
         raise PermissionError('Use the authorized pkexec entry point')
     if Path('/etc/windoesnot-image-build').exists():
