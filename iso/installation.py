@@ -3,6 +3,7 @@
 import argparse
 import ast
 import configparser
+from contextlib import contextmanager
 import io
 import shlex
 import json
@@ -222,6 +223,30 @@ def validate_choice(bootloader, firmware, mode):
         raise ValueError('This bootloader requires UEFI. Choose GRUB or Limine on BIOS.')
 
 
+@contextmanager
+def defer_limine_deployment(root):
+    # limine-mkinitcpio-hook deploys Limine in a pacman post-transaction hook.
+    # Calamares has not yet installed/configured the bootloader at this stage.
+    # A higher-priority /dev/null hook suppresses that premature deployment;
+    # Calamares' bootloader job performs it after preparation.
+    hook = root / 'etc/pacman.d/hooks/80-limine-efi-deploy.hook'
+    if hook.exists() or hook.is_symlink():
+        raise RuntimeError('Unexpected Limine deployment hook override in installation target')
+    hook.parent.mkdir(parents=True, exist_ok=True)
+    hook.symlink_to('/dev/null')
+    try:
+        yield
+    finally:
+        hook.unlink()
+
+
+def boot_language_matches_limine(root):
+    manifest = json.loads((root / 'usr/lib/windoesnot/boot-language/manifest.json').read_text())
+    installed = subprocess.check_output(['pacman', '-Q', 'limine'], text=True).strip().split()[1]
+    upstream = installed.rsplit('-', 1)[0].split(':')[-1]
+    return upstream == manifest['loaders']['limine']['version']
+
+
 def prepare(bootloader, firmware, mode, base=BASE, root=Path('/')):
     validate_choice(bootloader, firmware, mode)
     if firmware == 'efi':
@@ -233,13 +258,21 @@ def prepare(bootloader, firmware, mode, base=BASE, root=Path('/')):
     subprocess.run(['pacman-key', '--populate', 'archlinux', 'cachyos', 'windoesnot'], check=True)
     filesystem = subprocess.check_output(['findmnt', '-n', '-o', 'FSTYPE', '--target', '/'], text=True).strip()
     packages = selected_packages(bootloader, filesystem)
-    install_packages(packages, mode, base)
+    if bootloader == 'limine':
+        with defer_limine_deployment(root):
+            install_packages(packages, mode, base)
+    else:
+        install_packages(packages, mode, base)
     record = root / 'var/lib/windoesnot/installation.json'
     record.parent.mkdir(parents=True, exist_ok=True)
     record.write_text(json.dumps({'schema_version': 1, 'mode': mode, 'bootloader': bootloader, 'firmware': firmware, 'filesystem': filesystem}, indent=2) + '\n')
-    # Feed the original Calamares installer the version-matched multilingual
-    # binaries, including Limine's matching BIOS stage and install utility.
-    subprocess.run(['/usr/lib/windoesnot/boot_language.py', 'prepare'], check=True)
+    # The repository can advance beyond the separately built language package.
+    # Never replace a newer native Limine binary with an older translated one.
+    # Calamares can install the native loader until translations are rebuilt.
+    if bootloader != 'limine' or boot_language_matches_limine(root):
+        subprocess.run(['/usr/lib/windoesnot/boot_language.py', 'prepare'], check=True)
+    else:
+        print('Limine boot language version differs from the installed package; using native bootloader binaries', file=sys.stderr)
 
 
 def apply_selected_locale(root, selected_locale):
