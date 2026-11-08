@@ -136,6 +136,19 @@ help() { echo 'Temporary overlay for read-only WinDoesNot snapshots (systemd ini
 
 
 
+def configure_refind_theme(root):
+    theme_src = BASE / 'iso/bootloader-themes/refind'
+    theme_dst = root / 'boot/EFI/refind/themes/windoesnot'
+    if theme_src.is_dir():
+        import shutil
+        shutil.copytree(theme_src, theme_dst, dirs_exist_ok=True)
+        main = root / 'boot/EFI/refind/refind.conf'
+        text = main.read_text()
+        include_line = 'include themes/windoesnot/theme.conf\n'
+        if include_line not in text:
+            main.write_text(text.rstrip() + '\n' + include_line)
+
+
 def configure_refind_snapshots(root):
     directory = root / 'boot/EFI/refind'
     main = directory / 'refind.conf'
@@ -314,6 +327,8 @@ def finish(bootloader, firmware, mode, root=Path('/'), selected_locale=None):
         settings = re.sub(r'^TARGET_OS_NAME=.*\n?', '', settings, flags=re.M)
         defaults.write_text(settings.rstrip() + '\nTARGET_OS_NAME="WinDoesNot"\n')
     filesystem = subprocess.check_output(['findmnt', '-n', '-o', 'FSTYPE', '--target', '/'], text=True).strip()
+    if bootloader == 'refind':
+        configure_refind_theme(root)
     if filesystem == 'btrfs':
         configure_snapshots(bootloader, root)
         (root / 'etc/windoesnot-image-build').unlink(missing_ok=True)
