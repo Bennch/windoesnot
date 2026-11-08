@@ -11,6 +11,8 @@ var strings = {
     "apps.vmClipboardTitle": "Clipboard with virtual machines",
     "apps.vmClipboardHint": "Copy and paste works between this system and virtual machines such as VMware or QEMU. Turn this off when you work with sensitive data such as passwords. The change applies immediately.",
     "apps.vmClipboardToggle": "Share clipboard with virtual machines",
+    "apps.greetingTitle": "Terminal greeting",
+    "apps.greetingDesc": "Shows the WinDoesNot wordmark with system info when you open a terminal.",
     "apps.shellSaved": "Shell saved. Please sign out and back in.",
 
     "backups.restoreClickUnavailable": "One-click restore is not available here. Depending on your boot menu, you can start an earlier system state for inspection.",

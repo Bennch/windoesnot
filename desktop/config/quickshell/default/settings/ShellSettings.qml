@@ -60,6 +60,49 @@ Column {
             }
         }
     }
+    Column {
+        id: greetingSection
+        width: parent.width
+        spacing: 6
+        property bool greetingOff: false
+        property bool syncing: false
+        function refresh() { greetingCheck.running = true }
+        Component.onCompleted: refresh()
+        Process {
+            id: greetingCheck
+            command: ["sh", "-c", "test -e \"$HOME/.config/windoesnot/no-greeting\""]
+            onExited: code => {
+                greetingSection.syncing = true
+                greetingSection.greetingOff = (code === 0)
+                greetingToggle.checked = !greetingSection.greetingOff
+                greetingSection.syncing = false
+            }
+        }
+        Process {
+            id: greetingSet
+            property bool enable: true
+            command: ["sh", "-c", enable
+                ? "rm -f \"$HOME/.config/windoesnot/no-greeting\""
+                : "mkdir -p \"$HOME/.config/windoesnot\" && touch \"$HOME/.config/windoesnot/no-greeting\""]
+            onExited: greetingSection.refresh()
+        }
+        Item { width: 1; height: 8 }
+        Tools.SystemToolsToggle {
+            id: greetingToggle
+            settingsMenu: page.settingsMenu
+            text: page.tr("apps.greetingTitle")
+            checked: true
+            onToggled: {
+                if (greetingSection.syncing) return
+                greetingSet.enable = checked
+                greetingSet.running = true
+            }
+        }
+        Text {
+            width: parent.width; text: page.tr("apps.greetingDesc"); wrapMode: Text.WordWrap
+            font.pixelSize: 13; color: settingsMenu && !settingsMenu.darkMode ? "#555555" : "#bbbbbb"
+        }
+    }
     Text {
         width: parent.width; text: page.result; visible: text.length > 0
         wrapMode: Text.WordWrap; font.pixelSize: 13

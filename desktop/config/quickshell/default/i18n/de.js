@@ -11,6 +11,8 @@ var strings = {
     "apps.vmClipboardTitle": "Zwischenablage mit virtuellen Maschinen",
     "apps.vmClipboardHint": "Kopieren und Einfügen funktioniert zwischen diesem System und virtuellen Maschinen wie VMware oder QEMU. Wenn du mit sensiblen Daten wie Passwörtern arbeitest, kannst du das hier abschalten. Die Änderung gilt sofort.",
     "apps.vmClipboardToggle": "Zwischenablage mit virtuellen Maschinen teilen",
+    "apps.greetingTitle": "Terminal-Begrüßung",
+    "apps.greetingDesc": "Zeigt beim Öffnen eines Terminals den WinDoesNot-Schriftzug mit Systeminfos.",
     "apps.shellSaved": "Shell gespeichert. Bitte ab- und wieder anmelden.",
 
     "backups.restoreClickUnavailable": "Wiederherstellen per Klick ist hier noch nicht verfügbar. Einen früheren Stand kannst du je nach Bootmenü zum Prüfen starten.",
