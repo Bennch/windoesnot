@@ -11,6 +11,7 @@
 #include <QLabel>
 #include <QLocale>
 #include <QProcess>
+#include <QPushButton>
 #include <QQmlContext>
 #include <QQuickWidget>
 #include <QStringList>
@@ -116,7 +117,7 @@ class PLUGINDLLEXPORT MigrateViewStep : public Calamares::ViewStep {
     Q_OBJECT
 public:
     explicit MigrateViewStep(QObject* parent = nullptr) : Calamares::ViewStep(parent) {}
-    QString prettyName() const override { return m_resultMode ? (QLocale().language() == QLocale::German ? QStringLiteral("Umzugsergebnis") : QStringLiteral("Migration result")) : (QLocale().language() == QLocale::German ? QStringLiteral("Windows-Daten") : QStringLiteral("Windows data")); }
+    QString prettyName() const override { return m_resultMode ? (QLocale().language() == QLocale::German ? QStringLiteral("Abschließen") : QStringLiteral("Done")) : (QLocale().language() == QLocale::German ? QStringLiteral("Windows-Daten") : QStringLiteral("Windows data")); }
     QString prettyStatus() const override {
         const bool german = QLocale().language() == QLocale::German;
         if (m_resultMode) return prettyName();
@@ -152,20 +153,37 @@ public:
                 layout->setContentsMargins(28, 28, 28, 28);
                 layout->setSpacing(16);
                 const bool german = QLocale().language() == QLocale::German;
-                const QString warning = Calamares::JobQueue::instance()->globalStorage()->value("windoesnotMigrateWarning").toString();
-                auto* title = new QLabel(german ? QStringLiteral("Installation abgeschlossen") : QStringLiteral("Installation complete"), m_widget);
+                auto* gs = Calamares::JobQueue::instance()->globalStorage();
+                const QString manifest = gs->value(QStringLiteral("windoesnotMigrateManifest")).toString();
+                const QString warning = gs->value(QStringLiteral("windoesnotMigrateWarning")).toString();
+                const bool migrated = !manifest.isEmpty();
+                auto* title = new QLabel(german ? QStringLiteral("WinDoesNot wurde installiert.") : QStringLiteral("WinDoesNot has been installed."), m_widget);
                 title->setStyleSheet(QStringLiteral("color:#eeeeee;font-size:24px;font-weight:700;"));
                 layout->addWidget(title);
-                auto* detail = new QLabel(warning.isEmpty() ? (german ? QStringLiteral("Die Windows-Daten wurden wie ausgewählt verarbeitet.") : QStringLiteral("Windows data was processed as selected.")) : (german ? QStringLiteral("Hinweis zum Windows-Datenumzug:\n") : QStringLiteral("Windows data migration notice:\n")) + warning, m_widget);
-                detail->setTextFormat(Qt::PlainText);
-                detail->setWordWrap(true);
-                detail->setStyleSheet(warning.isEmpty() ? QStringLiteral("color:#eeeeee;background:#141414;border:1px solid #3a3a3a;border-radius:10px;padding:16px;") : QStringLiteral("color:#f3c99d;background:#382d22;border:1px solid #b8804b;border-radius:10px;padding:16px;"));
-                layout->addWidget(detail);
-                if (!warning.isEmpty()) {
-                    auto* retry = new QLabel(german ? QStringLiteral("Nach dem Start können Sie ›Windows-Daten übernehmen‹ erneut öffnen.") : QStringLiteral("You can open ‘Bring Windows data’ again after the first boot."), m_widget);
-                    retry->setWordWrap(true); retry->setStyleSheet(QStringLiteral("color:#aaaaaa;")); layout->addWidget(retry);
+                if (migrated) {
+                    if (warning.isEmpty()) {
+                        auto* detail = new QLabel(german ? QStringLiteral("Windows-Daten wurden übernommen.") : QStringLiteral("Windows data was transferred."), m_widget);
+                        detail->setTextFormat(Qt::PlainText);
+                        detail->setWordWrap(true);
+                        detail->setStyleSheet(QStringLiteral("color:#eeeeee;background:#141414;border:1px solid #3a3a3a;border-radius:10px;padding:16px;"));
+                        layout->addWidget(detail);
+                    } else {
+                        auto* detail = new QLabel((german ? QStringLiteral("Hinweis zum Windows-Datenumzug:\n") : QStringLiteral("Windows data migration notice:\n")) + warning, m_widget);
+                        detail->setTextFormat(Qt::PlainText);
+                        detail->setWordWrap(true);
+                        detail->setStyleSheet(QStringLiteral("color:#f3c99d;background:#382d22;border:1px solid #b8804b;border-radius:10px;padding:16px;"));
+                        layout->addWidget(detail);
+                        auto* retry = new QLabel(german ? QStringLiteral("Nach dem Start können Sie ›Windows-Daten übernehmen‹ erneut öffnen.") : QStringLiteral("You can open ‘Bring Windows data’ again after the first boot."), m_widget);
+                        retry->setWordWrap(true);
+                        retry->setStyleSheet(QStringLiteral("color:#aaaaaa;"));
+                        layout->addWidget(retry);
+                    }
                 }
                 layout->addStretch();
+                auto* restartBtn = new QPushButton(german ? QStringLiteral("Jetzt neu starten") : QStringLiteral("Restart now"), m_widget);
+                restartBtn->setStyleSheet(QStringLiteral("QPushButton{background:#fe6f2d;color:#ffffff;border:none;border-radius:6px;padding:10px 24px;font-size:14px;font-weight:600;}QPushButton:hover{background:#ff8040;}QPushButton:pressed{background:#e05a1a;}"));
+                QObject::connect(restartBtn, &QPushButton::clicked, [](){ QProcess::startDetached(QStringLiteral("systemctl"), {QStringLiteral("-i"), QStringLiteral("reboot")}); });
+                layout->addWidget(restartBtn, 0, Qt::AlignRight);
                 m_widget->setStyleSheet(QStringLiteral("background:#202020;"));
                 return m_widget;
             }
