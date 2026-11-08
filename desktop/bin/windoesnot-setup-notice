@@ -47,7 +47,7 @@ def welcome_payload(data, preferences):
         ('Geräte-Manager' if german else 'Device Manager', 'Hardware und Treiber verwalten', 'Manage hardware and drivers', 'img/brand/windoesnot-icon-64.png', ['windoesnot-device-manager']),
         ('Einstellungen' if german else 'Settings', 'Aussehen, Sprache und System anpassen', 'Adjust appearance, language and system', 'img/settings.svg', ['windoesnot-hyprctl', 'dispatch', 'global', 'quickshell:show-settings']),
         ('Dateien' if german else 'Files', 'Ordner, Dokumente und Laufwerke öffnen', 'Open folders, documents and drives', 'img/folder.svg', ['nautilus']),
-        ('Webbrowser' if german else 'Web browser', 'Mit deinem Standardbrowser ins Internet', 'Go online with your default browser', 'img/scalable/web-browser.svg', ['xdg-open', 'https://windoesnot.me']),
+        ('Webbrowser' if german else 'Web browser', 'Mit deinem Standardbrowser ins Internet', 'Go online with your default browser', 'img/scalable/firefox.svg', ['xdg-open', 'https://windoesnot.me']),
         ('Terminal', 'Befehle und Werkzeuge für Fortgeschrittene', 'Commands and tools for advanced users', 'img/scalable/terminal.svg', ['ghostty']),
     ]
     return {

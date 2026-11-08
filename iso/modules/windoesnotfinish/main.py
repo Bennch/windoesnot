@@ -30,6 +30,13 @@ def run():
                 return ('Shell configuration failed', 'The selected shell must be installed before completing installation.')
         if libcalamares.utils.target_env_call(command):
             return ('Boot maintenance or backups failed', 'See the installation log for details.')
+        # Remove installer launcher from the new user's Desktop and from skel.
+        # finalize-install.sh passes ${USER}=root in its chroot context; this
+        # module has the actual username from GlobalStorage.
+        username = libcalamares.globalstorage.value('username')
+        if isinstance(username, str) and re.fullmatch(r'[a-z_][a-z0-9_-]{0,30}\$?', username):
+            libcalamares.utils.target_env_call(['/usr/bin/rm', '-f', f'/home/{username}/Desktop/windoesnot-installer.desktop'])
+        libcalamares.utils.target_env_call(['/usr/bin/rm', '-f', '/etc/skel/Desktop/windoesnot-installer.desktop'])
         if libcalamares.utils.target_env_call(['/usr/bin/rm', '-f', '/etc/windoesnot-image-build']):
             return ('Live marker cleanup failed', 'See the installation log for details.')
     except Exception as error:
