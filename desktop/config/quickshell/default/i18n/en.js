@@ -444,6 +444,9 @@ var strings = {
     "background.sddmFire": "Fire",
     "background.sddmGlutDunkel": "Glut Dunkel",
     "background.sddmSilent": "Silent",
+    "background.bootloaderThemeTitle": "Bootloader Theme",
+    "background.bootloaderThemeDesc": "Enables the WinDoesNot theme in the bootloader menu. Disable to use the default theme.",
+    "background.bootloaderThemeToggle": "WinDoesNot theme enabled",
 
     // === Appearance Category ===
     "appearance.mode": "Appearance Mode",

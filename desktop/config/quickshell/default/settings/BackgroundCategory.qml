@@ -2,6 +2,7 @@ import Qt5Compat.GraphicalEffects
 import QtQuick
 import QtQuick.Controls
 import Quickshell.Io
+import "." as Tools
 import "../i18n/Lang.js" as Lang
 
 Item {
@@ -1230,6 +1231,64 @@ Item {
                 wrapMode: Text.WordWrap
             }
         }
+
+        // Bootloader-Theme
+        Column {
+            id: bootloaderThemeSection
+            width: parent.width
+            spacing: 12
+
+            property bool enabled: false
+            property string loader: ""
+            property bool supported: false
+            property bool busy: false
+            property string resultText: ""
+
+            Component.onCompleted: bootloaderThemeStatusProc.running = true
+
+            Rectangle {
+                width: parent.width
+                height: 1
+                color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
+            }
+
+            Text {
+                text: Lang.get("background.bootloaderThemeTitle", _lang)
+                font.pixelSize: 15; font.weight: Font.DemiBold
+                color: settingsMenu.darkMode ? "#ffffff" : "#1a1a1a"
+            }
+            Text {
+                text: Lang.get("background.bootloaderThemeDesc", _lang)
+                font.pixelSize: 13
+                color: settingsMenu.darkMode ? "#aaaaaa" : "#555555"
+                width: parent.width; wrapMode: Text.WordWrap
+            }
+
+            Tools.SystemToolsToggle {
+                settingsMenu: root.settingsMenu
+                text: Lang.get("background.bootloaderThemeToggle", _lang)
+                      + (bootloaderThemeSection.loader !== "" ? " (" + bootloaderThemeSection.loader + ")" : "")
+                checked: bootloaderThemeSection.enabled
+                enabled: bootloaderThemeSection.supported && !bootloaderThemeSection.busy
+                onToggled: {
+                    bootloaderThemeSection.busy = true
+                    bootloaderThemeSection.resultText = ""
+                    bootloaderThemeApplyProc.command = ["/usr/bin/pkexec", "--disable-internal-agent",
+                        "/usr/lib/windoesnot/system_tools.py", "bootloader-theme-set",
+                        JSON.stringify({enabled: checked})]
+                    bootloaderThemeApplyProc.running = true
+                }
+            }
+
+            Text {
+                text: bootloaderThemeSection.resultText
+                color: bootloaderThemeSection.resultText.indexOf(Lang.get("systemTools.failed", _lang)) === 0
+                       ? "#e05050" : "#888"
+                font.pixelSize: 11
+                visible: bootloaderThemeSection.resultText !== ""
+                width: parent.width; wrapMode: Text.WordWrap
+            }
+        }
     }
 
     // Reads which SDDM login-screen theme/preset is currently active (unprivileged, no pkexec).
@@ -1267,6 +1326,45 @@ Item {
             sddmThemeSection.resultText = ok ? Lang.get("systemTools.done", _lang)
                 : (code === 126 ? Lang.get("systemTools.cancelled", _lang) : Lang.get("systemTools.failed", _lang))
             if (ok) sddmThemeStatusProc.running = true
+        }
+    }
+
+    // Reads which bootloader theme is currently active (unprivileged, no pkexec).
+    Process {
+        id: bootloaderThemeStatusProc
+        command: ["/usr/bin/python3", "-I", "/usr/lib/windoesnot/system_tools.py", "bootloader-theme-status"]
+        running: false
+        property string accumulatedData: ""
+        stdout: SplitParser {
+            onRead: function(data) { bootloaderThemeStatusProc.accumulatedData += data }
+        }
+        onRunningChanged: {
+            if (!running) {
+                try {
+                    var status = JSON.parse(bootloaderThemeStatusProc.accumulatedData)
+                    bootloaderThemeSection.loader = status.bootloader || ""
+                    bootloaderThemeSection.enabled = status.enabled || false
+                    bootloaderThemeSection.supported = status.supported || false
+                } catch (e) {}
+                bootloaderThemeStatusProc.accumulatedData = ""
+            }
+        }
+    }
+
+    // Applies the bootloader theme change (privileged: writes bootloader config and runs update tool).
+    Process {
+        id: bootloaderThemeApplyProc
+        command: ["bash", "-c", ""]
+        running: false
+        stdout: StdioCollector { id: bootloaderThemeApplyOutput }
+        stderr: StdioCollector { id: bootloaderThemeApplyErrors }
+        onExited: (code) => {
+            bootloaderThemeSection.busy = false
+            var ok = false
+            try { ok = JSON.parse(bootloaderThemeApplyOutput.text).ok === true } catch (e) {}
+            bootloaderThemeSection.resultText = ok ? Lang.get("systemTools.done", _lang)
+                : (code === 126 ? Lang.get("systemTools.cancelled", _lang) : Lang.get("systemTools.failed", _lang))
+            if (ok) bootloaderThemeStatusProc.running = true
         }
     }
 }
