@@ -149,6 +149,33 @@ def configure_refind_theme(root):
             main.write_text(text.rstrip() + '\n' + include_line)
 
 
+def configure_limine_theme(root):
+    import shutil
+    theme_src = BASE / 'iso/bootloader-themes/limine/background.png'
+    if not theme_src.is_file():
+        return
+    for efi_dirname in ('limine', 'LIMINE'):
+        efi_dir = root / 'boot/EFI' / efi_dirname
+        if efi_dir.is_dir():
+            break
+    else:
+        return
+    shutil.copy2(theme_src, efi_dir / 'background.png')
+    wallpaper_path = 'boot():/EFI/' + efi_dirname + '/background.png'
+    config = root / 'boot/limine.conf'
+    text = config.read_text()
+    theme_lines = (
+        'wallpaper: ' + wallpaper_path + '\n'
+        'interface_branding_color: fe6f2d\n'
+        'interface_help_color: f4f1eb\n'
+        'term_background: 80141414\n'
+        'term_foreground: f4f1eb\n'
+        'term_foreground_bright: fe6f2d\n'
+    )
+    if 'wallpaper:' not in text:
+        config.write_text(theme_lines + text)
+
+
 def configure_refind_snapshots(root):
     directory = root / 'boot/EFI/refind'
     main = directory / 'refind.conf'
@@ -326,6 +353,7 @@ def finish(bootloader, firmware, mode, root=Path('/'), selected_locale=None):
         settings = defaults.read_text()
         settings = re.sub(r'^TARGET_OS_NAME=.*\n?', '', settings, flags=re.M)
         defaults.write_text(settings.rstrip() + '\nTARGET_OS_NAME="WinDoesNot"\n')
+        configure_limine_theme(root)
     filesystem = subprocess.check_output(['findmnt', '-n', '-o', 'FSTYPE', '--target', '/'], text=True).strip()
     if bootloader == 'refind':
         configure_refind_theme(root)
