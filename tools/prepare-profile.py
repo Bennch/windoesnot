@@ -253,7 +253,8 @@ def main():
     for name in ['windoesnot-logo-hell.png', 'windoesnot-logo-dunkel.png', 'windoesnot-icon-256.png']:
         shutil.copy2(brand / name, cal / 'branding/windoesnot' / name)
     write(cal/'branding/windoesnot/branding.desc',yaml.safe_dump(branding,sort_keys=False))
-    settings['instances'] = [{'id':'preparetarget','module':'shellprocess','config':'shellprocess-preparetarget.conf'}]
+    settings['instances'] = [{'id':'preparetarget','module':'shellprocess','config':'shellprocess-preparetarget.conf'},
+                              {'id':'prepartition','module':'shellprocess','config':'shellprocess-prepartition.conf'}]
     settings['instances'] += [{'id':stage,'module':'windoesnotbootreuse','config':'windoesnotbootreuse-'+stage+'.conf'}
                               for stage in ['preflight','guard','install','finish']]
     settings['instances'].append({'id':'result','module':'windoesnotmigrate','config':'windoesnotmigrate-result.conf'})
@@ -267,6 +268,7 @@ def main():
     # driver modules land in the initramfs. Needs the keyring from windoesnotprepare.
     execution.insert(execution.index('initcpiocfg'), 'windoesnotsystem')
     execution.insert(execution.index('bootloader'), 'grubcfg')
+    execution.insert(execution.index('partition'), 'shellprocess@prepartition')
     execution.insert(execution.index('partition'), 'windoesnotbootreuse@preflight')
     execution.insert(execution.index('unpackfs'), 'windoesnotbootreuse@guard')
     execution.insert(execution.index('bootloader'), 'windoesnotbootreuse@install')
@@ -309,6 +311,7 @@ def main():
     cfg('locale.conf',locale)
     cfg('displaymanager.conf', {'displaymanagers':['sddm'], 'sysconfigSetup':False, 'sddm':{'configuration_file':'/etc/sddm.conf'}})
     cfg('shellprocess-preparetarget.conf', {'dontChroot':False,'timeout':30,'script':['/usr/share/windoesnot/iso/prepare-target.sh']})
+    cfg('shellprocess-prepartition.conf', {'dontChroot':True,'timeout':30,'script':['/usr/share/windoesnot/iso/pre-partition-cleanup.sh']})
     cfg('shellprocess.conf', {'dontChroot':False,'timeout':120,'script':[{'command':'/usr/share/windoesnot/iso/finalize-install.sh "${USER}"','timeout':120}]})
     cfg('services-systemd.conf', {'units':[{'name':n,'action':'enable','mandatory':False} for n in ['NetworkManager','bluetooth','systemd-timesyncd','fstrim.timer','vmtoolsd','vmware-vmblock-fuse','windoesnot-flathub-appstream.timer','sddm']]})
     cfg('initcpiocfg.conf', {'useSystemdHook':True,'source':'/etc/mkinitcpio-windoesnot.conf','hooks':{'append':['windoesnot-boot-errors'],'remove':['archiso','archiso_loop_mnt','archiso_pxe_common','archiso_pxe_nbd','archiso_pxe_http','archiso_pxe_nfs']}})
@@ -353,7 +356,7 @@ def main():
     t+='\nfile_permissions["/root/customize_airootfs.sh"]="0:0:755"\n'
     t+='file_permissions["/usr/lib/windoesnot/boot-error"]="0:0:755"\n'
     t+='file_permissions["/usr/lib/os-probes/55windoesnot-btrfs"]="0:0:755"\n'
-    for f in [a/'usr/local/bin/windoesnot-installer',a/'etc/skel/Desktop/windoesnot-installer.desktop',payload/'iso/finalize-install.sh',payload/'iso/prepare-target.sh',payload/'tools/build-components.sh']:
+    for f in [a/'usr/local/bin/windoesnot-installer',a/'etc/skel/Desktop/windoesnot-installer.desktop',payload/'iso/finalize-install.sh',payload/'iso/prepare-target.sh',payload/'iso/pre-partition-cleanup.sh',payload/'tools/build-components.sh']:
         t+=f'file_permissions["/{f.relative_to(a)}"]="0:0:755"\n'
     for f in payload.rglob('*'):
         if f.is_file() and f.stat().st_mode & 0o111:

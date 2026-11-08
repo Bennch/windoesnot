@@ -725,6 +725,8 @@ def plain_menu_popover(model, action_group):
 
                 def show(_b=None, revealer=revealer, button=button, column=column):
                     cancel_hide()
+                    if revealer.get_reveal_child():
+                        return  # already open: cancel any pending hide and stop — no layout changes that would re-fire enter
                     hide_flyouts(keep=revealer)
                     # line the submenu up with its item
                     found, point = button.compute_point(main, Graphene.Point().init(0, 0))
