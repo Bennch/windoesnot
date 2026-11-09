@@ -38,5 +38,5 @@ chmod 440 /etc/sudoers.d/windoesnot-wheel
 # The finish job removes the live marker after boot maintenance, before snapshots.
 rm -f /usr/share/applications/windoesnot-installer.desktop
 user_home=$(getent passwd "$install_user" | cut -d: -f6)
-rm -f "$user_home/Desktop/windoesnot-installer.desktop"
+find "$user_home" -maxdepth 2 -name windoesnot-installer.desktop -delete
 systemctl set-default graphical.target

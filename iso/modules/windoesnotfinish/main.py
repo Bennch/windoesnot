@@ -35,7 +35,8 @@ def run():
         # module has the actual username from GlobalStorage.
         username = libcalamares.globalstorage.value('username')
         if isinstance(username, str) and re.fullmatch(r'[a-z_][a-z0-9_-]{0,30}\$?', username):
-            libcalamares.utils.target_env_call(['/usr/bin/rm', '-f', f'/home/{username}/Desktop/windoesnot-installer.desktop'])
+            # The desktop folder is localized (Schreibtisch, Bureau, ...), so match by file name.
+            libcalamares.utils.target_env_call(['/usr/bin/find', f'/home/{username}', '-maxdepth', '2', '-name', 'windoesnot-installer.desktop', '-delete'])
         libcalamares.utils.target_env_call(['/usr/bin/rm', '-f', '/etc/skel/Desktop/windoesnot-installer.desktop'])
         if libcalamares.utils.target_env_call(['/usr/bin/rm', '-f', '/etc/windoesnot-image-build']):
             return ('Live marker cleanup failed', 'See the installation log for details.')
