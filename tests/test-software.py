@@ -13,7 +13,7 @@ sys.path.insert(0,str(ROOT/'iso/software'))
 from catalog import load_catalog, read_profile, packages_for, validate_selection, pending_for, pending_reference
 import install as installer
 catalog=load_catalog(ROOT/'iso/software/catalog.json')
-assert len([a for a in catalog['apps'] if a.get('source','offline')=='offline'])==15 and len(catalog['apps'])>15
+assert len([a for a in catalog['apps'] if a.get('source','offline')=='offline'])==18 and len(catalog['apps'])>15  # 0.1.0-27: +loupe, gnome-calendar, gnome-contacts
 for profile in catalog['profiles']:
  validate_selection(catalog,profile['selected'])
 packages,services=packages_for(catalog,['firefox','printing','libreoffice'],'de-DE')
