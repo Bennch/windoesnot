@@ -1458,8 +1458,8 @@
       "source": "flatpak",
       "packages": [],
       "description": {
-        "de": "Installiert und aktualisiert alle Craft-Apps von ArtCraft.",
-        "en": "Installs and updates all ArtCraft Craft apps."
+        "de": "Installiert und aktualisiert alle Craft-Apps von ArtCraft. Alpha-Software, Pakete ohne Signaturprüfung.",
+        "en": "Installs and updates all ArtCraft Craft apps. Alpha software, packages without signature check."
       },
       "required": false,
       "flatpak_id": "ai.storyteller.artcraft-launcher",
@@ -1476,8 +1476,8 @@
       "source": "flatpak",
       "packages": [],
       "description": {
-        "de": "PDFs lesen, ordnen, zusammenfügen, teilen und schützen (frühe Alpha).",
-        "en": "Read, organize, combine, split and secure PDFs (early alpha)."
+        "de": "PDFs lesen, ordnen, zusammenfügen, teilen und schützen. Alpha-Software, Pakete ohne Signaturprüfung.",
+        "en": "Read, organize, combine, split and secure PDFs. Alpha software, packages without signature check."
       },
       "required": false,
       "flatpak_id": "ai.storyteller.pdfcraft",
@@ -1494,8 +1494,8 @@
       "source": "flatpak",
       "packages": [],
       "description": {
-        "de": "Bildbearbeitung, offen und in Rust geschrieben (frühe Alpha).",
-        "en": "Open-source image editor written in Rust (early alpha)."
+        "de": "Bildbearbeitung, offen und in Rust geschrieben. Alpha-Software, Pakete ohne Signaturprüfung.",
+        "en": "Open-source image editor written in Rust. Alpha software, packages without signature check."
       },
       "required": false,
       "flatpak_id": "ai.storyteller.photocraft",
@@ -1512,8 +1512,8 @@
       "source": "flatpak",
       "packages": [],
       "description": {
-        "de": "Vektorgrafik und Illustration, offen und in Rust geschrieben (in Entwicklung).",
-        "en": "Open-source vector illustration written in Rust (in development)."
+        "de": "Vektorgrafik und Illustration, offen und in Rust geschrieben. Alpha-Software, Pakete ohne Signaturprüfung.",
+        "en": "Open-source vector illustration written in Rust. Alpha software, packages without signature check."
       },
       "required": false,
       "flatpak_id": "ai.storyteller.vectorcraft",
@@ -1530,8 +1530,8 @@
       "source": "flatpak",
       "packages": [],
       "description": {
-        "de": "Videoschnitt, offen und in Rust geschrieben (in Entwicklung).",
-        "en": "Open-source video editing written in Rust (in development)."
+        "de": "Videoschnitt, offen und in Rust geschrieben. Alpha-Software, Pakete ohne Signaturprüfung.",
+        "en": "Open-source video editing written in Rust. Alpha software, packages without signature check."
       },
       "required": false,
       "flatpak_id": "ai.storyteller.filmcraft",
