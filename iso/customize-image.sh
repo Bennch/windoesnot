@@ -76,6 +76,13 @@ systemctl enable windoesnot-flathub-appstream.timer
 systemctl enable vmtoolsd.service vmware-vmblock-fuse.service 2>/dev/null || true
 # A serial console makes VM boot failures inspectable without a working GPU.
 systemctl enable serial-getty@ttyS0.service
+# The firewall stays off in the live session. finalize-install.sh turns it on for installed systems.
+systemctl disable ufw.service 2>/dev/null || true
+sed -i 's/^ENABLED=.*/ENABLED=no/' /etc/ufw/ufw.conf 2>/dev/null || true
+# nss-mdns: resolve *.local names (network printers) before DNS. Matches the avahi documentation.
+if [[ -f /etc/nsswitch.conf ]] && grep -q '^hosts:' /etc/nsswitch.conf; then
+  sed -i 's/^hosts:.*/hosts: mymachines mdns_minimal [NOTFOUND=return] resolve files myhostname dns/' /etc/nsswitch.conf
+fi
 # Re-establish our offline settings after distro package hooks have run.
 mkdir -p /etc/windoesnot-calamares
 cp -a /usr/share/windoesnot/iso/calamares/. /etc/windoesnot-calamares/

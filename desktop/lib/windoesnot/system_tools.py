@@ -2,7 +2,10 @@
 """Fixed Polkit entry point for kernel and maintenance settings. No shell commands."""
 import base64
 import configparser
+import ctypes
+import ctypes.util
 import fcntl
+import hmac
 import io
 import json
 import os
@@ -281,7 +284,94 @@ def maintenance_status():
             'lockExists': DB_LOCK.exists(), 'packageProcesses': processes,
             'processesVisible': visibility, 'orphans': orphan_packages(),
             'failedServices': failed.splitlines(),
+            'printers': printers_status(), 'firewall': firewall_status(), 'firmware': firmware_status(),
             'tools': {name: available(name) for name in ('cachyos-rate-mirrors', 'paccache', 'pacman-key', 'chwd', 'curl')}}
+
+
+PRINTER_NAME = re.compile(r'[A-Za-z0-9_-]{1,64}')
+PRINTER_URI = re.compile(r'[a-z][a-z0-9+.-]{1,20}://[\x21-\x7e]{1,400}')
+# No extra ports are opened: LocalSend (53317) stays closed until it has been tested.
+
+
+def parse_printers(queues, default, found):
+    """Parse lpstat -v, lpstat -d and lpinfo -v output without trusting any of it."""
+    printers = []
+    for line in queues.splitlines():
+        match = re.match(r'device for (\S+): (\S+)$', line.strip())
+        if match and PRINTER_NAME.fullmatch(match.group(1)):
+            printers.append({'name': match.group(1), 'uri': match.group(2)})
+    match = re.search(r'system default destination: (\S+)', default)
+    candidates = []
+    for line in found.splitlines():
+        parts = line.split(None, 1)
+        if len(parts) != 2:
+            continue
+        uri = parts[1].strip()
+        if PRINTER_URI.fullmatch(uri) and not uri.startswith(('file:', 'http')) and uri not in candidates:
+            candidates.append(uri)
+    return {'printers': printers, 'default': match.group(1) if match else None, 'candidates': candidates}
+
+
+def printers_status():
+    if not available('lpstat'):
+        return None
+    try:
+        active = query('/usr/bin/systemctl', 'is-active', 'cups.service', allowed=(0, 3)) == 'active'
+    except (RuntimeError, subprocess.SubprocessError):
+        return None
+    if not active:
+        return {'cupsActive': False, 'printers': [], 'default': None, 'candidates': []}
+    try:
+        queues = query('/usr/bin/lpstat', '-v', allowed=(0, 1))
+        default = query('/usr/bin/lpstat', '-d', allowed=(0, 1))
+        found = query('/usr/bin/lpinfo', '-v', allowed=(0, 1), timeout=30)
+    except (RuntimeError, subprocess.SubprocessError):
+        return None
+    return {'cupsActive': True, **parse_printers(queues, default, found)}
+
+
+def printer_candidates():
+    return (printers_status() or {}).get('candidates', [])
+
+
+def firewall_status():
+    if not available('ufw'):
+        return None
+    try:
+        active = query('/usr/bin/systemctl', 'is-active', 'ufw.service', allowed=(0, 3)) == 'active'
+    except (RuntimeError, subprocess.SubprocessError):
+        return None
+    return {'enabled': active}
+
+
+def parse_firmware(raw):
+    """Return [{device, version}] from fwupdmgr get-updates --json, or None if unreadable."""
+    try:
+        data = json.loads(raw)
+    except ValueError:
+        return None
+    if not isinstance(data, dict) or not isinstance(data.get('Devices'), list):
+        return None
+    updates = []
+    for device in data['Devices']:
+        releases = device.get('Releases') if isinstance(device, dict) else None
+        if not releases or not isinstance(releases[0], dict):
+            continue
+        name = str(device.get('Name', ''))[:120]
+        version = str(releases[0].get('Version', ''))[:60]
+        if name and version:
+            updates.append({'device': name, 'version': version})
+    return updates
+
+
+def firmware_status():
+    if not available('fwupdmgr'):
+        return None
+    try:
+        raw = query('/usr/bin/fwupdmgr', 'get-updates', '--json', allowed=(0, 2), timeout=120)
+    except (RuntimeError, subprocess.SubprocessError):
+        return None
+    return parse_firmware(raw)
 
 
 def battery_info():
@@ -652,13 +742,137 @@ def set_shell(name):
     return {'reboot': False}
 
 
+ACCOUNTS_DIR = Path('/var/lib/AccountsService')
+PASSWORD_MIN, PASSWORD_MAX = 8, 256
+AVATAR_MAX = 256 * 1024
+PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
+# These actions read their data from stdin, so secrets and image bytes never reach argv or the log.
+STDIN_ACTIONS = ('password-change', 'avatar-set')
+
+
+def caller_account():
+    """The account that started pkexec. Every account action works on this user only."""
+    raw = os.environ.get('PKEXEC_UID', '')
+    if not raw.isdigit() or not 1000 <= int(raw) < 65534:
+        raise ValueError('Only regular user accounts can change their own account')
+    try:
+        return pwd.getpwuid(int(raw)).pw_name
+    except KeyError:
+        raise ValueError('Unknown user account') from None
+
+
+def stored_password_hash(user):
+    for line in Path('/etc/shadow').read_text().splitlines():
+        fields = line.split(':')
+        if len(fields) > 1 and fields[0] == user:
+            return fields[1]
+    return None
+
+
+def crypt_hash(password, setting):
+    """Hash with libcrypt, the same library PAM uses, so yescrypt and SHA-512 hashes both verify."""
+    library = ctypes.CDLL(ctypes.util.find_library('crypt') or 'libcrypt.so.2')
+    library.crypt.restype = ctypes.c_char_p
+    library.crypt.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+    result = library.crypt(password.encode(), setting.encode())
+    if not result or result.startswith(b'*'):
+        return None
+    return result.decode()
+
+
+def verify_current_password(user, password):
+    stored = stored_password_hash(user)
+    # Locked ('!', '*') or empty hashes cannot be verified, so the change is refused.
+    if not stored or stored[0] in '!*':
+        return False
+    computed = crypt_hash(password, stored)
+    return computed is not None and hmac.compare_digest(computed.encode(), stored.encode())
+
+
+def validate_password_change(data):
+    if set(data) != {'current', 'password'} or any(type(data[key]) is not str for key in data):
+        raise ValueError('Invalid password data')
+    for value in data.values():
+        if any(ord(char) < 32 or ord(char) == 127 for char in value):
+            raise ValueError('Passwords must not contain control characters')
+    if not data['current'] or len(data['current'].encode()) > 1024:
+        raise ValueError('Enter the current password')
+    if not PASSWORD_MIN <= len(data['password']) <= PASSWORD_MAX:
+        raise ValueError(f'The new password must have {PASSWORD_MIN} to {PASSWORD_MAX} characters')
+
+
+def change_own_password(data):
+    validate_password_change(data)
+    user = caller_account()
+    if not verify_current_password(user, data['current']):
+        raise ValueError('The current password is wrong')
+    # chpasswd reads user:password from stdin, so the new password is never an argument or logged.
+    result = subprocess.run(['/usr/bin/chpasswd'], input=f"{user}:{data['password']}\n", env=ENV,
+                            text=True, capture_output=True, timeout=60)
+    if result.returncode != 0:
+        raise RuntimeError('The password was not changed')
+    if LOG:
+        LOG.write(f'Password changed for {user}\n')
+    return {'reboot': False}
+
+
+def validate_png(data):
+    if type(data) is not bytes or not data.startswith(PNG_SIGNATURE) or len(data) < 64:
+        raise ValueError('The picture must be a PNG image')
+    if len(data) > AVATAR_MAX:
+        raise ValueError('The picture is too large')
+
+
+def set_own_avatar(data):
+    validate_png(data)
+    user = caller_account()
+    icon = ACCOUNTS_DIR / 'icons' / user
+    icon.parent.mkdir(parents=True, exist_ok=True)
+    temporary = icon.with_name(icon.name + '.windoesnot-' + uuid.uuid4().hex)
+    try:
+        with temporary.open('xb') as out:
+            os.chmod(temporary, 0o644)
+            out.write(data); out.flush(); os.fsync(out.fileno())
+        temporary.replace(icon)
+    finally:
+        temporary.unlink(missing_ok=True)
+    # AccountsService reads Icon= from users/<name>; keep every other key the file already has.
+    user_file = ACCOUNTS_DIR / 'users' / user
+    parser = _ini_parser()
+    if user_file.exists():
+        parser.read_string(user_file.read_text())
+    if not parser.has_section('User'):
+        parser.add_section('User')
+    parser.set('User', 'Icon', str(icon))
+    text = io.StringIO()
+    parser.write(text, space_around_delimiters=False)
+    atomic_write(user_file, text.getvalue(), mode=0o644)
+    if LOG:
+        LOG.write(f'Profile picture set for {user}\n')
+    return {'reboot': False}
+
+
+def read_stdin_payload(action):
+    if action == 'password-change':
+        line = sys.stdin.buffer.readline(16385)
+        if not line.endswith(b'\n') or len(line) > 16384:
+            raise ValueError('Invalid password data')
+        data = json.loads(line.decode('utf-8'))
+        if type(data) is not dict:
+            raise ValueError('Invalid password data')
+        return data
+    data = sys.stdin.buffer.read(AVATAR_MAX + 1)
+    validate_png(data)
+    return data
+
+
 def validate(action, payload):
     if type(payload) is not dict:
         raise ValueError('Arguments must be an object')
     if action in ('kernel-status', 'maintenance-status', 'shell-status', 'power-status', 'sddm-theme-status',
                   'bootloader-theme-status',
                   'scx-install', 'scx-stop', 'mirrors-rank', 'cache-clean', 'keyring-repair', 'lock-remove',
-                  'drivers-configure'):
+                  'drivers-configure', 'printer-service-start', 'firmware-apply') + STDIN_ACTIONS:
         if payload:
             raise ValueError('This action takes no arguments')
     elif action == 'bootloader-theme-set':
@@ -681,6 +895,17 @@ def validate(action, payload):
                 or any(type(n) is not str or not re.fullmatch(r'[a-zA-Z0-9@._+][a-zA-Z0-9@._+-]{0,254}', n) for n in names)
                 or len(set(names)) != len(names)):
             raise ValueError('Invalid orphan package list')
+    elif action == 'printer-add':
+        if (set(payload) != {'uri', 'name'} or type(payload['uri']) is not str
+                or not PRINTER_URI.fullmatch(payload['uri']) or type(payload['name']) is not str
+                or not PRINTER_NAME.fullmatch(payload['name'])):
+            raise ValueError('Invalid printer settings')
+    elif action == 'printer-default':
+        if set(payload) != {'name'} or type(payload['name']) is not str or not PRINTER_NAME.fullmatch(payload['name']):
+            raise ValueError('Invalid printer name')
+    elif action == 'firewall-set':
+        if set(payload) != {'enabled'} or type(payload['enabled']) is not bool:
+            raise ValueError('Invalid firewall setting')
     elif action == 'scx-set':
         if (set(payload) != {'scheduler', 'mode', 'onBoot'} or payload['scheduler'] not in SCHEDULERS
                 or payload['mode'] not in MODES or type(payload['onBoot']) is not bool):
@@ -851,6 +1076,45 @@ def apply(action, payload):
         return bootloader_theme_set(payload)
     if action in ('mirrors-rank', 'cache-clean', 'keyring-repair', 'lock-remove', 'orphans-remove', 'drivers-configure'):
         return maintenance_apply(action, payload)
+    if action == 'printer-service-start':
+        command('/usr/bin/systemctl', 'enable', '--now', 'cups.service', timeout=120)
+        return {'reboot': False}
+    if action == 'printer-add':
+        command('/usr/bin/systemctl', 'enable', '--now', 'cups.service', timeout=120)
+        # Only devices found by the discovery run are accepted, never a free-form URI.
+        if payload['uri'] not in printer_candidates():
+            raise ValueError('The printer was not found. Search again.')
+        command('/usr/bin/lpadmin', '-p', payload['name'], '-E', '-v', payload['uri'],
+                '-m', 'everywhere', timeout=300)
+        return {'reboot': False}
+    if action == 'printer-default':
+        names = [p['name'] for p in (printers_status() or {}).get('printers', [])]
+        if payload['name'] not in names:
+            raise ValueError('Unknown printer')
+        command('/usr/bin/lpadmin', '-d', payload['name'], timeout=60)
+        return {'reboot': False}
+    if action == 'firewall-set':
+        if not available('ufw'):
+            raise ValueError('ufw is not installed')
+        if payload['enabled']:
+            # Default policies first, so the firewall comes up with deny-incoming.
+            command('/usr/bin/ufw', 'default', 'deny', 'incoming', timeout=60)
+            command('/usr/bin/ufw', 'default', 'allow', 'outgoing', timeout=60)
+            command('/usr/bin/ufw', '--force', 'enable', timeout=60)
+            command('/usr/bin/systemctl', 'enable', 'ufw.service', timeout=60)
+        else:
+            command('/usr/bin/systemctl', 'disable', 'ufw.service', timeout=60)
+            command('/usr/bin/ufw', '--force', 'disable', timeout=60)
+        return {'reboot': False}
+    if action == 'password-change':
+        return change_own_password(payload)
+    if action == 'avatar-set':
+        return set_own_avatar(payload)
+    if action == 'firmware-apply':
+        if not available('fwupdmgr'):
+            raise ValueError('fwupd is not installed')
+        command('/usr/bin/fwupdmgr', 'update', '-y', '--no-reboot-check', timeout=3600)
+        return {'reboot': True}
     if action in ('kernel-install', 'kernel-remove'):
         check_bootloader(bootloader())
         names = kernel_packages(payload['kernel'], action == 'kernel-install')
@@ -902,8 +1166,11 @@ def main():
         log_path = LOG_DIR / (time.strftime('%Y%m%d-%H%M%S-') + uuid.uuid4().hex[:8] + '.log')
         with log_path.open('x') as log:
             os.chmod(log_path, 0o644); LOG = log
-            log.write(json.dumps({'action': action, 'arguments': payload}) + '\n'); log.flush()
+            logged = '[stdin]' if action in STDIN_ACTIONS else payload
+            log.write(json.dumps({'action': action, 'arguments': logged}) + '\n'); log.flush()
             try:
+                if action in STDIN_ACTIONS:
+                    payload = read_stdin_payload(action)
                 result = apply(action, payload)
                 print(json.dumps({'ok': True, 'log': str(log_path), **result}))
             except Exception as error:

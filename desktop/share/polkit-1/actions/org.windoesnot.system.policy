@@ -179,4 +179,102 @@
     <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
     <annotate key="org.freedesktop.policykit.exec.argv1">shell-set</annotate>
   </action>
+  <action id="org.windoesnot.system.printer-service-start">
+    <description>Start the printing service</description>
+    <description xml:lang="de">Druckdienst starten</description>
+    <message>Please confirm: Start the printing service</message>
+    <message xml:lang="de">Bitte bestätigen: Druckdienst starten</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">printer-service-start</annotate>
+  </action>
+  <action id="org.windoesnot.system.printer-add">
+    <description>Add a printer</description>
+    <description xml:lang="de">Drucker hinzufügen</description>
+    <message>Please confirm: Add a printer</message>
+    <message xml:lang="de">Bitte bestätigen: Drucker hinzufügen</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">printer-add</annotate>
+  </action>
+  <action id="org.windoesnot.system.printer-default">
+    <description>Change the default printer</description>
+    <description xml:lang="de">Standarddrucker ändern</description>
+    <message>Please confirm: Change the default printer</message>
+    <message xml:lang="de">Bitte bestätigen: Standarddrucker ändern</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">printer-default</annotate>
+  </action>
+  <action id="org.windoesnot.system.firewall-set">
+    <description>Change the firewall</description>
+    <description xml:lang="de">Firewall ändern</description>
+    <message>Please confirm: Change the firewall</message>
+    <message xml:lang="de">Bitte bestätigen: Firewall ändern</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">firewall-set</annotate>
+  </action>
+  <action id="org.windoesnot.system.firmware-apply">
+    <description>Install firmware updates</description>
+    <description xml:lang="de">Firmware-Updates installieren</description>
+    <message>Please confirm: Install firmware updates</message>
+    <message xml:lang="de">Bitte bestätigen: Firmware-Updates installieren</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">firmware-apply</annotate>
+  </action>
+  <action id="org.windoesnot.system.password-change">
+    <description>Change your password</description>
+    <description xml:lang="de">Eigenes Passwort ändern</description>
+    <message>Please confirm: Change your password</message>
+    <message xml:lang="de">Bitte bestätigen: Eigenes Passwort ändern</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">password-change</annotate>
+  </action>
+  <action id="org.windoesnot.system.avatar-set">
+    <description>Change your profile picture</description>
+    <description xml:lang="de">Eigenes Profilbild ändern</description>
+    <message>Please confirm: Change your profile picture</message>
+    <message xml:lang="de">Bitte bestätigen: Eigenes Profilbild ändern</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">avatar-set</annotate>
+  </action>
 </policyconfig>
