@@ -2,6 +2,30 @@
   "comment": "WinDoesNot changes per desktop package release, newest first. Shown in Settings > Updates; entries marked unreleased are never offered as an update.",
   "releases": [
     {
+      "version": "0.1.0-27",
+      "date": "2026-11-09",
+      "de": [
+        "Drucker werden automatisch erkannt. Die Wartung zeigt eine Drucker-Karte mit dem Status des Druckers.",
+        "Die Firewall ist an. Die Freigabe für Namensauflösung im Netz (mDNS) bleibt offen, damit Drucker und andere Geräte gefunden werden.",
+        "Neue Konto-Seite in den Einstellungen: Passwort ändern und Profilbild festlegen.",
+        "Neue Standard-Apps im Software-Katalog: Bildbetrachter, Kalender und Kontakte.",
+        "Die Einstellungen haben weniger Seiten. Konto und Info sind zusammengelegt.",
+        "VMware-Gäste nutzen Software-Rendering. Der Bildschirm bleibt dadurch nicht mehr schwarz.",
+        "Die Wartung zeigt die Firmware-Version deines Rechners.",
+        "Installer und Start: Ein Boot-Fehler beim Zeitdienst ist behoben. Der Start wartet nicht mehr auf die Zeit-Synchronisation."
+      ],
+      "en": [
+        "Printers are detected automatically. Maintenance shows a printer card with the printer status.",
+        "The firewall is on. Network name discovery (mDNS) stays allowed, so printers and other devices can be found.",
+        "New account page in Settings: change your password and set a profile picture.",
+        "New default apps in the software catalog: image viewer, calendar and contacts.",
+        "Settings has fewer pages. Account and info are combined.",
+        "VMware guests use software rendering. The screen no longer stays black.",
+        "Maintenance shows the firmware version of your computer.",
+        "Installer and boot: a boot error in the time service is fixed. Startup no longer waits for time synchronization."
+      ]
+    },
+    {
       "version": "0.1.0-26",
       "date": "2026-11-09",
       "de": [
