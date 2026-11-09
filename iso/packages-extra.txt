@@ -132,3 +132,11 @@ papirus-icon-theme
 firefox-i18n-de
 firefox-i18n-en-us
 fastfetch
+cups
+cups-filters
+avahi
+nss-mdns
+ufw
+fwupd
+accountsservice
+imagemagick

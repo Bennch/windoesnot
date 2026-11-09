@@ -39,4 +39,18 @@ chmod 440 /etc/sudoers.d/windoesnot-wheel
 rm -f /usr/share/applications/windoesnot-installer.desktop
 user_home=$(getent passwd "$install_user" | cut -d: -f6)
 find "$user_home" -maxdepth 2 -name windoesnot-installer.desktop -delete
+# Installed systems start with the firewall on. Order matters: ufw only touches the netfilter
+# state when ENABLED=yes, so rules are written first with ENABLED=no, and ENABLED is switched
+# on last. Nothing here may stop the installation, so every step only warns on failure.
+if [[ -f /etc/ufw/ufw.conf ]]; then
+  sed -i 's/^ENABLED=.*/ENABLED=no/' /etc/ufw/ufw.conf
+  # 5353/udp: mDNS, needed for network printer discovery. LocalSend (53317) is not opened yet.
+  for rule in 5353/udp; do
+    ufw allow "$rule" >/dev/null 2>&1 || echo "Firewall rule $rule was not written" >&2
+  done
+  sed -i 's/^ENABLED=.*/ENABLED=yes/' /etc/ufw/ufw.conf
+  systemctl enable ufw.service 2>/dev/null || echo 'ufw.service could not be enabled' >&2
+fi
+# Network printer discovery (cups dnssd backend, nss-mdns) needs avahi. cups stays on demand.
+systemctl enable avahi-daemon.service 2>/dev/null || echo 'avahi-daemon.service could not be enabled' >&2
 systemctl set-default graphical.target

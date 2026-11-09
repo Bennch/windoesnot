@@ -185,6 +185,122 @@ Item {
                 }
             }
         }
+        Rectangle {
+            id: firewallCard
+            width: content.width; height: firewallContent.implicitHeight + 32
+            radius: settingsMenu ? settingsMenu.borderRadius : 10
+            color: page.dark ? "#141414" : "#f5f5f5"
+            border.width: 1; border.color: page.lineColor
+            Column {
+                id: firewallContent; x: 16; y: 16; width: parent.width - 32; spacing: 10
+                Text { width: parent.width; text: page.tr("maintenance.firewall"); color: page.foreground; font.pixelSize: 15; font.bold: true; wrapMode: Text.WordWrap }
+                Note { text: page.tr("maintenance.firewallHint") }
+                Tools.SystemToolsToggle {
+                    settingsMenu: page.settingsMenu
+                    text: page.tr("maintenance.firewallOn")
+                    enabled: page.ready && !page.busy && !page.state.live && page.state.firewall !== null && page.state.firewall !== undefined
+                    checked: page.state.firewall ? page.state.firewall.enabled === true : false
+                    onToggled: {
+                        page.requestAction("firewall-set", {enabled: checked},
+                            page.tr(checked ? "maintenance.confirmFirewallOn" : "maintenance.confirmFirewallOff"))
+                        // Show the confirmed state only after the next status read.
+                        checked = Qt.binding(function() { return page.state.firewall ? page.state.firewall.enabled === true : false })
+                    }
+                }
+                Note { visible: page.ready && (page.state.firewall === null || page.state.firewall === undefined); text: page.tr("maintenance.firewallUnavailable") }
+            }
+        }
+        Rectangle {
+            id: printerCard
+            readonly property var printerState: page.state.printers
+            width: content.width; height: printerContent.implicitHeight + 32
+            radius: settingsMenu ? settingsMenu.borderRadius : 10
+            color: page.dark ? "#141414" : "#f5f5f5"
+            border.width: 1; border.color: page.lineColor
+            Column {
+                id: printerContent; x: 16; y: 16; width: parent.width - 32; spacing: 10
+                Text { width: parent.width; text: page.tr("maintenance.printers"); color: page.foreground; font.pixelSize: 15; font.bold: true; wrapMode: Text.WordWrap }
+                Note { text: page.tr("maintenance.printersHint") }
+                Note { visible: page.ready && printerCard.printerState === null; text: page.tr("maintenance.printersUnavailable") }
+                Note { visible: printerCard.printerState !== null && printerCard.printerState.cupsActive === false; text: page.tr("maintenance.printersCupsOff") }
+                ActionButton {
+                    visible: printerCard.printerState !== null && printerCard.printerState.cupsActive === false
+                    primary: true
+                    text: page.tr("maintenance.printerSearch")
+                    onClicked: page.requestAction("printer-service-start", {}, page.tr("maintenance.confirmPrinterService"))
+                }
+                Note { visible: printerCard.printerState !== null && printerCard.printerState.cupsActive === true && printerCard.printerState.printers.length === 0; text: page.tr("maintenance.printerNone") }
+                Repeater {
+                    model: printerCard.printerState !== null && printerCard.printerState.cupsActive === true ? printerCard.printerState.printers : []
+                    delegate: Column {
+                        id: printerRow
+                        required property var modelData
+                        width: printerContent.width; spacing: 6
+                        Text { width: parent.width; text: printerRow.modelData.name + (printerRow.modelData.name === printerCard.printerState.default ? "  (" + page.tr("maintenance.printerIsDefault") + ")" : ""); color: page.foreground; font.pixelSize: 13; wrapMode: Text.WordWrap }
+                        Note { text: printerRow.modelData.uri; font.pixelSize: 11 }
+                        ActionButton {
+                            visible: printerRow.modelData.name !== printerCard.printerState.default
+                            text: page.tr("maintenance.printerMakeDefault")
+                            onClicked: page.requestAction("printer-default", {name: printerRow.modelData.name},
+                                page.tr("maintenance.confirmPrinterDefault"))
+                        }
+                    }
+                }
+                Note { visible: printerCard.printerState !== null && printerCard.printerState.cupsActive === true; text: page.tr("maintenance.printerFound") }
+                Note {
+                    visible: printerCard.printerState !== null && printerCard.printerState.cupsActive === true && printerCard.printerState.candidates.length === 0
+                    text: page.tr("maintenance.printerNoneFound")
+                }
+                Repeater {
+                    model: printerCard.printerState !== null && printerCard.printerState.cupsActive === true ? printerCard.printerState.candidates : []
+                    delegate: Column {
+                        id: candidateRow
+                        required property var modelData
+                        required property int index
+                        readonly property string printerName: {
+                            const host = String(modelData).replace(/^[^:]+:\/\//, "").split(/[\/?]/)[0].replace(/[^A-Za-z0-9-]+/g, "-").slice(0, 40)
+                            return host.length ? host : "Drucker-" + (index + 1)
+                        }
+                        width: printerContent.width; spacing: 6
+                        Note { text: candidateRow.modelData; font.pixelSize: 11 }
+                        ActionButton {
+                            enabled: page.ready && !page.busy && !page.state.live
+                                && !(printerCard.printerState.printers.some(function(p) { return p.name === candidateRow.printerName }))
+                            text: page.tr("maintenance.printerAdd")
+                            onClicked: page.requestAction("printer-add", {uri: candidateRow.modelData, name: candidateRow.printerName},
+                                page.tr("maintenance.confirmPrinterAdd"))
+                        }
+                    }
+                }
+            }
+        }
+        Rectangle {
+            id: firmwareCard
+            readonly property var updates: page.state.firmware
+            width: content.width; height: firmwareContent.implicitHeight + 32
+            radius: settingsMenu ? settingsMenu.borderRadius : 10
+            color: page.dark ? "#141414" : "#f5f5f5"
+            border.width: 1; border.color: page.lineColor
+            Column {
+                id: firmwareContent; x: 16; y: 16; width: parent.width - 32; spacing: 10
+                Text { width: parent.width; text: page.tr("maintenance.firmware"); color: page.foreground; font.pixelSize: 15; font.bold: true; wrapMode: Text.WordWrap }
+                Note { text: page.tr("maintenance.firmwareHint") }
+                Note { visible: page.ready && firmwareCard.updates === null; text: page.tr("maintenance.firmwareUnknown") }
+                Note { visible: page.ready && firmwareCard.updates !== null && firmwareCard.updates.length === 0; text: page.tr("maintenance.firmwareNone") }
+                Note {
+                    visible: firmwareCard.updates !== null && firmwareCard.updates !== undefined && firmwareCard.updates.length > 0
+                    color: page.foreground
+                    text: firmwareCard.updates ? firmwareCard.updates.map(function(u) { return u.device + ": " + u.version }).join("\n") : ""
+                }
+                ActionButton {
+                    visible: firmwareCard.updates !== null && firmwareCard.updates !== undefined && firmwareCard.updates.length > 0
+                    enabled: page.ready && !page.busy && !page.state.live
+                    primary: true
+                    text: page.tr("maintenance.firmwareApply")
+                    onClicked: page.requestAction("firmware-apply", {}, page.tr("maintenance.confirmFirmware"))
+                }
+            }
+        }
     }
     Tools.SystemToolsConfirm {
         id: confirmation
