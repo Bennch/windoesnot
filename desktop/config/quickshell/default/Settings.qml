@@ -87,7 +87,7 @@ FloatingWindow {
         var loaders = { desktop: desktopLoader, monitors: monitorsLoader, background: backgroundSettingsLoader,
                         appearance: appearanceLoader, alignment: alignmentLoader, input: inputLoader,
                         power: powerLoader, apps: appsLoader, maintenance: maintenanceLoader,
-                        backups: backupsLoader, updates: updatesLoader, about: aboutLoader, help: helpLoader }
+                        backups: backupsLoader, updates: updatesLoader, info: infoLoader }
         var loader = loaders[currentCategory]
         return loader ? loader.item : null
     }
@@ -2377,8 +2377,7 @@ FloatingWindow {
                             ListElement { category: "maintenance"; labelKey: "nav.maintenance"; icon: "img/Win11-dark/categories/symbolic/preferences-system-symbolic.svg" }
                             ListElement { category: "backups";    labelKey: "nav.backups";    icon: "img/Win11-dark/places/symbolic/folder-documents-symbolic.svg" }
                             ListElement { category: "updates";    labelKey: "nav.updates";    icon: "img/Win11-dark/actions/symbolic/system-update-symbolic.svg" }
-                            ListElement { category: "about";      labelKey: "nav.about";      icon: "img/Win11-dark/actions/symbolic/link-symbolic.svg" }
-                            ListElement { category: "help";       labelKey: "nav.help";       icon: "img/Win11-dark/actions/symbolic/help-contents-symbolic.svg" }
+                            ListElement { category: "info";       labelKey: "nav.info";       icon: "img/Win11-dark/actions/symbolic/link-symbolic.svg" }
                         }
 
                         delegate: Rectangle {
@@ -2499,8 +2498,7 @@ FloatingWindow {
                             if (settingsMenu.currentCategory === "backups") return Lang.get("header.backups", uiLanguage)
                             if (settingsMenu.currentCategory === "monitors") return Lang.get("header.monitors", uiLanguage)
                             if (settingsMenu.currentCategory === "updates") return Lang.get("header.updates", uiLanguage)
-                            if (settingsMenu.currentCategory === "about") return Lang.get("header.about", uiLanguage)
-                            if (settingsMenu.currentCategory === "help") return Lang.get("header.help", uiLanguage)
+                            if (settingsMenu.currentCategory === "info") return Lang.get("header.info", uiLanguage)
                             return Lang.get("nav.settings", uiLanguage)
                         }
                         font.pixelSize: 24
@@ -2560,8 +2558,7 @@ FloatingWindow {
                                 if (settingsMenu.currentCategory === "backups") return backupsLoader.item ? backupsLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "monitors") return monitorsLoader.item ? monitorsLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "updates") return updatesLoader.item ? updatesLoader.item.height + padding : height
-                                if (settingsMenu.currentCategory === "about") return aboutLoader.item ? aboutLoader.item.height + padding : height
-                                if (settingsMenu.currentCategory === "help") return helpLoader.item ? helpLoader.item.height + padding : height
+                                if (settingsMenu.currentCategory === "info") return infoLoader.item ? infoLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "background") return backgroundSettingsLoader.item ? backgroundSettingsLoader.item.implicitHeight + padding : height
                                 return height
                             }
@@ -2673,16 +2670,6 @@ FloatingWindow {
                             onActiveChanged: if (active) setSource("settings/BackupsCategory.qml", {"settingsMenu": settingsMenu})
                         }
 
-                        // Hilfe Settings
-                        Loader {
-                            id: helpLoader
-                            active: settingsMenu.currentCategory === "help" && settingsMenu.visible
-                            visible: settingsMenu.currentCategory === "help"
-                            width: parent.width
-                            asynchronous: false
-                            Component.onCompleted: if (active) setSource("settings/HelpCategory.qml", {"settingsMenu": settingsMenu})
-                            onActiveChanged: if (active) setSource("settings/HelpCategory.qml", {"settingsMenu": settingsMenu})
-                        }
 
                         // Monitor Settings
                         Loader {
@@ -2706,15 +2693,15 @@ FloatingWindow {
                             onActiveChanged: if (active) setSource("settings/UpdateCategory.qml", {"settingsMenu": settingsMenu})
                         }
 
-                        // Über Settings
+                        // Info: Telemetry & Privacy and Help share one page
                         Loader {
-                            id: aboutLoader
-                            active: settingsMenu.currentCategory === "about" && settingsMenu.visible
-                            visible: settingsMenu.currentCategory === "about"
+                            id: infoLoader
+                            active: settingsMenu.currentCategory === "info" && settingsMenu.visible
+                            visible: settingsMenu.currentCategory === "info"
                             width: parent.width
                             asynchronous: false
-                            Component.onCompleted: if (active) setSource("settings/AboutCategory.qml", {"settingsMenu": settingsMenu})
-                            onActiveChanged: if (active) setSource("settings/AboutCategory.qml", {"settingsMenu": settingsMenu})
+                            Component.onCompleted: if (active) setSource("settings/InfoCategory.qml", {"settingsMenu": settingsMenu})
+                            onActiveChanged: if (active) setSource("settings/InfoCategory.qml", {"settingsMenu": settingsMenu})
                         }
                             }  // Ende contentContainer (Item)
                         }  // Ende Flickable
