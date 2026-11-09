@@ -308,7 +308,7 @@ Rectangle {
                                 text: page.tr("Firefox-Profil nicht bereit: Firefox unter Windows schließen und erneut prüfen.", "Firefox profile unavailable: close Firefox in Windows and scan again.") }
                             Label { visible: profile.browsers && profile.browsers.length > 0
                                 Layout.fillWidth: true; color: "#f3c99d"; wrapMode: Text.WordWrap
-                                text: (profile.browsers || []).join(", ") + ": " + page.tr("Passwörter können nur unter Windows exportiert werden. Browserprofile werden nicht kopiert.", "Passwords can only be exported in Windows. Browser profiles are not copied.") }
+                                text: (profile.browsers || []).join(", ") + ": " + page.tr("Passwörter werden hier nicht übernommen und können nur unter Windows exportiert werden: Das geht separat mit unserem Umzugsprogramm „WinDoesNot Setup“ für Windows. Browserprofile werden nicht kopiert.", "Passwords are not transferred here and can only be exported in Windows: use our separate migration program “WinDoesNot Setup” for Windows. Browser profiles are not copied.") }
 
                             Repeater {
                                 model: profile.items
