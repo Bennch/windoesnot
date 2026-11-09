@@ -835,7 +835,12 @@ FloatingWindow {
             saveSettings()
             updateHyprlandAppearance()
             updateGtkAccentCss()
+            updateSnappySwitcherTheme()
         }
+    }
+
+    onPrimaryMonitorChanged: {
+        if (!isLoadingSettings) updateSnappySwitcherTheme()
     }
 
     onWindowGapsChanged: {
@@ -1214,6 +1219,7 @@ FloatingWindow {
         if (!isLoadingSettings) {
             updateHyprlandBorders()
             updateGtkAccentCss()
+            updateSnappySwitcherTheme()
         }
     }
     onStartOrbStyleChanged: saveSettings()
@@ -1544,12 +1550,18 @@ FloatingWindow {
         )
     }
 
+    // Alt+Tab switcher: light/dark theme, accent border, corner radius and the
+    // primary monitor. Values are passed explicitly because settings.txt is
+    // written asynchronously; the helper reloads the running daemon live.
     function updateSnappySwitcherTheme() {
-        var theme = darkMode ? "quickshell-dark.ini" : "quickshell-light.ini"
-        var cmd = "sed -i 's/^name = .*/name = " + theme + "/' ~/.config/snappy-switcher/config.ini && snappy-switcher quit; sleep 0.3 && snappy-switcher --daemon &"
-        console.log("Switching snappy-switcher theme to:", theme)
+        var args = ["windoesnot-snappy-sync",
+                    "--accent", accentColor.toString(),
+                    "--dark", darkMode ? "true" : "false",
+                    "--radius", String(borderRadius)]
+        if (primaryMonitor !== "") { args.push("--monitor"); args.push(primaryMonitor) }
+        console.log("Syncing snappy-switcher:", args.join(" "))
         Qt.createQmlObject(
-            'import Quickshell.Io; Process { command: ["bash", "-c", "' + cmd + '"]; running: true; }',
+            'import Quickshell.Io; Process { command: ' + JSON.stringify(args) + '; running: true; }',
             settingsMenu
         )
     }

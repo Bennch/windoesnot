@@ -19,6 +19,15 @@
 
 #define LOG(fmt, ...) fprintf(stderr, "[WLR] " fmt "\n", ##__VA_ARGS__)
 
+static char *wlr_safe_strdup(const char *str) {
+  char *dup = strdup(str ? str : "");
+  if (!dup) {
+    static char empty[] = "";
+    return empty;
+  }
+  return dup;
+}
+
 typedef struct WindowNode WindowNode;
 
 struct WindowNode {
@@ -410,8 +419,18 @@ void wlr_backend_cleanup(void) {
   backend_state.activation_counter = 0;
 }
 
-int wlr_get_windows(AppState *state, Config *config) {
+
+static int wlr_compare_focus(const void *a, const void *b) {
+  const WindowInfo *wa = (const WindowInfo *)a;
+  const WindowInfo *wb = (const WindowInfo *)b;
+  if (wa->focus_history_id < wb->focus_history_id) return -1;
+  if (wa->focus_history_id > wb->focus_history_id) return 1;
+  return 0;
+}
+
+int wlr_get_windows(AppState *state, Config *config, bool is_linear) {
   (void)config;
+  (void)is_linear;  /* WLR backend has no workspace-based sorting */
 
   if (!backend_state.initialized) {
     LOG("Backend not initialized");
@@ -461,10 +480,11 @@ int wlr_get_windows(AppState *state, Config *config) {
       continue;
     }
 
-    info.address = strdup(curr->identifier ? curr->identifier : "");
-    info.title = strdup(curr->title ? curr->title : "Untitled");
-    info.class_name = strdup(curr->app_id ? curr->app_id : "unknown");
+    info.address = wlr_safe_strdup(curr->identifier);
+    info.title = wlr_safe_strdup(curr->title ? curr->title : "Untitled");
+    info.class_name = wlr_safe_strdup(curr->app_id ? curr->app_id : "unknown");
     info.workspace_id = 0;
+    info.workspace_name = wlr_safe_strdup("");
 
     // use activation serial as focus_history_id
     // activation serial is larger for more recently activated
@@ -481,6 +501,7 @@ int wlr_get_windows(AppState *state, Config *config) {
 
     info.is_active = curr->is_active;
     info.is_floating = 0;
+    info.is_pinned = false; /* wlroots backend has no pin concept */
     info.group_count = 1;
     info.focus_history_id = curr->is_active ? 0 : info.focus_history_id;
 
@@ -499,17 +520,7 @@ int wlr_get_windows(AppState *state, Config *config) {
   // sort windows by focus_history_id (smaller numbers mean more recently
   // activated)
   if (state->count > 1) {
-    int i, j;
-    for (i = 0; i < state->count - 1; i++) {
-      for (j = i + 1; j < state->count; j++) {
-        if (state->windows[i].focus_history_id >
-            state->windows[j].focus_history_id) {
-          WindowInfo tmp = state->windows[i];
-          state->windows[i] = state->windows[j];
-          state->windows[j] = tmp;
-        }
-      }
-    }
+    qsort(state->windows, state->count, sizeof(WindowInfo), wlr_compare_focus);
   }
 
   LOG("Successfully processed %d windows", state->count);
@@ -549,3 +560,31 @@ void wlr_activate_window(const char *identifier) {
 }
 
 const char *wlr_get_name(void) { return "wlr"; }
+
+int wlr_backend_get_fd(void) {
+  if (!backend_state.initialized || !backend_state.display)
+    return -1;
+  return wl_display_get_fd(backend_state.display);
+}
+
+void wlr_backend_dispatch(void) {
+  if (!backend_state.initialized || !backend_state.display)
+    return;
+
+  /* Drain all pending events from the wlr compositor connection.
+   * This keeps the socket buffer clear and prevents disconnects. */
+  while (wl_display_prepare_read(backend_state.display) != 0) {
+    wl_display_dispatch_pending(backend_state.display);
+  }
+  wl_display_flush(backend_state.display);
+
+  struct pollfd pfd = {.fd = wl_display_get_fd(backend_state.display),
+                       .events = POLLIN};
+
+  if (poll(&pfd, 1, 0) > 0 && (pfd.revents & POLLIN)) {
+    wl_display_read_events(backend_state.display);
+  } else {
+    wl_display_cancel_read(backend_state.display);
+  }
+  wl_display_dispatch_pending(backend_state.display);
+}

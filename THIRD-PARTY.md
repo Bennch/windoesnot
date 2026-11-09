@@ -5,7 +5,7 @@ The following bundled or adapted components keep their original licenses.
 
 | Component | Path | Origin | License |
 |---|---|---|---|
-| snappy-switcher (patched) | `desktop/vendor/snappy-switcher/`, `desktop/patches/` | [OpalAayan/snappy-switcher](https://github.com/OpalAayan/snappy-switcher) 2.1.2 | GPL-3.0 |
+| snappy-switcher (patched) | `desktop/vendor/snappy-switcher/`, `desktop/patches/` | [OpalAayan/snappy-switcher](https://github.com/OpalAayan/snappy-switcher) 4.5.0 | GPL-3.0 |
 | hyprbars (modified) | `desktop/plugins/hyprbars/` | [hyprwm/hyprland-plugins](https://github.com/hyprwm/hyprland-plugins) | BSD-3-Clause |
 | hyprdrag (modified) | `desktop/plugins/hyprdrag/` | [yz778/hyprdrag](https://github.com/yz778/hyprdrag) | MIT |
 | Win11 icon theme (dark) | `desktop/config/quickshell/default/img/Win11-dark/` | [yeyushengfan258/Win11-icon-theme](https://github.com/yeyushengfan258/Win11-icon-theme) | GPL-3.0 ([COPYING](desktop/config/quickshell/default/img/Win11-dark/COPYING)); partly based on [Yaru](https://github.com/ubuntu/yaru) |

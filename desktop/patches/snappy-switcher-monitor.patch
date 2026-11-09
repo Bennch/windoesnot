@@ -1,0 +1,295 @@
+--- a/src/main.c
++++ b/src/main.c
+@@ -43,7 +43,17 @@
+ struct zwlr_layer_shell_v1 *layer_shell = NULL;
+ struct wl_surface *surface = NULL;
+ struct zwlr_layer_surface_v1 *layer_surface = NULL;
+-struct wl_output *output = NULL;
++/* All known outputs; the panel is pinned to the one named by config->monitor. */
++#define MAX_OUTPUTS 16
++struct output_info {
++  struct wl_output *wl;
++  uint32_t global_name;
++  char name[64];
++  int scale;
++};
++static struct output_info outputs[MAX_OUTPUTS];
++static int output_count = 0;
++static struct wl_output *panel_output = NULL; /* output the panel was created on */
+ struct wl_seat *seat = NULL;
+ 
+ int output_scale = 1;
+@@ -102,12 +112,15 @@
+   }
+ }
+ 
++static void destroy_panel(void);
++
+ static void layer_surface_closed(void *data,
+                                  struct zwlr_layer_surface_v1 *layer_surf) {
+   (void)data;
+   (void)layer_surf;
+-  LOG("Layer surface closed by compositor");
+-  should_quit = 1;
++  LOG("Layer surface closed by compositor (output removed?)");
++  /* Not fatal: the panel is re-created on its wanted output on next show. */
++  destroy_panel();
+ }
+ 
+ static const struct zwlr_layer_surface_v1_listener layer_surface_listener = {
+@@ -137,31 +150,18 @@
+     .name = seat_name,
+ };
+ 
+-/* --- wl_output listener (HiDPI scale tracking) --- */
++/* --- wl_output listener (name + HiDPI scale tracking per output) --- */
+ static void output_geometry(void *data, struct wl_output *wl_output, int32_t x,
+                             int32_t y, int32_t pw, int32_t ph, int32_t subpx,
+                             const char *make, const char *model,
+                             int32_t transform) {
+-  (void)data;
+-  (void)wl_output;
+-  (void)x;
+-  (void)y;
+-  (void)pw;
+-  (void)ph;
+-  (void)subpx;
+-  (void)make;
+-  (void)model;
+-  (void)transform;
++  (void)data; (void)wl_output; (void)x; (void)y; (void)pw; (void)ph;
++  (void)subpx; (void)make; (void)model; (void)transform;
+ }
+ 
+ static void output_mode(void *data, struct wl_output *wl_output, uint32_t flags,
+                         int32_t w, int32_t h, int32_t refresh) {
+-  (void)data;
+-  (void)wl_output;
+-  (void)flags;
+-  (void)w;
+-  (void)h;
+-  (void)refresh;
++  (void)data; (void)wl_output; (void)flags; (void)w; (void)h; (void)refresh;
+ }
+ 
+ static void output_done(void *data, struct wl_output *wl_output) {
+@@ -171,25 +171,53 @@
+ 
+ static void output_scale_event(void *data, struct wl_output *wl_output,
+                                int32_t factor) {
+-  (void)data;
+-  (void)wl_output;
++  struct output_info *info = data;
+   if (factor >= 1) {
+-    output_scale = factor;
+-    LOG("Output scale: %d", output_scale);
++    info->scale = factor;
++    if (wl_output == panel_output)
++      output_scale = factor;
++    LOG("Output %s scale: %d", info->name[0] ? info->name : "?", factor);
+   }
+ }
+ 
++static void output_name_event(void *data, struct wl_output *wl_output,
++                              const char *name) {
++  (void)wl_output;
++  struct output_info *info = data;
++  strncpy(info->name, name, sizeof(info->name) - 1);
++  info->name[sizeof(info->name) - 1] = '\0';
++  LOG("Output name: %s", info->name);
++}
++
++static void output_description_event(void *data, struct wl_output *wl_output,
++                                     const char *description) {
++  (void)data; (void)wl_output; (void)description;
++}
++
+ static const struct wl_output_listener output_listener = {
+     .geometry = output_geometry,
+     .mode = output_mode,
+     .done = output_done,
+     .scale = output_scale_event,
++    .name = output_name_event,
++    .description = output_description_event,
+ };
+ 
++/* Output the panel should live on: config->monitor by name, or NULL to let
++ * the compositor choose (focused monitor). An unplugged monitor falls back
++ * to NULL as well. */
++static struct output_info *desired_output(void) {
++  if (!config || !config->monitor[0])
++    return NULL;
++  for (int i = 0; i < output_count; i++)
++    if (outputs[i].wl && strcmp(outputs[i].name, config->monitor) == 0)
++      return &outputs[i];
++  return NULL;
++}
++
+ static void registry_global(void *data, struct wl_registry *registry,
+                             uint32_t name, const char *interface,
+                             uint32_t version) {
+-  (void)version;
+   AppState *state = (AppState *)data;
+ 
+   if (strcmp(interface, wl_compositor_interface.name) == 0)
+@@ -203,8 +231,17 @@
+     seat = wl_registry_bind(registry, name, &wl_seat_interface, 4);
+     wl_seat_add_listener(seat, &seat_listener, state);
+   } else if (strcmp(interface, wl_output_interface.name) == 0) {
+-    output = wl_registry_bind(registry, name, &wl_output_interface, 3);
+-    wl_output_add_listener(output, &output_listener, NULL);
++    if (output_count < MAX_OUTPUTS) {
++      struct output_info *info = &outputs[output_count];
++      memset(info, 0, sizeof(*info));
++      info->global_name = name;
++      info->scale = 1;
++      /* v4 adds the connector name event */
++      info->wl = wl_registry_bind(registry, name, &wl_output_interface,
++                                  version >= 4 ? 4 : (version >= 3 ? 3 : version));
++      wl_output_add_listener(info->wl, &output_listener, info);
++      output_count++;
++    }
+   }
+ }
+ 
+@@ -212,7 +249,18 @@
+                                    uint32_t name) {
+   (void)data;
+   (void)registry;
+-  (void)name;
++  for (int i = 0; i < output_count; i++) {
++    if (outputs[i].global_name != name)
++      continue;
++    if (outputs[i].wl == panel_output)
++      panel_output = NULL; /* compositor destroys the layer surface itself */
++    if (outputs[i].wl)
++      wl_output_release(outputs[i].wl);
++    outputs[i] = outputs[output_count - 1];
++    memset(&outputs[output_count - 1], 0, sizeof(outputs[0]));
++    output_count--;
++    break;
++  }
+ }
+ 
+ static const struct wl_registry_listener registry_listener = {
+@@ -246,8 +294,17 @@
+     return;
+   }
+ 
++  struct output_info *target = desired_output();
++  panel_output = target ? target->wl : NULL;
++  if (target) {
++    output_scale = target->scale;
++    LOG("Panel output: %s", target->name);
++  } else if (output_count > 0) {
++    output_scale = outputs[output_count - 1].scale; /* previous behaviour */
++  }
++
+   layer_surface = zwlr_layer_shell_v1_get_layer_surface(
+-      layer_shell, surface, NULL, ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
++      layer_shell, surface, panel_output, ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
+       "snappy-switcher");
+   if (!layer_surface) {
+     LOG("Failed to create layer surface");
+@@ -301,7 +358,7 @@
+ 
+   if (config && config->follow_monitor) {
+     destroy_panel();
+-  } else {
++  } else if (surface) {
+     /* Force a fresh configure on the next show, even if its card count and
+      * dimensions are unchanged. Otherwise no buffer is attached on remap. */
+     zwlr_layer_surface_v1_set_size(layer_surface, 1, 1);
+@@ -315,7 +372,7 @@
+ static void show_switcher(bool is_linear) {
+   LOG("Showing switcher...");
+ 
+-  if (config && config->follow_monitor && !surface) {
++  if (!surface) {
+     create_panel();
+     if (!surface) {
+       LOG("Failed to create panel");
+@@ -325,6 +382,20 @@
+     return;
+   }
+ 
++  /* The wanted monitor can change at runtime (Settings primary monitor,
++   * hotplug, config reload): re-create the persistent panel on it. */
++  if (surface && !(config && config->follow_monitor)) {
++    struct output_info *want = desired_output();
++    if ((want ? want->wl : NULL) != panel_output) {
++      destroy_panel();
++      create_panel();
++      if (!surface || !layer_surface) {
++        LOG("Failed to re-create panel");
++        return;
++      }
++    }
++  }
++
+   input_reset_alt_state();
+ 
+   /* Preserve filter_workspace across state reset — it was set by
+@@ -811,20 +882,15 @@
+     return 1;
+   }
+ 
+-  /* 5. Surface Setup */
+-  surface = wl_compositor_create_surface(compositor);
+-  layer_surface = zwlr_layer_shell_v1_get_layer_surface(
+-      layer_shell, surface, NULL, ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
+-      "snappy-switcher");
+-  zwlr_layer_surface_v1_set_size(layer_surface, 1,
+-                                 1); /* Minimal initial size */
+-  zwlr_layer_surface_v1_set_anchor(layer_surface, 0);
+-  zwlr_layer_surface_v1_set_keyboard_interactivity(
+-      layer_surface, ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
+-  zwlr_layer_surface_v1_add_listener(layer_surface, &layer_surface_listener,
+-                                     NULL);
+-  wl_surface_commit(surface);
++  /* 5. Surface Setup (names/scales of all outputs arrive in one more
++   * roundtrip after binding; the panel is then pinned to config->monitor). */
+   wl_display_roundtrip(display);
++  create_panel();
++  if (!surface || !layer_surface) {
++    LOG("Failed to create panel");
++    backend_cleanup(backend);
++    return 1;
++  }
+ 
+   /* 6. Socket Server */
+   socket_fd = init_server();
+@@ -1025,8 +1091,9 @@
+     wl_surface_destroy(surface);
+   if (keyboard)
+     wl_keyboard_destroy(keyboard);
+-  if (output)
+-    wl_output_destroy(output);
++  for (int i = 0; i < output_count; i++)
++    if (outputs[i].wl)
++      wl_output_destroy(outputs[i].wl);
+   if (seat)
+     wl_seat_destroy(seat);
+   if (registry)
+--- a/src/config.c
++++ b/src/config.c
+@@ -104,6 +104,9 @@
+     } else if (strcasecmp(key, "follow_monitor") == 0) {
+       cfg->follow_monitor =
+           (strcasecmp(val, "true") == 0 || strcmp(val, "1") == 0);
++    } else if (strcasecmp(key, "monitor") == 0) {
++      strncpy(cfg->monitor, val, sizeof(cfg->monitor) - 1);
++      cfg->monitor[sizeof(cfg->monitor) - 1] = '\0';
+     } else if (strcasecmp(key, "show_workspace_badge") == 0) {
+       cfg->show_workspace_badge =
+           (strcasecmp(val, "true") == 0 || strcmp(val, "1") == 0);
+--- a/src/config.h
++++ b/src/config.h
+@@ -57,6 +57,7 @@
+ 
+   /* View Mode */
+   bool follow_monitor;
++  char monitor[64]; /* wl_output name (e.g. DP-2); empty = compositor choice */
+   bool show_workspace_badge;
+   ViewMode mode;
+   bool sticky_mode;

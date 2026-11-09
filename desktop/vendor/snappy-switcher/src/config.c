@@ -17,16 +17,25 @@
 static void set_defaults(Config *cfg) {
   cfg->mode = MODE_CONTEXT;
   cfg->follow_monitor = false;
-
-  /* Default Theme Colors */
-  cfg->background = 0x1e1e2e;
-  cfg->card_bg = 0x313244;
-  cfg->card_selected = 0x45475a;
-  cfg->text_color = 0xcdd6f4;
-  cfg->subtext_color = 0xa6adc8;
-  cfg->border_color = 0x89b4fa;
-  cfg->border_width = 2;
-  cfg->card_radius = 12;
+  cfg->show_workspace_badge = true;
+  cfg->sticky_mode = false;
+  cfg->ignore_pinned = false;
+  cfg->ignore_special = true;
+  /* Default Fallback / Debug Colors (0xRRGGBBAA) */
+  cfg->background = 0xff0000ff;
+  cfg->card_bg = 0x0000ffff;
+  cfg->card_selected = 0xff8800ff;
+  cfg->text_color = 0xffffffff;
+  cfg->subtext_color = 0xffff00ff;
+  cfg->border_color = 0x00ff00ff;
+  cfg->bundle_bg = 0xff00ffff;
+  cfg->badge_bg = 0x00ffffff;
+  cfg->badge_text_color = 0xff0000ff;
+  cfg->badge_bg_selected = 0xaa00ffff;
+  cfg->badge_text_color_selected = 0xffff00ff;
+  cfg->border_width = 1;
+  cfg->card_border_width = 2;
+  cfg->card_radius = 15;
 
   /* Layout */
   cfg->card_width = 160;
@@ -37,8 +46,13 @@ static void set_defaults(Config *cfg) {
 
   /* Icons */
   cfg->icon_size = 56;
-  cfg->icon_radius = 12;
+  cfg->icon_radius = 15;
   cfg->icon_letter_size = 24;
+
+  /* Error banner */
+  // cfg->error_width = 480;
+  // cfg->error_height = 160;
+  cfg->error_font_size = 13;
   strncpy(cfg->icon_theme, "Tela-dracula", sizeof(cfg->icon_theme) - 1);
   strncpy(cfg->icon_fallback, "Tela-circle-dracula",
           sizeof(cfg->icon_fallback) - 1);
@@ -50,13 +64,17 @@ static void set_defaults(Config *cfg) {
   cfg->title_size = 10;
 }
 
-/* --- Hex Color Helper --- */
+/* --- Hex Color Helper (supports #RRGGBB and #RRGGBBAA) --- */
 static uint32_t parse_hex_color(const char *str) {
   if (!str)
     return 0;
   if (str[0] == '#')
     str++;
-  return (uint32_t)strtoul(str, NULL, 16);
+  uint32_t val = (uint32_t)strtoul(str, NULL, 16);
+  size_t len = strlen(str);
+  if (len <= 6)
+    val = (val << 8) | 0xFF; /* RGB -> RGBA (fully opaque) */
+  return val;
 }
 
 /* --- String Trimming --- */
@@ -86,6 +104,21 @@ static void apply_value(Config *cfg, const char *section, const char *key,
     } else if (strcasecmp(key, "follow_monitor") == 0) {
       cfg->follow_monitor =
           (strcasecmp(val, "true") == 0 || strcmp(val, "1") == 0);
+    } else if (strcasecmp(key, "monitor") == 0) {
+      strncpy(cfg->monitor, val, sizeof(cfg->monitor) - 1);
+      cfg->monitor[sizeof(cfg->monitor) - 1] = '\0';
+    } else if (strcasecmp(key, "show_workspace_badge") == 0) {
+      cfg->show_workspace_badge =
+          (strcasecmp(val, "true") == 0 || strcmp(val, "1") == 0);
+    } else if (strcasecmp(key, "sticky_mode") == 0) {
+      cfg->sticky_mode =
+          (strcasecmp(val, "true") == 0 || strcmp(val, "1") == 0);
+    } else if (strcasecmp(key, "ignore_pinned") == 0) {
+      cfg->ignore_pinned =
+          (strcasecmp(val, "true") == 0 || strcmp(val, "1") == 0);
+    } else if (strcasecmp(key, "ignore_special") == 0) {
+      cfg->ignore_special =
+          (strcasecmp(val, "true") == 0 || strcmp(val, "1") == 0);
     }
   }
   /* Colors (from theme or manual override) */
@@ -103,8 +136,22 @@ static void apply_value(Config *cfg, const char *section, const char *key,
       cfg->subtext_color = parse_hex_color(val);
     else if (strcasecmp(key, "border_color") == 0)
       cfg->border_color = parse_hex_color(val);
-    else if (strcasecmp(key, "border_width") == 0)
+    else if (strcasecmp(key, "bundle_bg") == 0)
+      cfg->bundle_bg = parse_hex_color(val);
+    else if (strcasecmp(key, "badge_bg") == 0)
+      cfg->badge_bg = parse_hex_color(val);
+    else if (strcasecmp(key, "badge_text_color") == 0)
+      cfg->badge_text_color = parse_hex_color(val);
+    else if (strcasecmp(key, "badge_bg_selected") == 0) {
+      cfg->badge_bg_selected = parse_hex_color(val);
+      cfg->has_badge_bg_selected = true;
+    } else if (strcasecmp(key, "badge_text_color_selected") == 0) {
+      cfg->badge_text_color_selected = parse_hex_color(val);
+      cfg->has_badge_text_color_selected = true;
+    } else if (strcasecmp(key, "border_width") == 0)
       cfg->border_width = atoi(val);
+    else if (strcasecmp(key, "card_border_width") == 0)
+      cfg->card_border_width = atoi(val);
     else if (strcasecmp(key, "corner_radius") == 0)
       cfg->card_radius = atoi(val);
   }
@@ -124,6 +171,12 @@ static void apply_value(Config *cfg, const char *section, const char *key,
       cfg->icon_size = atoi(val);
     else if (strcasecmp(key, "icon_radius") == 0)
       cfg->icon_radius = atoi(val);
+    // else if (strcasecmp(key, "error_width") == 0)
+    // cfg->error_width = atoi(val);
+    // else if (strcasecmp(key, "error_height") == 0)
+    // cfg->error_height = atoi(val);
+    else if (strcasecmp(key, "error_font_size") == 0)
+      cfg->error_font_size = atoi(val);
   }
   /* Icons */
   else if (strcasecmp(section, "icons") == 0) {
@@ -300,7 +353,7 @@ static void create_default_config(const char *path) {
 }
 
 /* --- Main Config Loader --- */
-Config *load_config(void) {
+Config *load_config_from(const char *path) {
   Config *cfg = malloc(sizeof(Config));
   if (!cfg)
     return NULL;
@@ -308,38 +361,47 @@ Config *load_config(void) {
 
   set_defaults(cfg);
 
-  const char *home = getenv("HOME");
-  if (!home)
-    return cfg;
-
   char config_path[1024];
-  snprintf(config_path, sizeof(config_path),
-           "%s/.config/snappy-switcher/config.ini", home);
+  bool use_default_search = (path == NULL || path[0] == '\0');
+
+  if (use_default_search) {
+    const char *home = getenv("HOME");
+    if (!home)
+      return cfg;
+    snprintf(config_path, sizeof(config_path),
+             "%s/.config/snappy-switcher/config.ini", home);
+    path = config_path;
+  } else {
+    strncpy(config_path, path, sizeof(config_path) - 1);
+    config_path[sizeof(config_path) - 1] = '\0';
+  }
 
   /* First Pass: Read config and extract theme name */
   char theme_name[256] = "";
-  if (parse_ini_file(config_path, cfg, theme_name, sizeof(theme_name)) < 0) {
-    /* Try system config */
-    if (parse_ini_file("/etc/xdg/snappy-switcher/config.ini", cfg, theme_name,
-                       sizeof(theme_name)) < 0) {
-      /* Self-Healing: Create default config file */
-      create_default_config(config_path);
+  if (parse_ini_file(path, cfg, theme_name, sizeof(theme_name)) < 0) {
+    if (use_default_search) {
+      /* Try system config */
+      if (parse_ini_file("/etc/xdg/snappy-switcher/config.ini", cfg, theme_name,
+                         sizeof(theme_name)) < 0) {
+        create_default_config(config_path);
+        strncpy(theme_name, "snappy-slate.ini", sizeof(theme_name) - 1);
+        LOG("Using defaults with snappy-slate theme");
+      }
+    } else {
+      LOG("Config file not found: %s (using defaults)", path);
       strncpy(theme_name, "snappy-slate.ini", sizeof(theme_name) - 1);
-      LOG("Using defaults with snappy-slate theme");
     }
   }
 
-  /* Load Theme File (if specified) */
-  if (theme_name[0] != '\0') {
+  if (theme_name[0] != '\0')
     load_theme(theme_name, cfg);
-  }
 
-  /* Second Pass: Re-parse config to apply overrides */
-  /* This allows users to override specific theme colors in config.ini */
-  parse_ini_file(config_path, cfg, NULL, 0);
+  parse_ini_file(path, cfg, NULL, 0);
 
   return cfg;
 }
+
+Config *load_config(void) { return load_config_from(NULL); }
 
 Config *get_default_config(void) {
   Config *cfg = malloc(sizeof(Config));
@@ -352,8 +414,9 @@ Config *get_default_config(void) {
 
 void free_config(Config *cfg) { free(cfg); }
 
-void color_to_rgb(uint32_t color, double *r, double *g, double *b) {
-  *r = ((color >> 16) & 0xFF) / 255.0;
-  *g = ((color >> 8) & 0xFF) / 255.0;
-  *b = (color & 0xFF) / 255.0;
+void color_to_rgba(uint32_t color, double *r, double *g, double *b, double *a) {
+  *r = ((color >> 24) & 0xFF) / 255.0;
+  *g = ((color >> 16) & 0xFF) / 255.0;
+  *b = ((color >> 8) & 0xFF) / 255.0;
+  *a = (color & 0xFF) / 255.0;
 }
