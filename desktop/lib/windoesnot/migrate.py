@@ -90,7 +90,9 @@ def measure(path):
             flags = warning_flags(Path(base) / name)
             if flags:
                 dirs.remove(name)
-                warnings.update(flags)
+                # Windows' legacy junctions point at folders measured and copied separately.
+                if name not in LEGACY_JUNCTIONS:
+                    warnings.update(flags)
         for name in files:
             item = Path(base) / name
             flags = warning_flags(item)
