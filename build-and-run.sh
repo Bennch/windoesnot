@@ -3,7 +3,7 @@
 set -euo pipefail
 project=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 rootless=true; mode=both; iso=; dry=false; headless=false; fresh=false; installed=false
-memory=8192; cpus=4; graphics=auto; vm_name=debug; build_id=
+memory=8192; cpus=4; graphics=auto; vm_name=debug; build_id=; extra_disk=
 language=en
 usage() {
     cat <<EOF
@@ -16,6 +16,7 @@ Usage: $0 [options]
   --headless            No GUI; serial log and QMP socket in vm/<name>/
   --fresh-vm            New VM directory; preserve the previous disk
   --vm-name NAME        VM directory (default: debug)
+  --extra-disk FILE     Attach a qcow2 image as a second disk (e.g. a previous Windows system)
   --memory MiB          RAM (default: 8192)
   --cpus N              vCPUs (default: 4)
   --graphics gl|soft    VirGL acceleration or software rendering
@@ -36,6 +37,7 @@ while (($#)); do
         --headless) headless=true; shift;;
         --fresh-vm) fresh=true; shift;;
         --vm-name) vm_name=${2:?Missing name}; shift 2;;
+        --extra-disk) extra_disk=${2:?Missing disk image}; shift 2;;
         --memory) memory=${2:?Missing memory}; shift 2;;
         --cpus) cpus=${2:?Missing CPU count}; shift 2;;
         --graphics) graphics=${2:?Missing graphics mode}; shift 2;;
@@ -146,6 +148,7 @@ command=(qemu-system-x86_64 -name "WinDoesNot-$vm_name" -machine q35 "${accel[@]
     -drive "if=pflash,format=raw,readonly=on,file=$firmware"
     -drive "if=pflash,format=raw,file=$vm/OVMF_VARS.fd"
     -drive "file=$disk,if=virtio,format=qcow2"
+    ${extra_disk:+-drive "file=$extra_disk,if=virtio,format=qcow2"}
     "${display[@]}" -device qemu-xhci -device usb-tablet
     -netdev user,id=net0 -device virtio-net-pci,netdev=net0
     -device virtio-rng-pci
