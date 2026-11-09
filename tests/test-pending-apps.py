@@ -60,7 +60,7 @@ with tempfile.TemporaryDirectory() as temp:
     desktop = home / '.local/share/applications/windoesnot-webapp-netflix.desktop'
     subprocess.run([sys.executable, tool, '--no-wait'], env=env, check=True)   # no browser in PATH: Firefox fallback
     text = desktop.read_text()
-    assert 'Exec=firefox --new-window https://www.netflix.com/' in text and 'X-WinDoesNot-WebApp=true' in text, text
+    assert '--new-window https://www.netflix.com/' in text and 'StartupWMClass=windoesnot-webapp-netflix' in text and 'Icon=/' in text and 'X-WinDoesNot-WebApp=true' in text, text
     assert (home / '.local/share/applications/windoesnot-webapp-youtube.desktop').is_file()
     assert not list((home / '.local/share/applications').glob('*evil*')), 'unknown ids never create launchers'
     guide = (home / '.local/share/applications/windoesnot-link-gta2-rtx-remix-guide.desktop').read_text()
