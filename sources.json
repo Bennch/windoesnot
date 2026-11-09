@@ -57,7 +57,7 @@
   "windoesnot-graphics": {
     "url": "https://github.com/Bennch/windoesnot-graphics",
     "path": "graphics",
-    "commit": "f6aa6cd897cc09696d1d1b7bf6cbb38875af42fb",
+    "commit": "bb939cc1e4301b7483f3767f24ffe74ff6322e8c",
     "upstream": "https://github.com/ilya-zlobintsev/LACT",
     "upstream_commit": "30dc182391e2c002f6f7c988e76aa477a4772aa2"
   }
