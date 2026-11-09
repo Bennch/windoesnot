@@ -13,7 +13,7 @@ typedef struct {
   BackendType type;
   int (*init)(void);
   void (*cleanup)(void);
-  int (*get_windows)(AppState *state, Config *config);
+  int (*get_windows)(AppState *state, Config *config, bool is_linear);
   void (*activate_window)(const char *identifier);
   const char *(*get_name)(void);
 } Backend;

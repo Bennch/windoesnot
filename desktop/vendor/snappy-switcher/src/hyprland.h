@@ -13,10 +13,11 @@ void app_state_free(AppState *state);
 
 /*
  * Update window list from Hyprland.
- * Populates state with windows, sorted by MRU.
+ * Populates state with windows, sorted by MRU (default) or
+ * by workspace_id/address when is_linear is true.
  * Handles aggregation if Mode == CONTEXT.
  */
-int update_window_list(AppState *state, Config *config);
+int update_window_list(AppState *state, Config *cfg, bool is_linear);
 
 /* Switch focus to window address */
 void switch_to_window(const char *address);

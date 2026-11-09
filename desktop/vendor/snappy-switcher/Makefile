@@ -1,4 +1,4 @@
-# Makefile - Snappy Switcher v2.1.2
+# Makefile - Snappy Switcher v4.5.0
 CC = gcc
 PKG_CFLAGS = $(shell pkg-config --cflags wayland-client cairo pango pangocairo json-c xkbcommon)
 PKG_LIBS = $(shell pkg-config --libs wayland-client wayland-cursor cairo pango pangocairo json-c xkbcommon glib-2.0 gobject-2.0)
@@ -27,13 +27,29 @@ DATADIR = $(PREFIX)/share/snappy-switcher
 DOCDIR = $(PREFIX)/share/doc/snappy-switcher
 SYSCONFDIR = /etc/xdg/snappy-switcher
 
+# Systemd auto-detection: install service file only when systemd is available
+HAS_SYSTEMD := $(shell pkg-config --exists systemd 2>/dev/null && echo yes)
+ifeq ($(HAS_SYSTEMD),yes)
+  SYSTEMD_USER_UNIT_DIR ?= $(shell pkg-config --variable=systemd_user_unit_dir systemd 2>/dev/null)
+  # Fallback if pkg-config returns empty
+  ifeq ($(strip $(SYSTEMD_USER_UNIT_DIR)),)
+    SYSTEMD_USER_UNIT_DIR = $(PREFIX)/lib/systemd/user
+  endif
+endif
+
 # Source files
 SRC = src/main.c src/hyprland.c src/render.c src/input.c src/config.c src/icons.c src/socket.c src/backend.c src/wlr_backend.c
 OBJ = $(SRC:.c=.o) src/xdg-shell-protocol.o src/wlr-layer-shell-unstable-v1-protocol.o src/wlr-foreign-toplevel-management-unstable-v1-protocol.o
 TARGET = snappy-switcher
 
 # Protocol Paths
-WAYLAND_PROTOCOLS_DIR = $(shell pkg-config --variable=pkgdatadir wayland-protocols)
+# Ask pkg-config for the path, but fallback to the standard Linux path if it fails
+WAYLAND_PROTOCOLS_DIR_PKG := $(shell pkg-config --variable=pkgdatadir wayland-protocols 2>/dev/null)
+ifeq ($(strip $(WAYLAND_PROTOCOLS_DIR_PKG)),)
+    WAYLAND_PROTOCOLS_DIR = /usr/share/wayland-protocols
+else
+    WAYLAND_PROTOCOLS_DIR = $(WAYLAND_PROTOCOLS_DIR_PKG)
+endif
 WAYLAND_SCANNER = $(shell pkg-config --variable=wayland_scanner wayland-scanner)
 XDG_SHELL_XML = $(WAYLAND_PROTOCOLS_DIR)/stable/xdg-shell/xdg-shell.xml
 LAYER_SHELL_XML = protocol/wlr-layer-shell-unstable-v1.xml
@@ -81,7 +97,7 @@ src/%.o: src/%.c
 # ═══════════════════════════════════════════════════════════════════════════
 install: $(TARGET)
 	@echo "╔═══════════════════════════════════════════════════════════════╗"
-	@echo "║           Installing Snappy Switcher v2.1.2                   ║"
+	@echo "║           Installing Snappy Switcher v4.5.0                   ║"
 	@echo "╚═══════════════════════════════════════════════════════════════╝"
 	@echo ""
 	@echo "Installing binaries to $(BINDIR)..."
@@ -104,6 +120,16 @@ install: $(TARGET)
 	@echo ""
 	@echo "Installing helper scripts..."
 	install -m 755 scripts/install-config.sh $(BINDIR)/snappy-install-config
+ifeq ($(HAS_SYSTEMD),yes)
+	@echo ""
+	@echo "Installing systemd user service to $(SYSTEMD_USER_UNIT_DIR)..."
+	install -d $(SYSTEMD_USER_UNIT_DIR)
+	install -m 644 snappy-switcher.service $(SYSTEMD_USER_UNIT_DIR)/snappy-switcher.service
+else
+	@echo ""
+	@echo "NOTE: systemd not detected — skipping service file installation."
+	@echo "      If you use systemd, install pkg-config's systemd module and re-run."
+endif
 	@echo ""
 	@echo "╔═══════════════════════════════════════════════════════════════╗"
 	@echo "║                   Installation Complete!                      ║"
@@ -114,10 +140,10 @@ install: $(TARGET)
 	@echo "  1. Setup your config:"
 	@echo "     snappy-install-config"
 	@echo ""
-	@echo "  2. Add to ~/.config/hypr/hyprland.conf:"
-	@echo "     exec-once = snappy-wrapper"
-	@echo "     bind = ALT, Tab, exec, snappy-switcher next"
-	@echo "     bind = ALT SHIFT, Tab, exec, snappy-switcher prev"
+	@echo "  2. Add to ~/.config/hypr/hyprland.lua:"
+	@echo "     hl.on(\"hyprland.start\", function() hl.dispatch(hl.dsp.exec_cmd(\"snappy-wrapper\")) end)"
+	@echo "     hl.bind(\"ALT + Tab\", hl.dsp.exec_cmd(\"snappy-switcher next --mod alt\"))"
+	@echo "     hl.bind(\"ALT + SHIFT + Tab\", hl.dsp.exec_cmd(\"snappy-switcher prev --mod alt\"))"
 	@echo ""
 	@echo "  3. (Optional) Choose a theme in ~/.config/snappy-switcher/config.ini"
 	@echo "     Available: snappy-slate, catppuccin-mocha, nord, dracula, etc."
@@ -133,6 +159,13 @@ install-user: $(TARGET)
 	@if [ ! -f $(HOME)/.config/snappy-switcher/config.ini ]; then \
 		install -m 644 config.ini.example $(HOME)/.config/snappy-switcher/config.ini; \
 	fi
+ifeq ($(HAS_SYSTEMD),yes)
+	@echo "Installing systemd user service..."
+	install -d $(HOME)/.config/systemd/user
+	install -m 644 snappy-switcher.service $(HOME)/.config/systemd/user/snappy-switcher.service
+else
+	@echo "NOTE: systemd not detected — skipping service file."
+endif
 	@echo "User installation complete!"
 
 uninstall:
@@ -143,6 +176,9 @@ uninstall:
 	rm -rf $(DATADIR)
 	rm -rf $(DOCDIR)
 	rm -rf $(SYSCONFDIR)
+ifeq ($(HAS_SYSTEMD),yes)
+	rm -f $(SYSTEMD_USER_UNIT_DIR)/snappy-switcher.service
+endif
 	@echo "Done! (User config in ~/.config/snappy-switcher was NOT removed)"
 
 clean:

@@ -107,16 +107,11 @@ SWAYNC_STYLE = SWAYNC_DIR / "style.css"
 
 
 def update_snappy_config(accent_color, border_radius):
-    """Aktualisiert snappy-switcher config.ini mit Accent-Color und Border-Radius."""
-    if not SNAPPY_CONFIG.exists():
-        return
+    """Alt+Tab-Switcher an Akzent/Radius anpassen (gemeinsamer Helfer, laedt den Daemon live neu)."""
     try:
-        import re
-        text = SNAPPY_CONFIG.read_text()
-        text = re.sub(r'^border_color\s*=.*$', f'border_color = {accent_color}', text, flags=re.MULTILINE)
-        text = re.sub(r'^corner_radius\s*=.*$', f'corner_radius = {border_radius}', text, flags=re.MULTILINE)
-        SNAPPY_CONFIG.write_text(text)
-        debug(f"snappy config: border_color={accent_color} corner_radius={border_radius}")
+        subprocess.run(["windoesnot-snappy-sync", "--accent", str(accent_color), "--radius", str(border_radius)],
+                       capture_output=True, timeout=10)
+        debug(f"snappy sync: accent={accent_color} radius={border_radius}")
     except Exception as e:
         print(f"snappy config update error: {e}", file=sys.stderr)
 

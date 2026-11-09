@@ -6,7 +6,7 @@
 #include <stdbool.h>
 
 /* Initialize icon cache and theme lookup */
-void icons_init(const char *theme_name, const char *fallback_theme);
+void icons_init(const char *theme_name, const char *fallback);
 
 /* Load an app icon by class name (returns NULL if not found) */
 cairo_surface_t *load_app_icon(const char *class_name, int size);

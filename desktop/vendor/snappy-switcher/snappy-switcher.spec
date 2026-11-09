@@ -1,8 +1,8 @@
-# RPM Spec File - Snappy Switcher v2.1.1
+# RPM Spec File - Snappy Switcher v3.2.0
 # For Fedora Copr / RHEL / openSUSE
 
 Name:           snappy-switcher
-Version:        2.1.1
+Version:        4.5.0
 Release:        1%{?dist}
 Summary:        A fast, animated Alt+Tab window switcher for Hyprland
 
@@ -66,7 +66,7 @@ install -Dpm 644 docs/ARCHITECTURE.md %{buildroot}%{_docdir}/%{name}/ARCHITECTUR
 install -Dpm 644 docs/CONFIGURATION.md %{buildroot}%{_docdir}/%{name}/CONFIGURATION.md
 install -Dpm 644 config.ini.example %{buildroot}%{_docdir}/%{name}/config.ini.example
 
-# Systemd user service (optional)
+# Systemd user service
 install -Dpm 644 snappy-switcher.service %{buildroot}%{_userunitdir}/snappy-switcher.service
 
 %files
@@ -91,14 +91,13 @@ install -Dpm 644 snappy-switcher.service %{buildroot}%{_userunitdir}/snappy-swit
 %doc %{_docdir}/%{name}/CONFIGURATION.md
 %doc %{_docdir}/%{name}/config.ini.example
 
-# Systemd service
+# Systemd user service
 %{_userunitdir}/snappy-switcher.service
 
 %changelog
-* Thu Feb 06 2026 Opal Aayan <YougurtMyFace@proton.me> - 2.1.1-1
-- Maintenance release: Fix Nix build, buffer safety, and doc updates.
-- Initial RPM release
-- SVG icon loading improvements for Flatpak apps
-- Added class name mapping for edge-case applications
-- Full theme support with 11 built-in themes
+* Wed Jun 03 2026 OpalAayan <YougurtMyFace@proton.me> - 4.5.0
+- Added support for latest/Old Hyprland
+- Fixed Dispatch
+- Made this Alt Tab switcher to window switcher
+- did something cant remember 
 
