@@ -13,7 +13,7 @@ from pathlib import Path
 import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gtk4LayerShell", "1.0")
-from gi.repository import Gtk, Gdk, Gtk4LayerShell, Pango, GLib, Graphene, Gio
+from gi.repository import Gtk, Gdk, Gtk4LayerShell, Pango, GLib, GObject, Graphene, Gio
 
 APP_ID = "hyprdesk"
 CONFIG_DIR = Path.home() / ".config" / APP_ID
@@ -71,6 +71,12 @@ _TR = {
         "new_document_name":"Neues Dokument",
         "kino_modus":       "Kino-Modus",
         "kino_stop":        "Kino-Modus beenden",
+        "copy":             "Kopieren",
+        "cut":              "Ausschneiden",
+        "paste":            "Einfügen",
+        "transfer_failed":  "„{name}“ konnte nicht übernommen werden: {error}",
+        "transfer_self":    "„{name}“ kann nicht in sich selbst eingefügt werden.",
+        "transfer_missing": "„{name}“ existiert nicht mehr.",
     },
     "en": {
         "trash":            "Trash",
@@ -91,6 +97,12 @@ _TR = {
         "new_document_name":"New Document",
         "kino_modus":       "Cinema Mode",
         "kino_stop":        "Exit Cinema Mode",
+        "copy":             "Copy",
+        "cut":              "Cut",
+        "paste":            "Paste",
+        "transfer_failed":  "Could not transfer \u201c{name}\u201d: {error}",
+        "transfer_self":    "\u201c{name}\u201d cannot be pasted into itself.",
+        "transfer_missing": "\u201c{name}\u201d no longer exists.",
     },
 }
 
@@ -588,6 +600,301 @@ def launch_command(cmd):
     except Exception as e:
         debug(f"launch failed {cmd}: {e}", file=sys.stderr)
 
+# ---------------------------------------------------------------------------
+# Dateiaustausch (Zwischenablage / Ablegen): reine Logik ohne GTK
+# ---------------------------------------------------------------------------
+import re, errno, threading
+from urllib.parse import urlsplit, unquote
+
+GNOME_COPIED = "x-special/gnome-copied-files"
+URI_LIST = "text/uri-list"
+_PART_MARK = ".wdn-part"
+
+
+def unique_name(name, exists, is_dir=False):
+    """Freier Name im Nautilus-Stil: 'a.txt' -> 'a (2).txt', Ordner 'a' -> 'a (2)'.
+
+    exists(candidate) -> bool. Bestehende Namen werden nie ueberschrieben."""
+    if not exists(name):
+        return name
+    stem, ext = name, ""
+    if not is_dir:
+        m = re.search(r"\.tar\.[A-Za-z0-9]+$", name)
+        if m:
+            stem, ext = name[:m.start()], name[m.start():]
+        else:
+            stem, ext = os.path.splitext(name)
+    n = 2
+    m = re.match(r"^(.*) \((\d+)\)$", stem)
+    if m and m.group(1):
+        stem, n = m.group(1), int(m.group(2)) + 1
+    while True:
+        candidate = f"{stem} ({n}){ext}"
+        if not exists(candidate):
+            return candidate
+        n += 1
+
+
+def uri_to_path(uri):
+    """file://-URI eines lokalen Pfads -> Path, sonst None (kein Netzwerk, kein NUL, nur absolut)."""
+    try:
+        parts = urlsplit(uri.strip())
+    except ValueError:
+        return None
+    if parts.scheme.lower() != "file" or parts.netloc not in ("", "localhost"):
+        return None
+    path = unquote(parts.path)
+    if not path.startswith("/") or "\0" in path:
+        return None
+    return Path(os.path.normpath(path))
+
+
+def parse_uri_list(text):
+    """text/uri-list (Zeilen, # = Kommentar) -> Liste lokaler Pfade."""
+    if isinstance(text, (bytes, bytearray)):
+        text = bytes(text).decode("utf-8", "replace")
+    paths = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        p = uri_to_path(line)
+        if p is not None:
+            paths.append(p)
+    return paths
+
+
+def parse_gnome_copied(data):
+    """'x-special/gnome-copied-files' -> (aktion, [Pfade]); aktion 'copy' oder 'cut'."""
+    if isinstance(data, (bytes, bytearray)):
+        data = bytes(data).decode("utf-8", "replace")
+    lines = data.replace("\r\n", "\n").split("\n")
+    action = "copy"
+    if lines and lines[0].strip().lower() in ("copy", "cut", "link"):
+        action = "cut" if lines[0].strip().lower() == "cut" else "copy"
+        lines = lines[1:]
+    return action, parse_uri_list("\n".join(lines))
+
+
+def build_gnome_copied(action, paths):
+    """('cut'|'copy', Pfade) -> 'cut\\nfile:///...' (ohne abschliessenden Zeilenumbruch, wie Nautilus)."""
+    uris = [Path(p).absolute().as_uri() for p in paths]
+    return ("cut" if action == "cut" else "copy") + "".join("\n" + u for u in uris)
+
+
+def build_uri_list(paths):
+    return "".join(Path(p).absolute().as_uri() + "\r\n" for p in paths)
+
+
+def transfer_problem(src, dest_dir, move=False):
+    """None wenn src nach dest_dir uebernommen werden darf, sonst 'missing', 'self' oder 'same'.
+
+    'self': Ordner in sich selbst (oder einen Unterordner); 'same': Verschieben ins gleiche Verzeichnis (No-op, still).
+    Kopieren ins gleiche Verzeichnis ist erlaubt und ergibt 'name (2)'."""
+    src, dest_dir = Path(src), Path(dest_dir)
+    if not os.path.lexists(src):
+        return "missing"
+    real_dest = Path(os.path.realpath(dest_dir))
+    if os.path.isdir(src) and not os.path.islink(src):
+        real_src = Path(os.path.realpath(src))
+        if real_dest == real_src or real_src in real_dest.parents:
+            return "self"
+    if move and Path(os.path.realpath(src.parent)) == real_dest:
+        return "same"
+    return None
+
+
+def copy_tree(src, dst):
+    """Rekursiv kopieren ohne Symlinks aufzuloesen (Links bleiben Links). Fuer Worker-Threads gedacht."""
+    if os.path.islink(src):
+        os.symlink(os.readlink(src), dst)
+    elif os.path.isdir(src):
+        os.mkdir(dst)
+        with os.scandir(src) as it:
+            entries = list(it)
+        for e in entries:
+            copy_tree(e.path, os.path.join(dst, e.name))
+        try:
+            shutil.copystat(src, dst, follow_symlinks=False)
+        except OSError:
+            pass
+    elif os.path.isfile(src):
+        shutil.copy2(src, dst, follow_symlinks=False)
+    # Sockets, FIFOs, Geraete: bewusst uebersprungen
+
+
+def remove_tree(path):
+    if os.path.isdir(path) and not os.path.islink(path):
+        shutil.rmtree(path)
+    else:
+        os.unlink(path)
+
+
+def transfer_to_temp(src, tmp, move):
+    """Kopiert (oder verschiebt) src nach tmp. Verschieben: rename, ueber Dateisystemgrenzen Kopie+Loeschen."""
+    if move:
+        try:
+            os.rename(src, tmp)
+            return
+        except OSError as e:
+            if e.errno != errno.EXDEV:
+                raise
+    try:
+        copy_tree(src, tmp)
+    except BaseException:
+        try:
+            if os.path.lexists(tmp):
+                remove_tree(tmp)
+        except OSError:
+            pass
+        raise
+    if move:
+        remove_tree(src)
+
+
+def temp_path_for(dest_dir, name, index):
+    """Versteckter Zwischenname im Zielordner (gleiches Dateisystem, vom Desktop-Scan ignoriert)."""
+    return Path(dest_dir) / f".{name[:80]}.{os.getpid()}-{index}{_PART_MARK}"
+
+
+def notify_user(title, body):
+    """Desktop-Benachrichtigung ohne Shell, ohne UI-Blockade."""
+    env = os.environ.copy()
+    env.pop("LD_PRELOAD", None)
+    try:
+        subprocess.Popen(["notify-send", "-a", "WinDoesNot", "--", title, body], env=env,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    except Exception as e:
+        debug(f"notify failed: {e}")
+
+
+def clipboard_has_files():
+    """True wenn die Zwischenablage Dateien anbietet (GTK-FileList, Nautilus-Format oder URI-Liste)."""
+    try:
+        formats = Gdk.Display.get_default().get_clipboard().get_formats()
+        return (formats.contain_gtype(Gdk.FileList) or formats.contain_mime_type(GNOME_COPIED)
+                or formats.contain_mime_type(URI_LIST))
+    except Exception as e:
+        debug(f"clipboard check failed: {e}")
+        return False
+
+
+def clipboard_set_files(paths, cut):
+    """Dateien als FileList + x-special/gnome-copied-files + text/uri-list in die Zwischenablage legen."""
+    clipboard = Gdk.Display.get_default().get_clipboard()
+    fl = Gdk.FileList.new_from_list([Gio.File.new_for_path(str(p)) for p in paths])
+    value = GObject.Value()
+    value.init(Gdk.FileList)
+    value.set_boxed(fl)
+    providers = [
+        Gdk.ContentProvider.new_for_value(value),
+        Gdk.ContentProvider.new_for_bytes(
+            GNOME_COPIED, GLib.Bytes.new(build_gnome_copied("cut" if cut else "copy", paths).encode("utf-8"))),
+        Gdk.ContentProvider.new_for_bytes(
+            URI_LIST, GLib.Bytes.new(build_uri_list(paths).encode("utf-8"))),
+    ]
+    clipboard.set_content(Gdk.ContentProvider.new_union(providers))
+
+
+def _clipboard_read_bytes(clipboard, mime, callback, limit=4 * 1024 * 1024):
+    """Liest ein MIME-Format asynchron; callback(bytes | None)."""
+    def opened(clip, result):
+        try:
+            stream, _mime = clip.read_finish(result)
+        except GLib.Error:
+            callback(None)
+            return
+        chunks, total = [], [0]
+
+        def step(st, res):
+            try:
+                data = st.read_bytes_finish(res).get_data()
+            except GLib.Error:
+                callback(None)
+                return
+            if not data or total[0] > limit:
+                try:
+                    st.close_async(GLib.PRIORITY_DEFAULT, None, None, None)
+                except Exception:
+                    pass
+                callback(b"".join(chunks))
+                return
+            chunks.append(bytes(data))
+            total[0] += len(data)
+            st.read_bytes_async(65536, GLib.PRIORITY_DEFAULT, None, step)
+
+        stream.read_bytes_async(65536, GLib.PRIORITY_DEFAULT, None, step)
+
+    clipboard.read_async([mime], GLib.PRIORITY_DEFAULT, None, opened)
+
+
+def clipboard_read_files(callback):
+    """Liest Dateien aus der Zwischenablage. callback(aktion, [Path]) mit aktion 'copy'|'cut'.
+
+    Reihenfolge: Gdk.FileList bevorzugt, sonst gnome-copied-files, sonst text/uri-list.
+    Die Aktion (ausschneiden/kopieren) kommt immer aus gnome-copied-files, falls vorhanden."""
+    clipboard = Gdk.Display.get_default().get_clipboard()
+    formats = clipboard.get_formats()
+
+    def finish(action, paths):
+        seen, unique = set(), []
+        for p in paths:
+            if p not in seen:
+                seen.add(p)
+                unique.append(p)
+        callback(action, unique)
+
+    def from_uri_list(action):
+        if not formats.contain_mime_type(URI_LIST):
+            finish(action, [])
+            return
+        _clipboard_read_bytes(clipboard, URI_LIST,
+                              lambda data: finish(action, parse_uri_list(data) if data else []))
+
+    def with_action(action, gpaths):
+        def file_list_done(clip, result):
+            try:
+                value = clip.read_value_finish(result)
+                files = value.get_files() if value is not None else []
+            except Exception:
+                files = []
+            paths = []
+            for f in files:
+                if f.get_uri_scheme() == "file" and f.get_path():
+                    paths.append(Path(f.get_path()))
+            if paths:
+                finish(action, paths)
+            elif gpaths:
+                finish(action, gpaths)
+            else:
+                from_uri_list(action)
+
+        if formats.contain_gtype(Gdk.FileList):
+            clipboard.read_value_async(Gdk.FileList, GLib.PRIORITY_DEFAULT, None, file_list_done)
+        elif gpaths:
+            finish(action, gpaths)
+        else:
+            from_uri_list(action)
+
+    if formats.contain_mime_type(GNOME_COPIED):
+        def got(data):
+            if data:
+                action, gpaths = parse_gnome_copied(data)
+            else:
+                action, gpaths = "copy", []
+            with_action(action, gpaths)
+        _clipboard_read_bytes(clipboard, GNOME_COPIED, got)
+    else:
+        with_action("copy", [])
+
+
+def clipboard_clear():
+    try:
+        Gdk.Display.get_default().get_clipboard().set_content(None)
+    except Exception as e:
+        debug(f"clipboard clear failed: {e}")
+
+
 def context_menu_css(r, g, b, border_radius, dark):
     """CSS of the desktop context menu: light/dark, accent colour (r, g, b) and corner radius from the settings."""
     bg = "rgba(32, 32, 32, 0.95)" if dark else "rgba(243, 243, 243, 0.98)"
@@ -1009,7 +1316,9 @@ class DesktopIcon(Gtk.Box):
 
         # Multi-Selection-Menü
         _lang = getattr(self.manager.app, 'current_language', 'de')
+        can_copy = False
         if multiple_selected and self.selected:
+            can_copy = True
             menu.append(tr("delete_n", _lang, n=len(selected_icons)), "icon.delete_multiple")
         # Spezial-Menü für Papierkorb
         elif self.spec.get("is_trash"):
@@ -1017,10 +1326,16 @@ class DesktopIcon(Gtk.Box):
             menu.append(tr("empty", _lang), "icon.empty_trash")
             menu.append(tr("hide", _lang), "icon.hide_trash")
         else:
+            can_copy = True
             menu.append(tr("open", _lang), "icon.open")
             if "file_path" in self.spec:
                 menu.append(tr("rename", _lang), "icon.rename")
             menu.append(tr("delete", _lang), "icon.delete")
+        if can_copy:
+            copy_section = Gio.Menu()
+            copy_section.append(tr("copy", _lang), "icon.copy")
+            copy_section.append(tr("cut", _lang), "icon.cut")
+            menu.prepend_section(None, copy_section)
 
         # Actions definieren
         action_group = Gio.SimpleActionGroup()
@@ -1028,6 +1343,14 @@ class DesktopIcon(Gtk.Box):
         open_action = Gio.SimpleAction.new("open", None)
         open_action.connect("activate", lambda *args: launch_command(self.spec["cmd"]))
         action_group.add_action(open_action)
+
+        if can_copy:
+            copy_action = Gio.SimpleAction.new("copy", None)
+            copy_action.connect("activate", lambda *args: self.manager.copy_selection(False, fallback=self))
+            action_group.add_action(copy_action)
+            cut_action = Gio.SimpleAction.new("cut", None)
+            cut_action.connect("activate", lambda *args: self.manager.copy_selection(True, fallback=self))
+            action_group.add_action(cut_action)
 
         # Multi-Delete Action
         if multiple_selected and self.selected:
@@ -1450,7 +1773,7 @@ class MonitorWindow:
         self.setup_selection_area()
 
         # Drag & Drop Target einrichten
-        drop_target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
+        drop_target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY | Gdk.DragAction.MOVE)
         drop_target.connect("drop", self.on_drop)
         self.overlay.add_controller(drop_target)
 
@@ -2010,32 +2333,162 @@ class MonitorWindow:
         self.clear_all_selection()
 
     def on_drop(self, drop_target, value, x, y):
-        """Callback wenn Dateien auf den Desktop gedroppt werden."""
+        """Dateien aus dem Dateimanager auf den Desktop ablegen (asynchron, Icons erscheinen an der Ablagestelle)."""
         debug(f"drop at ({x}, {y})")
+        if not isinstance(value, Gdk.FileList):
+            return False
+        paths = []
+        for gfile in value.get_files():
+            if gfile.get_uri_scheme() == "file" and gfile.get_path():
+                paths.append(Path(gfile.get_path()))
+        if not paths:
+            return False
+        move = False
+        try:
+            drop = drop_target.get_current_drop()
+            actions = drop.get_actions() if drop is not None else Gdk.DragAction.COPY
+            move = bool(actions & Gdk.DragAction.MOVE) and not (actions & Gdk.DragAction.COPY)
+        except Exception:
+            pass
+        self.start_transfer(paths, move, x - 40, y - 40)
+        return True
 
-        if isinstance(value, Gdk.FileList):
-            files = value.get_files()
-            for gfile in files:
-                source_path = Path(gfile.get_path())
-                dest_path = DESKTOP_DIR / source_path.name
+    # ---- Zwischenablage / Dateiaustausch ----
 
-                debug(f"copying {source_path} to {dest_path}")
+    def _icon_path(self, icon):
+        spec = icon.spec
+        if spec.get("is_trash"):
+            return None
+        raw = spec.get("desktop_file") or spec.get("file_path")
+        return Path(raw) if raw else None
 
+    def copy_selection(self, cut, fallback=None):
+        """Strg+C / Strg+X: ausgewaehlte Icons (oder fallback-Icon) in die Zwischenablage."""
+        icons = [i for i in self.icons if i.selected] or ([fallback] if fallback is not None else [])
+        paths = [p for p in (self._icon_path(i) for i in icons) if p is not None and os.path.lexists(p)]
+        if not paths:
+            return False
+        try:
+            clipboard_set_files(paths, cut)
+        except Exception as e:
+            print(f"clipboard set failed: {e}", file=sys.stderr)
+            return False
+        return True
+
+    def paste_clipboard(self, x=None, y=None):
+        """Strg+V / Menue Einfuegen."""
+        def got(action, paths):
+            if paths:
+                self.start_transfer(paths, action == "cut", x, y, from_clipboard=True)
+        try:
+            clipboard_read_files(got)
+        except Exception as e:
+            print(f"clipboard read failed: {e}", file=sys.stderr)
+
+    def _slot_positions(self, n, x, y):
+        """n Icon-Positionen: ab (x, y) im Raster, oder ab dem ersten freien Platz wenn x/y fehlen."""
+        geo = self.monitor.get_geometry()
+        grid = getattr(self, 'grid_size', GRID)
+        snap = (lambda v: int(round(v / grid) * grid)) if grid > 0 else int
+        step_x, step_y = 96, 120
+        max_x, max_y = max(0, geo.width - 96), max(0, geo.height - 120)
+        if x is not None and y is not None:
+            # Ablegestelle: im Raster nebeneinander, am rechten Rand in die naechste Zeile
+            start_x, start_y = snap(max(0, min(x, max_x))), snap(max(0, min(y, max_y)))
+            out, px, py = [], start_x, start_y
+            for _ in range(n):
+                if px > max_x:
+                    px, py = start_x, min(py + step_y, snap(max_y))
+                out.append({"x": px, "y": py})
+                px += step_x
+            return out
+        # Ohne Zeigerposition: erste freie Plaetze von oben links
+        taken = [(i.x, i.y) for i in self.icons]
+        out = []
+        for gy in range(snap(32), max_y + 1, step_y):
+            for gx in range(snap(32), max_x + 1, step_x):
+                if len(out) < n and all(abs(gx - tx) >= 48 or abs(gy - ty) >= 60 for tx, ty in taken):
+                    out.append({"x": gx, "y": gy})
+        while len(out) < n:
+            out.append({"x": snap(32), "y": snap(32)})
+        return out
+
+    def _spec_for_desktop_path(self, path):
+        path = Path(path)
+        if path.suffix == ".desktop":
+            spec = parse_desktop_file(path)
+            if spec:
+                return spec
+        icon_name = "folder" if path.is_dir() else get_icon_for_file(path)
+        return {"name": path.name, "icon_name": icon_name,
+                "cmd": ["xdg-open", str(path)], "file_path": str(path)}
+
+    def start_transfer(self, paths, move, x=None, y=None, from_clipboard=False):
+        """Kopiert/verschiebt Dateien nach DESKTOP_DIR in einem Worker-Thread; UI-Updates per GLib.idle_add.
+
+        Nie ueberschreiben: Kollisionen werden zu 'name (2).ext'. Die Daten landen zuerst unter einem versteckten
+        Zwischennamen und werden erst im UI-Thread umbenannt, damit das Icon sofort an der richtigen Stelle sitzt."""
+        lang = getattr(self.app, 'current_language', 'de')
+        jobs = []
+        for src in paths:
+            src = Path(src)
+            problem = transfer_problem(src, DESKTOP_DIR, move)
+            if problem == "missing":
+                notify_user("WinDoesNot", tr("transfer_missing", lang, name=src.name))
+            elif problem == "self":
+                notify_user("WinDoesNot", tr("transfer_self", lang, name=src.name))
+            elif problem is None:
+                jobs.append(src)
+        if not jobs:
+            return
+        try:
+            DESKTOP_DIR.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            notify_user("WinDoesNot", tr("transfer_failed", lang, name=str(DESKTOP_DIR), error=str(e)))
+            return
+        positions = self._slot_positions(len(jobs), x, y)
+        ctx = {"failed": 0, "done": 0, "total": len(jobs), "move": move, "clip": from_clipboard}
+
+        def worker():
+            for i, src in enumerate(jobs):
+                tmp = temp_path_for(DESKTOP_DIR, src.name, i)
+                err = None
                 try:
-                    # Datei oder Ordner kopieren
-                    if source_path.is_file():
-                        import shutil
-                        shutil.copy2(source_path, dest_path)
-                    elif source_path.is_dir():
-                        import shutil
-                        shutil.copytree(source_path, dest_path, dirs_exist_ok=True)
-
-                    debug(f"successfully copied to {dest_path}")
+                    transfer_to_temp(str(src), str(tmp), move)
                 except Exception as e:
-                    debug(f"failed to copy: {e}", file=sys.stderr)
+                    err = e
+                GLib.idle_add(self._transfer_item_done, src, tmp, positions[i], err, ctx, lang)
 
-            return True  # Drop akzeptiert
+        threading.Thread(target=worker, daemon=True).start()
 
+    def _transfer_item_done(self, src, tmp, pos, err, ctx, lang):
+        """UI-Thread: Zwischendatei an ihren freien Endnamen setzen und Icon anlegen."""
+        ctx["done"] += 1
+        try:
+            if err is not None:
+                ctx["failed"] += 1
+                notify_user("WinDoesNot", tr("transfer_failed", lang, name=src.name, error=str(err)))
+                return False
+            is_dir = os.path.isdir(tmp) and not os.path.islink(tmp)
+            name = unique_name(src.name, lambda n: os.path.lexists(DESKTOP_DIR / n), is_dir)
+            final = DESKTOP_DIR / name
+            try:
+                os.rename(tmp, final)
+            except OSError as e:
+                ctx["failed"] += 1
+                if ctx["move"]:
+                    try:
+                        os.rename(tmp, src)  # Verschieben rueckgaengig machen
+                    except OSError:
+                        pass
+                notify_user("WinDoesNot", tr("transfer_failed", lang, name=src.name, error=str(e)))
+                return False
+            icon = DesktopIcon(self, self._spec_for_desktop_path(final), pos=pos)
+            self.icons.append(icon)
+            self.save_monitor_state()
+        finally:
+            if ctx["done"] >= ctx["total"] and ctx["move"] and ctx["clip"] and ctx["failed"] == 0:
+                clipboard_clear()
         return False
 
     def on_desktop_right_click(self, gesture, n_press, x, y):
@@ -2053,6 +2506,12 @@ class MonitorWindow:
 
         _lang = getattr(self.app, 'current_language', 'de')
         menu = Gio.Menu()
+
+        can_paste = clipboard_has_files()
+        if can_paste:
+            paste_section = Gio.Menu()
+            paste_section.append(tr("paste", _lang), "desktopbg.paste")
+            menu.append_section(None, paste_section)
 
         menu.append(tr("change_wallpaper", _lang), "desktopbg.change_wallpaper")
         trash_label = tr("hide_trash", _lang) if self.show_trash else tr("show_trash", _lang)
@@ -2073,6 +2532,10 @@ class MonitorWindow:
         menu.append_section(None, system_section)
 
         action_group = Gio.SimpleActionGroup()
+        if can_paste:
+            paste_action = Gio.SimpleAction.new("paste", None)
+            paste_action.connect("activate", lambda a, p, cx=x, cy=y: self.paste_clipboard(cx - 40, cy - 40))
+            action_group.add_action(paste_action)
         rs_action = Gio.SimpleAction.new("restart_shell", None)
         rs_action.connect("activate", lambda a, p: subprocess.Popen(
             ["windoesnot-restart-shell"], start_new_session=True,
@@ -2453,6 +2916,7 @@ class MonitorWindow:
     def on_selection_motion(self, controller, x, y):
         """Overlay-level motion: icon drag (volle Cursor-Verfolgung), proxy-drag oder Rubber-Band."""
         ds = self.app.drag_session
+        self._last_ptr = (x, y)
 
         # --- Aktiver Drag auf SOURCE-Monitor ---
         # Wayland implicit grab sendet ALLE Motion-Events an die Source-Surface.
@@ -2754,7 +3218,19 @@ class MonitorWindow:
                 cr.stroke()
 
     def on_key_pressed(self, controller, keyval, keycode, state):
-        """Handler für Tastatur-Events (DEL-Taste)."""
+        """Handler für Tastatur-Events (DEL-Taste, Strg+C/X/V)."""
+        # Strg+C / Strg+X / Strg+V -- nicht waehrend des Umbenennens (dort gehoert das dem Textfeld)
+        if (state & Gtk.accelerator_get_default_mod_mask()) == Gdk.ModifierType.CONTROL_MASK:
+            if self._icon_being_renamed is not None:
+                return False
+            key = Gdk.keyval_to_lower(keyval)
+            if key in (Gdk.KEY_c, Gdk.KEY_x):
+                return self.copy_selection(key == Gdk.KEY_x)
+            if key == Gdk.KEY_v:
+                ptr = getattr(self, "_last_ptr", None)
+                self.paste_clipboard(*(ptr if ptr else (None, None)))
+                return True
+            return False
         # DEL oder BACKSPACE für Löschen
         if keyval == 65535 or keyval == 65288:  # DEL oder Backspace
             selected_icons = [icon for icon in self.icons if icon.selected]
