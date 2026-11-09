@@ -93,7 +93,10 @@
         "firefox",
         "libreoffice",
         "vlc",
-        "archives"
+        "archives",
+        "loupe",
+        "gnome-calendar",
+        "gnome-contacts"
       ]
     },
     {
@@ -229,6 +232,40 @@
       "source": "offline"
     },
     {
+      "id": "gnome-calendar",
+      "name": {
+        "de": "Kalender",
+        "en": "Calendar"
+      },
+      "category": "office",
+      "packages": [
+        "gnome-calendar"
+      ],
+      "description": {
+        "de": "Termine und Erinnerungen verwalten.",
+        "en": "Manage events and reminders."
+      },
+      "required": false,
+      "source": "offline"
+    },
+    {
+      "id": "gnome-contacts",
+      "name": {
+        "de": "Kontakte",
+        "en": "Contacts"
+      },
+      "category": "office",
+      "packages": [
+        "gnome-contacts"
+      ],
+      "description": {
+        "de": "Kontakte verwalten.",
+        "en": "Manage contacts."
+      },
+      "required": false,
+      "source": "offline"
+    },
+    {
       "id": "vlc",
       "name": {
         "de": "VLC",
@@ -241,6 +278,23 @@
       "description": {
         "de": "Musik und Videos in vielen Formaten abspielen.",
         "en": "Play music and videos in many formats."
+      },
+      "required": false,
+      "source": "offline"
+    },
+    {
+      "id": "loupe",
+      "name": {
+        "de": "Bildbetrachter",
+        "en": "Image Viewer"
+      },
+      "category": "media",
+      "packages": [
+        "loupe"
+      ],
+      "description": {
+        "de": "Bilder anzeigen, durchblättern und drehen.",
+        "en": "View, browse and rotate images."
       },
       "required": false,
       "source": "offline"
