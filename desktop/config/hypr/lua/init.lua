@@ -33,18 +33,19 @@ end
 -- Hyprland 0.57's KMS-only dmabuf format list makes Qt/GTK surfaces render
 -- black or crash on virtio-gpu. Keep the default on physical GPUs, and allow
 -- an explicit state or personal option to override this guest workaround.
-if options["quirks.skip_non_kms_dmabuf_formats"] == nil then
-    for card = 0, 15 do
-        local vendor = io.open("/sys/class/drm/card" .. card .. "/device/vendor", "r")
-        if vendor then
-            local id = vendor:read("*l")
-            vendor:close()
-            if id == "0x1af4" then
-                options["quirks.skip_non_kms_dmabuf_formats"] = false
-                break
-            end
-        end
+-- PCI vendor IDs of the DRM devices. Real hardware never reports 0x1af4
+-- (virtio) or 0x15ad (VMware), so these checks stay inactive there.
+local gpuVendors = {}
+for card = 0, 15 do
+    local vendor = io.open("/sys/class/drm/card" .. card .. "/device/vendor", "r")
+    if vendor then
+        local id = vendor:read("*l")
+        vendor:close()
+        if id then gpuVendors[id] = true end
     end
+end
+if options["quirks.skip_non_kms_dmabuf_formats"] == nil and gpuVendors["0x1af4"] then
+    options["quirks.skip_non_kms_dmabuf_formats"] = false
 end
 hl.config(options)
 if isolated then
@@ -92,6 +93,11 @@ dofile(root .. "bindings.lua")
 -- tests load real plugins and dispatchers but never start the user's desktop.
 if not verify and not isolated then
     hl.env("PATH", os.getenv("HOME") .. "/.local/bin:" .. (os.getenv("PATH") or "/usr/local/bin:/usr/bin"))
+    -- VMware guests (vmwgfx): the compositor cannot import GPU dmabufs, so
+    -- every GPU client dies on wl_surface.attach and the desktop stays black
+    -- (aquamarine #360, Hyprland #16175). Mesa software rendering is the
+    -- workaround reported to work (Omarchy #8113). Only with VMware's vendor ID.
+    if gpuVendors["0x15ad"] then hl.env("LIBGL_ALWAYS_SOFTWARE", "1") end
     for _, env in ipairs(reference.env) do hl.env(env[1], env[2]) end
     for _, env in ipairs(personal.env or {}) do hl.env(env[1], env[2]) end
     for _, permission in ipairs(reference.permissions) do hl.permission(table.unpack(permission)) end
