@@ -415,17 +415,39 @@ def _ini_parser():
     return parser
 
 
+GRUB_DEFAULTS = Path('/etc/default/grub')
+GRUB_DROPIN_DIR = Path('/etc/default/grub.d')
+GRUB_THEME_DROPIN = GRUB_DROPIN_DIR / '99-windoesnot-theme.cfg'
+GRUB_THEME_PATH = '/boot/grub/themes/windoesnot/theme.txt'
+
+
+def grub_theme_value():
+    """Effective GRUB_THEME: the last assignment grub-mkconfig sees (defaults, then grub.d/*.cfg)."""
+    value = ''
+    files = [GRUB_DEFAULTS] + (sorted(GRUB_DROPIN_DIR.glob('*.cfg')) if GRUB_DROPIN_DIR.is_dir() else [])
+    for path in files:
+        try:
+            lines = path.read_text().splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            match = re.match(r'\s*(?:export\s+)?GRUB_THEME=(.*)$', line)
+            if match:
+                try:
+                    parts = shlex.split(match.group(1), comments=True)
+                except ValueError:
+                    continue
+                value = parts[0] if parts else ''
+    return value
+
+
 def bootloader_theme_status():
     """Current bootloader theme state (unprivileged)."""
     loader = bootloader()
     supported = loader in ('grub', 'refind', 'limine')
     enabled = False
     if loader == 'grub':
-        path = Path('/etc/default/grub.d/90-windoesnot.cfg')
-        try:
-            enabled = path.exists() and 'GRUB_THEME=' in path.read_text()
-        except OSError:
-            pass
+        enabled = 'windoesnot' in grub_theme_value()
     elif loader == 'refind':
         try:
             enabled = REFIND_CONF.exists() and 'include themes/windoesnot/theme.conf' in REFIND_CONF.read_text()
@@ -445,16 +467,9 @@ def bootloader_theme_set(payload):
     loader = bootloader()
     enable = payload['enabled']
     if loader == 'grub':
-        path = Path('/etc/default/grub.d/90-windoesnot.cfg')
-        text = path.read_text()
-        theme_line = 'GRUB_THEME="/boot/grub/themes/windoesnot/theme.txt"\n'
-        if enable:
-            if theme_line not in text:
-                new_text = re.sub(r'(?m)^GRUB_THEME=.*\n?', '', text).rstrip() + '\n' + theme_line
-                atomic_write(path, new_text)
-        else:
-            new_text = re.sub(r'(?m)^GRUB_THEME=.*\n?', '', text).rstrip() + '\n'
-            atomic_write(path, new_text)
+        # A late drop-in wins over /etc/default/grub and the live image's 90-windoesnot.cfg.
+        GRUB_DROPIN_DIR.mkdir(parents=True, exist_ok=True)
+        atomic_write(GRUB_THEME_DROPIN, 'GRUB_THEME="' + (GRUB_THEME_PATH if enable else '') + '"\n')
         command('/usr/bin/grub-mkconfig', '-o', '/boot/grub/grub.cfg', timeout=180)
     elif loader == 'refind':
         include_line = 'include themes/windoesnot/theme.conf\n'
