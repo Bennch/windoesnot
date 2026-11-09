@@ -3,15 +3,26 @@
   "releases": [
     {
       "version": "0.1.0-26",
-      "date": "2026-11-08",
-      "unreleased": true,
+      "date": "2026-11-09",
       "de": [
         "Systemupdates bleiben möglich: Die Fensterleisten (Hyprland-Plugins) und der eingebettete Terminal hängen nicht mehr an einer festen Hyprland-, Qt- oder C++-Version. Nach einem Update werden sie automatisch neu gebaut. Der WinDoesNot-Update-Kanal ist ab Werk eingerichtet.",
         "Im Store warnt eine Sperre, wenn ein Systemupdate schneller ist als unsere Fensterleisten. Du kannst warten oder trotzdem aktualisieren.",
         "Es gibt eine englische und eine deutsche ISO. Startmenü, Installer, Anmeldebildschirm und die Bootmenüs folgen der gewählten Sprache. Mit dem Startparameter windoesnot.lang=en oder de lässt sich die Sprache beim Start ändern.",
         "Die Taskleiste kommt zurück, wenn du das Kabel des Hauptmonitors ziehst und wieder einsteckst. Neu im Kontextmenü von Desktop und Taskleiste: „Oberfläche neu starten“.",
         "Die Kontextmenüs auf dem Desktop haben keinen Scrollbalken mehr. „Neu“ öffnet ein eigenes Menü daneben, und die Menüs folgen Hell/Dunkel, Akzentfarbe und Eckenradius aus den Einstellungen.",
-        "Neu im Installer: Symbol für die GTA-2-Anleitung."
+        "Neu im Installer: Symbol für die GTA-2-Anleitung.",
+        "Neue Boot-Themes für rEFInd, Limine und GRUB mit WinDoesNot-Logo, Hintergrund und gut sichtbarer Auswahl. In Einstellungen > Hintergrund lassen sie sich ein- und ausschalten. Der Schalter erkennt auch GRUB nach der Installation.",
+        "Windows-Umzug: Dateien vom Windows-Desktop landen im richtigen Ordner, die Größe wird in KiB angezeigt, es gibt einen Hinweis zu Passwörtern, und das falsche Warndreieck ist weg.",
+        "Webapps starten als eigene Fenster ohne Browserleiste und mit eigenem Icon.",
+        "Die ArtCraft-Apps (Launcher, PdfCraft, PhotoCraft, VectorCraft, FilmCraft, Alpha) stehen zur Auswahl und werden nach der Installation geladen.",
+        "Das Terminal begrüßt dich mit einem Schriftzug und Systeminfos. Abschalten geht in Einstellungen > Apps > Shell.",
+        "Desktop: Kopieren, Ausschneiden und Einfügen (Strg+C, Strg+X, Strg+V und Menü) sowie Ablegen aus dem Dateimanager. Die Icons springen beim Minimieren nicht mehr.",
+        "Der Alt+Tab-Wechsler ist jetzt Version 4.5.0 und erscheint auf dem Hauptmonitor. Die Akzentfarbe gilt sofort.",
+        "Die Arbeitsflächen-Übersicht ist aktualisiert und folgt Akzentfarbe und Eckenradius sofort.",
+        "Die Oberfläche startet auf dem Hauptmonitor, ohne dass sie von einem anderen Monitor herüberspringt.",
+        "Installer: Der Starter wird nach der Installation entfernt, das Boot-Menü der Live-ISO ist gut lesbar, und die Version steht im Banner.",
+        "Neues Icon für die Grafik-App.",
+        "Wenn der Hintergrund-Dienst hyprpaper ohne 3D-Beschleunigung abstürzt, gibt es jetzt einen Ersatz."
       ],
       "en": [
         "System updates stay possible: the window bars (Hyprland plugins) and the embedded terminal no longer depend on a fixed Hyprland, Qt or C++ library version. They are rebuilt automatically after an update. The WinDoesNot update channel is set up from the start.",
@@ -19,7 +30,19 @@
         "There is an English and a German ISO. The start menu, installer, login screen and boot menus follow the chosen language. The kernel parameter windoesnot.lang=en or de changes the language at boot.",
         "The taskbar comes back when you unplug and replug the main monitor's cable. New in the desktop and taskbar context menus: \"Restart interface\".",
         "The desktop context menus no longer have a scrollbar. \"New\" opens its own menu next to it, and the menus follow light/dark, accent colour and corner radius from the settings.",
-        "New in the installer: icon for the GTA 2 guide."
+        "New in the installer: icon for the GTA 2 guide.",
+        "New boot themes for rEFInd, Limine and GRUB with the WinDoesNot logo, a background and a clearly visible selection. You can switch them on and off in Settings > Background. The switch also detects GRUB after installation.",
+        "Windows migration: files from the Windows desktop land in the right folder, sizes are shown in KiB, there is a note about passwords, and the false warning triangle is gone.",
+        "Web apps start as their own windows without a browser bar and with their own icon.",
+        "The ArtCraft apps (Launcher, PdfCraft, PhotoCraft, VectorCraft, FilmCraft, Alpha) can be selected and are downloaded after installation.",
+        "The terminal greets you with a banner and system info. You can turn it off in Settings > Apps > Shell.",
+        "Desktop: copy, cut and paste (Ctrl+C, Ctrl+X, Ctrl+V and menu) and dropping files from the file manager. Icons no longer jump when you minimize.",
+        "The Alt+Tab switcher is now version 4.5.0 and appears on the main monitor. The accent colour applies immediately.",
+        "The workspace overview is updated and follows accent colour and corner radius immediately.",
+        "The interface starts on the main monitor without jumping over from another monitor.",
+        "Installer: the launcher is removed after installation, the live ISO boot menu is easy to read, and the version is shown in the banner.",
+        "New icon for the Graphics app.",
+        "If the wallpaper service hyprpaper crashes without 3D acceleration, a fallback now takes over."
       ]
     },
     {
