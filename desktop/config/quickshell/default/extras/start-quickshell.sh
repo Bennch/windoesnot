@@ -67,6 +67,15 @@ for dir in "$CONFIG_DIR/widgets/terminalmodule" /usr/lib/windoesnot; do
 done
 export QML_IMPORT_PATH
 
+# Tell the shell its primary monitor from the first frame (the saved setting, else workspace 1's monitor).
+SAVED_PRIMARY=$(sed -n 's/^primaryMonitor=//p' "$CONFIG_DIR/settings.txt" 2>/dev/null | tail -n 1)
+if [[ "$SAVED_PRIMARY" =~ ^[A-Za-z0-9_.:-]+$ ]]; then
+    export WINDOESNOT_PRIMARY_MONITOR="$SAVED_PRIMARY"
+else
+    export WINDOESNOT_PRIMARY_MONITOR="$PRIMARY_MONITOR"
+fi
+echo "Primary monitor for the shell: $WINDOESNOT_PRIMARY_MONITOR" >> "$LOGFILE"
+
 echo "Starting quickshell..." >> "$LOGFILE"
 
 # Start quickshell with the same environment as before
