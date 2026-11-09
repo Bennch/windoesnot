@@ -221,4 +221,19 @@ with tempfile.TemporaryDirectory() as tmp:
         try: m.copy_manifest(manifest, home, source_root=root)
         except FileNotFoundError as error: assert 'disappeared' in str(error)
         else: raise AssertionError('vanished disk accepted')
+    # German installed account: the Windows Desktop must land in the real XDG folder (Schreibtisch).
+    de_root, de_home = Path(tmp) / 'de-windows', Path(tmp) / 'de-home'
+    (de_root / 'Users/Ada/Desktop/Projekt').mkdir(parents=True)
+    (de_root / 'Users/Ada/Desktop/Notizen.txt').write_text('desktop-note')
+    (de_root / 'Users/Ada/Desktop/Projekt/Plan.md').write_text('plan')
+    (de_home / '.config').mkdir(parents=True); (de_home / 'Schreibtisch').mkdir()
+    (de_home / '.config/user-dirs.dirs').write_text('XDG_DESKTOP_DIR="$HOME/Schreibtisch"\nXDG_DOCUMENTS_DIR="$HOME/Dokumente"\n')
+    de_manifest = m.scan_tree(de_root, device='/dev/de', filesystem='ntfs', locale='de_DE.UTF-8')
+    de_result = m.copy_manifest(de_manifest, de_home, source_root=de_root)
+    assert not de_result['errors'], de_result['errors']
+    assert (de_home / 'Schreibtisch/Notizen.txt').read_text() == 'desktop-note'
+    assert (de_home / 'Schreibtisch/Projekt/Plan.md').read_text() == 'plan'
+    assert not (de_home / 'Desktop').exists()
+    assert m.target_name('Desktop', 'de_DE.UTF-8') == 'Schreibtisch' and m.target_name('Desktop', 'en_US.UTF-8') == 'Desktop'
+    assert m.target_name('Desktop', 'de', Path(tmp) / 'no-home') == 'Schreibtisch'
 print('PASS migrate')

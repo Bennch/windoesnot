@@ -17,7 +17,8 @@ import xml.etree.ElementTree as ET
 
 FOLDERS = ('Documents', 'Pictures', 'Music', 'Videos', 'Downloads', 'Desktop')
 EXCLUDED = {'default', 'public', 'all users', 'default user'}
-DE = {'Documents': 'Dokumente', 'Pictures': 'Bilder', 'Music': 'Musik', 'Videos': 'Videos', 'Downloads': 'Downloads', 'Desktop': 'Desktop'}
+DE = {'Documents': 'Dokumente', 'Pictures': 'Bilder', 'Music': 'Musik', 'Videos': 'Videos', 'Downloads': 'Downloads', 'Desktop': 'Schreibtisch'}
+XDG_KEYS = {'Documents': 'DOCUMENTS', 'Pictures': 'PICTURES', 'Music': 'MUSIC', 'Videos': 'VIDEOS', 'Downloads': 'DOWNLOAD', 'Desktop': 'DESKTOP'}
 SCHEMA = 1
 FIREFOX_LOCKS = ('parent.lock', '.parentlock', 'lock')
 
@@ -185,9 +186,18 @@ def scan_device(device, locale='en', secret=None):
                 command(['cryptsetup', 'close', mapper])
 
 
-def target_name(kind, locale):
+def target_name(kind, locale, home=None):
     if kind == 'Firefox':
         return '.mozilla/firefox'
+    if home is not None:
+        # The installed account's real folder names (e.g. Schreibtisch) win over any guess.
+        try:
+            text = (Path(home) / '.config/user-dirs.dirs').read_text()
+        except OSError:
+            text = ''
+        match = re.search(r'^XDG_' + XDG_KEYS[kind] + r'_DIR="?\$HOME/([^"\n/]+)"?\s*$', text, re.M)
+        if match and match.group(1) not in ('.', '..'):
+            return match.group(1)
     return DE[kind] if locale.lower().startswith('de') else kind
 
 
@@ -351,7 +361,7 @@ def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, 
                 if item.get('selected'):
                     source = _valid_item(root, profile.get('name', ''), item)
                     size, flags = measure(source)
-                    target = firefox_target(home) if item['kind'] == 'Firefox' else home / target_name(item['kind'], manifest.get('locale', 'en'))
+                    target = firefox_target(home) if item['kind'] == 'Firefox' else home / target_name(item['kind'], manifest.get('locale', 'en'), home)
                     safe_target(target)
                     jobs.append((source, target, size, flags, item['kind']))
         needed = sum(size for _, _, size, _, _ in jobs)
