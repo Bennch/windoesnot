@@ -1731,7 +1731,9 @@ class MonitorWindow:
         for e in (Gtk4LayerShell.Edge.TOP, Gtk4LayerShell.Edge.BOTTOM,
                   Gtk4LayerShell.Edge.LEFT, Gtk4LayerShell.Edge.RIGHT):
             Gtk4LayerShell.set_anchor(self.win, e, True)
-        Gtk4LayerShell.set_exclusive_zone(self.win, 0)
+        # -1: volle Monitorfläche, unabhängig vom reservierten Platz der Taskleiste. Mit 0 schrumpfte die
+        # Fläche um die Taskleistenhöhe, sobald sich deren Zone änderte, und die Icons rutschten.
+        Gtk4LayerShell.set_exclusive_zone(self.win, -1)
         Gtk4LayerShell.set_monitor(self.win, monitor)
 
         # ON_DEMAND: Compositor kann Fokus geben wenn Popup schliesst (verhindert special:minimized-Bug).
