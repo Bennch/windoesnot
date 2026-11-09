@@ -2,6 +2,27 @@
 
 Generated from `packaging/changelog.json` (newest first). Releases with downloads: https://github.com/Bennch/windoesnot/releases
 
+## 0.1.0-26 (2026-11-09)
+
+- System updates stay possible: the window bars (Hyprland plugins) and the embedded terminal no longer depend on a fixed Hyprland, Qt or C++ library version. They are rebuilt automatically after an update. The WinDoesNot update channel is set up from the start.
+- A guard in the Store warns when a system update outruns our window bars. You can wait or update anyway.
+- There is an English and a German ISO. The start menu, installer, login screen and boot menus follow the chosen language. The kernel parameter windoesnot.lang=en or de changes the language at boot.
+- The taskbar comes back when you unplug and replug the main monitor's cable. New in the desktop and taskbar context menus: "Restart interface".
+- The desktop context menus no longer have a scrollbar. "New" opens its own menu next to it, and the menus follow light/dark, accent colour and corner radius from the settings.
+- New in the installer: icon for the GTA 2 guide.
+- New boot themes for rEFInd, Limine and GRUB with the WinDoesNot logo, a background and a clearly visible selection. You can switch them on and off in Settings > Background. The switch also detects GRUB after installation.
+- Windows migration: files from the Windows desktop land in the right folder, sizes are shown in KiB, there is a note about passwords, and the false warning triangle is gone.
+- Web apps start as their own windows without a browser bar and with their own icon.
+- The ArtCraft apps (Launcher, PdfCraft, PhotoCraft, VectorCraft, FilmCraft, Alpha) can be selected and are downloaded after installation.
+- The terminal greets you with a banner and system info. You can turn it off in Settings > Apps > Shell.
+- Desktop: copy, cut and paste (Ctrl+C, Ctrl+X, Ctrl+V and menu) and dropping files from the file manager. Icons no longer jump when you minimize.
+- The Alt+Tab switcher is now version 4.5.0 and appears on the main monitor. The accent colour applies immediately.
+- The workspace overview is updated and follows accent colour and corner radius immediately.
+- The interface starts on the main monitor without jumping over from another monitor.
+- Installer: the launcher is removed after installation, the live ISO boot menu is easy to read, and the version is shown in the banner.
+- New icon for the Graphics app.
+- If the wallpaper service hyprpaper crashes without 3D acceleration, a fallback now takes over.
+
 ## 0.1.0-25 (2026-11-07)
 
 - The installer has a new page "About WinDoesNot", and the logo on the welcome page is smaller.
