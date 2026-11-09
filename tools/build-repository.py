@@ -16,7 +16,9 @@ choice=parser.add_mutually_exclusive_group(required=True)
 choice.add_argument('--sign-key',help='Existing GPG fingerprint; uses the caller-selected GNUPGHOME')
 choice.add_argument('--unsigned-test',action='store_true',help='Explicitly allow an unsigned PRIVATE VM test repository')
 parser.add_argument('--test-only',action='store_true',help='Mark a signed snapshot as a private test, e.g. when using an ephemeral key')
+parser.add_argument('--reuse-signatures',action='store_true',help='With --sign-key: keep an existing PACKAGE.sig next to a package (already published, immutable) if it verifies; sign only packages without one')
 args=parser.parse_args()
+if args.reuse_signatures and not args.sign_key: parser.error('--reuse-signatures needs --sign-key')
 if args.sign_key:
     args.sign_key=args.sign_key.upper()
     if not re.fullmatch(r'(?:[A-F0-9]{40}|[A-F0-9]{64})',args.sign_key):
@@ -42,7 +44,12 @@ with tempfile.TemporaryDirectory(prefix='.repo-stage-',dir=output.parent) as tem
     paths=[]
     for package in packages:
         dest=stage/package.name;shutil.copy2(package,dest);paths.append(str(dest))
-        if args.sign_key:
+        existing=package.with_name(package.name+'.sig')
+        if args.sign_key and args.reuse_signatures and existing.exists():
+            shutil.copy2(existing,str(dest)+'.sig')
+            subprocess.run(['gpg','--batch','--verify',str(dest)+'.sig',str(dest)],check=True)
+            print('Reused published signature: '+package.name)
+        elif args.sign_key:
             subprocess.run(['gpg','--batch','--yes','--local-user',args.sign_key,'--detach-sign','--output',str(dest)+'.sig',str(dest)],check=True)
     command=['repo-add']
     if args.sign_key: command += ['--sign','--key',args.sign_key,'--verify']
