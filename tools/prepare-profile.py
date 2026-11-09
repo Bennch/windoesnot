@@ -380,7 +380,7 @@ def main():
     subprocess.run(['gpg', '--batch', '--yes', '--dearmor', '--output', str(keyrings / 'windoesnot.gpg'), str(key_source)], check=True)
     write(keyrings / 'windoesnot-trusted', fingerprint + ':4:\n')
     for f in (profile/'grub').rglob('*.cfg') if (profile/'grub').exists() else []:
-        menu=f.read_text().replace('CachyOS','WinDoesNot').replace('CACHYOS_VERSION="GIT"','CACHYOS_VERSION="0.1-dev"').replace('copytoram=auto','copytoram=n').replace('nvme_load=yes','nvme_load=yes console=tty0 console=ttyS0,115200n8')
+        menu=f.read_text().replace('CachyOS','WinDoesNot').replace('CACHYOS_VERSION="GIT"',f'CACHYOS_VERSION="{args.version}"').replace('copytoram=auto','copytoram=n').replace('nvme_load=yes','nvme_load=yes console=tty0 console=ttyS0,115200n8')
         if args.language == 'de':
             for english,german in {'Welcome to WinDoesNot':'Willkommen bei WinDoesNot', 'Legacy Hardware (GPU nomodeset)':'Ältere Hardware (GPU nomodeset)', 'Run Memtest86+ (RAM test)':'Memtest86+ starten (RAM-Test)', 'UEFI Firmware Settings':'UEFI-Firmware-Einstellungen', 'System shutdown':'System ausschalten', 'System restart':'System neu starten', 'System shutting down...':'System wird ausgeschaltet...', 'System rebooting...':'System wird neu gestartet...'}.items():
                 menu=menu.replace(english,german)
