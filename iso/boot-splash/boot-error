@@ -1,6 +1,13 @@
 #!/usr/bin/bash
 # Only a failed boot job while Plymouth is active reveals the console.
 set -eu
+# Only boot-critical units may take the splash away; optional services (time sync,
+# network, bluetooth, ...) fail silently so a VM or offline machine still reaches the desktop.
+case "${1:-unknown}" in
+    etc-pacman.d-gnupg.mount) exit 0 ;;
+    *.mount|*.swap|initrd-*|sysroot*|systemd-fsck*|systemd-udevd*|systemd-journald*|getty@tty1.service|sddm.service) ;;
+    *) exit 0 ;;
+esac
 /usr/bin/plymouth --ping >/dev/null 2>&1 || exit 0
 /usr/bin/plymouth hide-splash || true
 /usr/bin/plymouth quit || true
