@@ -20,10 +20,9 @@ import time
 BASE = Path(os.environ.get('WINDOESNOT_BASE', '/usr/share/windoesnot'))
 PENDING = Path(os.environ.get('WINDOESNOT_PENDING', '/var/lib/windoesnot/pending-apps.json'))
 STATE = Path(os.environ.get('XDG_STATE_HOME', Path.home() / '.local/state')) / 'windoesnot'
-FLATHUB = 'https://dl.flathub.org/repo/flathub.flatpakrepo'
 sys.path.insert(0, str(BASE / 'iso/software'))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / 'iso/software'))
-from catalog import load_catalog, pending_reference  # noqa: E402
+from catalog import load_catalog, pending_reference, flatpak_remote  # noqa: E402
 
 german = os.environ.get('LANG', '').lower().startswith('de')
 
@@ -66,10 +65,11 @@ def online():
     return subprocess.run(['curl', '-fsI', '--max-time', '8', 'https://dl.flathub.org'], stdout=subprocess.DEVNULL).returncode == 0
 
 
-def install_flatpak(app, dry):
+def install_flatpak(app, dry, catalog):
     _, refs = pending_reference(app)
-    commands = [['flatpak', 'remote-add', '--user', '--if-not-exists', 'flathub', FLATHUB],
-                ['flatpak', 'install', '--user', '--noninteractive', '-y', 'flathub', refs[0]]]
+    remote, url = flatpak_remote(catalog, app)   # validated against the catalogue allowlist
+    commands = [['flatpak', 'remote-add', '--user', '--if-not-exists', remote, url],
+                ['flatpak', 'install', '--user', '--noninteractive', '-y', remote, refs[0]]]
     for command in commands:
         if dry:
             print('RUN:', ' '.join(command))
@@ -188,7 +188,7 @@ def main():
             break
         failed = []
         for app in flatpaks:
-            if install_flatpak(app, args.dry_run):
+            if install_flatpak(app, args.dry_run, catalog):
                 if not args.dry_run:
                     mark_done(app['id'])
                     notify(tr('Programm installiert', 'App installed'), name(app), False)

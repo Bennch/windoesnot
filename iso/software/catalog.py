@@ -7,6 +7,9 @@ import re
 SOURCES = ('offline', 'flatpak', 'repo', 'aur', 'webapp', 'link')
 # https only, plain host and path: no credentials, ports, queries or fragments, no shell metacharacters.
 WEBAPP_URL = re.compile(r'https://([a-z0-9-]+\.)+[a-z]{2,}(/[A-Za-z0-9._~%/-]*)?')
+# Extra Flatpak remotes: name and .flatpakrepo URL come only from the catalogue's fixed allowlist.
+REMOTE_NAME = re.compile(r'[a-z][a-z0-9-]*')
+REMOTE_URL = re.compile(r'https://([a-z0-9-]+\.)+[a-z]{2,}(/[A-Za-z0-9._~-]+)*/[A-Za-z0-9._-]+\.flatpakrepo')
 
 
 def load_catalog(path):
@@ -16,6 +19,13 @@ def load_catalog(path):
     ids = [app['id'] for app in data['apps']]
     if len(ids) != len(set(ids)):
         raise ValueError('Duplicate application')
+    remotes = data.get('flatpak_remotes', {})
+    if not isinstance(remotes, dict):
+        raise ValueError('Invalid Flatpak remotes')
+    for name, remote in remotes.items():
+        if name == 'flathub' or not REMOTE_NAME.fullmatch(name) or not isinstance(remote, dict) \
+                or not REMOTE_URL.fullmatch(remote.get('url', '')):
+            raise ValueError('Invalid Flatpak remote')
     categories = {c['id'] for c in data['categories']}
     for app in data['apps']:
         if not re.fullmatch(r'[a-z][a-z0-9-]*', app['id']) or app['category'] not in categories:
@@ -27,6 +37,8 @@ def load_catalog(path):
             if not re.fullmatch(r'[a-z0-9][a-z0-9@._+-]*', package):
                 raise ValueError('Invalid package name')
         # Deferred sources carry exactly one fixed reference and never offline packages.
+        if app.get('flatpak_remote') and (source != 'flatpak' or app['flatpak_remote'] not in remotes):
+            raise ValueError('Flatpak remote not in the allowlist')
         if source == 'offline':
             if app.get('flatpak_id') or app.get('aur_package') or app.get('repo_packages') or app.get('url'):
                 raise ValueError('Offline application with deferred reference')
@@ -105,3 +117,11 @@ def pending_reference(app):
     if source in ('webapp', 'link'):
         return source, [app['url']]
     raise ValueError('Not a deferred application')
+
+
+def flatpak_remote(catalog, app):
+    """(name, flatpakrepo URL) of the app's Flatpak remote; Flathub unless the allowlist names another."""
+    name = app.get('flatpak_remote')
+    if not name:
+        return 'flathub', 'https://dl.flathub.org/repo/flathub.flatpakrepo'
+    return name, catalog['flatpak_remotes'][name]['url']
