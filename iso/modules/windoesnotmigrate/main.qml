@@ -27,7 +27,10 @@ Rectangle {
     }
 
     function size(bytes) {
-        return bytes >= 1.07374e+09 ? (bytes / 1.07374e+09).toFixed(1) + " GiB" : (bytes / 1.04858e+06).toFixed(1) + " MiB";
+        if (bytes >= 1.07374e+09) return (bytes / 1.07374e+09).toFixed(1) + " GiB";
+        if (bytes >= 1.04858e+06) return (bytes / 1.04858e+06).toFixed(1) + " MiB";
+        if (bytes >= 1024) return (bytes / 1024).toFixed(1) + " KiB";
+        return bytes + " B";
     }
 
     function folderName(kind) {
