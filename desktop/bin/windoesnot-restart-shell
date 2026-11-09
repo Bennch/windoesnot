@@ -6,4 +6,10 @@
 # The desktop menu (hyprdesk) runs with LD_PRELOAD=libgtk4-layer-shell and passes it on. The new shell must not
 # inherit it, it breaks the start and the interface stays down.
 unset LD_PRELOAD
+# Same primary monitor as at login, known from the first frame (see Settings.qml): the saved setting, else workspace 1's monitor.
+PRIMARY=$(sed -n 's/^primaryMonitor=//p' "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/default/settings.txt" 2>/dev/null | tail -n 1)
+if ! [[ "$PRIMARY" =~ ^[A-Za-z0-9_.:-]+$ ]]; then
+    PRIMARY=$(windoesnot-hyprctl workspaces -j 2>/dev/null | jq -r '.[] | select(.id == 1) | .monitor' 2>/dev/null)
+fi
+[[ "$PRIMARY" =~ ^[A-Za-z0-9_.:-]+$ ]] && export WINDOESNOT_PRIMARY_MONITOR="$PRIMARY"
 setsid bash -c 'sleep 0.2; killall quickshell >/dev/null 2>&1; sleep 0.4; QT_QPA_PLATFORMTHEME=gtk3 quickshell' >/dev/null 2>&1 </dev/null &

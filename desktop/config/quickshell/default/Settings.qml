@@ -146,7 +146,9 @@ FloatingWindow {
     property bool showSettingsButton: true
     property bool showStoreButton: true
     property string taskbarAlignmentSetting: "center"
-    property string primaryMonitor: ""
+    // Seeded by the start scripts: settings.txt loads asynchronously, and until it arrives the panel would
+    // sit on the first screen and then jump to the primary one (wrong monitor, flicker).
+    property string primaryMonitor: Quickshell.env("WINDOESNOT_PRIMARY_MONITOR") || ""
 
     // Weather settings
     property bool showOllamaTray: false
