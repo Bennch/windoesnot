@@ -64,6 +64,8 @@ cp -a /etc/skel/. /home/liveuser/
 chown -R liveuser:liveuser /home/liveuser
 systemctl disable sddm.service 2>/dev/null || true
 systemctl disable systemd-networkd.service systemd-networkd.socket systemd-networkd-wait-online.service 2>/dev/null || true
+# Boot must never wait for or fail on NTP (offline, emulated VMs).
+systemctl disable systemd-time-wait-sync.service 2>/dev/null || true
 systemctl enable getty@tty1.service
 systemctl enable windoesnot-live-language.service
 ln -sfn /usr/lib/systemd/system/getty@.service /etc/systemd/system/autovt@.service

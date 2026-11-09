@@ -208,8 +208,8 @@ def main():
     write(a/'usr/lib/systemd/system/windoesnot-live-language.service', (ROOT/'iso/windoesnot-live-language.service').read_text())
     # Passwordless administration belongs only to the disposable live account.
     write(a/'etc/polkit-1/rules.d/49-nopasswd_global.rules', 'polkit.addRule(function(action, subject) {\n    if (subject.user === "liveuser" && subject.isInGroup("wheel")) {\n        return polkit.Result.YES;\n    }\n});\n')
-    # Do not start any other graphical session in the live image.
-    for name in ['etc/plasmalogin.conf', 'etc/plasmalogin.conf.d', 'etc/skel/.config', 'etc/skel/.local', 'etc/systemd/system/display-manager.service','etc/systemd/system/multi-user.target.wants/sshd.service','etc/systemd/system/multi-user.target.wants/systemd-networkd.service','etc/systemd/system/sockets.target.wants/systemd-networkd.socket']:
+    # Do not start any other graphical session in the live image; boot must never wait for NTP (offline, UTM/VMs).
+    for name in ['etc/plasmalogin.conf', 'etc/plasmalogin.conf.d', 'etc/skel/.config', 'etc/skel/.local', 'etc/systemd/system/display-manager.service','etc/systemd/system/multi-user.target.wants/sshd.service','etc/systemd/system/multi-user.target.wants/systemd-networkd.service','etc/systemd/system/sockets.target.wants/systemd-networkd.socket','etc/systemd/system/sysinit.target.wants/systemd-time-wait-sync.service']:
         p=a/name
         if p.is_symlink() or p.is_file(): p.unlink()
         elif p.is_dir(): shutil.rmtree(p)
