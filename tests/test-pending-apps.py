@@ -73,3 +73,42 @@ with tempfile.TemporaryDirectory() as temp:
     subprocess.run([sys.executable, tool, '--no-wait'], env=env, check=True)   # nothing changed: untouched
     assert desktop.stat().st_mtime_ns == before
 print('PASS pending-apps webapps')
+
+# 4. Custom Flatpak remote (ArtCraft OCI): added per user from the catalogue allowlist, never from free text.
+import copy  # noqa: E402
+from catalog import load_catalog, flatpak_remote  # noqa: E402
+catalog = load_catalog(ROOT / 'iso/software/catalog.json')
+by_id = {a['id']: a for a in catalog['apps']}
+assert flatpak_remote(catalog, by_id['krita'])[0] == 'flathub'
+assert flatpak_remote(catalog, by_id['pdfcraft']) == ('artcraft-oci', 'https://getartcraft.com/artcraft-oci.flatpakrepo')
+assert all(a['source'] == 'flatpak' and not a['packages'] for a in catalog['apps'] if a.get('flatpak_remote')), 'ArtCraft apps must stay deferred'
+assert all((ROOT / 'iso/software/icons' / (i + '.png')).is_file() for i in ('artcraft-launcher', 'pdfcraft', 'photocraft', 'vectorcraft', 'filmcraft'))
+for mutate in [lambda c: c['flatpak_remotes']['artcraft-oci'].update(url='http://getartcraft.com/x.flatpakrepo'),
+               lambda c: c['flatpak_remotes']['artcraft-oci'].update(url='https://getartcraft.com/x.flatpakrepo; rm -rf ~'),
+               lambda c: c['flatpak_remotes']['artcraft-oci'].update(url='oci+https://getartcraft.com'),
+               lambda c: c['flatpak_remotes'].update({'flathub': {'url': 'https://evil.example/x.flatpakrepo'}}),
+               lambda c: c['flatpak_remotes'].update({'Bad Name': {'url': 'https://a.example/x.flatpakrepo'}}),
+               lambda c: next(a for a in c['apps'] if a['id'] == 'pdfcraft').update(flatpak_remote='unlisted'),
+               lambda c: next(a for a in c['apps'] if a['id'] == 'ollama').update(flatpak_remote='artcraft-oci')]:
+    broken = copy.deepcopy(catalog); mutate(broken)
+    with tempfile.TemporaryDirectory() as tmp0:
+        (Path(tmp0) / 'c.json').write_text(json.dumps(broken))
+        try: load_catalog(Path(tmp0) / 'c.json')
+        except ValueError: pass
+        else: raise AssertionError('Unsafe Flatpak remote accepted')
+with tempfile.TemporaryDirectory() as temp:
+    d = Path(temp); pend = d / 'pending.json'
+    pend.write_text(json.dumps({'schema_version': 1, 'pending': ['pdfcraft', 'artcraft-launcher', 'krita']}))
+    bins = d / 'bin'; bins.mkdir()
+    (bins / 'flatpak').write_text('#!/bin/sh\nexit 0\n'); (bins / 'flatpak').chmod(0o755)
+    env = {**os.environ, 'PATH': f'{bins}:{os.environ["PATH"]}', 'WINDOESNOT_PENDING': str(pend), 'XDG_STATE_HOME': str(d / 's'), 'LANG': 'en_US.UTF-8'}
+    env.pop('WINDOESNOT_BASE', None)
+    out = subprocess.run([str(ROOT / 'desktop/bin/windoesnot-pending-apps'), '--dry-run', '--no-wait'], env=env, check=True, capture_output=True, text=True).stdout
+    assert out.splitlines() == [
+        'RUN: flatpak remote-add --user --if-not-exists artcraft-oci https://getartcraft.com/artcraft-oci.flatpakrepo',
+        'RUN: flatpak install --user --noninteractive -y artcraft-oci ai.storyteller.pdfcraft',
+        'RUN: flatpak remote-add --user --if-not-exists artcraft-oci https://getartcraft.com/artcraft-oci.flatpakrepo',
+        'RUN: flatpak install --user --noninteractive -y artcraft-oci ai.storyteller.artcraft-launcher',
+        'RUN: flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo',
+        'RUN: flatpak install --user --noninteractive -y flathub org.kde.krita'], out
+print('PASS pending-apps flatpak remote')
