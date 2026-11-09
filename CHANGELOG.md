@@ -2,6 +2,17 @@
 
 Generated from `packaging/changelog.json` (newest first). Releases with downloads: https://github.com/Bennch/windoesnot/releases
 
+## 0.1.0-27 (2026-11-09)
+
+- Printers are detected automatically. Maintenance shows a printer card with the printer status.
+- The firewall is on. Network name discovery (mDNS) stays allowed, so printers and other devices can be found.
+- New account page in Settings: change your password and set a profile picture.
+- New default apps in the software catalog: image viewer, calendar and contacts.
+- Settings has fewer pages. Account and info are combined.
+- VMware guests use software rendering. The screen no longer stays black.
+- Maintenance shows the firmware version of your computer.
+- Installer and boot: a boot error in the time service is fixed. Startup no longer waits for time synchronization.
+
 ## 0.1.0-26 (2026-11-09)
 
 - System updates stay possible: the window bars (Hyprland plugins) and the embedded terminal no longer depend on a fixed Hyprland, Qt or C++ library version. They are rebuilt automatically after an update. The WinDoesNot update channel is set up from the start.
