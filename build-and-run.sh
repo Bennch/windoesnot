@@ -3,7 +3,7 @@
 set -euo pipefail
 project=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 rootless=true; mode=both; iso=; dry=false; headless=false; fresh=false; installed=false
-memory=8192; cpus=4; graphics=auto; vm_name=debug; build_id=; viewer=spice
+memory=8192; cpus=4; graphics=auto; vm_name=debug; build_id=
 language=en
 usage() {
     cat <<EOF
@@ -19,7 +19,6 @@ Usage: $0 [options]
   --memory MiB          RAM (default: 8192)
   --cpus N              vCPUs (default: 4)
   --graphics gl|soft    VirGL acceleration or software rendering
-  --gtk-display         QEMU's own GTK window instead of the SPICE viewer (no shared clipboard)
   --build-id ID         Resume this exact prepared build
   --language en|de      ISO language (default: en)
   --dry-run             Show actions; do not build, download or launch
@@ -40,7 +39,6 @@ while (($#)); do
         --memory) memory=${2:?Missing memory}; shift 2;;
         --cpus) cpus=${2:?Missing CPU count}; shift 2;;
         --graphics) graphics=${2:?Missing graphics mode}; shift 2;;
-        --gtk-display) viewer=gtk; shift;;
         --build-id) build_id=${2:?Missing build ID}; shift 2;;
         --language) language=${2:?Missing language}; shift 2;;
         --dry-run) dry=true; shift;;
@@ -135,17 +133,8 @@ else accel=(-accel tcg,thread=multi -cpu max); echo 'KVM unavailable; using slow
 if [[ $graphics == auto ]]; then
     if $headless; then graphics=soft; else graphics=gl; fi
 fi
-# Shared clipboard with the guest: this QEMU build has no clipboard support in its own GTK
-# window (the qemu-vdagent channel then has nobody to talk to on the host). The SPICE viewer
-# (remote-viewer, started by QEMU itself) does it, over a spicevmc channel.
-if $headless || [[ $viewer == gtk ]]; then
-    gtk_display=gtk
-    clipboard_chardev=(-chardev qemu-vdagent,id=vdagent,name=vdagent,clipboard=on)
-else
-    gtk_display=spice-app
-    clipboard_chardev=(-chardev spicevmc,id=vdagent,name=vdagent)
-    command -v remote-viewer >/dev/null || { echo 'remote-viewer (virt-viewer) is needed for the shared clipboard; use --gtk-display without it.' >&2; exit 1; }
-fi
+gtk_display=gtk
+clipboard_chardev=(-chardev qemu-vdagent,id=vdagent,name=vdagent,clipboard=on)
 if [[ $graphics == gl ]]; then
     display=(-device virtio-vga-gl)
     if $headless; then display+=(-display egl-headless); else display+=(-display "$gtk_display,gl=on"); fi
