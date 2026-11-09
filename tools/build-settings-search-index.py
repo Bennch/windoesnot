@@ -19,11 +19,10 @@ PAGES = {
     'input': ['InputCategory'],
     'power': ['PowerCategory'],
     'apps': ['AppsCategory', 'ShellSettings', 'VmClipboardSettings'],
-    'maintenance': ['SystemCategory', 'MaintenanceCategory', 'KernelCategory'],
+    'maintenance': ['SystemCategory', 'AccountCategory', 'MaintenanceCategory', 'KernelCategory'],
     'backups': ['BackupsCategory'],
     'updates': ['UpdateCategory'],
-    'about': ['AboutCategory'],
-    'help': ['HelpCategory'],
+    'info': ['InfoCategory', 'AboutCategory', 'HelpCategory'],
 }
 # Settings that live in a panel opened from a page: found under that page.
 EXTRA_KEYS = {'power': ['power.brightness', 'power.nightLight']}

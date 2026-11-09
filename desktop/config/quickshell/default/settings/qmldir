@@ -1,4 +1,5 @@
 AboutCategory 1.0 AboutCategory.qml
+AccountCategory 1.0 AccountCategory.qml
 AlignmentCategory 1.0 AlignmentCategory.qml
 AppearanceCategory 1.0 AppearanceCategory.qml
 AppsCategory 1.0 AppsCategory.qml
@@ -7,6 +8,7 @@ BackupsCategory 1.0 BackupsCategory.qml
 ColorsCategory 1.0 ColorsCategory.qml
 DesktopCategory 1.0 DesktopCategory.qml
 HelpCategory 1.0 HelpCategory.qml
+InfoCategory 1.0 InfoCategory.qml
 InputCategory 1.0 InputCategory.qml
 MonitorsCategory 1.0 MonitorsCategory.qml
 StartOrbSettings 1.0 StartOrbSettings.qml

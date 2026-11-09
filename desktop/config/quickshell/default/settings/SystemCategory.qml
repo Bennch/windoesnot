@@ -8,6 +8,18 @@ Column {
     width: parent.width
     spacing: 30
 
+    Tools.AccountCategory {
+        id: accountSection
+        width: parent.width
+        settingsMenu: page.settingsMenu
+    }
+
+    Rectangle {
+        width: parent.width
+        height: 1
+        color: page.settingsMenu && page.settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
+    }
+
     Tools.MaintenanceCategory {
         id: maintenanceSection
         width: parent.width
