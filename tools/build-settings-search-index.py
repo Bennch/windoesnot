@@ -16,7 +16,7 @@ PAGES = {
     'background': ['BackgroundCategory'],
     'appearance': ['AppearanceCategory', 'ColorsCategory', 'StartOrbSettings'],
     'alignment': ['AlignmentCategory'],
-    'input': ['InputCategory'],
+    'input': ['InputCategory', 'PrinterCategory'],
     'power': ['PowerCategory'],
     'apps': ['AppsCategory', 'ShellSettings', 'VmClipboardSettings'],
     'maintenance': ['SystemCategory', 'AccountCategory', 'MaintenanceCategory', 'KernelCategory'],

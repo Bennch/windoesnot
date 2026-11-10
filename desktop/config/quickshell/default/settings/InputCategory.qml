@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import Quickshell.Io
+import "." as Tools
 import "../i18n/Lang.js" as Lang
 
 Column {
@@ -861,6 +862,7 @@ Column {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: settingsMenu.touchpadNaturalScroll = !settingsMenu.touchpadNaturalScroll
                 }
+
             }
         }
 
@@ -931,5 +933,16 @@ Column {
                 }
             }
         }
-}
+    }
+
+    Rectangle {
+        width: parent.width
+        height: 1
+        color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
+    }
+
+    Tools.PrinterCategory {
+        width: parent.width
+        settingsMenu: parent.settingsMenu
+    }
 }

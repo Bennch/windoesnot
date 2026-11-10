@@ -19,7 +19,6 @@ Item {
     property string resultKey: ""
     property string resultDetail: ""
     readonly property string resultText: resultKey ? tr(resultKey) : ""
-    property bool detailsExpanded: false
     property string logPath: ""
     property string pendingAction: ""
     property var pendingArgs: ({})
@@ -28,14 +27,6 @@ Item {
     height: content.height
 
     function tr(key) { return Lang.get(key, _lang) }
-    function graphicsName(profiles) {
-        return (profiles || "").split(", ").map(function(profile) {
-            if (profile.indexOf("nvidia") === 0) return "NVIDIA"
-            const labels = {intel: "Intel", amd: "AMD", qemu: page.tr("kernel.virtualMachine"),
-                virtualbox: "VirtualBox", vmware: "VMware", nouveau: "NVIDIA (nouveau)"}
-            return labels[profile] || profile || page.tr("kernel.unknown")
-        }).join(", ")
-    }
     function acceptStatus(data) {
         state = data
         ready = true
@@ -122,46 +113,9 @@ Item {
         BusyIndicator { width: 32; height: 32; running: page.busy; visible: running; palette.highlight: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
         Note { visible: page.resultText.length > 0; text: page.resultText; color: page.foreground }
         Note { visible: page.ready && page.state.catalogAvailable === false; text: page.tr("kernel.catalogMissing") }
-        Tools.SystemToolsButton {
-            settingsMenu: page.settingsMenu
-            text: page.tr(page.detailsExpanded ? "kernel.hideDetails" : "kernel.showDetails")
-            onClicked: page.detailsExpanded = !page.detailsExpanded
-        }
-        Column {
-            width: parent.width; spacing: 8; visible: page.detailsExpanded
-            Note { visible: page.resultDetail.length > 0; text: page.resultDetail }
-            Note { visible: page.logPath.length > 0; text: page.tr("systemTools.log") + " " + page.logPath }
-            Note { visible: page.ready; text: page.state.repositories.join(", ") }
-        }
+        Note { visible: page.resultDetail.length > 0; text: page.resultDetail }
+        Note { visible: page.logPath.length > 0; text: page.tr("systemTools.log") + " " + page.logPath }
         Note { visible: page.rebootNeeded; text: page.tr("kernel.reboot"); color: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
-        Heading { text: page.tr("kernel.detected") }
-        Rectangle {
-            width: parent.width
-            height: detectedRows.height + 32
-            visible: page.ready
-            radius: settingsMenu ? settingsMenu.borderRadius : 10
-            color: page.dark ? "#141414" : "#f5f5f5"
-            border.width: 1
-            border.color: page.dark ? "#3a3a3a" : "#d0d0d0"
-            Column {
-                id: detectedRows
-                x: 16; y: 16; width: parent.width - 32; spacing: 16
-                Repeater {
-                    model: page.ready ? [
-                        {label: page.tr("kernel.cpu"), value: page.state.cpuLevel},
-                        {label: page.tr("kernel.optimized"), value: page.tr(page.state.repositories.length ? "kernel.optimizationsOn" : "kernel.optimizationsDefault")},
-                        {label: page.tr("kernel.running"), value: page.state.release},
-                        {label: page.tr("kernel.graphics"), value: page.graphicsName(page.state.drivers)}
-                    ] : []
-                    delegate: Column {
-                        required property var modelData
-                        width: detectedRows.width; spacing: 4
-                        Note { text: modelData.label }
-                        Text { width: parent.width; text: modelData.value; color: page.foreground; font.pixelSize: 14; wrapMode: Text.WordWrap }
-                    }
-                }
-            }
-        }
         Heading { text: page.tr("kernel.kernels") }
         Note { text: page.tr("kernel.installHint") }
         Note { visible: page.ready && !page.state.bootloader; text: page.tr("kernel.noLoader") }
@@ -172,24 +126,21 @@ Item {
                 id: kernelRow
                 required property var modelData
                 width: content.width
-                height: kernelContent.implicitHeight + 24
+                height: kernelContent.implicitHeight + 20
                 radius: settingsMenu ? settingsMenu.borderRadius : 10
-                color: page.dark ? "#141414" : "#f5f5f5"
+                color: modelData.running ? (page.dark ? "#24201e" : "#fff3ed") : (page.dark ? "#141414" : "#f5f5f5")
                 border.width: 1
-                border.color: page.dark ? "#3a3a3a" : "#d0d0d0"
+                border.color: modelData.running
+                    ? (settingsMenu ? settingsMenu.accentColor : "#fe6f2d") : (page.dark ? "#3a3a3a" : "#d0d0d0")
                 Row {
                     id: kernelContent
-                    x: 16; y: 12; width: parent.width - 32; spacing: 12
+                    x: 16; y: 10; width: parent.width - 32; spacing: 12
                     Column {
                         width: parent.width - actions.implicitWidth - parent.spacing
                         spacing: 4
                         Text { width: parent.width; text: kernelRow.modelData.selectable ? page.tr("kernel.name." + kernelRow.modelData.name) : kernelRow.modelData.name; color: page.foreground; font.bold: true; font.pixelSize: 14; wrapMode: Text.WordWrap }
                         Note { text: page.tr(kernelRow.modelData.selectable ? "kernel.description." + kernelRow.modelData.name : "kernel.customDescription") }
-                        Note {
-                            text: (kernelRow.modelData.installed ? page.tr("kernel.installed") + ": " + kernelRow.modelData.installed : page.tr("kernel.notInstalled"))
-                                + (kernelRow.modelData.running ? " · " + page.tr("kernel.inUse") : "")
-                                + (kernelRow.modelData.available ? " · " + page.tr("kernel.available") + ": " + kernelRow.modelData.available : "")
-                        }
+                        Note { text: (kernelRow.modelData.installed ? page.tr("kernel.installed") + ": " + kernelRow.modelData.installed : page.tr("kernel.notInstalled")) + (kernelRow.modelData.running ? " · " + page.tr("kernel.inUse") : "") + (kernelRow.modelData.available ? " · " + page.tr("kernel.available") + ": " + kernelRow.modelData.available : "") }
                     }
                     Row {
                         id: actions
