@@ -202,13 +202,25 @@ Item {
     Process {
         id: nightLightToggleProc
         running: false
-        onExited: nightLightStatusProc.running = true
+        // hyprsunset starts or stops asynchronously; re-read its state a little later,
+        // otherwise the read happens before the process exists and the switch lags a click.
+        onExited: nightLightRecheck.restart()
+    }
+
+    Timer {
+        id: nightLightRecheck
+        interval: 400
+        repeat: false
+        onTriggered: nightLightStatusProc.running = true
     }
 
     function toggleNightLight() {
-        nightLightToggleProc.command = nightLightEnabled
-            ? ["bash", "-c", "pkill -x hyprsunset"]
-            : ["bash", "-c", "setsid hyprsunset -t 4000 >/dev/null 2>&1 &"]
+        var turnOn = !nightLightEnabled
+        // Show the new state at once; the status read above corrects it if the start failed.
+        nightLightEnabled = turnOn
+        nightLightToggleProc.command = turnOn
+            ? ["bash", "-c", "setsid hyprsunset -t 4000 >/dev/null 2>&1 & sleep 0.3"]
+            : ["bash", "-c", "pkill -x hyprsunset; sleep 0.2"]
         nightLightToggleProc.running = true
     }
 
@@ -405,7 +417,7 @@ Item {
                     color: darkMode ? "#cccccc" : "#333333"
                     anchors.verticalCenter: parent.verticalCenter
                 }
-                Item { width: parent.width - nightLightLabel.width - 60 - 20; height: 1 }
+                Item { width: parent.width - nightLightLabel.width - 20 - 44 - 30; height: 1 }
                 Rectangle {
                     width: 44; height: 24; radius: 12
                     anchors.verticalCenter: parent.verticalCenter

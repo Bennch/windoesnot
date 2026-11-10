@@ -899,19 +899,21 @@ def context_menu_css(r, g, b, border_radius, dark):
     """CSS of the desktop context menu: light/dark, accent colour (r, g, b) and corner radius from the settings."""
     bg = "rgba(32, 32, 32, 0.95)" if dark else "rgba(243, 243, 243, 0.98)"
     fg = "#ffffff" if dark else "#1a1a1a"
-    border = "rgba(255, 255, 255, 0.12)" if dark else "rgba(0, 0, 0, 0.14)"
+    # Same grey as the swaync popups (_build_swaync_css) and the Quickshell popups.
+    border = "rgba(58, 58, 63, 1)" if dark else "rgba(192, 192, 192, 1)"
     sep = "rgba(255, 255, 255, 0.14)" if dark else "rgba(0, 0, 0, 0.12)"
     item_radius = max(0, border_radius - 2) if border_radius > 0 else 0
     return f"""
         popover.desktop-context-menu > contents {{
-            background: transparent;
-            border: none;
+            background-color: {bg};
+            border: 1px solid {border};
+            border-radius: {border_radius}px;
             box-shadow: none;
             padding: 0;
         }}
         .desktop-menu-column {{
-            background-color: {bg};
-            border: 1px solid {border};
+            background: transparent;
+            border: none;
             border-radius: {border_radius}px;
             padding: 6px;
         }}

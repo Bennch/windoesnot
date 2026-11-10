@@ -78,7 +78,27 @@ Item {
         command: ["/usr/bin/bash", "-c", "/usr/bin/magick \"$1[0]\" -auto-orient -strip -resize 96x96^ -gravity center -extent 96x96 PNG:- | /usr/bin/pkexec --disable-internal-agent /usr/lib/windoesnot/system_tools.py avatar-set '{}'", "avatar"]
         stdout: StdioCollector { id: avatarOutput }
         stderr: StdioCollector { id: avatarErrors }
-        onExited: (code) => page.finish(code, avatarOutput.text, avatarErrors.text, "account.avatarDone")
+        onExited: (code) => {
+            page.finish(code, avatarOutput.text, avatarErrors.text, "account.avatarDone")
+            if (code === 0) avatarStatus.running = true
+        }
+    }
+
+    // Current picture for the preview, same lookup order as the start menu. Prints the
+    // path (empty when none is set) and the user name for the placeholder letter.
+    property string avatarSource: ""
+    property string userName: ""
+    Process {
+        id: avatarStatus
+        command: ["bash", "-c", "p=''; for c in \"$HOME/.face\" \"$HOME/.face.icon\" \"/var/lib/AccountsService/icons/$USER\"; do if [ -f \"$c\" ]; then p=\"$c\"; break; fi; done; printf '%s\\n%s' \"$p\" \"$USER\""]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var lines = this.text.split("\n")
+                page.avatarSource = lines[0] ? "file://" + lines[0] : ""
+                page.userName = lines.length > 1 ? lines[1] : ""
+            }
+        }
     }
 
     Dialogs.FileDialog {
@@ -152,6 +172,34 @@ Item {
             Column {
                 id: avatarContent; x: 16; y: 16; width: parent.width - 32; spacing: 10
                 Text { width: parent.width; text: page.tr("account.avatarTitle"); color: page.foreground; font.pixelSize: 15; font.bold: true; wrapMode: Text.WordWrap }
+                Column {
+                    spacing: 6
+                    Text { text: page.tr("account.avatarCurrent"); color: page.secondary; font.pixelSize: 13 }
+                    // Current picture; without one, a neutral tile with the initial of the user.
+                    Rectangle {
+                        width: 96; height: 96
+                        radius: settingsMenu ? settingsMenu.borderRadius : 10
+                        clip: true
+                        color: page.dark ? "#2a2a2a" : "#e0e0e0"
+                        border.width: 1; border.color: page.lineColor
+                        Image {
+                            id: avatarPreview
+                            anchors.fill: parent
+                            source: page.avatarSource
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            cache: false
+                            visible: status === Image.Ready
+                        }
+                        Text {
+                            anchors.centerIn: parent
+                            visible: avatarPreview.status !== Image.Ready
+                            text: page.userName.length > 0 ? page.userName.charAt(0).toUpperCase() : "?"
+                            font.pixelSize: 36; font.bold: true
+                            color: page.foreground
+                        }
+                    }
+                }
                 Note { text: page.tr("account.avatarHint") }
                 Tools.SystemToolsButton {
                     settingsMenu: page.settingsMenu
