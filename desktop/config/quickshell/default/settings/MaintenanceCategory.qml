@@ -35,7 +35,6 @@ Item {
     function tr(key) { return Lang.get(key, _lang) }
     function groupFor(action) {
         if (action === "mirrors-rank" || action === "cache-clean") return "downloads"
-        if (action === "drivers-configure") return "devices"
         return "repair"
     }
     function sizeText(bytes) {
@@ -106,7 +105,7 @@ Item {
                 model: [
                     {key: "downloads", label: page.tr("maintenance.groupDownloads")},
                     {key: "repair", label: page.tr("maintenance.groupRepair")},
-                    {key: "devices", label: page.tr("maintenance.groupDevices")}
+                    {key: "security", label: page.tr("maintenance.groupSecurity")}
                 ]
                 delegate: Tools.SystemToolsButton {
                     required property var modelData
@@ -147,8 +146,7 @@ Item {
                 {action: "keyring-repair", title: "maintenance.keyring", hint: "maintenance.keyringHint", tool: "pacman-key", confirmation: "maintenance.confirmKeyring"},
                 {action: "lock-remove", title: "maintenance.lock", hint: "maintenance.lockHint", tool: "", confirmation: "maintenance.confirmLock"},
                 {action: "orphans", title: "maintenance.orphans", hint: "maintenance.orphansHint", tool: "", confirmation: ""},
-                {action: "failed", title: "maintenance.failed", hint: "maintenance.failedHint", tool: "", confirmation: ""},
-                {action: "drivers-configure", title: "maintenance.drivers", hint: "maintenance.driversHint", tool: "chwd", confirmation: "maintenance.confirmDrivers"}
+                {action: "failed", title: "maintenance.failed", hint: "maintenance.failedHint", tool: "", confirmation: ""}
             ]
             delegate: Rectangle {
                 id: card
@@ -212,7 +210,7 @@ Item {
         }
         Rectangle {
             id: firewallCard
-            visible: page.selectedGroup === "devices"
+            visible: page.selectedGroup === "security"
             width: content.width; height: firewallContent.implicitHeight + 32
             radius: settingsMenu ? settingsMenu.borderRadius : 10
             color: page.dark ? "#141414" : "#f5f5f5"

@@ -44,8 +44,11 @@ def parse_snapshots(raw):
     for row in rows:
         number = str(row.get('number', row.get('#', ''))).rstrip('*+-')
         if number.isdecimal() and int(number) > 0:
+            used = row.get('used-space', row.get('used_space', 0))
+            used = used if type(used) is int and used >= 0 else 0
             result.append({'id': number, 'date': str(row.get('date', '')),
                            'description': str(row.get('description', '')),
+                           'usedBytes': used,
                            'type': str(row.get('type', '')),
                            'cleanup': str(row.get('cleanup', '')),
                            'preId': str(row.get('pre-number') or ''),
@@ -132,7 +135,7 @@ def status():
             'numberLimit': values.get('NUMBER_LIMIT', ''),
             'importantLimit': values.get('NUMBER_LIMIT_IMPORTANT', ''),
             'snapshots': parse_snapshots(run('/usr/bin/snapper', '--no-dbus', '--jsonout',
-                '--iso', '-c', 'root', 'list', '--columns', 'number,type,pre-number,date,description,cleanup,userdata')),
+                '--iso', '-c', 'root', 'list', '--columns', 'number,type,pre-number,date,description,cleanup,userdata,used-space')),
             'schedule': schedule, 'timeline': values.get('TIMELINE_CREATE') == 'yes',
             'timerActive': subprocess.run(['/usr/bin/systemctl', 'is-active', '--quiet',
                 'snapper-timeline.timer'], env=ENV).returncode == 0}

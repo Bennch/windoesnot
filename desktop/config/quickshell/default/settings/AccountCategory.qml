@@ -145,6 +145,7 @@ Item {
                 id: passwordContent; x: 16; y: 16; width: parent.width - 32; spacing: 10
                 Text { width: parent.width; text: page.tr("account.passwordTitle"); color: page.foreground; font.pixelSize: 15; font.bold: true; wrapMode: Text.WordWrap }
                 Note { text: page.tr("account.passwordHint") }
+                Loader { width: parent.width; sourceComponent: avatarContentComponent }
                 AccountField { id: currentField; placeholderText: page.tr("account.currentPassword"); enabled: !page.busy }
                 AccountField { id: newField; placeholderText: page.tr("account.newPassword"); enabled: !page.busy }
                 AccountField { id: repeatField; placeholderText: page.tr("account.repeatPassword"); enabled: !page.busy }
@@ -160,21 +161,16 @@ Item {
                         passwordWorker.running = true
                     }
                 }
-                Loader { width: parent.width; sourceComponent: avatarContentComponent }
             }
         }
 
         Component {
             id: avatarContentComponent
-            Column {
-                width: parent.width; spacing: 10
-                Text { width: parent.width; text: page.tr("account.avatarTitle"); color: page.foreground; font.pixelSize: 15; font.bold: true; wrapMode: Text.WordWrap }
-                Column {
-                    spacing: 6
-                    Text { text: page.tr("account.avatarCurrent"); color: page.secondary; font.pixelSize: 13 }
-                    // Current picture; without one, a neutral tile with the initial of the user.
-                    Rectangle {
-                        width: 96; height: 96
+            Row {
+                width: parent.width; spacing: 12
+                // Current picture; without one, a neutral tile with the initial of the user.
+                Rectangle {
+                        width: 64; height: 64
                         radius: settingsMenu ? settingsMenu.borderRadius : 10
                         clip: true
                         color: page.dark ? "#2a2a2a" : "#e0e0e0"
@@ -192,20 +188,23 @@ Item {
                             anchors.centerIn: parent
                             visible: avatarPreview.status !== Image.Ready
                             text: page.userName.length > 0 ? page.userName.charAt(0).toUpperCase() : "?"
-                            font.pixelSize: 36; font.bold: true
+                            font.pixelSize: 24; font.bold: true
                             color: page.foreground
                         }
                     }
                 }
-                Note { text: page.tr("account.avatarHint") }
-                Tools.SystemToolsButton {
-                    settingsMenu: page.settingsMenu
-                    enabled: !page.busy
-                    primary: true
-                    text: page.tr("account.avatarAction")
-                    onClicked: {
-                        page.settingsMenu.fileDialogOpen = true
-                        avatarPicker.open()
+                Column {
+                    width: parent.width - 76; spacing: 5
+                    Text { width: parent.width; text: page.tr("account.avatarTitle"); color: page.foreground; font.pixelSize: 14; font.bold: true; elide: Text.ElideRight }
+                    Note { text: page.tr("account.avatarHint"); font.pixelSize: 12 }
+                    Tools.SystemToolsButton {
+                        settingsMenu: page.settingsMenu
+                        enabled: !page.busy
+                        text: page.tr("account.avatarAction")
+                        onClicked: {
+                            page.settingsMenu.fileDialogOpen = true
+                            avatarPicker.open()
+                        }
                     }
                 }
             }

@@ -289,7 +289,7 @@ def maintenance_status():
             'lockExists': DB_LOCK.exists(), 'packageProcesses': processes,
             'processesVisible': visibility, 'orphans': orphan_packages(),
             'failedServices': failed.splitlines(),
-            'printers': printers_status(), 'firewall': firewall_status(), 'firmware': firmware_status(),
+            'printers': printers_status(), 'firewall': firewall_status(),
             'tools': {name: available(name) for name in ('cachyos-rate-mirrors', 'paccache', 'pacman-key', 'chwd', 'curl')}}
 
 
