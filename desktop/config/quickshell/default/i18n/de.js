@@ -242,6 +242,8 @@ var strings = {
     "kernel.schedulerHint": "Ein Scheduler verteilt Rechenzeit auf laufende Programme. Die normale Verteilung des Kernels funktioniert ohne Zusatzprogramm. Hier kannst du eine andere Verteilung ausprobieren.",
     "kernel.noScx": "Der laufende Kernel unterstützt keine zusätzlichen sched-ext-Scheduler.",
     "kernel.schedulerActive": "Aktueller Zustand",
+    "kernel.schedulerChoice": "Scheduler",
+    "kernel.modeChoice": "Profil",
     "kernel.installScx": "Scheduler-Werkzeuge installieren",
     "kernel.confirmScxInstall": "Die Scheduler-Pakete installieren? Dabei wird das gesamte System aktualisiert.",
     "kernel.onBoot": "Beim Start verwenden",

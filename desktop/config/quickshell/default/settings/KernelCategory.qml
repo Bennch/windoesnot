@@ -219,19 +219,36 @@ Item {
         Column {
             visible: page.ready && page.state.scx.supported === true
             width: parent.width; spacing: 12
-            Note { text: page.tr("kernel.schedulerActive") + ": " + (page.state.scx.current || page.state.scx.state || page.tr("kernel.none")) }
+            Row {
+                width: parent.width; spacing: 12
+                Note { width: parent.width - schedulerState.width - parent.spacing; text: page.tr("kernel.schedulerActive") }
+                Text {
+                    id: schedulerState
+                    width: Math.min(220, implicitWidth)
+                    text: page.state.scx.current || page.state.scx.state || page.tr("kernel.none")
+                    color: page.foreground; font.pixelSize: 13; horizontalAlignment: Text.AlignRight; elide: Text.ElideRight
+                }
+            }
             ActionButton {
                 visible: !page.state.scx.installed || !page.state.scx.schedulers.length
                 text: page.tr("kernel.installScx")
                 onClicked: page.requestAction("scx-install", {}, page.tr("kernel.confirmScxInstall"))
             }
-            Tools.SystemToolsChoice { settingsMenu: page.settingsMenu; id: scheduler; width: Math.min(320, parent.width); model: page.state.scx.schedulers; enabled: !page.busy && !page.state.live }
-            Tools.SystemToolsChoice {
-                settingsMenu: page.settingsMenu
-                id: mode; objectName: "systemToolsMode"; width: Math.min(320, parent.width)
-                model: ["Auto", "Gaming", "PowerSave", "LowLatency", "Server"]
-                labelPrefix: "kernel.mode"
-                enabled: !page.busy && !page.state.live
+            Row {
+                width: parent.width; spacing: 12
+                Note { width: parent.width - scheduler.width - parent.spacing; text: page.tr("kernel.schedulerChoice") }
+                Tools.SystemToolsChoice { settingsMenu: page.settingsMenu; id: scheduler; width: Math.min(220, parent.width); model: page.state.scx.schedulers; enabled: !page.busy && !page.state.live }
+            }
+            Row {
+                width: parent.width; spacing: 12
+                Note { width: parent.width - mode.width - parent.spacing; text: page.tr("kernel.modeChoice") }
+                Tools.SystemToolsChoice {
+                    settingsMenu: page.settingsMenu
+                    id: mode; objectName: "systemToolsMode"; width: Math.min(220, parent.width)
+                    model: ["Auto", "Gaming", "PowerSave", "LowLatency", "Server"]
+                    labelPrefix: "kernel.mode"
+                    enabled: !page.busy && !page.state.live
+                }
             }
             Tools.SystemToolsToggle { settingsMenu: page.settingsMenu; id: onBoot; text: page.tr("kernel.onBoot"); enabled: !page.busy && !page.state.live }
             ActionButton {

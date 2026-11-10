@@ -242,6 +242,8 @@ var strings = {
     "kernel.schedulerHint": "A scheduler shares CPU time among running programs. The kernel works without an extra scheduler. Here you can try an alternative.",
     "kernel.noScx": "The running kernel does not support extra sched-ext schedulers.",
     "kernel.schedulerActive": "Current state",
+    "kernel.schedulerChoice": "Scheduler",
+    "kernel.modeChoice": "Profile",
     "kernel.installScx": "Install scheduler tools",
     "kernel.confirmScxInstall": "Install the scheduler packages? This also updates the whole system.",
     "kernel.onBoot": "Use at startup",
