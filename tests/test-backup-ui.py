@@ -11,6 +11,8 @@ with tempfile.TemporaryDirectory(prefix='wdn-backup-ui-') as temp:
  # Disable only the startup probe. Status/actions below are fixture-driven.
  page=page.replace('running: true\n        command: ["sh",', 'running: false\n        command: ["sh",')
  (profile/'settings/BackupsCategory.qml').write_text(page)
+ shutil.copy2(source/'settings/SystemToolsButton.qml',profile/'settings')
+ shutil.copy2(source/'settings/SystemToolsConfirm.qml',profile/'settings')
  shutil.copy2(source/'widgets/AuthenticationCard.qml',profile/'widgets')
  (profile/'img/Win11-dark/actions/32').mkdir(parents=True)
  shutil.copy2(source/'img/Win11-dark/actions/32/system-lock-screen.svg',profile/'img/Win11-dark/actions/32')
@@ -41,7 +43,8 @@ ShellRoot {
      testWindow.check(page.pointKind({cleanup:"timeline"}) === "automaticPoint", "automatic label")
      testWindow.check(page.pointKind({description:"unknown"}) === "otherPoint", "do not invent manual author")
      testWindow.check(page.pointKind({description:"tree",type:"post",packageChange:true}) === "afterUpdate", "post package list label")
-     page.acceptStatus({ready:true,live:false,snapshots:[{id:"1",date:"2026-10-23T12:00:00",description:"WinDoesNot installation"}],schedule:{daily:"5",hourly:"0",weekly:"0",monthly:"0"},timeline:true,timerActive:true},true)
+     page.acceptStatus({ready:true,live:false,snapshots:[{id:"1",date:"2026-10-23T12:00:00",description:"WinDoesNot installation",usedBytes:1048576}],schedule:{daily:"5",hourly:"0",weekly:"0",monthly:"0"},timeline:true,timerActive:true},true)
+     testWindow.check(page.snapshotBytes === 1048576, "snapshot size shown")
      testWindow.check(page.pointName("installedPoint", "") === "Nach der Installation", "German label")
      const response = testWindow.find(auth,"authenticationResponse")
      testWindow.check(response.placeholderText === "Passwort eingeben", "German password")

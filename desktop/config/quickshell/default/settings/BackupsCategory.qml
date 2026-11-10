@@ -18,6 +18,7 @@ Item {
     property bool packageSnapshots: false
     property string numberLimit: ""
     property string importantLimit: ""
+    property double snapshotBytes: 0
 
     // State
     property bool busy: false
@@ -73,6 +74,11 @@ Item {
     function pointName(kind, date) {
         return Lang.get("backups." + kind, _lang).replace("%1", date)
     }
+    function formatSize(bytes) {
+        if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + " KiB"
+        if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + " MiB"
+        return (bytes / (1024 * 1024 * 1024)).toFixed(1) + " GiB"
+    }
 
     function acceptStatus(data, updateSchedule) {
         backupsReady = data.ready === true
@@ -84,9 +90,11 @@ Item {
         importantLimit = String(data.importantLimit || "")
         if (!backupsReady) return
         snapshotModel.clear()
+        snapshotBytes = 0
         for (const snapshot of data.snapshots)
             snapshotModel.append({snapshotId: snapshot.id, date: formatDateTime(snapshot.date),
                 kind: pointKind(snapshot), important: pointKind(snapshot) === "installedPoint"})
+        for (const snapshot of data.snapshots) snapshotBytes += Number(snapshot.usedBytes || 0)
         timelineActive = data.timeline && data.timerActive
         timelineConfigured = data.timeline
         if (updateSchedule) {
@@ -254,6 +262,14 @@ Item {
         color: settingsMenu.darkMode ? "#bbb" : "#555"
         font.pixelSize: 13
         wrapMode: Text.WordWrap
+    }
+
+    Text {
+        visible: snapshotModel.count > 0
+        width: parent.width
+        text: Lang.get("backups.usedSpace", _lang).replace("%1", formatSize(snapshotBytes))
+        color: settingsMenu.darkMode ? "#aaa" : "#555"
+        font.pixelSize: 13
     }
 
     Rectangle {

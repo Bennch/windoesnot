@@ -43,9 +43,11 @@ class Boundaries(unittest.TestCase):
             backend.validate('schedule', {**valid, 'ALLOW_USERS': 'anyone'})
 
     def test_structured_list(self):
-        rows = [{'number': 0, 'date': ''}, {'number': 9, 'date': '2026-10-23 10:00:00'},
-                {'number': 10, 'date': '2026-10-23 11:00:00'}]
-        self.assertEqual([x['id'] for x in backend.parse_snapshots(json.dumps({'root': rows}))], ['10', '9'])
+        rows = [{'number': 0, 'date': ''}, {'number': 9, 'date': '2026-10-23 10:00:00', 'used-space': 2048},
+                {'number': 10, 'date': '2026-10-23 11:00:00', 'used-space': 4096}]
+        snapshots = backend.parse_snapshots(json.dumps({'root': rows}))
+        self.assertEqual([x['id'] for x in snapshots], ['10', '9'])
+        self.assertEqual([x['usedBytes'] for x in snapshots], [4096, 2048])
 
     def test_list_preserves_classification_metadata(self):
         rows = [
