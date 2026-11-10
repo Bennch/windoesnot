@@ -2,7 +2,7 @@
 # Offline installations rank their mirrors once, on the first real connection.
 [ -e /var/lib/windoesnot/mirrors-ranked ] && exit 0
 case "$2" in
-    up) ;;
+    up) [ "$(nmcli -t -f CONNECTIVITY general status 2>/dev/null)" = full ] || exit 0 ;;
     connectivity-change) [ "$CONNECTIVITY_STATE" = FULL ] || exit 0 ;;
     *) exit 0 ;;
 esac

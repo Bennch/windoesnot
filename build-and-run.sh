@@ -2,7 +2,7 @@
 # Build WinDoesNot with archiso and boot it in an isolated UEFI QEMU VM.
 set -euo pipefail
 project=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-rootless=true; mode=both; iso=; dry=false; headless=false; fresh=false; installed=false
+rootless=true; mode=both; iso=; dry=false; headless=false; fresh=false; installed=false; network=true
 memory=8192; cpus=4; graphics=auto; vm_name=debug; build_id=; extra_disk=
 language=en
 usage() {
@@ -14,6 +14,7 @@ Usage: $0 [options]
   --run-only ISO        Reuse an ISO; skip build/downloads
   --boot-installed      Boot the VM's installed disk with no ISO attached
   --headless            No GUI; serial log and QMP socket in vm/<name>/
+  --no-network          Boot without a virtual network adapter
   --fresh-vm            New VM directory; preserve the previous disk
   --vm-name NAME        VM directory (default: debug)
   --extra-disk FILE     Attach a qcow2 image as a second disk (e.g. a previous Windows system)
@@ -35,6 +36,7 @@ while (($#)); do
         --run-only) mode=run; iso=${2:?Missing ISO path}; shift 2;;
         --boot-installed) mode=run; installed=true; shift;;
         --headless) headless=true; shift;;
+        --no-network) network=false; shift;;
         --fresh-vm) fresh=true; shift;;
         --vm-name) vm_name=${2:?Missing name}; shift 2;;
         --extra-disk) extra_disk=${2:?Missing disk image}; shift 2;;
@@ -150,7 +152,6 @@ command=(qemu-system-x86_64 -name "WinDoesNot-$vm_name" -machine q35 "${accel[@]
     -drive "file=$disk,if=virtio,format=qcow2"
     ${extra_disk:+-drive "file=$extra_disk,if=virtio,format=qcow2"}
     "${display[@]}" -device qemu-xhci -device usb-tablet
-    -netdev user,id=net0 -device virtio-net-pci,netdev=net0
     -device virtio-rng-pci
     -device virtio-serial-pci -chardev "socket,path=$vm/guest-agent.sock,server=on,wait=off,id=guest0"
     -device virtserialport,chardev=guest0,name=org.qemu.guest_agent.0
@@ -159,6 +160,8 @@ command=(qemu-system-x86_64 -name "WinDoesNot-$vm_name" -machine q35 "${accel[@]
     -serial "file:$vm/serial.log"
     -qmp "unix:$vm/qmp.sock,server=on,wait=off"
     -pidfile "$vm/qemu.pid" -monitor none)
+if $network; then command+=(-netdev user,id=net0 -device virtio-net-pci,netdev=net0)
+else command+=(-nic none); fi
 if ! $installed; then command+=(-drive "file=$iso,media=cdrom,readonly=on" -boot order=d,menu=on); else command+=(-boot order=c,menu=on); fi
 show "${command[@]}"
 $dry && exit 0
