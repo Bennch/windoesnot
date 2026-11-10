@@ -212,7 +212,8 @@ Item {
         }
         Rectangle {
             id: printerCard
-            readonly property var printerState: page.state.printers
+            // Older installed helpers and the initial empty state may omit printers.
+            readonly property var printerState: page.state.printers || null
             width: content.width; height: printerContent.implicitHeight + 32
             radius: settingsMenu ? settingsMenu.borderRadius : 10
             color: page.dark ? "#141414" : "#f5f5f5"

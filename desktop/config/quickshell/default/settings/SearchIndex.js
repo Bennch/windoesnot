@@ -314,6 +314,7 @@ var PAGES = [
    "account.passwordMismatch",
    "account.passwordAction",
    "account.avatarTitle",
+   "account.avatarCurrent",
    "account.avatarHint",
    "account.avatarAction",
    "maintenance.freed",
@@ -489,6 +490,11 @@ var PAGES = [
    "updates.wdnDevHint",
    "updates.wdnWhatsNew",
    "updates.wdnInstalledNew",
+   "updates.sectionWdnApps",
+   "updates.wdnAppNoVersion",
+   "updates.wdnAppUpdateTo",
+   "updates.wdnAppCurrent",
+   "updates.wdnAppsNone",
    "updates.sectionApps",
    "updates.sectionSystem",
    "updates.tagReboot",
@@ -503,7 +509,9 @@ var PAGES = [
    "updates.intervention",
    "updates.allPackages"
   ],
-  "texts": [],
+  "texts": [
+   "WinDoesNot"
+  ],
   "extra": {}
  },
  {

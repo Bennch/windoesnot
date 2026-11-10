@@ -54,7 +54,9 @@ Column {
         id: choice
         width: 180; settingsMenu: page.settingsMenu
         model: page.available; enabled: !page.busy
-        onCurrentTextChanged: {
+        // onActivated = only a user pick. onCurrentTextChanged also fired while the list was
+        // filled from shell-status, which started a pkexec password prompt on opening the page.
+        onActivated: {
             if (choice.currentText && choice.currentText !== page.current && !page.busy) {
                 page.run("shell-set", {shell: choice.currentText})
             }

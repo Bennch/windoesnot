@@ -67,11 +67,32 @@ Column {
         return groups
     }
 
+    // The WinDoesNot packages of this installation, shown in their own section.
+    // Installed versions come from the local pacman database (no root, no network);
+    // pending updates come from the Store status.
+    readonly property var wdnPackageNames: ["windoesnot-desktop", "windoesnot-tools", "windoesnot-plugins",
+        "windoesnot-components", "windoesnot-store", "windoesnot-audio", "windoesnot-network",
+        "windoesnot-bluetooth", "windoesnot-device-manager", "windoesnot-device-manager-core", "windoesnot-graphics"]
+    property var installedWdn: ({})
+    readonly property var wdnRows: {
+        var rows = []
+        for (var i = 0; i < wdnPackageNames.length; i++) {
+            var name = wdnPackageNames[i]
+            if (!installedWdn[name]) continue
+            var pending = updates.filter(function(u) { return u.name === name })
+            rows.push({ name: name, installed: installedWdn[name], available: pending.length > 0 ? pending[0].new : "" })
+        }
+        return rows
+    }
+    readonly property string ownVersion: status && status.windoesnot && status.windoesnot.installed
+        ? status.windoesnot.installed : (installedWdn["windoesnot-desktop"] || "")
+
     width: parent.width
     spacing: 20
 
     function check(refresh) {
         if (checking || settingAur) { pendingCheck = true; return }
+        if (!wdnPkgProc.running) wdnPkgProc.running = true
         acceptStatusResult = true
         checking = true
         // Via sh: a missing store binary then ends with 127 instead of never
@@ -155,6 +176,23 @@ Column {
     Process {
         id: upgradeProc
         command: ["windoesnot-store", "--upgrade"]
+    }
+
+    // `pacman -Q` reads only /var/lib/pacman/local; missing packages are skipped.
+    Process {
+        id: wdnPkgProc
+        command: ["sh", "-c", 'pacman -Q "$@" 2>/dev/null; exit 0', "sh"].concat(updatesPage.wdnPackageNames)
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var map = {}
+                var lines = text.split("\n")
+                for (var i = 0; i < lines.length; i++) {
+                    var parts = lines[i].trim().split(/\s+/)
+                    if (parts.length >= 2) map[parts[0]] = parts[1]
+                }
+                updatesPage.installedWdn = map
+            }
+        }
     }
 
     // === Status: one sentence, one button ===
@@ -373,6 +411,78 @@ Column {
                     text: "•  " + modelData
                     font.pixelSize: 13
                     color: textColor
+                }
+            }
+        }
+    }
+
+    // === WinDoesNot applications: own section, apart from programs and system ===
+    Column {
+        visible: status !== null
+        width: parent.width
+        spacing: 8
+        Text { text: Lang.get("updates.sectionWdnApps", _lang) + "  ·  " + (wdnRows.length + 1); font.pixelSize: 15; font.bold: true; color: textColor }
+        Rectangle {
+            width: parent.width
+            height: wdnList.implicitHeight
+            radius: settingsMenu.borderRadius
+            color: cardColor
+            Column {
+                id: wdnList
+                width: parent.width
+                // Own row first: the desktop version and whether a newer one exists.
+                Item {
+                    width: wdnList.width; height: 52
+                    Column {
+                        anchors { left: parent.left; leftMargin: 16; right: wdnOwnState.left; rightMargin: 12; verticalCenter: parent.verticalCenter }
+                        spacing: 2
+                        Text { width: parent.width; elide: Text.ElideRight; text: "WinDoesNot"; font.pixelSize: 13; color: textColor }
+                        Text { width: parent.width; elide: Text.ElideRight; text: ownVersion || Lang.get("updates.wdnAppNoVersion", _lang); font.pixelSize: 11; color: subColor }
+                    }
+                    Text {
+                        id: wdnOwnState
+                        anchors { right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
+                        text: status && status.windoesnot && status.windoesnot.update
+                            ? Lang.get("updates.wdnAppUpdateTo", _lang).replace("{}", status.windoesnot.available)
+                            : Lang.get("updates.wdnAppCurrent", _lang)
+                        font.pixelSize: 12; font.bold: status && status.windoesnot && status.windoesnot.update
+                        color: status && status.windoesnot && status.windoesnot.update ? accent : subColor
+                    }
+                }
+                Repeater {
+                    model: wdnRows
+                    delegate: Item {
+                        required property var modelData
+                        required property int index
+                        width: wdnList.width; height: 52
+                        Rectangle {
+                            width: parent.width - 32; height: 1; x: 16
+                            color: lineColor
+                        }
+                        Column {
+                            anchors { left: parent.left; leftMargin: 16; right: rowState.left; rightMargin: 12; verticalCenter: parent.verticalCenter }
+                            spacing: 2
+                            Text { width: parent.width; elide: Text.ElideRight; text: modelData.name; font.pixelSize: 13; color: textColor }
+                            Text { width: parent.width; elide: Text.ElideRight; text: modelData.installed; font.pixelSize: 11; color: subColor }
+                        }
+                        Text {
+                            id: rowState
+                            anchors { right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
+                            text: modelData.available !== "" ? Lang.get("updates.wdnAppUpdateTo", _lang).replace("{}", modelData.available) : Lang.get("updates.wdnAppCurrent", _lang)
+                            font.pixelSize: 12; font.bold: modelData.available !== ""
+                            color: modelData.available !== "" ? accent : subColor
+                        }
+                    }
+                }
+                Item {
+                    visible: wdnRows.length === 0 && status !== null
+                    width: wdnList.width; height: visible ? 44 : 0
+                    Text {
+                        anchors { left: parent.left; leftMargin: 16; right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
+                        wrapMode: Text.WordWrap
+                        text: Lang.get("updates.wdnAppsNone", _lang)
+                        font.pixelSize: 12; color: subColor
+                    }
                 }
             }
         }

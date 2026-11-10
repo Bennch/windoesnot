@@ -22,6 +22,11 @@ with tempfile.TemporaryDirectory(prefix='wdn-power-ui-') as temp:
     shutil.copy2(SOURCE / 'settings/SystemCategory.qml', profile / 'settings')
     shutil.copy2(SOURCE / 'settings/KernelCategory.qml', profile / 'settings')
     shutil.copy2(SOURCE / 'settings/MaintenanceCategory.qml', profile / 'settings')
+    shutil.copy2(SOURCE / 'settings/AccountCategory.qml', profile / 'settings')
+    system_fixture = profile / 'settings/SystemCategory.qml'
+    system_fixture.write_text(system_fixture.read_text().replace(
+        'id: maintenanceSection\n', 'id: maintenanceSection\n        autoLoad: false\n').replace(
+        'id: kernelSection\n', 'id: kernelSection\n        autoLoad: false\n'))
     for name in ('SystemToolsButton', 'SystemToolsChoice', 'SystemToolsToggle', 'SystemToolsConfirm'):
         shutil.copy2(SOURCE / ('settings/' + name + '.qml'), profile / 'settings')
     (profile / 'shell.qml').write_text('''import QtQuick

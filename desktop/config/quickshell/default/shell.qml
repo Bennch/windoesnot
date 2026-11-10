@@ -2665,13 +2665,8 @@ PanelWindow {
                                         appContextMenu.ctxAppPinned = model.pinned !== undefined ? model.pinned : false
                                         appContextMenu.ctxAppTemporary = model.temporary !== undefined ? model.temporary : false
                                         appContextMenu.ctxAppWindows = panelWindow.openWindows[model.name] || []
-                                        // Calculate position: center menu above clicked icon
-                                        var itemPos = taskbarDragArea.mapToItem(panelWindow.contentItem, 0, 0)
-                                        appContextMenu.anchor.rect.x = itemPos.x
-                                        appContextMenu.anchor.rect.y = 0
-                                        appContextMenu.anchor.rect.width = taskbarDragArea.width
-                                        appContextMenu.anchor.rect.height = taskbarDragArea.height
-                                        appContextMenu.visible = true
+                                        // Centred above the clicked icon (placement rule, then show)
+                                        appContextMenu.openAbove(taskbarDragArea)
                                     } else {
                                         // Left click: weather opens popup, others toggle/launch
                                         settingsMenu.visible = false
@@ -6291,26 +6286,59 @@ FloatingWindow {
 }
 
 // App Context Menu (Taskbar app right-click)
-PopupWindow {
+// Same window kind, title and placement rule as taskbarBgMenu: a PopupWindow is
+// dismissed by the compositor right after it opens, so the right-click menu closed
+// again at once.
+FloatingWindow {
     id: appContextMenu
     visible: false
+    title: "quickshell-tbgmenu"
+    color: "transparent"
+    screen: {
+        for (var i = 0; i < Quickshell.screens.length; i++) {
+            if (Quickshell.screens[i].name === settingsMenu.primaryMonitor) return Quickshell.screens[i]
+        }
+        return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    }
     implicitWidth: 220
     implicitHeight: ctxIsOpen ? 129 : 84
-    color: "transparent"
-    grabFocus: true
-    anchor {
-        window: panelWindow
-        edges: Edges.Top
-        gravity: Edges.Top
-        adjustment: PopupAdjustment.None
+
+    // Centred above the clicked taskbar icon. The window is shown only after the
+    // placement rule is set, and only if no other taskbar menu was opened meanwhile.
+    function openAbove(iconItem) {
+        var requestSerial = desktopShell.contextMenuRequestSerial
+        var pScreen = null
+        for (var s = 0; s < Quickshell.screens.length; s++) {
+            if (Quickshell.screens[s].name === settingsMenu.primaryMonitor) { pScreen = Quickshell.screens[s]; break }
+        }
+        var monW = pScreen ? pScreen.width  : (panelWindow.screen ? panelWindow.screen.width : 1280)
+        var monH = pScreen ? pScreen.height : (panelWindow.screen ? panelWindow.screen.height : 800)
+        var iconPos = iconItem.mapToItem(panelWindow.contentItem, 0, 0)
+        var menuW = implicitWidth
+        var menuH = implicitHeight
+        var mx = Math.max(4, Math.min(iconPos.x + iconItem.width / 2 - menuW / 2, monW - menuW - 4))
+        var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', panelWindow)
+        proc.command = ["bash", "-c",
+            "windoesnot-hyprctl keyword 'windowrule[tbgmenu]:size " + menuW + " " + menuH + "' ; " +
+            "windoesnot-hyprctl keyword 'windowrule[tbgmenu]:move " + Math.round(mx) + " " + (monH - 45 - menuH) + "'"]
+        proc.exited.connect(function() {
+            if (requestSerial === desktopShell.contextMenuRequestSerial)
+                appContextMenu.visible = true
+        })
+        proc.running = true
     }
 
-    onVisibleChanged: panelWindow.syncFocusGrab(appContextMenuFocusGrab, visible)
-
+    // Quickshell clears a HyprlandFocusGrab's `active` once it has dismissed it, so it
+    // is set again on every open (same as taskbarBgMenu).
     HyprlandFocusGrab {
         id: appContextMenuFocusGrab
         windows: [appContextMenu]
         onCleared: appContextMenu.visible = false
+    }
+
+    onVisibleChanged: {
+        if (visible) Qt.callLater(function() { appContextMenuFocusGrab.active = true })
+        else appContextMenuFocusGrab.active = false
     }
 
     property string ctxAppName: ""
