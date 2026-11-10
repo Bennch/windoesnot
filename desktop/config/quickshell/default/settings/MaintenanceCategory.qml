@@ -18,6 +18,7 @@ Item {
     property bool showOrphans: false
     property bool showFailed: false
     property bool showDetails: false
+    property string selectedGroup: "downloads"
     property bool rebootNeeded: false
     property var state: ({tools: {}, orphans: [], failedServices: [], packageProcesses: []})
     property string resultKey: ""
@@ -32,6 +33,11 @@ Item {
     height: content.height
 
     function tr(key) { return Lang.get(key, _lang) }
+    function groupFor(action) {
+        if (action === "mirrors-rank" || action === "cache-clean") return "downloads"
+        if (action === "drivers-configure") return "devices"
+        return "repair"
+    }
     function sizeText(bytes) {
         if (bytes === null || bytes === undefined) return tr("maintenance.sizeUnknown")
         const gib = bytes / (1024 * 1024 * 1024)
@@ -94,6 +100,24 @@ Item {
         id: content
         width: parent.width; spacing: 20
         Note { text: page.tr("maintenance.intro") }
+        Row {
+            width: parent.width; spacing: 8
+            Repeater {
+                model: [
+                    {key: "downloads", label: page.tr("maintenance.groupDownloads")},
+                    {key: "repair", label: page.tr("maintenance.groupRepair")},
+                    {key: "devices", label: page.tr("maintenance.groupDevices")}
+                ]
+                delegate: Tools.SystemToolsButton {
+                    required property var modelData
+                    width: (content.width - 16) / 3
+                    settingsMenu: page.settingsMenu
+                    text: modelData.label
+                    primary: page.selectedGroup === modelData.key
+                    onClicked: page.selectedGroup = modelData.key
+                }
+            }
+        }
         Note { visible: page.state.live === true; text: page.tr("systemTools.live") }
         Note { visible: !page.ready; text: page.busy ? page.tr("systemTools.loading") : page.tr("systemTools.unavailable") }
         BusyIndicator { width: 32; height: 32; running: page.busy; visible: running; palette.highlight: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
@@ -129,6 +153,7 @@ Item {
             delegate: Rectangle {
                 id: card
                 required property var modelData
+                visible: page.selectedGroup === page.groupFor(modelData.action)
                 readonly property bool readOnlyAction: modelData.action === "orphans" || modelData.action === "failed"
                 readonly property bool toolAvailable: !modelData.tool || page.state.tools[modelData.tool] === true
                 readonly property bool mayRun: page.ready && !page.busy && toolAvailable
@@ -187,6 +212,7 @@ Item {
         }
         Rectangle {
             id: firewallCard
+            visible: page.selectedGroup === "devices"
             width: content.width; height: firewallContent.implicitHeight + 32
             radius: settingsMenu ? settingsMenu.borderRadius : 10
             color: page.dark ? "#141414" : "#f5f5f5"
@@ -212,6 +238,7 @@ Item {
         }
         Rectangle {
             id: printerCard
+            visible: page.selectedGroup === "devices"
             // Older installed helpers and the initial empty state may omit printers.
             readonly property var printerState: page.state.printers || null
             width: content.width; height: printerContent.implicitHeight + 32
@@ -277,6 +304,7 @@ Item {
         }
         Rectangle {
             id: firmwareCard
+            visible: page.selectedGroup === "devices"
             readonly property var updates: page.state.firmware
             width: content.width; height: firmwareContent.implicitHeight + 32
             radius: settingsMenu ? settingsMenu.borderRadius : 10
