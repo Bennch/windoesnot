@@ -2523,7 +2523,9 @@ FloatingWindow {
                             anchors.fill: parent
                             anchors.rightMargin: 20  // Platz für Scrollbar
                             contentWidth: width
-                            contentHeight: getCurrentCategoryHeight()
+                            // The loaded page can change height after its status arrives. Measure the
+                            // actual content item so the scroll range follows it immediately.
+                            contentHeight: Math.max(height, contentContainer.childrenRect.height + 20)
                             clip: true
                             boundsBehavior: Flickable.StopAtBounds
 
@@ -2566,7 +2568,7 @@ FloatingWindow {
                             Item {
                                 id: contentContainer
                                 width: parent.width
-                                height: parent.contentHeight
+                                height: childrenRect.height
 
                         // Desktop Settings
                         Loader {

@@ -2027,12 +2027,6 @@ PanelWindow {
                                     if (rowDropX >= firstAppX - 10) {
                                         var idx = Math.max(0, Math.round((rowDropX - firstAppX) / 50))
                                         settingsMenu.weatherStartAreaSlot = -1; settingsMenu.weatherTaskbarIndex = Math.min(idx, panelWindow.taskbarApps.length); settingsMenu.saveSettings(); panelWindow.rebuildTaskbarModel()
-                                    } else if (mouse.button === Qt.MiddleButton && !taskbarAppItem.isWeatherItem
-                                               && !taskbarAppItem.isInternalCopilotApp && model.cmd !== "") {
-                                        // Common taskbar convention: middle-click always opens another window.
-                                        var newInstanceProc = Qt.createQmlObject('import Quickshell.Io; Process { }', panelWindow)
-                                        newInstanceProc.command = ["bash", "-c", model.cmd + " & disown"]
-                                        newInstanceProc.running = true
                                     } else {
                                         var ns = panelWindow.getStartAreaDragSlot(rowDropX); if (ns !== 0) { settingsMenu.weatherStartAreaSlot = ns; settingsMenu.saveSettings() }
                                     }
@@ -2510,7 +2504,7 @@ PanelWindow {
                             id: taskbarDragArea
                             anchors.fill: parent
                             hoverEnabled: true
-                            acceptedButtons: Qt.LeftButton | Qt.RightButton
+                            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
                             property bool dragActive: false
                             property point dragStartPos
@@ -2537,6 +2531,11 @@ PanelWindow {
                                     // Skip re-capture if already showing this app — avoids black flash
                                     if (taskbarPreview.visible && taskbarPreview.appName === model.name) {
                                         // nothing — keep existing preview as-is
+                                    } else if ((mouse.button === Qt.MiddleButton || (mouse.button === Qt.LeftButton && (mouse.modifiers & Qt.ShiftModifier)))
+                                               && !taskbarAppItem.isWeatherItem && !taskbarAppItem.isInternalCopilotApp && model.cmd !== "") {
+                                        var newInstanceProc = Qt.createQmlObject('import Quickshell.Io; Process { }', panelWindow)
+                                        newInstanceProc.command = ["bash", "-c", model.cmd + " & disown"]
+                                        newInstanceProc.running = true
                                     } else {
                                     var itemPos = taskbarDragArea.mapToItem(panelWindow.contentItem, 0, 0)
                                     var iconCenterX = Math.round(itemPos.x + taskbarDragArea.width / 2)
