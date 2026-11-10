@@ -114,6 +114,17 @@ def running_shells():
                 found.append(int(entry.name))
         except (OSError, UnicodeError):
             pass
+    # Sandboxed callers may not see the session process through /proc, while
+    # Quickshell's own control socket can still identify it precisely.
+    if not found:
+        result = subprocess.run(['quickshell', 'list', '--json', '--path', str(HOST / 'shell.qml')],
+                                capture_output=True, text=True)
+        if result.returncode == 0:
+            try:
+                found = [int(item['pid']) for item in json.loads(result.stdout)
+                         if isinstance(item, dict) and isinstance(item.get('pid'), int)]
+            except (ValueError, TypeError, json.JSONDecodeError):
+                pass
     return found
 
 

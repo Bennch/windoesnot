@@ -159,6 +159,11 @@ def bootloader():
             return loader
     except (OSError, ValueError, KeyError, TypeError):
         pass
+    # The portable desktop is also supported on an existing CachyOS host.
+    # Such a host has no installer record, but rEFInd is unambiguous when both
+    # of its required configuration files live on the mounted EFI partition.
+    if REFIND_CONF.is_file() and Path('/boot/refind_linux.conf').is_file():
+        return 'refind'
     return ''
 
 
@@ -943,8 +948,12 @@ def check_bootloader(loader):
     try:
         record = json.loads(INSTALLATION.read_text())
     except (OSError, ValueError):
-        raise ValueError('Cannot read installation record') from None
-    if record.get('firmware') == 'efi':
+        record = None
+    # An installer record is useful context but must not be a prerequisite for
+    # an explicitly detected rEFInd installation on the user's existing host.
+    # In both cases, require the EFI partition to be mounted before changing
+    # packages: otherwise new images could be written to the root filesystem.
+    if (record is None and loader == 'refind') or (record and record.get('firmware') == 'efi'):
         if query('/usr/bin/findmnt', '-n', '-o', 'FSTYPE', '--mountpoint', '/boot') != 'vfat':
             raise ValueError('The EFI boot partition must be mounted at /boot')
     if loader == 'refind' and (not Path('/boot/refind_linux.conf').is_file() or not REFIND_CONF.is_file()):

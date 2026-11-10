@@ -37,18 +37,23 @@ Column {
             spacing: 10
 
             Row {
+                width: parent.width
                 spacing: 15
                 Text {
                     text: Lang.get("input.currentLanguage", _lang)
                     font.pixelSize: 14
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
-                    width: 150
+                    width: parent.width - currentLanguageValue.width - parent.spacing
                 }
                 Text {
+                    id: currentLanguageValue
                     text: settingsMenu.systemLocale
                     font.pixelSize: 14
                     color: settingsMenu.accentColor
                     font.bold: true
+                    width: Math.min(350, implicitWidth)
+                    horizontalAlignment: Text.AlignRight
+                    elide: Text.ElideRight
                 }
             }
 
@@ -61,6 +66,7 @@ Column {
             ComboBox {
                 id: localeComboBox
                 width: 350
+                x: parent.width - width
                 height: 40
 
                 model: settingsMenu ? settingsMenu.systemLocalesModel : null
@@ -200,18 +206,23 @@ Column {
             spacing: 10
 
             Row {
+                width: parent.width
                 spacing: 15
                 Text {
                     text: Lang.get("input.currentTimezone", _lang)
                     font.pixelSize: 14
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
-                    width: 150
+                    width: parent.width - currentTimezoneValue.width - parent.spacing
                 }
                 Text {
+                    id: currentTimezoneValue
                     text: settingsMenu.timeZone
                     font.pixelSize: 14
                     color: settingsMenu.accentColor
                     font.bold: true
+                    width: Math.min(350, implicitWidth)
+                    horizontalAlignment: Text.AlignRight
+                    elide: Text.ElideRight
                 }
             }
 
@@ -224,6 +235,7 @@ Column {
             ComboBox {
                 id: timezoneComboBox
                 width: 350
+                x: parent.width - width
                 height: 40
 
                 model: settingsMenu ? settingsMenu.timezonesModel : null
@@ -314,12 +326,13 @@ Column {
 
         // Time Format
         Row {
+            width: parent.width
             spacing: 15
             Text {
                 text: Lang.get("input.24hourFormat", _lang)
                 font.pixelSize: 14
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
-                width: 250
+                width: parent.width - 65
                 anchors.verticalCenter: parent.verticalCenter
             }
             Rectangle {
@@ -347,12 +360,13 @@ Column {
 
         // NTP Synchronization
         Row {
+            width: parent.width
             spacing: 15
             Text {
                 text: Lang.get("input.ntpSync", _lang)
                 font.pixelSize: 14
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
-                width: 250
+                width: parent.width - 65
                 anchors.verticalCenter: parent.verticalCenter
             }
             Rectangle {
@@ -565,6 +579,7 @@ Column {
             ComboBox {
                 id: layoutComboBox
                 width: 280
+                x: parent.width - width
                 height: 40
 
                 model: settingsMenu ? settingsMenu.keyboardLayoutsModel : null
@@ -764,12 +779,13 @@ Column {
 
         // Numlock by Default
         Row {
+            width: parent.width
             spacing: 15
             Text {
                 text: Lang.get("input.numlock", _lang)
                 font.pixelSize: 14
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
-                width: 250
+                width: parent.width - 65
                 anchors.verticalCenter: parent.verticalCenter
             }
             Rectangle {
@@ -816,12 +832,13 @@ Column {
 
         // Natural Scroll
         Row {
+            width: parent.width
             spacing: 15
             Text {
                 text: Lang.get("input.naturalScroll", _lang)
                 font.pixelSize: 14
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
-                width: 250
+                width: parent.width - 65
                 anchors.verticalCenter: parent.verticalCenter
             }
             Rectangle {
@@ -849,12 +866,13 @@ Column {
 
         // Disable while typing
         Row {
+            width: parent.width
             spacing: 15
             Text {
                 text: Lang.get("input.disableWhileTyping", _lang)
                 font.pixelSize: 14
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
-                width: 250
+                width: parent.width - 65
                 anchors.verticalCenter: parent.verticalCenter
             }
             Rectangle {
@@ -882,12 +900,13 @@ Column {
 
         // Tap to Click
         Row {
+            width: parent.width
             spacing: 15
             Text {
                 text: Lang.get("input.tapToClick", _lang)
                 font.pixelSize: 14
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
-                width: 250
+                width: parent.width - 65
                 anchors.verticalCenter: parent.verticalCenter
             }
             Rectangle {
