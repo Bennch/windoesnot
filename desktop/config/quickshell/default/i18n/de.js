@@ -893,6 +893,7 @@ var strings = {
     "taskbar.pin": "An Taskleiste anheften",
     "taskbar.unpin": "Aus Taskleiste entfernen",
     "taskbar.open": "Öffnen",
+    "taskbar.newInstance": "Neue Instanz öffnen",
 
     // === Weather ===
     "weather.label":        "Wetter",

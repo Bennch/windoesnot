@@ -1668,7 +1668,7 @@ PanelWindow {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            acceptedButtons: Qt.LeftButton | Qt.RightButton
+                            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
                             property bool dragActive: false
                             property point dragStartPos
@@ -2027,6 +2027,12 @@ PanelWindow {
                                     if (rowDropX >= firstAppX - 10) {
                                         var idx = Math.max(0, Math.round((rowDropX - firstAppX) / 50))
                                         settingsMenu.weatherStartAreaSlot = -1; settingsMenu.weatherTaskbarIndex = Math.min(idx, panelWindow.taskbarApps.length); settingsMenu.saveSettings(); panelWindow.rebuildTaskbarModel()
+                                    } else if (mouse.button === Qt.MiddleButton && !taskbarAppItem.isWeatherItem
+                                               && !taskbarAppItem.isInternalCopilotApp && model.cmd !== "") {
+                                        // Common taskbar convention: middle-click always opens another window.
+                                        var newInstanceProc = Qt.createQmlObject('import Quickshell.Io; Process { }', panelWindow)
+                                        newInstanceProc.command = ["bash", "-c", model.cmd + " & disown"]
+                                        newInstanceProc.running = true
                                     } else {
                                         var ns = panelWindow.getStartAreaDragSlot(rowDropX); if (ns !== 0) { settingsMenu.weatherStartAreaSlot = ns; settingsMenu.saveSettings() }
                                     }
@@ -6316,7 +6322,7 @@ FloatingWindow {
         return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
     }
     implicitWidth: 220
-    implicitHeight: ctxIsOpen ? 129 : 84
+    implicitHeight: ctxIsOpen ? 165 : 84
 
     // Centred above the clicked taskbar icon. The window is shown only after the
     // placement rule is set, and only if no other taskbar menu was opened meanwhile.
@@ -6403,6 +6409,32 @@ FloatingWindow {
                     onClicked: {
                         var proc = Qt.createQmlObject('import Quickshell.Io; Process { }', appContextMenu)
                         proc.command = ["bash", "-c", appContextMenu.ctxAppCmd]
+                        proc.running = true
+                        appContextMenu.visible = false
+                    }
+                }
+            }
+
+            // New instance is available even while this app is already running.
+            Rectangle {
+                width: parent.width
+                height: appContextMenu.ctxIsOpen && appContextMenu.ctxAppCmd !== "" ? 36 : 0
+                clip: true
+                radius: 6
+                property bool hovered: false
+                color: hovered ? (settingsMenu.darkMode ? "#4A4A4D" : "#e0e0e0") : "transparent"
+                Text {
+                    anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
+                    text: Lang.get("taskbar.newInstance", settingsMenu.uiLanguage)
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                }
+                MouseArea {
+                    anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    enabled: appContextMenu.ctxAppCmd !== ""
+                    onEntered: parent.hovered = true; onExited: parent.hovered = false
+                    onClicked: {
+                        var proc = Qt.createQmlObject('import Quickshell.Io; Process { }', appContextMenu)
+                        proc.command = ["bash", "-c", appContextMenu.ctxAppCmd + " & disown"]
                         proc.running = true
                         appContextMenu.visible = false
                     }

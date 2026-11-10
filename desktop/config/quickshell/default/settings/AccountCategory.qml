@@ -191,7 +191,6 @@ Item {
                             font.pixelSize: 24; font.bold: true
                             color: page.foreground
                         }
-                    }
                 }
                 Column {
                     width: parent.width - 76; spacing: 5

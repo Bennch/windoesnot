@@ -893,6 +893,7 @@ var strings = {
     "taskbar.pin": "Pin to Taskbar",
     "taskbar.unpin": "Unpin from Taskbar",
     "taskbar.open": "Open",
+    "taskbar.newInstance": "Open new instance",
 
     // === Weather ===
     "weather.label":        "Weather",
