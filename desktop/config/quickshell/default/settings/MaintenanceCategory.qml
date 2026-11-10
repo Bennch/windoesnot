@@ -210,7 +210,8 @@ Item {
         }
         Rectangle {
             id: firewallCard
-            visible: page.selectedGroup === "security"
+            objectName: "firewallCard"
+            visible: page.selectedGroup == "security"
             width: content.width; height: firewallContent.implicitHeight + 32
             radius: settingsMenu ? settingsMenu.borderRadius : 10
             color: page.dark ? "#141414" : "#f5f5f5"
@@ -220,8 +221,10 @@ Item {
                 Text { width: parent.width; text: page.tr("maintenance.firewall"); color: page.foreground; font.pixelSize: 15; font.bold: true; wrapMode: Text.WordWrap }
                 Note { text: page.tr("maintenance.firewallHint") }
                 Tools.SystemToolsToggle {
+                    id: firewallToggle
+                    objectName: "firewallToggle"
                     settingsMenu: page.settingsMenu
-                    text: page.tr("maintenance.firewallOn")
+                    text: page.tr("maintenance.firewallActive")
                     enabled: page.ready && !page.busy && !page.state.live && page.state.firewall !== null && page.state.firewall !== undefined
                     checked: page.state.firewall ? page.state.firewall.enabled === true : false
                     onToggled: {
