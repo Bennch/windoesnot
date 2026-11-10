@@ -21,7 +21,7 @@ with tempfile.TemporaryDirectory(prefix='wdn-system-ui-') as temp:
     shutil.copytree(SOURCE/'i18n',profile/'i18n')
     shutil.copy2(SOURCE/'settings/KernelCategory.qml',profile/'settings')
     shutil.copy2(SOURCE/'settings/SystemCategory.qml',profile/'settings')
-    (profile/'settings/AccountCategory.qml').write_text('import QtQuick\nItem { property var settingsMenu; width: parent.width; height: 320 }\n')
+    shutil.copy2(SOURCE/'settings/AccountCategory.qml',profile/'settings')
     for name in ('SystemToolsButton','SystemToolsChoice','SystemToolsToggle','SystemToolsConfirm'):
         shutil.copy2(SOURCE/('settings/'+name+'.qml'),profile/'settings')
     shutil.copy2(SOURCE/'settings/MaintenanceCategory.qml',profile/'settings')
