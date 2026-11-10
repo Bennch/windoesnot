@@ -26,10 +26,10 @@ with tempfile.TemporaryDirectory(prefix='wdn-language-welcome-') as temp:
     (profile / 'settings').mkdir(parents=True)
     shutil.copytree(SOURCE / 'i18n', profile / 'i18n')
     shutil.copytree(SOURCE / 'img/brand', profile / 'img/brand')
-    for name in ('InputCategory', 'SystemToolsButton'):
+    for name in ('InputCategory', 'PrinterCategory', 'SystemToolsButton', 'SystemToolsConfirm'):
         shutil.copy2(SOURCE / f'settings/{name}.qml', profile / 'settings')
     references = set(re.findall(r'settingsMenu\.(\w+)', (SOURCE / 'settings/InputCategory.qml').read_text()))
-    references |= {'pendingSystemLocale', 'previousUiLanguage', 'fileDialogOpen'}
+    references |= {'pendingSystemLocale', 'previousUiLanguage', 'fileDialogOpen', 'borderRadius'}
     properties = []
     for name in sorted(references - {'selectLanguage'}):
         match = re.search(r'^    property (\w+) ' + name + r': (.+)$', settings, re.M)

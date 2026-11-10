@@ -415,6 +415,8 @@ var strings = {
     "nav.help": "Help",
     "nav.info": "Info",
     "header.info": "Info",
+    "info.about": "About WinDoesNot",
+    "info.help": "Help & shortcuts",
     "account.title": "Account",
     "account.hint": "Password and profile picture of your user account. Only your own account is changed.",
     "account.passwordTitle": "Password and profile picture",

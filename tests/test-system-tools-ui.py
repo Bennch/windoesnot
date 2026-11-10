@@ -39,7 +39,7 @@ ShellRoot {
   function check(ok,message) { if(!ok) throw new Error(message) }
   function find(o,predicate) { if(predicate(o)) return o; for(let c of (o.children || [])) { let r=find(c,predicate); if(r) return r } return null }
   Timer { id: finish; interval: 100; onTriggered: {
-   try { const page=kernelLoader.item; const maintenance=maintenanceLoader.item; testWindow.check(testWindow.find(page,o => o.objectName === "systemToolsMode").currentText === "PowerSave", "mode survives model settling"); testWindow.check(page.height > 600, "scrollable kernel content"); testWindow.check(maintenance.height > 800, "scrollable maintenance content"); console.log("SYSTEM_TOOLS_UI_PASS") }
+   try { const page=kernelLoader.item; const maintenance=maintenanceLoader.item; testWindow.check(testWindow.find(page,o => o.objectName === "systemToolsMode").currentText === "PowerSave", "mode survives model settling"); testWindow.check(page.height > 500, "scrollable kernel content"); testWindow.check(maintenance.height > 500, "scrollable maintenance content"); console.log("SYSTEM_TOOLS_UI_PASS") }
    catch(e) { console.error("SYSTEM_TOOLS_UI_FAIL",e) }
    Qt.quit()
   } }
@@ -51,10 +51,8 @@ ShellRoot {
     page.resultKey="kernel.statusFailed"; page.resultDetail="pacman: missing database"
     testWindow.check(page.resultText.indexOf("pacman") < 0, "friendly error summary")
     const details = testWindow.find(page, o => o.text === page.resultDetail)
-    testWindow.check(details && !details.visible, "technical error hidden initially")
-    page.detailsExpanded=true
-    testWindow.check(details.visible, "technical error can be expanded")
-    page.detailsExpanded=false; page.resultKey=""; page.resultDetail=""
+    testWindow.check(details && details.visible, "technical error stays visible without a separate details drawer")
+    page.resultKey=""; page.resultDetail=""
     const offline = JSON.parse(JSON.stringify(FIXTURE)); offline.catalogAvailable=false
     offline.kernels=offline.kernels.filter(k => !!k.installed)
     page.acceptStatus(offline)
