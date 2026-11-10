@@ -55,7 +55,12 @@ ShellRoot {
     testWindow.check(!!testWindow.find(page, o => o.text === page.tr("power.noBattery") && o.visible), "no-battery note shown")
 
     const system = systemLoader.item
-    testWindow.check(system.height > 800, "combined maintenance+kernel content is tall")
+    testWindow.check(system.height < 800, "system settings show one focused section")
+    testWindow.check(system.section === 0, "account section is selected by default")
+    system.section = 1
+    testWindow.check(system.children[2].visible, "maintenance section can be selected")
+    system.section = 2
+    testWindow.check(system.children[3].visible, "kernel section can be selected")
     testWindow.check(!!testWindow.find(system, o => !!o.text && o.text.indexOf("Werkzeuge helfen bei Problemen") >= 0), "maintenance section content present")
     testWindow.check(!!testWindow.find(system, o => !!o.text && o.text.indexOf("technische Grundlage") >= 0), "kernel section content present")
 
@@ -77,4 +82,4 @@ ShellRoot {
     assert 'POWER_SETTINGS_UI_PASS' in result.stdout
     for error in ['ReferenceError', 'TypeError', 'Failed to load configuration', 'Cannot assign', 'Binding loop', 'POWER_SETTINGS_UI_FAIL']:
         assert error not in result.stdout, error
-print('PASS: power settings page (battery/no-battery, profile highlight, i18n) and combined maintenance+kernel page')
+print('PASS: power settings page (battery/no-battery, profile highlight, i18n) and focused system sections')

@@ -172,22 +172,27 @@ Item {
                 id: kernelRow
                 required property var modelData
                 width: content.width
-                height: kernelContent.height + 32
+                height: kernelContent.implicitHeight + 24
                 radius: settingsMenu ? settingsMenu.borderRadius : 10
                 color: page.dark ? "#141414" : "#f5f5f5"
                 border.width: 1
                 border.color: page.dark ? "#3a3a3a" : "#d0d0d0"
-                Column {
+                Row {
                     id: kernelContent
-                    x: 16; y: 16; width: parent.width - 32; spacing: 8
-                    Text { width: parent.width; text: kernelRow.modelData.selectable ? page.tr("kernel.name." + kernelRow.modelData.name) : kernelRow.modelData.name; color: page.foreground; font.bold: true; font.pixelSize: 14; wrapMode: Text.WordWrap }
-                    Note { text: page.tr(kernelRow.modelData.selectable ? "kernel.description." + kernelRow.modelData.name : "kernel.customDescription") }
-                    Note {
-                        text: (kernelRow.modelData.installed ? page.tr("kernel.installed") + ": " + kernelRow.modelData.installed : page.tr("kernel.notInstalled"))
-                            + (kernelRow.modelData.running ? " · " + page.tr("kernel.inUse") : "")
-                            + (kernelRow.modelData.available ? "\n" + page.tr("kernel.available") + ": " + kernelRow.modelData.available : "")
+                    x: 16; y: 12; width: parent.width - 32; spacing: 12
+                    Column {
+                        width: parent.width - actions.implicitWidth - parent.spacing
+                        spacing: 4
+                        Text { width: parent.width; text: kernelRow.modelData.selectable ? page.tr("kernel.name." + kernelRow.modelData.name) : kernelRow.modelData.name; color: page.foreground; font.bold: true; font.pixelSize: 14; wrapMode: Text.WordWrap }
+                        Note { text: page.tr(kernelRow.modelData.selectable ? "kernel.description." + kernelRow.modelData.name : "kernel.customDescription") }
+                        Note {
+                            text: (kernelRow.modelData.installed ? page.tr("kernel.installed") + ": " + kernelRow.modelData.installed : page.tr("kernel.notInstalled"))
+                                + (kernelRow.modelData.running ? " · " + page.tr("kernel.inUse") : "")
+                                + (kernelRow.modelData.available ? " · " + page.tr("kernel.available") + ": " + kernelRow.modelData.available : "")
+                        }
                     }
                     Row {
+                        id: actions
                         spacing: 8
                         ActionButton {
                             visible: !kernelRow.modelData.installed && !!kernelRow.modelData.available && kernelRow.modelData.selectable

@@ -160,17 +160,14 @@ Item {
                         passwordWorker.running = true
                     }
                 }
+                Loader { width: parent.width; sourceComponent: avatarContentComponent }
             }
         }
 
-        Rectangle {
-            id: avatarCard
-            width: content.width; height: avatarContent.implicitHeight + 32
-            radius: settingsMenu ? settingsMenu.borderRadius : 10
-            color: page.dark ? "#141414" : "#f5f5f5"
-            border.width: 1; border.color: page.lineColor
+        Component {
+            id: avatarContentComponent
             Column {
-                id: avatarContent; x: 16; y: 16; width: parent.width - 32; spacing: 10
+                width: parent.width; spacing: 10
                 Text { width: parent.width; text: page.tr("account.avatarTitle"); color: page.foreground; font.pixelSize: 15; font.bold: true; wrapMode: Text.WordWrap }
                 Column {
                     spacing: 6
