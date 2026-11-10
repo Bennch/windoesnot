@@ -6,11 +6,12 @@ Column {
     id: page
     property var settingsMenu: null
     property int section: 0
-    readonly property bool busy: maintenanceSection.busy || kernelSection.busy
     width: parent.width
+    height: sectionTabs.height + spacing + sectionLoader.height
     spacing: 18
 
     Row {
+        id: sectionTabs
         width: parent.width
         spacing: 8
         Repeater {
@@ -27,23 +28,19 @@ Column {
         }
     }
 
-    Tools.AccountCategory {
+    Loader {
+        id: sectionLoader
         width: parent.width
-        visible: page.section === 0
-        settingsMenu: page.settingsMenu
+        height: item ? item.height : 0
+        sourceComponent: page.section === 0 ? accountPage : page.section === 1 ? maintenancePage : kernelPage
     }
-    Tools.MaintenanceCategory {
-        id: maintenanceSection
-        width: parent.width
-        visible: page.section === 1
-        settingsMenu: page.settingsMenu
-    }
-    Tools.KernelCategory {
-        id: kernelSection
-        width: parent.width
-        visible: page.section === 2
-        settingsMenu: page.settingsMenu
-    }
+
+    readonly property bool busy: sectionLoader.item && sectionLoader.item.busy === true
+    readonly property var activeSection: sectionLoader.item
+
+    Component { id: accountPage; Tools.AccountCategory { width: page.width; settingsMenu: page.settingsMenu } }
+    Component { id: maintenancePage; Tools.MaintenanceCategory { width: page.width; settingsMenu: page.settingsMenu } }
+    Component { id: kernelPage; Tools.KernelCategory { width: page.width; settingsMenu: page.settingsMenu } }
 
     function tr(key) { return Lang.get(key, settingsMenu ? settingsMenu.uiLanguage : "de") }
 }
