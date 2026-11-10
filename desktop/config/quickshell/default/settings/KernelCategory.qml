@@ -23,17 +23,65 @@ Item {
     property string pendingAction: ""
     property var pendingArgs: ({})
     property string pendingDescription: ""
+    // Desired install state per package. Entries are only kept when changed.
+    property var selectedKernelStates: ({})
+    property var queuedKernelActions: []
     width: parent ? parent.width : 650
     height: content.height
 
     function tr(key) { return Lang.get(key, _lang) }
+    function kernelCategory(name) {
+        if (name.indexOf("-lts") >= 0) return tr("kernel.longterm")
+        if (name.indexOf("-rt-") >= 0) return tr("kernel.realtime")
+        if (name.indexOf("-server") >= 0) return tr("kernel.server")
+        return tr("kernel.stable")
+    }
     function acceptStatus(data) {
         state = data
+        selectedKernelStates = ({})
         ready = true
         const current = data.scx.schedulers.indexOf(data.scx.defaultScheduler)
         scheduler.currentIndex = Math.max(0, current)
         mode.currentIndex = Math.max(0, ["Auto", "Gaming", "PowerSave", "LowLatency", "Server"].indexOf(data.scx.defaultMode))
         onBoot.checked = data.scx.enabled === true
+    }
+    function desiredInstalled(kernel) {
+        return Object.prototype.hasOwnProperty.call(selectedKernelStates, kernel.name)
+            ? selectedKernelStates[kernel.name] : !!kernel.installed
+    }
+    function setDesiredInstalled(kernel, desired) {
+        if (!kernel.selectable || (kernel.running && !desired)) return
+        const next = ({})
+        for (const name in selectedKernelStates) next[name] = selectedKernelStates[name]
+        if (desired === !!kernel.installed) delete next[kernel.name]
+        else next[kernel.name] = desired
+        selectedKernelStates = next
+    }
+    function kernelChanges() {
+        return state.kernels.filter(function(kernel) {
+            return kernel.selectable && desiredInstalled(kernel) !== !!kernel.installed
+        }).map(function(kernel) {
+            return {action: desiredInstalled(kernel) ? "kernel-install" : "kernel-remove", name: kernel.name}
+        })
+    }
+    function requestKernelChanges() {
+        const changes = kernelChanges()
+        if (!changes.length || busy || !ready || state.live) return
+        queuedKernelActions = changes
+        pendingAction = "kernel-batch"
+        pendingArgs = ({})
+        pendingDescription = changes.map(function(change) {
+            return (change.action === "kernel-install" ? "+ " : "− ") + change.name
+        }).join("\n") + "\n\n" + tr("kernel.confirmBatch")
+        confirmation.open()
+    }
+    function runNextKernelAction() {
+        if (!queuedKernelActions.length) {
+            runAction("kernel-status", {})
+            return
+        }
+        const change = queuedKernelActions.shift()
+        runAction(change.action, {kernel: change.name})
     }
     function requestAction(action, args, description) {
         if (busy || !ready || state.live) return
@@ -72,13 +120,17 @@ Item {
                     rebootNeeded = rebootNeeded || data.reboot === true
                     logPath = data.log || ""
                     resultKey = "systemTools.done"
-                    runAction("kernel-status", {})
+                    if ((operation === "kernel-install" || operation === "kernel-remove") && queuedKernelActions.length)
+                        runNextKernelAction()
+                    else
+                        runAction("kernel-status", {})
                 }
             } else {
                 logPath = data.log || ""
                 resultKey = code === 126 ? "systemTools.cancelled" : (operation === "kernel-status" ? "kernel.statusFailed" : "systemTools.failed")
                 resultDetail = code === 126 ? "" : (data.error || errors.text.trim() || output.text.trim())
                     + (data.detail ? "\n" + data.detail : "")
+                queuedKernelActions = []
                 if (operation !== "kernel-status") runAction("kernel-status", {})
             }
         }
@@ -120,48 +172,83 @@ Item {
         Note { text: page.tr("kernel.installHint") }
         Note { visible: page.ready && !page.state.bootloader; text: page.tr("kernel.noLoader") }
         Note { visible: page.ready && !page.state.kernels.length; text: page.tr("kernel.empty") }
-        Repeater {
-            model: page.state.kernels
-            delegate: Rectangle {
-                id: kernelRow
-                required property var modelData
-                width: content.width
-                height: kernelContent.implicitHeight + 20
-                radius: settingsMenu ? settingsMenu.borderRadius : 10
-                color: modelData.running ? (page.dark ? "#24201e" : "#fff3ed") : (page.dark ? "#141414" : "#f5f5f5")
-                border.width: 1
-                border.color: modelData.running
-                    ? (settingsMenu ? settingsMenu.accentColor : "#fe6f2d") : (page.dark ? "#3a3a3a" : "#d0d0d0")
-                Row {
-                    id: kernelContent
-                    x: 16; y: 10; width: parent.width - 32; spacing: 12
-                    Column {
-                        width: parent.width - actions.implicitWidth - parent.spacing
-                        spacing: 4
-                        Text { width: parent.width; text: kernelRow.modelData.selectable ? page.tr("kernel.name." + kernelRow.modelData.name) : kernelRow.modelData.name; color: page.foreground; font.bold: true; font.pixelSize: 14; wrapMode: Text.WordWrap }
-                        Note { text: page.tr(kernelRow.modelData.selectable ? "kernel.description." + kernelRow.modelData.name : "kernel.customDescription") }
-                        Note { text: (kernelRow.modelData.installed ? page.tr("kernel.installed") + ": " + kernelRow.modelData.installed : page.tr("kernel.notInstalled")) + (kernelRow.modelData.running ? " · " + page.tr("kernel.inUse") : "") + (kernelRow.modelData.available ? " · " + page.tr("kernel.available") + ": " + kernelRow.modelData.available : "") }
-                    }
+        Rectangle {
+            id: kernelTable
+            width: content.width
+            height: tableContent.implicitHeight + 2
+            radius: settingsMenu ? settingsMenu.borderRadius : 8
+            clip: true
+            color: page.dark ? "#17191b" : "#f7f7f7"
+            border.width: 1
+            border.color: page.dark ? "#454a4d" : "#c8c8c8"
+            readonly property real chooseWidth: 58
+            readonly property real packageWidth: Math.max(180, width * 0.46)
+            readonly property real versionWidth: Math.max(104, width * 0.22)
+            readonly property real categoryWidth: width - chooseWidth - packageWidth - versionWidth
+            Column {
+                id: tableContent
+                width: parent.width
+                spacing: 0
+                Rectangle {
+                    width: parent.width; height: 38
+                    color: page.dark ? "#2c3034" : "#e7e7e7"
                     Row {
-                        id: actions
-                        spacing: 8
-                        ActionButton {
-                            visible: !kernelRow.modelData.installed && !!kernelRow.modelData.available && kernelRow.modelData.selectable
-                            enabled: page.ready && !page.busy && !page.state.live && !!page.state.bootloader
-                            primary: true
-                            text: page.tr("kernel.install")
-                            onClicked: page.requestAction("kernel-install", {kernel: kernelRow.modelData.name},
-                                kernelRow.modelData.name + "\n\n" + page.tr("kernel.confirmInstall"))
-                        }
-                        ActionButton {
-                            visible: !!kernelRow.modelData.installed
-                            enabled: page.ready && !page.busy && !page.state.live && !!page.state.bootloader && kernelRow.modelData.removable
-                            text: page.tr("kernel.remove")
-                            onClicked: page.requestAction("kernel-remove", {kernel: kernelRow.modelData.name},
-                                kernelRow.modelData.name + "\n\n" + page.tr("kernel.confirmRemove"))
-                        }
+                        anchors.fill: parent
+                        Text { width: kernelTable.chooseWidth; text: page.tr("kernel.choose"); color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
+                        Text { width: kernelTable.packageWidth; text: page.tr("kernel.package"); color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+                        Text { width: kernelTable.versionWidth; text: page.tr("kernel.version"); color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+                        Text { width: kernelTable.categoryWidth; text: page.tr("kernel.category"); color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
                     }
                 }
+                Repeater {
+                    model: page.state.kernels
+                    delegate: Rectangle {
+                        id: kernelRow
+                        required property var modelData
+                        width: kernelTable.width; height: 42
+                        color: modelData.running ? (page.dark ? "#2c2521" : "#fff0e8") : "transparent"
+                        border.width: 0
+                        Row {
+                            anchors.fill: parent
+                            CheckBox {
+                                id: chooseBox
+                                objectName: "kernelChoice-" + modelData.name
+                                width: kernelTable.chooseWidth; height: parent.height
+                                enabled: page.ready && !page.busy && !page.state.live && !!page.state.bootloader && modelData.selectable
+                                    && !modelData.running
+                                checked: page.desiredInstalled(modelData)
+                                onToggled: page.setDesiredInstalled(modelData, checked)
+                                indicator: Rectangle {
+                                    x: (parent.width - width) / 2; y: (parent.height - height) / 2
+                                    width: 16; height: 16; radius: 4
+                                    color: chooseBox.checked ? (settingsMenu ? settingsMenu.accentColor : "#fe6f2d") : (page.dark ? "#30353a" : "#ffffff")
+                                    border.width: 1; border.color: page.dark ? "#6a7176" : "#929292"
+                                    Text { anchors.centerIn: parent; visible: chooseBox.checked; text: "✓"; color: "white"; font.bold: true; font.pixelSize: 12 }
+                                }
+                            }
+                            Text { width: kernelTable.packageWidth; height: parent.height; text: "cachyos/" + modelData.name; color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
+                            Text { width: kernelTable.versionWidth; height: parent.height; text: modelData.installed || modelData.available || "—"; color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
+                            Text { width: kernelTable.categoryWidth; height: parent.height; text: modelData.running ? page.tr("kernel.current") : page.kernelCategory(modelData.name); color: modelData.running ? (settingsMenu ? settingsMenu.accentColor : "#fe6f2d") : page.secondary; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
+                        }
+                        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: page.dark ? "#303438" : "#dddddd" }
+                    }
+                }
+            }
+        }
+        Row {
+            width: parent.width
+            spacing: 12
+            Item {
+                width: parent.width - executeChanges.width - parent.spacing
+                height: executeChanges.height
+                Note { anchors.verticalCenter: parent.verticalCenter; text: page.kernelChanges().length ? page.tr("kernel.changesPending") : page.tr("kernel.tableHint") }
+            }
+            ActionButton {
+                id: executeChanges
+                primary: true
+                visible: page.kernelChanges().length > 0
+                text: page.tr("kernel.execute")
+                onClicked: page.requestKernelChanges()
             }
         }
         Heading { text: page.tr("kernel.scheduler") }
@@ -223,6 +310,9 @@ Item {
         title: page.tr("systemTools.confirm")
         description: page.pendingDescription
         destructive: page.pendingAction === "kernel-remove"
-        onAccepted: page.runAction(page.pendingAction, page.pendingArgs)
+        onAccepted: {
+            if (page.pendingAction === "kernel-batch") page.runNextKernelAction()
+            else page.runAction(page.pendingAction, page.pendingArgs)
+        }
     }
 }

@@ -62,8 +62,8 @@ ShellRoot {
     testWindow.check(page.tr("header.kernel") === "Kernel und Leistung", "DE")
     const modeChoice = testWindow.find(page,o => o.objectName === "systemToolsMode")
     testWindow.check(modeChoice.currentText === "PowerSave", "selected mode")
-    const remove = testWindow.find(page, o => o.text === "Entfernen")
-    testWindow.check(remove && !remove.enabled, "running kernel protected in UI")
+    const runningChoice = testWindow.find(page, o => o.objectName === "kernelChoice-linux-cachyos")
+    testWindow.check(runningChoice && runningChoice.checked && !runningChoice.enabled, "running kernel protected in UI")
     page.requestAction("kernel-install", {kernel:"linux-cachyos-bore"}, "test")
     testWindow.check(page.pendingAction === "kernel-install", "confirmation before mutation")
     page.busy = true
