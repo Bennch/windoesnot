@@ -20,6 +20,8 @@ with tempfile.TemporaryDirectory(prefix='wdn-system-ui-') as temp:
     base=Path(temp); profile=base/'profile'; (profile/'settings').mkdir(parents=True)
     shutil.copytree(SOURCE/'i18n',profile/'i18n')
     shutil.copy2(SOURCE/'settings/KernelCategory.qml',profile/'settings')
+    shutil.copy2(SOURCE/'settings/SystemCategory.qml',profile/'settings')
+    (profile/'settings/AccountCategory.qml').write_text('import QtQuick\nItem { property var settingsMenu; width: parent.width; height: 320 }\n')
     for name in ('SystemToolsButton','SystemToolsChoice','SystemToolsToggle','SystemToolsConfirm'):
         shutil.copy2(SOURCE/('settings/'+name+'.qml'),profile/'settings')
     shutil.copy2(SOURCE/'settings/MaintenanceCategory.qml',profile/'settings')
@@ -36,10 +38,11 @@ ShellRoot {
   Loader { id: kernelLoader; width: 650; Component.onCompleted: setSource("settings/KernelCategory.qml", {settingsMenu:preferences,autoLoad:false}) }
   property var maintenance: maintenanceLoader.item
   Loader { id: maintenanceLoader; width: 650; visible: false; Component.onCompleted: setSource("settings/MaintenanceCategory.qml", {settingsMenu:preferences,autoLoad:false}) }
+  Loader { id: systemLoader; width: 650; visible: true; Component.onCompleted: setSource("settings/SystemCategory.qml", {settingsMenu:preferences}) }
   function check(ok,message) { if(!ok) throw new Error(message) }
   function find(o,predicate) { if(predicate(o)) return o; for(let c of (o.children || [])) { let r=find(c,predicate); if(r) return r } return null }
   Timer { id: finish; interval: 100; onTriggered: {
-   try { const page=kernelLoader.item; const maintenance=maintenanceLoader.item; testWindow.check(testWindow.find(page,o => o.objectName === "systemToolsMode").currentText === "PowerSave", "mode survives model settling"); testWindow.check(page.height > 500, "scrollable kernel content"); testWindow.check(maintenance.height > 500, "scrollable maintenance content"); console.log("SYSTEM_TOOLS_UI_PASS") }
+   try { const page=kernelLoader.item; const maintenance=maintenanceLoader.item; const system=systemLoader.item; testWindow.check(testWindow.find(page,o => o.objectName === "systemToolsMode").currentText === "PowerSave", "mode survives model settling"); testWindow.check(page.height > 500, "scrollable kernel content"); testWindow.check(maintenance.height > 500, "scrollable maintenance content"); system.section=1; testWindow.check(system.activeSection && system.height >= system.activeSection.height + 40, "maintenance system tab has scroll height"); system.section=2; testWindow.check(system.activeSection && system.height >= system.activeSection.height + 40, "kernel system tab has scroll height"); console.log("SYSTEM_TOOLS_UI_PASS") }
    catch(e) { console.error("SYSTEM_TOOLS_UI_FAIL",e) }
    Qt.quit()
   } }
