@@ -6,6 +6,6 @@ After=network-online.target nss-lookup.target
 [Service]
 Type=oneshot
 StateDirectory=windoesnot
-ExecStart=/usr/bin/cachyos-rate-mirrors
-ExecStartPost=/usr/bin/touch /var/lib/windoesnot/mirrors-ranked
+# A lost connection is normal. Leave the marker absent so the next connection retries.
+ExecStart=/usr/bin/sh -c "/usr/bin/cachyos-rate-mirrors && /usr/bin/touch /var/lib/windoesnot/mirrors-ranked || true"
 TimeoutStartSec=10min
