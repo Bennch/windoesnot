@@ -2563,7 +2563,10 @@ PanelWindow {
                             onPressed: function(mouse) {
                                 if (mouse.button === Qt.LeftButton) {
                                     dragStartPos = Qt.point(mouse.x, mouse.y)
-                                    shiftClick = (mouse.modifiers & Qt.ShiftModifier) !== 0
+                                    // Some Wayland compositors expose the active modifier mask
+                                    // differently on panel surfaces. Any modifier is an explicit
+                                    // "new instance" gesture; Shift remains the documented one.
+                                    shiftClick = mouse.modifiers !== Qt.NoModifier
                                     newInstanceStarted = false
                                     if (shiftClick && !taskbarAppItem.isWeatherItem
                                             && !taskbarAppItem.isInternalCopilotApp && model.cmd !== "") {
