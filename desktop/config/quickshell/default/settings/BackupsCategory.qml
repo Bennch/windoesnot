@@ -122,6 +122,22 @@ Item {
             schedule[period] = backupsCategory[period + "Enabled"] ? backupsCategory[period + "Keep"] : 0
         runAction("schedule", schedule, true)
     }
+    // The schedule is a preference, not a separate transaction the user has
+    // to remember to confirm. Coalesce quick edits (typing/spin buttons) into
+    // one privileged write once the current status has loaded.
+    function queueScheduleSave() {
+        if (scheduleLoaded && backupsReady && !liveSession && !snapshotBoot)
+            scheduleSaveDelay.restart()
+    }
+    Timer {
+        id: scheduleSaveDelay
+        interval: 600
+        repeat: false
+        onTriggered: {
+            if (busy) restart()
+            else applySchedule()
+        }
+    }
     Process {
         id: snapshotProcess
         property string operation: ""
@@ -577,6 +593,7 @@ Item {
                                     else if (modelData.prop === "weekly") backupsCategory.weeklyEnabled = checked
                                     else if (modelData.prop === "daily") backupsCategory.dailyEnabled = checked
                                     else if (modelData.prop === "hourly") backupsCategory.hourlyEnabled = checked
+                                    backupsCategory.queueScheduleSave()
                                 }
 
                                 indicator: Rectangle {
@@ -629,6 +646,7 @@ Item {
                                     else if (modelData.prop === "weekly") backupsCategory.weeklyKeep = value
                                     else if (modelData.prop === "daily") backupsCategory.dailyKeep = value
                                     else if (modelData.prop === "hourly") backupsCategory.hourlyKeep = value
+                                    backupsCategory.queueScheduleSave()
                                 }
 
                                 contentItem: TextInput {
@@ -686,28 +704,12 @@ Item {
             }
         }
 
-        // Apply Button
-        Rectangle {
-            width: 140
-            height: 36
-            radius: 6
-            color: busy ? (settingsMenu.darkMode ? "#444444" : "#cccccc") : settingsMenu.accentColor
-            opacity: busy ? 0.5 : 1.0
-
-            Text {
-                anchors.centerIn: parent
-                text: busy ? Lang.get("backups.applying", _lang) : Lang.get("backups.apply", _lang)
-                color: "#fff"
-                font.pixelSize: 13
-                font.bold: true
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                enabled: !busy
-                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                onClicked: applySchedule()
-            }
+        Text {
+            width: parent.width
+            visible: scheduleSaveDelay.running || (busy && snapshotProcess.operation === "schedule")
+            text: Lang.get("backups.applying", _lang)
+            color: settingsMenu.darkMode ? "#aaa" : "#555"
+            font.pixelSize: 12
         }
 
         Text {

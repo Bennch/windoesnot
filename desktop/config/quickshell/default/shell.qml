@@ -136,6 +136,21 @@ PanelWindow {
     property int weatherTextWidth: Math.round(54 * weatherScale)
     property int weatherSlotWidth: weatherIconSize + weatherTextWidth + (weatherInnerMargin * 2) + weatherInnerSpacing
 
+    // Slots 3/4 are visually placed around the workspace button. That is
+    // useful for a centred taskbar, but slot 4 falls left of the screen when
+    // the taskbar starts at x=10. Keep a dragged weather widget in the normal
+    // app row in that layout; the row owns its space and cannot overlap Orb,
+    // settings or pinned applications.
+    function normalizeWeatherPlacement() {
+        if (taskbarAlignment !== "left" || settingsMenu.weatherLocation !== "taskbar"
+                || settingsMenu.weatherStartAreaSlot < 3) return
+        settingsMenu.weatherStartAreaSlot = -1
+        settingsMenu.weatherTaskbarIndex = taskbarApps.length
+        settingsMenu.saveSettings()
+        rebuildTaskbarModel()
+    }
+    onTaskbarAlignmentChanged: Qt.callLater(normalizeWeatherPlacement)
+
     Timer {
         id: copilotOpenGuard
         interval: 400
@@ -1077,9 +1092,9 @@ PanelWindow {
 
     Connections {
         target: settingsMenu
-        function onWeatherLocationChanged() { panelWindow.rebuildTaskbarModel(); panelWindow.rebuildTrayModel() }
+        function onWeatherLocationChanged() { panelWindow.normalizeWeatherPlacement(); panelWindow.rebuildTaskbarModel(); panelWindow.rebuildTrayModel() }
         function onWeatherEnabledChanged() { panelWindow.rebuildTaskbarModel(); panelWindow.rebuildTrayModel() }
-        function onWeatherStartAreaSlotChanged() { panelWindow.rebuildTaskbarModel() }
+        function onWeatherStartAreaSlotChanged() { panelWindow.normalizeWeatherPlacement(); panelWindow.rebuildTaskbarModel() }
         function onTrayOrderChanged() { panelWindow.rebuildTrayModel() }
         function onUiLanguageChanged() { if (!settingsMenu.isLoadingSettings) desktopFilesProc.running = true }
         function onShowOllamaTrayChanged() { panelWindow.rebuildTrayModel() }

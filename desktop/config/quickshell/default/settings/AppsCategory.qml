@@ -97,6 +97,7 @@ Column {
             ComboBox {
                 id: fileManagerComboBox
                 width: 400
+                x: parent.width - width
                 height: 40
 
                 model: settingsMenu ? settingsMenu.fileManagerAppsModel : null
@@ -209,6 +210,7 @@ Column {
             ComboBox {
                 id: textEditorComboBox
                 width: 400
+                x: parent.width - width
                 height: 40
 
                 model: settingsMenu ? settingsMenu.textEditorAppsModel : null
@@ -321,6 +323,7 @@ Column {
             ComboBox {
                 id: imageViewerComboBox
                 width: 400
+                x: parent.width - width
                 height: 40
 
                 model: settingsMenu ? settingsMenu.imageViewerAppsModel : null
@@ -433,6 +436,7 @@ Column {
             ComboBox {
                 id: pdfViewerComboBox
                 width: 400
+                x: parent.width - width
                 height: 40
 
                 model: settingsMenu ? settingsMenu.pdfViewerAppsModel : null
@@ -545,6 +549,7 @@ Column {
             ComboBox {
                 id: webBrowserComboBox
                 width: 400
+                x: parent.width - width
                 height: 40
 
                 model: settingsMenu ? settingsMenu.webBrowserAppsModel : null
@@ -657,6 +662,7 @@ Column {
             ComboBox {
                 id: terminalComboBox
                 width: 400
+                x: parent.width - width
                 height: 40
                 model: settingsMenu ? settingsMenu.terminalAppsModel : null
                 textRole: "name"
