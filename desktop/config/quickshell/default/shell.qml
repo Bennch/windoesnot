@@ -2507,6 +2507,8 @@ PanelWindow {
                             acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
                             property bool dragActive: false
+                            property bool shiftClick: false
+                            property bool newInstanceStarted: false
                             property point dragStartPos
                             property int dragThreshold: 10  // Wie beim Startmenü-Drag
 
@@ -2531,11 +2533,6 @@ PanelWindow {
                                     // Skip re-capture if already showing this app — avoids black flash
                                     if (taskbarPreview.visible && taskbarPreview.appName === model.name) {
                                         // nothing — keep existing preview as-is
-                                    } else if ((mouse.button === Qt.MiddleButton || (mouse.button === Qt.LeftButton && (mouse.modifiers & Qt.ShiftModifier)))
-                                               && !taskbarAppItem.isWeatherItem && !taskbarAppItem.isInternalCopilotApp && model.cmd !== "") {
-                                        var newInstanceProc = Qt.createQmlObject('import Quickshell.Io; Process { }', panelWindow)
-                                        newInstanceProc.command = ["bash", "-c", model.cmd + " & disown"]
-                                        newInstanceProc.running = true
                                     } else {
                                     var itemPos = taskbarDragArea.mapToItem(panelWindow.contentItem, 0, 0)
                                     var iconCenterX = Math.round(itemPos.x + taskbarDragArea.width / 2)
@@ -2566,6 +2563,15 @@ PanelWindow {
                             onPressed: function(mouse) {
                                 if (mouse.button === Qt.LeftButton) {
                                     dragStartPos = Qt.point(mouse.x, mouse.y)
+                                    shiftClick = (mouse.modifiers & Qt.ShiftModifier) !== 0
+                                    newInstanceStarted = false
+                                    if (shiftClick && !taskbarAppItem.isWeatherItem
+                                            && !taskbarAppItem.isInternalCopilotApp && model.cmd !== "") {
+                                        var shiftInstanceProc = Qt.createQmlObject('import Quickshell.Io; Process { }', panelWindow)
+                                        shiftInstanceProc.command = ["bash", "-c", model.cmd + " & disown"]
+                                        shiftInstanceProc.running = true
+                                        newInstanceStarted = true
+                                    }
                                     dragActive = false
                                     taskbarItemDelegate.isBeingDragged = false
                                     mouse.accepted = true
@@ -2592,6 +2598,16 @@ PanelWindow {
 
                             onReleased: function(mouse) {
                                 var wasDragging = dragActive
+
+                                // Shift+left-click has already launched on press. Do not
+                                // let its release fall through to the normal toggle action.
+                                if (newInstanceStarted) {
+                                    newInstanceStarted = false
+                                    shiftClick = false
+                                    dragActive = false
+                                    taskbarItemDelegate.isBeingDragged = false
+                                    return
+                                }
 
                                 if (wasDragging) {
                                     // Calculate drop position in taskbar
@@ -2668,7 +2684,12 @@ PanelWindow {
                                     dragActive = false
                                     taskbarItemDelegate.isBeingDragged = false
                                     // Normal click (released before hold delay or without movement)
-                                    if (mouse.button === Qt.RightButton && !taskbarAppItem.isWeatherItem && !taskbarAppItem.isInternalCopilotApp) {
+                                    if ((mouse.button === Qt.MiddleButton || (mouse.button === Qt.LeftButton && shiftClick))
+                                            && !taskbarAppItem.isWeatherItem && !taskbarAppItem.isInternalCopilotApp && model.cmd !== "") {
+                                        var newInstanceProc = Qt.createQmlObject('import Quickshell.Io; Process { }', panelWindow)
+                                        newInstanceProc.command = ["bash", "-c", model.cmd + " & disown"]
+                                        newInstanceProc.running = true
+                                    } else if (mouse.button === Qt.RightButton && !taskbarAppItem.isWeatherItem && !taskbarAppItem.isInternalCopilotApp) {
                                         // Right click: open context menu
                                         desktopShell.closeTaskbarContextMenus()
                                         startMenu.visible = false
@@ -2793,11 +2814,15 @@ PanelWindow {
                                     }
                                 }
                                 dragActive = false
+                                shiftClick = false
+                                newInstanceStarted = false
                                 taskbarItemDelegate.isBeingDragged = false
                             }
 
                             onCanceled: {
                                 dragActive = false
+                                shiftClick = false
+                                newInstanceStarted = false
                                 taskbarItemDelegate.isBeingDragged = false
                             }
                         }
