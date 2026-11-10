@@ -78,9 +78,16 @@ ShellRoot {
     page.requestAction("scx-stop", {}, "test")
     testWindow.check(page.pendingAction === "kernel-install", "live blocks actions")
     maintenance.acceptStatus({live:false, setup:{drivers:"pending"}, tools:{paccache:true,chwd:true,"pacman-key":true,"cachyos-rate-mirrors":true,curl:true},
-        cacheBytes:104857600,lockExists:true,processesVisible:true,packageProcesses:[],mirrorsRanked:false,orphans:["example","second"],failedServices:[]})
+        cacheBytes:104857600,lockExists:true,processesVisible:true,packageProcesses:[],mirrorsRanked:false,orphans:["example","second"],failedServices:[],firewall:{enabled:true}})
     testWindow.check(maintenance.ready, "maintenance status")
     testWindow.check(maintenance.sizeText(104857600) === "100.0 MiB", "cache size")
+    maintenanceLoader.visible=true
+    maintenance.selectedGroup="security"
+    const firewallCard = testWindow.find(maintenance, o => o.objectName === "firewallCard")
+    const firewallToggle = testWindow.find(maintenance, o => o.objectName === "firewallToggle")
+    testWindow.check(firewallCard && firewallCard.visible && firewallToggle && firewallToggle.visible && firewallToggle.checked && firewallToggle.enabled, "active firewall is visible and controllable")
+    maintenance.selectedGroup="repair"
+    maintenanceLoader.visible=false
     maintenance.showOrphans=true; maintenance.showFailed=true
     maintenance.requestAction("orphans-remove",{packages:maintenance.state.orphans.slice()},maintenance.state.orphans.join("\\n"))
     testWindow.check(maintenance.pendingArgs.packages.length === 2, "reviewed package list")

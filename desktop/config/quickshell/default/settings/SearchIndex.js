@@ -364,7 +364,7 @@ var PAGES = [
    "maintenance.confirmOrphans",
    "maintenance.firewall",
    "maintenance.firewallHint",
-   "maintenance.firewallOn",
+   "maintenance.firewallActive",
    "maintenance.confirmFirewallOn",
    "maintenance.confirmFirewallOff",
    "maintenance.failed",

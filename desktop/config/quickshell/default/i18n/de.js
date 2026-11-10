@@ -123,6 +123,7 @@ var strings = {
     "maintenance.firewall": "Firewall",
     "maintenance.firewallHint": "Blockiert eingehende Verbindungen aus dem Netz. Ausgehende Verbindungen bleiben offen.",
     "maintenance.firewallOn": "Firewall einschalten",
+    "maintenance.firewallActive": "Firewall aktiv",
     "maintenance.firewallUnavailable": "Die Firewall ist in diesem System nicht installiert.",
     "maintenance.confirmFirewallOn": "Firewall einschalten? Eingehende Verbindungen werden blockiert.",
     "maintenance.confirmFirewallOff": "Firewall ausschalten? Dann sind eingehende Verbindungen wieder erlaubt.",
