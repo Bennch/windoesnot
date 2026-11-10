@@ -1808,6 +1808,22 @@ FloatingWindow {
             if (panelWindow) panelWindow.rebuildTrayModel()
         }
     }
+    onShowNearbyTrayChanged: {
+        if (!isLoadingSettings) {
+            saveSettings()
+            if (panelWindow) panelWindow.rebuildTrayModel()
+        }
+    }
+    onShowGraphicsTrayChanged: {
+        if (!isLoadingSettings) {
+            // A manual choice must also mark the one-time hardware default as
+            // decided. Otherwise a missing key is re-detected as "show it" on
+            // every Quickshell start.
+            graphicsTraySeen = true
+            saveSettings()
+            if (panelWindow) panelWindow.rebuildTrayModel()
+        }
+    }
 
     onUiLanguageChanged: {
         Lang.setCurrent(uiLanguage)  // Always update Lang, even during loading
