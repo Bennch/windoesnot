@@ -27,16 +27,6 @@ aw = json.loads(subprocess.check_output(['windoesnot-hyprctl', 'activewindow', '
 addr   = aw['address']
 saved  = f'/tmp/qs-maxstate-{addr}.json'
 
-# ── Restore if already pseudo-maximized ─────────────────────────────────────
-if os.path.exists(saved):
-    with open(saved) as f:
-        s = json.load(f)
-    subprocess.run(['windoesnot-hyprctl', '--batch',
-        f"dispatch movewindowpixel exact {s['x']} {s['y']},address:{addr}; "
-        f"dispatch resizewindowpixel exact {s['w']} {s['h']},address:{addr}"])
-    os.remove(saved)
-    sys.exit(0)
-
 # ── Find monitor by window position (robust against monitor-ID race) ─────────
 monitors = json.loads(subprocess.check_output(['windoesnot-hyprctl', 'monitors', '-j']))
 wx, wy   = aw['at'][0], aw['at'][1]
@@ -92,6 +82,23 @@ ux = mx + gl + rl
 uy = my + gt + rt + BAR_H
 uw = mw - gl - rl - gr - rr
 uh = mh - gt - rt - gb - rb - BAR_H
+
+# A saved file alone is not proof that this client is still maximized: window
+# addresses survive long sessions and users can move a maximized client. Only
+# restore when the actual current geometry matches this monitor's max target.
+if os.path.exists(saved):
+    with open(saved) as f:
+        s = json.load(f)
+    current = (aw['at'][0], aw['at'][1], aw['size'][0], aw['size'][1])
+    target = (ux, uy, uw, uh)
+    if all(abs(a - b) <= 3 for a, b in zip(current, target)):
+        subprocess.run(['windoesnot-hyprctl', '--batch',
+            f"dispatch resizewindowpixel exact {s['w']} {s['h']},address:{addr}; "
+            f"dispatch movewindowpixel exact {s['x']} {s['y']},address:{addr}; "
+            f"dispatch movewindowpixel exact {s['x']} {s['y']},address:{addr}"])
+        os.remove(saved)
+        sys.exit(0)
+    os.remove(saved)
 
 # ── Save current geometry and apply ──────────────────────────────────────────
 with open(saved, 'w') as f:
