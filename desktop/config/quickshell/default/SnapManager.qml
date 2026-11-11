@@ -376,6 +376,20 @@ Item {
         }
     }
 
+    // Hyprbars consumes titlebar pointer events before the standalone drag
+    // plugin can observe them on some Hyprland builds. Detect that concrete
+    // fallback by watching the active floating client's geometry instead.
+    Timer {
+        id: floatingMoveFallbackTimer
+        interval: 100
+        running: snapManager.enabled
+        repeat: true
+        onTriggered: {
+            if (!snapManager.isDragging && !snapManager.snapCooldown && !activeWindowProc.running)
+                activeWindowProc.running = true
+        }
+    }
+
 
     // Update snap preview based on cursor position
     function updateSnapPreview() {
@@ -441,8 +455,21 @@ Item {
                     }
 
                     // Track window movement
-                    if (snapManager.lastWindowPos.x !== currentPos.x ||
-                        snapManager.lastWindowPos.y !== currentPos.y) {
+                    var windowMoved = snapManager.lastWindowPos.x !== currentPos.x ||
+                                      snapManager.lastWindowPos.y !== currentPos.y
+                    if (windowMoved) {
+                        // Event-free fallback for a titlebar drag. Start the
+                        // same preview/drop flow used by hyprdrag events.
+                        if (!snapManager.isDragging && !snapManager.snapCooldown) {
+                            console.log("Snap fallback: detected floating window movement")
+                            snapManager.isDragging = true
+                            snapManager.activeWindowAddress = addr
+                            snapManager.currentZone = "none"
+                            snapManager.currentSnapResult = null
+                            snapManager.zoneStableCount = 0
+                            dragPollTimer.running = true
+                            dragSafetyTimer.restart()
+                        }
                         snapManager.lastWindowPos = currentPos
                         snapManager.unchangedCount = 0
                     } else {
