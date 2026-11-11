@@ -13,9 +13,13 @@ Scope {
     property var settingsMenu: null
     property bool opened: false
     property string targetMonitor: ""
+    property int anchorX: -1
+    property int anchorY: -1
 
-    function openOn(monitorName) {
+    function openOn(monitorName, x, y) {
         targetMonitor = monitorName || ""
+        anchorX = x === undefined ? -1 : x
+        anchorY = y === undefined ? -1 : y
         opened = true
     }
 
@@ -53,7 +57,9 @@ Scope {
 
             Rectangle {
                 id: card
-                anchors.centerIn: parent
+                anchors.centerIn: root.anchorX < 0 ? parent : undefined
+                x: root.anchorX < 0 ? 0 : Math.max(8, Math.min(parent.width - width - 8, root.anchorX - modelData.x - width + 28))
+                y: root.anchorY < 0 ? 0 : Math.max(8, Math.min(parent.height - height - 8, root.anchorY - modelData.y + 18))
                 width: 424
                 height: 232
                 radius: 14
