@@ -315,6 +315,7 @@ FloatingWindow {
     // Merge rapid changes and serialize writes; the backend locks and commits
     // one data file, then checks the compositor's actual reload result.
     property var pendingHyprState: ({})
+    property bool floatExistingWindowsAfterApply: false
 
     function requestHyprState(group, values) {
         pendingHyprState[group] = values
@@ -344,6 +345,25 @@ FloatingWindow {
         }
         onExited: function(code) {
             if (code !== 0) console.error("Hyprland settings could not be applied:", code)
+            if (floatExistingWindowsAfterApply) {
+                floatExistingWindowsAfterApply = false
+                if (code === 0)
+                    floatExistingWindowsProc.running = true
+            }
+        }
+    }
+
+    // A mode switch is a one-off transition. New windows are handled by the
+    // floating-mode rule; current normal clients retain their arrangement and
+    // are simply released from their tiled layout after the config reload.
+    Process {
+        id: floatExistingWindowsProc
+        command: ["windoesnot-float-existing-windows"]
+        running: false
+        stderr: StdioCollector {
+            onStreamFinished: {
+                if (text.trim().length > 0) console.error("Floating transition:", text)
+            }
         }
     }
 
@@ -1346,6 +1366,7 @@ FloatingWindow {
 
     onWindowModeChanged: {
         if (!isLoadingSettings) {
+            floatExistingWindowsAfterApply = windowMode === "floating"
             saveSettings()
             updateWindowMode()
         }
