@@ -56,3 +56,30 @@ version marker, distribution metadata and ARM image; define explicit HTTPS
 endpoints; test clean installation on supported hardware; then validate first-boot
 Calamares and recovery/resume paths. Private sources require an authenticated
 artifact delivery plan rather than embedding GitHub credentials in bootstrap.
+
+## Animated recovery companion
+
+`src/recovery_guide.py` renders a self-contained HTML guide with DE/EN copy from
+one dictionary. Before the indirect recovery handoff, the installer asks for the
+language (or accepts `WINDOESNOT_LANGUAGE=de|en`), prints all steps and attempts
+to open the guide in the invoking macOS user's browser. The build bundles the
+HTML and Python module automatically through the existing source-copy step.
+
+SVG/CSS animations explain the hand movements, not detected system progress.
+The page supports manual navigation, reduced motion, keyboard access, print/PDF
+and an offline HTML download. No network requests, password input or power
+operations are present in the page. User volume names are inserted as text.
+The shutdown still requires Enter in the installer terminal.
+
+Preview without installing or shutting down:
+
+```sh
+python installer/asahi/src/recovery_guide.py --output /tmp/WinDoesNotMac.html
+```
+
+The guide must be saved, printed or opened on another device before shutdown.
+No browser or webview availability is assumed inside Recovery. The upstream
+Recovery terminal itself remains English; this change translates the companion
+and the instructions before shutdown, not the entire installer backend.
+Native Safari, sudo-to-browser handoff, actual Recovery screens and physical
+button timing still need macOS/hardware validation.

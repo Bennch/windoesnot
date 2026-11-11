@@ -259,3 +259,22 @@ Alle lokalen Änderungen bleiben uncommittet; nichts auf GitHub geschrieben.
 - Prüfung: Python-Quellen kompiliert, Shell-Syntax geprüft, Linux-Build und
   Bootstrap verweigern Ausführung erwartungsgemäß. Kein echter Installationslauf,
   kein macOS-Build und kein Recovery-Test. x86-Installer unverändert.
+
+## Animierte mehrsprachige Recovery-Anleitung (2026-11-11)
+
+- **Asahi only:** `installer/asahi/src/recovery_guide.py`,
+  `recovery-guide.html` und Einbindung vor `step2_indirect`-Ausschaltbestätigung.
+  DE/EN aus einem Wörterbuch, echter Volumename, animierte SVG-Handgriffe,
+  Erwartungsbild und Hilfe je Schritt. Bestehende Apple-Bootoperationen unverändert.
+- Offline-HTML, Druck/PDF, Handyansicht, Tastaturbedienung, reduzierte Bewegung und
+  Animationspause. Kein Netzwerk, keine Passwortfelder, keine Poweraktionen in der
+  Seite und kein vorgetäuschter erkannter Fortschritt. Terminal-Anleitung bleibt
+  vollständig als Rückfall verfügbar; Hinweis zum Sichern vor dem Ausschalten.
+- Kopierfehler der vorherigen Quellübernahme behoben: Upstream-Symlink
+  `src/asahi_firmware -> ../asahi_firmware` wiederhergestellt; Build erwartet ihn.
+- Geprüft: fünf Python-/Syntax-/Escaping-/Fallback-Tests, DOM-Interaktion für sieben
+  Schritte, Sprachwechsel und HTML-Speichern/Neuladen; Firefox-Screenshots bei
+  1280 und 390 Pixeln Breite visuell geprüft. Keine Host-Poweraktion ausgeführt.
+- Offen: Safari/macOS-Browserübergabe und echter Recovery-Lauf; Backend- und
+  Recovery-Terminaltexte bleiben außerhalb dieser Anleitung vorerst Englisch.
+  ARM-Image/Calamares-Ersteinrichtung weiter ausstehend. x86 unverändert.

@@ -4,6 +4,7 @@ import os, os.path, shlex, subprocess, sys, time, termios, json, getpass, report
 from dataclasses import dataclass
 
 import system, osenum, stub, diskutil, osinstall, asahi_firmware, m1n1, bugs
+import recovery_guide
 from util import *
 
 PART_ALIGN = psize("1MiB")
@@ -735,39 +736,23 @@ class InstallerMain:
 
         self.install_info(report)
 
-        p_message( "To be able to boot your new OS, you will need to complete one more step.")
-        p_warning( "Please read the following instructions carefully. Failure to do so")
-        p_warning( "will leave your new installation in an unbootable state.")
+        language = os.environ.get("WINDOESNOT_LANGUAGE", "")
+        if language not in recovery_guide.COPY:
+            while True:
+                p_prompt("Sprache / Language [de/en] (de): ")
+                language = self.input().strip().lower() or "de"
+                if language in recovery_guide.COPY:
+                    break
+        # Always keep full instructions in Terminal if no browser is available.
+        recovery_guide.terminal_steps(self.part.label, language)
+        try:
+            recovery_guide.show(self.part.label, language)
+        except Exception:
+            logging.exception("Could not open the offline recovery companion")
+            p_warning("Grafische Anleitung nicht verfügbar / Graphical guide unavailable.")
         print()
-        p_question( "Press enter to continue.")
-        self.input()
-        print()
-        print()
-        print()
-        p_message( "When the system shuts down, follow these steps:")
-        print()
-        p_message( "1. Wait 25 seconds for the system to fully shut down.")
-        p_message(f"2. Press and {col(BRIGHT, YELLOW)}hold{col()}{col(BRIGHT)} down the power button to power on the system.")
-        p_warning( "   * It is important that the system be fully powered off before this step,")
-        p_warning( "     and that you press and hold down the button once, not multiple times.")
-        p_warning( "     This is required to put the machine into the right mode.")
-        p_message( "3. Release it once you see 'Loading startup options...' or a spinner.")
-        p_message( "4. Wait for the volume list to appear.")
-        p_message(f"5. Choose '{self.part.label}'.")
-        p_message( "6. You will briefly see a 'macOS Recovery' dialog.")
-        p_plain(   "   * If you are asked to 'Select a volume to recover',")
-        p_plain(   "     then choose your normal macOS volume and click Next.")
-        p_plain(   "     You may need to authenticate yourself with your macOS credentials.")
-        p_message(f"7. Once the '{DISTRO} installer' screen appears, follow the prompts.")
-        print()
-        p_warning( "If you end up in a bootloop or get a message telling you that macOS needs to")
-        p_warning( "be reinstalled, that means you didn't follow the steps above properly.")
-        p_message( "Fully shut down your system without doing anything, and try again.")
-        p_message( "If in trouble, hold down the power button to boot, select macOS, run")
-        p_message( "this installer again, and choose the 'p' option to retry the process.")
-        print()
-        time.sleep(2)
-        p_prompt( "Press enter to shut down the system.")
+        p_prompt("Enter: Mac ausschalten." if language == "de"
+                 else "Press Enter to shut down the Mac.")
         self.input()
         time.sleep(1)
         os.system("shutdown -h now")

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>WinDoesNotMac · Recovery</title>
+<style>
+:root{font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;color:#f4f2ee;background:#111315;--accent:#fe8b52;--muted:#afb3b7;--line:#34383b}
+*{box-sizing:border-box}body{margin:0}button,select,summary{font:inherit}button,select{border:1px solid var(--line);border-radius:12px;background:#23272a;color:inherit;padding:12px 17px;cursor:pointer}button:hover,select:hover{border-color:var(--accent)}button:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:4px}button:disabled{opacity:.35;cursor:default}header,main,footer{max-width:1120px;margin:auto;padding:24px 32px}header{display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{font-weight:750;letter-spacing:-.6px;font-size:22px}.brand span{color:var(--accent)}.locale{display:flex;gap:12px;align-items:center;font-size:14px}.eyebrow{text-transform:uppercase;letter-spacing:3px;color:var(--accent);font-size:12px;font-weight:700}h1{font-size:clamp(32px,5vw,53px);letter-spacing:-2px;line-height:1.07;margin:14px 0 20px;max-width:760px}.intro{color:var(--muted);max-width:790px;line-height:1.7;font-size:17px}.notice{border:1px solid #6b4b37;background:#28221c;border-radius:16px;padding:18px 22px;line-height:1.6;margin:26px 0}.progress{display:flex;gap:8px;margin:32px 0 14px}.dot{height:5px;border-radius:8px;background:var(--line);flex:1}.dot.active{background:var(--accent)}.counter{color:var(--muted);font-size:14px}.card{margin:16px 0 20px;border:1px solid var(--line);border-radius:24px;overflow:hidden;display:grid;grid-template-columns:45% 55%;background:#1a1d20}.visual{background:radial-gradient(ellipse at 50% 40%,#30302c,#171a1c 75%);display:flex;align-items:center;justify-content:center;min-height:330px;padding:20px}svg{width:100%;max-width:420px;height:auto}.content{padding:32px}h2{font-size:29px;letter-spacing:-.8px;margin:0 0 18px}.instruction{font-size:17px;line-height:1.65;margin:0 0 24px}.expected{border-left:3px solid var(--accent);padding-left:16px;line-height:1.6}.expected strong{font-size:13px;color:var(--accent);display:block;margin-bottom:5px}.help{margin-top:24px;line-height:1.6;color:var(--muted)}summary{cursor:pointer;color:#f4f2ee}nav{display:flex;justify-content:space-between;gap:14px}#next{background:var(--accent);border-color:var(--accent);color:#21160e;font-weight:700}.small{font-size:13px;line-height:1.6;color:var(--muted)}.tools{display:flex;gap:10px;flex-wrap:wrap;margin:26px 0}#all{margin:28px 0}#all article{padding:20px 0;border-bottom:1px solid var(--line);break-inside:avoid}#all h3{margin-top:0}#all p{line-height:1.6}.pulse{animation:pulse 1.8s ease-in-out infinite}.spin{transform-box:fill-box;transform-origin:center;animation:spin 3s linear infinite}.finger{animation:hold 3s ease-in-out infinite}.glow{animation:glow 3s ease-in-out infinite}.paused *{animation-play-state:paused!important}@keyframes pulse{50%{opacity:.35}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes hold{0%,100%{transform:translateY(-8px)}30%,80%{transform:translateY(0)}}@keyframes glow{0%,100%{opacity:.35}40%,80%{opacity:1}}@media(prefers-reduced-motion:reduce){*{animation:none!important;scroll-behavior:auto!important}}@media(max-width:720px){header,main,footer{padding:20px}.locale{flex-direction:column;gap:3px;align-items:end}.card{grid-template-columns:1fr}.visual{min-height:230px;padding:8px}.visual svg{max-width:310px}.content{padding:24px}h1{letter-spacing:-1px}.tools button{flex:1}}@media print{body{color:#111;background:white}header,main,footer{max-width:none}.card,nav,.tools,.progress,.counter,#manual,#illustration,#ready{display:none}#all{display:block!important}.notice{background:none;border-color:#777}.small,.intro,.help{color:#333}#all summary{display:none}#all article{border-color:#aaa}h1{font-size:32px}.brand span{color:#333}.locale{display:none}}
+</style>
+<header><div class="brand">Win<span>DoesNot</span>Mac</div><div class="locale"><label id="language-label" for="language"></label><select id="language"><option value="de">Deutsch</option><option value="en">English</option></select></div></header>
+<main>
+<div class="eyebrow">Apple Silicon · Recovery</div><h1 id="title"></h1><p class="intro" id="intro"></p>
+<aside class="notice" id="offline"></aside><div class="progress" id="progress" aria-hidden="true"></div>
+<div class="counter" id="counter"></div>
+<section class="card" aria-labelledby="step-title"><div class="visual" id="visual" aria-hidden="true"></div><div class="content" id="step-content" aria-live="polite" aria-atomic="true"><h2 id="step-title" tabindex="-1"></h2><p class="instruction" id="instruction"></p><div class="expected"><strong id="expected-label"></strong><span id="expected"></span></div><details class="help" id="help"><summary id="help-label"></summary><p id="help-text"></p></details></div></section>
+<nav><button id="back" type="button"></button><button id="next" type="button"></button></nav>
+<p class="small" id="manual"></p><p class="small" id="illustration"></p>
+<div class="tools"><button id="save" type="button"></button><button id="print" type="button"></button><button id="motion" type="button" aria-pressed="false"></button></div>
+<details id="all"><summary id="overview"></summary><div id="all-content"></div></details>
+<p class="notice" id="ready"></p>
+</main><footer class="small">WinDoesNotMac · Asahi Linux</footer>
+<noscript><p>JavaScript wird für die Schrittansicht benötigt. Die vollständige Anleitung steht auch im Installer-Terminal. / The step view requires JavaScript. Full instructions are also printed in the installer terminal.</p></noscript>
+<script>
+'use strict';
+const data=/*GUIDE_DATA*/null;
+let language=data.language,index=0,paused=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $=id=>document.getElementById(id);
+const text=(id,value)=>{$(id).textContent=value;};
+const format=value=>value.replaceAll('{volume}',data.volume);
+const laptop='<rect x="60" y="45" width="300" height="190" rx="14" fill="#30363b" stroke="#646b71" stroke-width="2"/><rect x="72" y="57" width="276" height="164" rx="5" fill="#0d1012"/><path d="M35 237h350l-23 18H58z" fill="#555d63"/><path d="M170 237h80l-8 6h-64z" fill="#30363b"/>';
+const power='<path d="M210 102v29m-14-21a26 26 0 1 0 28 0" fill="none" stroke="#fe8b52" stroke-width="6" stroke-linecap="round"/>';
+function graphic(kind){
+ let inside='';
+ if(kind==='prepare')inside='<path d="M165 117h90v55h-90z" fill="none" stroke="#87939b" stroke-width="3"/><path d="m190 139 16 15 32-33" fill="none" stroke="#fe8b52" stroke-width="5" stroke-linecap="round" class="glow"/><path d="M362 185h29v30h-10v20" fill="none" stroke="#fe8b52" stroke-width="4"/>';
+ if(kind==='wait')inside='<circle cx="210" cy="137" r="42" stroke="#59636b" stroke-width="3" fill="none"/><path d="M210 105v32l20 12" stroke="#fe8b52" stroke-width="4" fill="none"/><text x="210" y="202" fill="#afb3b7" font-size="16" text-anchor="middle">25 s</text>';
+ if(kind==='hold')inside='<circle cx="210" cy="135" r="48" fill="#29231f" stroke="#fe8b52" class="glow"/>'+power+'<path d="M250 164 342 238" stroke="#87939b" stroke-width="2" stroke-dasharray="4 4"/><circle cx="342" cy="240" r="8" fill="#fe8b52"/><text x="210" y="202" text-anchor="middle" fill="#afb3b7" font-size="15">Touch ID / Power</text><g class="finger"><path d="M305 210v-37c0-12 18-12 18 0v12c18-1 27 11 27 29v27h-45z" fill="#b8aa9e" stroke="#e9d6c3" stroke-width="2"/><circle cx="314" cy="172" r="15" fill="none" stroke="#fe8b52" stroke-width="3" class="pulse"/></g>';
+ if(kind==='volume')inside='<rect x="106" y="107" width="75" height="61" rx="9" fill="#3d454d"/><rect x="239" y="107" width="75" height="61" rx="9" fill="#413025" stroke="#fe8b52" stroke-width="3" class="glow"/><path d="m260 136 12 12 20-24" fill="none" stroke="#fe8b52" stroke-width="4"/><text x="143" y="193" fill="#afb3b7" font-size="13" text-anchor="middle">macOS</text><text x="277" y="193" fill="#fe8b52" font-size="13" text-anchor="middle">WinDoesNotMac</text>';
+ if(kind==='recovery')inside='<rect x="120" y="93" width="180" height="92" rx="9" fill="#30373c"/><circle cx="210" cy="135" r="23" fill="none" stroke="#555f65" stroke-width="5"/><path d="M210 112a23 23 0 0 1 23 23" fill="none" stroke="#fe8b52" stroke-width="5" class="spin"/>';
+ if(kind==='auth')inside='<rect x="173" y="122" width="74" height="59" rx="8" fill="#413025" stroke="#fe8b52" stroke-width="3"/><path d="M186 122v-16a24 24 0 0 1 48 0v16" stroke="#fe8b52" stroke-width="4" fill="none"/><circle cx="210" cy="147" r="6" fill="#fe8b52" class="pulse"/>';
+ if(kind==='done')inside='<circle cx="210" cy="139" r="46" fill="#29231f" stroke="#fe8b52"/><path d="m187 139 16 16 32-35" fill="none" stroke="#fe8b52" stroke-width="6" stroke-linecap="round" class="glow"/>';
+ return '<svg viewBox="0 0 420 280" xmlns="http://www.w3.org/2000/svg">'+laptop+inside+'</svg>';
+}
+function render(focus=false){
+ const c=data.copy[language],s=c.steps[index];document.documentElement.lang=language;document.title='WinDoesNotMac · '+s[0];$('language').value=language;
+ for(const id of ['title','intro','offline','back','next','manual','illustration','save','print','overview','ready'])text(id,c[id]);
+ text('language-label',c.language);text('counter',`${c.step} ${index+1} ${c.of} ${c.steps.length}`);
+ text('step-title',s[0]);text('instruction',format(s[1]));text('expected-label',c.expected);text('expected',format(s[2]));text('help-label',c.help);text('help-text',format(s[3]));
+ $('visual').innerHTML=graphic(s[4]);$('help').open=false;$('back').disabled=index===0;$('next').disabled=index===c.steps.length-1;
+ $('progress').replaceChildren(...c.steps.map((_,i)=>{const span=document.createElement('span');span.className='dot'+(i<=index?' active':'');return span;}));
+ $('all-content').replaceChildren(...c.steps.map((s,i)=>{const a=document.createElement('article'),h=document.createElement('h3');h.textContent=`${i+1}. ${s[0]}`;a.append(h);for(const t of [s[1],c.expected+': '+s[2],c.help+': '+s[3]]){const p=document.createElement('p');p.textContent=format(t);a.append(p);}return a;}));
+ document.body.classList.toggle('paused',paused);$('motion').setAttribute('aria-pressed',String(paused));text('motion',paused?c.resume:c.motion);
+ if(focus)$('step-title').focus({preventScroll:true});
+}
+$('back').onclick=()=>{if(index>0){index--;render(true);}};
+$('next').onclick=()=>{if(index<data.copy[language].steps.length-1){index++;render(true);}};
+$('language').onchange=e=>{language=e.target.value;render();};
+$('motion').onclick=()=>{paused=!paused;document.body.classList.toggle('paused',paused);$('motion').setAttribute('aria-pressed',String(paused));text('motion',data.copy[language][paused?'resume':'motion']);};
+$('print').onclick=()=>{$('all').open=true;window.print();};
+$('save').onclick=()=>{
+ const clone=document.documentElement.cloneNode(true);
+ // Keep the chosen language in the downloaded, entirely self-contained document.
+ const script=clone.querySelector('script');
+ script.textContent=script.textContent.replace('let language=data.language,index=0,paused=',`let language=${JSON.stringify(language)},index=0,paused=`);
+ const blob=new Blob(['<!doctype html>\n'+clone.outerHTML],{type:'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='WinDoesNotMac-Recovery.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+window.addEventListener('beforeprint',()=>{$('all').open=true;});
+render();
+</script>
+</html>
