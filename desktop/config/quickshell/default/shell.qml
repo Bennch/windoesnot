@@ -127,6 +127,9 @@ IpcHandler {
         if (!snapLayouts.opened)
             snapManager.requestKeyboardLayouts(true)
     }
+    function leave() {
+        snapLayouts.scheduleClose()
+    }
     function toggle() {
         if (snapLayouts.opened)
             snapLayouts.close()

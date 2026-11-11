@@ -212,8 +212,9 @@ void CHyprBar::onMouseMove(Vector2D coords) {
     if (overMaximize && !m_bMaxLayoutHover) {
         m_bMaxLayoutHover = true;
         Config::Supplementary::executor()->spawn("qs ipc call windoesnot-snap hover");
-    } else if (!overMaximize) {
+    } else if (!overMaximize && m_bMaxLayoutHover) {
         m_bMaxLayoutHover = false;
+        Config::Supplementary::executor()->spawn("qs ipc call windoesnot-snap leave");
     }
 
     // The decoration occupies the upper border, so Hyprland's regular border
