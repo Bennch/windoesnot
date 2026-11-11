@@ -157,6 +157,8 @@ Scope {
                                 id: layoutMouse
                                 anchors.fill: parent
                                 hoverEnabled: true
+                                onEntered: { root.menuHovered = true; closeTimer.stop() }
+                                onExited: { root.menuHovered = false; root.scheduleClose() }
                                 onClicked: root.choose(parent.modelData.id)
                             }
                         }
