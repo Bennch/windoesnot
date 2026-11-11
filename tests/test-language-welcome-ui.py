@@ -26,13 +26,14 @@ with tempfile.TemporaryDirectory(prefix='wdn-language-welcome-') as temp:
     (profile / 'settings').mkdir(parents=True)
     shutil.copytree(SOURCE / 'i18n', profile / 'i18n')
     shutil.copytree(SOURCE / 'img/brand', profile / 'img/brand')
-    for name in ('InputCategory', 'PrinterCategory', 'SystemToolsButton', 'SystemToolsConfirm'):
+    for name in ('InputCategory', 'PrinterCategory', 'SystemToolsButton', 'SystemToolsConfirm', 'SystemToolsChoice'):
         shutil.copy2(SOURCE / f'settings/{name}.qml', profile / 'settings')
+    shutil.copy2(SOURCE / 'LocaleNames.js', profile / 'LocaleNames.js')
     references = set(re.findall(r'settingsMenu\.(\w+)', (SOURCE / 'settings/InputCategory.qml').read_text()))
     references |= {'pendingSystemLocale', 'previousUiLanguage', 'fileDialogOpen', 'borderRadius'}
     properties = []
     for name in sorted(references - {'selectLanguage'}):
-        match = re.search(r'^    property (\w+) ' + name + r': (.+)$', settings, re.M)
+        match = re.search(r'^    (?:readonly )?property (\w+) ' + name + r': (.+)$', settings, re.M)
         assert match, name
         kind, value = match.groups()
         if kind == 'alias':
@@ -48,6 +49,7 @@ import "i18n/Lang.js" as Lang
 ShellRoot {
  Window {
   id: testWindow; visible: true; width: 900; height: 720
+  QtObject { id: systemLocalesLoader; property bool running: false }
   QtObject { id: localeProc; property var command: []; property bool running: false }
   QtObject { id: userDirsProc; property var command: []; property bool running: false }
   QtObject { id: settingsMenu; PROPERTIES
@@ -58,9 +60,9 @@ METHODS
   function find(o,predicate) { if(predicate(o)) return o; for(let c of (o.children || [])) { let r=find(c,predicate); if(r) return r } return null }
   Timer { interval: 100; running: true; onTriggered: {
    try {
-    settingsMenu.systemLocalesModel.append({value:"de_DE.UTF-8",text:"Deutsch"})
-    settingsMenu.systemLocalesModel.append({value:"en_US.UTF-8",text:"English"})
-    settingsMenu.systemLocalesModel.append({value:"fr_FR.UTF-8",text:"français"})
+    settingsMenu.systemLocalesModel.append({value:"de_DE.UTF-8",text:"Deutsch",installed:true})
+    settingsMenu.systemLocalesModel.append({value:"en_US.UTF-8",text:"English",installed:true})
+    settingsMenu.systemLocalesModel.append({value:"fr_FR.UTF-8",text:"français",installed:true})
     testWindow.check(input.item !== null, "language page loaded")
     settingsMenu.selectLanguage("en_US.UTF-8")
     testWindow.check(settingsMenu.uiLanguage === "en" && settingsMenu.localeChangeBusy, "English immediately")
@@ -82,6 +84,13 @@ METHODS
     testWindow.check(settingsMenu.localeChangeFailed && !settingsMenu.fileDialogOpen, "failed change visible and focus released")
     settingsMenu.selectLanguage("de_DE.UTF-8"); settingsMenu.finishLanguageChange(0)
     testWindow.check(settingsMenu.uiLanguage === "de" && !fallback.visible && !settingsMenu.localeChangeFailed, "German recovers without fallback warning")
+    settingsMenu.systemLocale = "C.UTF-8"
+    testWindow.check(!!testWindow.find(input.item,o => o.text === Lang.get("input.noSystemLanguage", "de")), "C is not displayed as a human language")
+    testWindow.check(!fallback.visible, "C is not an unsupported human language")
+    settingsMenu.systemLocalesModel.setProperty(0, "installed", false)
+    settingsMenu.selectLanguage("de_DE.UTF-8")
+    testWindow.check(localeProc.command.join("|") === "windoesnot-language-setup|de", "missing locale takes authenticated setup path")
+    settingsMenu.finishLanguageChange(1)
     console.log("LANGUAGE_UI_PASS")
    } catch(e) { console.error("LANGUAGE_UI_FAIL",e) }
    Qt.quit()
