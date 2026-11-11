@@ -1013,6 +1013,11 @@ static int run_daemon(const char *config_path) {
       }
     }
 
+    /* Screenshot capture happens off the hot path. Repaint once its child
+     * process is done, so Alt+Tab itself never waits for grim. */
+    if (visible && render_poll_desktop_capture())
+      app_state.needs_render = true;
+
     /* --- Reset safety watchdog on user navigation activity ---
      * needs_render is set by keyboard handlers on Tab/Arrow presses,
      * so it serves as a reliable activity indicator. Reset the timer
