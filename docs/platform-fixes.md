@@ -244,3 +244,18 @@ Alle lokalen Änderungen bleiben uncommittet; nichts auf GitHub geschrieben.
   Übergang zu Fortschritt, Erfolgs-/Fehlerzustand und DE/EN/Hell-/Dunkelmodus.
 - Kein echtes Passwort und keine Host-Locale für Tests verwendet. Autorisierung und
   tatsächliche Erzeugung starten erst bei einer bewussten Sprachauswahl.
+
+## Privater Asahi-Installer-Fork (2026-11-11)
+
+- **Asahi only:** Quellfork unter `installer/asahi`, ALARM-Stand
+  `3cfef52bc372a7b84b59823027c75327e129d6ec`, MIT samt Herkunft erhalten.
+  Keine öffentliche Fork-Repo und keine übernommenen Publish-Workflows.
+- Standardname/Supportlink auf WinDoesNotMac; Build verlangt macOS und eigenes
+  ICNS-Logo. Apple-Partitionierung, Firmware und Recovery-Logik unverändert.
+- Bootstrap-Einstiege absichtlich gesperrt, bis eigene geprüfte Installer-Artefakte
+  und ARM-Images existieren. Keine umetikettierte Installation fremder Images.
+- Ablauf und offene Aufgaben in `installer/asahi/DOWNSTREAM.md`: macOS-Setup,
+  physischer Recovery-Schritt, Linux-Boot, danach Calamares als Ersteinrichtung.
+- Prüfung: Python-Quellen kompiliert, Shell-Syntax geprüft, Linux-Build und
+  Bootstrap verweigern Ausführung erwartungsgemäß. Kein echter Installationslauf,
+  kein macOS-Build und kein Recovery-Test. x86-Installer unverändert.
