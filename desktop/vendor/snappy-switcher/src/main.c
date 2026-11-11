@@ -474,6 +474,12 @@ static void show_switcher(bool is_linear) {
   wl_surface_set_buffer_scale(surface, output_scale);
   wl_surface_commit(surface);
   wl_display_flush(display);
+
+  /* Make the exclusive keyboard grab effective before the user presses Tab a
+   * second time. This is only a Wayland roundtrip (typically a few ms), not a
+   * screenshot wait; without it a fast follow-up Tab can still go to the
+   * previously focused client. */
+  wl_display_roundtrip(display);
 }
 
 static void select_and_hide(void) {
