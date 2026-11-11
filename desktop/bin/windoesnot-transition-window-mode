@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+"""Apply a one-shot layout transition to existing normal client windows."""
+import json
+import subprocess
+import sys
+
+
+def eligible(client):
+    workspace = client.get("workspace") or {}
+    return (
+        not client.get("fullscreen", False)
+        and not client.get("pinned", False)
+        and workspace.get("id", -1) > 0
+        and "quickshell" not in (client.get("class") or "").lower()
+    )
+
+
+def main():
+    if len(sys.argv) != 2 or sys.argv[1] not in ("floating", "tiling"):
+        print("Usage: windoesnot-transition-window-mode floating|tiling", file=sys.stderr)
+        return 2
+    mode = sys.argv[1]
+    try:
+        result = subprocess.run(["windoesnot-hyprctl", "clients", "-j"], capture_output=True, text=True, check=True)
+        clients = json.loads(result.stdout)
+    except (subprocess.CalledProcessError, json.JSONDecodeError) as error:
+        print(f"Could not read windows: {error}", file=sys.stderr)
+        return 1
+
+    want_floating = mode == "floating"
+    targets = [client["address"] for client in clients
+               if eligible(client) and bool(client.get("floating", False)) != want_floating]
+    dispatcher = "setfloating" if want_floating else "settiled"
+    failed = 0
+    for address in targets:
+        result = subprocess.run(
+            ["windoesnot-hyprctl", "dispatch", dispatcher, f"address:{address}"],
+            capture_output=True, text=True,
+        )
+        if result.returncode:
+            failed += 1
+            print(result.stderr.strip() or f"Could not update {address}", file=sys.stderr)
+    print(f"Moved {len(targets) - failed}/{len(targets)} existing window(s) to {mode} mode")
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
