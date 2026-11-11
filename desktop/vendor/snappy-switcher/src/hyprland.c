@@ -351,7 +351,8 @@ static int parse_clients(const char *json_str, AppState *state, int target_ws,
     struct json_object *obj = json_object_array_get_idx(root, i);
     struct json_object *ws_obj = NULL, *ws_id = NULL, *ws_name = NULL,
                        *addr = NULL, *title = NULL, *cls = NULL,
-                       *focus = NULL, *floating = NULL, *pinned = NULL;
+                       *focus = NULL, *floating = NULL, *pinned = NULL,
+                       *at = NULL, *size = NULL;
 
     if (!json_object_object_get_ex(obj, "workspace", &ws_obj))
       continue;
@@ -378,6 +379,8 @@ static int parse_clients(const char *json_str, AppState *state, int target_ws,
     json_object_object_get_ex(obj, "focusHistoryID", &focus);
     json_object_object_get_ex(obj, "floating", &floating);
     json_object_object_get_ex(obj, "pinned", &pinned);
+    json_object_object_get_ex(obj, "at", &at);
+    json_object_object_get_ex(obj, "size", &size);
 
     /* Pinned filter: skip always-on-top, all-workspace overlays (e.g. browser
      * Picture-in-Picture) when ignore_pinned is set. A pinned window is visible
@@ -397,6 +400,15 @@ static int parse_clients(const char *json_str, AppState *state, int target_ws,
     info.is_floating = floating ? json_object_get_boolean(floating) : false;
     info.is_pinned = is_pinned;
     info.group_count = 1;
+    info.x = info.y = info.width = info.height = 0;
+    if (at && json_object_array_length(at) >= 2) {
+      info.x = json_object_get_int(json_object_array_get_idx(at, 0));
+      info.y = json_object_get_int(json_object_array_get_idx(at, 1));
+    }
+    if (size && json_object_array_length(size) >= 2) {
+      info.width = json_object_get_int(json_object_array_get_idx(size, 0));
+      info.height = json_object_get_int(json_object_array_get_idx(size, 1));
+    }
 
     app_state_add(state, &info);
   }
@@ -430,6 +442,10 @@ static void aggregate_context(AppState *state) {
       out[out_count].is_floating = true;
       out[out_count].is_pinned = win->is_pinned;
       out[out_count].group_count = 1;
+      out[out_count].x = win->x;
+      out[out_count].y = win->y;
+      out[out_count].width = win->width;
+      out[out_count].height = win->height;
       out_count++;
     } else {
       int found = -1;
@@ -454,6 +470,10 @@ static void aggregate_context(AppState *state) {
         out[out_count].is_floating = false;
         out[out_count].is_pinned = win->is_pinned;
         out[out_count].group_count = 1;
+        out[out_count].x = win->x;
+        out[out_count].y = win->y;
+        out[out_count].width = win->width;
+        out[out_count].height = win->height;
         out_count++;
       }
     }

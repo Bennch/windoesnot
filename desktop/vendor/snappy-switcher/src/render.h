@@ -15,6 +15,10 @@ extern struct wl_surface *surface;
 /* Set config for rendering */
 void render_set_config(Config *config);
 
+/* Capture the desktop before the layer-shell panel is mapped.  Cards use this
+ * single image as their window previews, avoiding one grim process per app. */
+void render_capture_desktop(void);
+
 /* Calculate optimal window dimensions based on window count */
 void calculate_dimensions(AppState *state, uint32_t *width, uint32_t *height);
 
