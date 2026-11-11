@@ -78,5 +78,19 @@ echo "Primary monitor for the shell: $WINDOESNOT_PRIMARY_MONITOR" >> "$LOGFILE"
 
 echo "Starting quickshell..." >> "$LOGFILE"
 
-# Start quickshell with the same environment as before
-exec env QT_QPA_PLATFORMTHEME=gtk3 quickshell --path "$CONFIG_DIR/shell.qml" >> "$LOGFILE" 2>&1
+# Start quickshell. A crash in the first seconds (seen once on a fresh first login) is retried
+# up to three times, so a rare start-up race costs a flicker instead of a missing taskbar.
+# A normal exit or a later crash is not restarted here.
+for attempt in 1 2 3; do
+    started=$SECONDS
+    status=0
+    env QT_QPA_PLATFORMTHEME=gtk3 quickshell --path "$CONFIG_DIR/shell.qml" >> "$LOGFILE" 2>&1 || status=$?
+    # 0 = normal exit; 129/130/143 = ended on purpose (HUP/INT/TERM); a late crash is left alone too.
+    if [ "$status" -eq 0 ] || [ "$status" -eq 129 ] || [ "$status" -eq 130 ] || [ "$status" -eq 143 ] \
+        || [ $((SECONDS - started)) -ge 20 ]; then
+        exit "$status"
+    fi
+    echo "Quickshell exited with status $status after $((SECONDS - started)) s; retry $attempt of 3" >> "$LOGFILE"
+    sleep 1
+done
+exit "$status"

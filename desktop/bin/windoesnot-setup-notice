@@ -40,6 +40,13 @@ def summary(data, german):
     return lines
 
 
+def mouse_speed(preferences):
+    try:
+        return max(-1.0, min(1.0, float(preferences.get('mouseSensitivity', '0'))))
+    except ValueError:
+        return 0.0
+
+
 def welcome_payload(data, preferences):
     german = preferences.get('uiLanguage', os.environ.get('LANG', '')[:2]) == 'de'
     apps = [
@@ -56,6 +63,20 @@ def welcome_payload(data, preferences):
         'title': 'Willkommen bei WinDoesNot' if german else 'Welcome to WinDoesNot',
         'intro': ('Dein System ist bereit. Hier findest du die wichtigsten Programme für den Einstieg.'
                   if german else 'Your system is ready. Start with these essential apps.'),
+        'display': {
+            'title': 'Anzeige und Maus' if german else 'Display and mouse',
+            'hint': ('Stelle Auflösung, Zoom und Mausgeschwindigkeit ein. Alles lässt sich später in den Einstellungen ändern.'
+                     if german else 'Set resolution, zoom and pointer speed. You can change everything later in Settings.'),
+            'resolution': 'Auflösung' if german else 'Resolution',
+            'zoom': 'Zoom',
+            'mouse': 'Mausgeschwindigkeit' if german else 'Pointer speed',
+            'slow': 'Langsam' if german else 'Slow',
+            'fast': 'Schnell' if german else 'Fast',
+            'confirm': 'Anzeige beibehalten?' if german else 'Keep this display setting?',
+            'keep': 'Beibehalten' if german else 'Keep',
+            'revert': 'Zurücksetzen' if german else 'Revert',
+            'mouseSensitivity': mouse_speed(preferences),
+        },
         'appsTitle': 'Deine ersten Schritte' if german else 'Your first steps',
         'apps': [{'name': name, 'description': de if german else en, 'icon': icon,
                   'command': command, 'available': bool(shutil.which(command[0]))}
