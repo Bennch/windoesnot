@@ -86,13 +86,14 @@ Scope {
                 border.color: root.settingsMenu ? Qt.rgba(root.settingsMenu.accentColor.r, root.settingsMenu.accentColor.g, root.settingsMenu.accentColor.b, 0.7) : "#fe6f2d"
 
                 // Prevent the backdrop click handler from closing the picker.
-                MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onEntered: { root.menuHovered = true; closeTimer.stop() }
-                    onExited: { root.menuHovered = false; root.scheduleClose() }
-                    onClicked: function(mouse) { mouse.accepted = true }
+                HoverHandler {
+                    onHoveredChanged: {
+                        root.menuHovered = hovered
+                        if (hovered) closeTimer.stop()
+                        else root.scheduleClose()
+                    }
                 }
+                MouseArea { anchors.fill: parent; onClicked: function(mouse) { mouse.accepted = true } }
 
                 Text {
                     id: heading
@@ -157,8 +158,6 @@ Scope {
                                 id: layoutMouse
                                 anchors.fill: parent
                                 hoverEnabled: true
-                                onEntered: { root.menuHovered = true; closeTimer.stop() }
-                                onExited: { root.menuHovered = false; root.scheduleClose() }
                                 onClicked: root.choose(parent.modelData.id)
                             }
                         }
