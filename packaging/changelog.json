@@ -2,6 +2,36 @@
   "comment": "WinDoesNot changes per desktop package release, newest first. Shown in Settings > Updates; entries marked unreleased are never offered as an update.",
   "releases": [
     {
+      "version": "0.1.0-28",
+      "date": "2026-11-11",
+      "de": [
+        "Fenster snappen: Beim Ziehen an der Titelleiste erscheint eine Vorschau. Über dem Maximieren-Knopf öffnet sich die Layout-Auswahl.",
+        "Alt-Tab zeigt Vorschauen der einzelnen Fenster.",
+        "Neue Task-Ansicht im Vollbild: alle Fenster auf einen Blick.",
+        "Fenstermodus: Beim Umschalten schweben bestehende Fenster, und du kannst in beide Richtungen wechseln.",
+        "Akku und Energie: Das Popup zeigt Helligkeit, Energieprofil und Augenschonmodus und passt sich seinem Inhalt an. Die Leiste zeigt den Akkustand, auf Desktop-PCs ohne Akku ein Blitz-Symbol.",
+        "Helligkeit funktioniert auch bei mehreren externen Monitoren.",
+        "Fehlt die Systemsprache, wird sie erkannt. Die Einrichtung läuft mit Passwortabfrage und zeigt den Fortschritt.",
+        "Dateien teilen: Ziehe Dateien auf das Teilen-Symbol, dann öffnet sich das Fenster mit einer Ablagefläche. Der Verlauf ist ein eigener Tab, und eine grüne Lampe zeigt, dass Empfangen an ist.",
+        "Wenn die Firewall LocalSend blockiert, öffnest du die Ports mit einem Klick.",
+        "Systemeinstellungen: Kernel-Auswahl und Bereiche sind übersichtlicher. Das Wi-Fi-Passwortfenster schließt nach erfolgreicher Verbindung.",
+        "Installer und Start: Die Auswahl der Spiegelserver startet nicht mehr mit einem Boot-Fehler."
+      ],
+      "en": [
+        "Snap windows: dragging a title bar shows a preview. The maximize button opens the layout picker.",
+        "Alt-Tab shows previews of each window.",
+        "New full-screen task view: all windows at a glance.",
+        "Window mode: existing windows float when you switch, and you can switch in both directions.",
+        "Battery and power: the popup shows brightness, power profile and night light and fits its content. The taskbar shows the battery level, and desktop PCs without a battery show a bolt symbol.",
+        "Brightness also works with several external monitors.",
+        "If the system language is missing, it is detected. Setup asks for your password and shows progress.",
+        "File sharing: drag files onto the sharing icon and the window opens with a drop zone. History is its own tab, and a green light shows that receiving is on.",
+        "If the firewall blocks LocalSend, open the ports with one click.",
+        "System settings: kernel selection and sections are clearer. The Wi-Fi password dialog closes after a successful connection.",
+        "Installer and boot: choosing the mirror server no longer causes a boot error."
+      ]
+    },
+    {
       "version": "0.1.0-27",
       "date": "2026-11-09",
       "de": [

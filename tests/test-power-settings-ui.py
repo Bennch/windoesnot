@@ -58,10 +58,10 @@ ShellRoot {
     testWindow.check(system.height < 800, "system settings show one focused section")
     testWindow.check(system.section === 0, "account section is selected by default")
     system.section = 1
-    testWindow.check(system.children[2].visible, "maintenance section can be selected")
-    system.section = 2
-    testWindow.check(system.children[3].visible, "kernel section can be selected")
+    testWindow.check(system.section === 1 && !!system.activeSection, "maintenance section can be selected")
     testWindow.check(!!testWindow.find(system, o => !!o.text && o.text.indexOf("Werkzeuge helfen bei Problemen") >= 0), "maintenance section content present")
+    system.section = 2
+    testWindow.check(system.section === 2 && !!system.activeSection, "kernel section can be selected")
     testWindow.check(!!testWindow.find(system, o => !!o.text && o.text.indexOf("technische Grundlage") >= 0), "kernel section content present")
 
     preferences.uiLanguage = "en"

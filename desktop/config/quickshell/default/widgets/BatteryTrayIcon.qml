@@ -22,11 +22,11 @@ Item {
         Rectangle { x: 7; y: 1; width: 1; height: 3; color: root.foreground }
         Rectangle { x: 5; y: 6; width: 2; height: 3; color: root.foreground }
     }
-    // Desktop without a battery: the Win11 symbolic bolt, same style and tint as the other tray glyphs.
+    // Desktop without a battery: the Win11 symbolic battery with bolt (mains power), same tint as the other tray glyphs.
     Image {
         visible: root.desktopPower
         anchors.centerIn: parent
-        source: Qt.resolvedUrl("../img/Win11-dark/actions/symbolic/bolt-symbolic.svg")
+        source: Qt.resolvedUrl("../img/Win11-dark/devices/symbolic/ac-adapter-symbolic.svg")
         width: 16; height: 16
         sourceSize.width: 32; sourceSize.height: 32
         smooth: true; antialiasing: true; mipmap: true

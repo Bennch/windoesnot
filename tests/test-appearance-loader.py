@@ -78,9 +78,8 @@ ShellRoot {
     assert code == 0 and 'APPEARANCE_LOADER_READY' in output, output
     for marker in ['ReferenceError', 'TypeError', 'is not a type', 'Failed to load configuration', 'Cannot assign']:
         assert marker not in output, output
-    # Prove the fixture exercises the actual old failure, not a direct directory import.
-    (config / 'settings/AppearanceCategory.qml').write_text(page_source.replace('import "."\n', '', 1))
-    (config / 'settings/qmldir').unlink()
-    code, old_output = run()
-    assert code != 0 and 'StartOrbSettings is not a type' in old_output, old_output
-    print('PASS: full Appearance page and orb controls load through dynamic Loader; original missing-import regression detected')
+    # The old failure ("StartOrbSettings is not a type") was reproduced by removing the
+    # module import. StartOrbSettings now sits in the same settings folder as the page,
+    # so the removal no longer breaks anything and cannot prove the regression any more.
+    # The load check above is what guards the page now.
+    print('PASS: full Appearance page and orb controls load without type or reference errors')
