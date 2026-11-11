@@ -427,6 +427,11 @@ Item {
                     // Check if window position is changing (being dragged)
                     var currentPos = {x: windowInfo.at[0], y: windowInfo.at[1]}
                     var addr = windowInfo.address
+                    var titleHeight = settingsMenu && settingsMenu.hyprbarsHeight > 0 ? settingsMenu.hyprbarsHeight : 30
+                    var cursorOnTitlebar = cursorPos.x >= windowInfo.at[0] &&
+                                             cursorPos.x <= windowInfo.at[0] + windowInfo.size[0] &&
+                                             cursorPos.y >= windowInfo.at[1] - titleHeight &&
+                                             cursorPos.y <= windowInfo.at[1]
 
                     // Normalize addresses: remove "0x" prefix for comparison
                     var normalizedAddr = addr.replace(/^0x/, "")
@@ -460,7 +465,7 @@ Item {
                     if (windowMoved) {
                         // Event-free fallback for a titlebar drag. Start the
                         // same preview/drop flow used by hyprdrag events.
-                        if (!snapManager.isDragging && !snapManager.snapCooldown) {
+                        if (!snapManager.isDragging && !snapManager.snapCooldown && cursorOnTitlebar) {
                             console.log("Snap fallback: detected floating window movement")
                             snapManager.isDragging = true
                             snapManager.activeWindowAddress = addr
