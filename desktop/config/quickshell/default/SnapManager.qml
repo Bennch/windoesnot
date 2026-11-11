@@ -549,12 +549,23 @@ Item {
                         snapManager.isDragging = false
                         dragPollTimer.running = false
                         dragSafetyTimer.stop()
-                        snapManager.hidePreview()
-                        snapManager.currentZone = "none"
-                        snapManager.currentMonitorName = ""
-                        snapManager.currentSnapResult = null
-                        snapManager.pendingSnapZone = "none"
-                        snapManager.pendingSnapInfo = null
+                        // The visible preview is already the final target.
+                        // Previously this alternate release path discarded it,
+                        // which made the overlay appear correctly but never
+                        // moved the window when the cursor kept moving.
+                        if (snapManager.currentZone !== "none") {
+                            snapManager.pendingSnapZone = snapManager.currentZone
+                            snapManager.pendingSnapRect = snapManager.previewRect
+                            snapManager.pendingSnapInfo = snapManager.currentSnapResult
+                            snapManager.hidePreview()
+                            snapManager.currentZone = "none"
+                            snapManager.currentMonitorName = ""
+                            snapManager.snapCooldown = true
+                            snapCooldownTimer.restart()
+                            snapDelayTimer.start()
+                        } else {
+                            snapManager.hidePreview()
+                        }
                         snapManager.activeWindowAddress = null
                         snapManager.lastCursorPos = null
                         snapManager.lastWindowPos = null
