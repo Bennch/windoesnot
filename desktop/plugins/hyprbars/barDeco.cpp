@@ -224,11 +224,9 @@ void CHyprBar::onMouseMove(Vector2D coords) {
     const auto LOCAL   = cursorRelativeToBar();
     constexpr float RESIZE_HANDLE = 8.F;
     if (PWINDOW && PWINDOW->isFloating() && LOCAL.y <= RESIZE_HANDLE &&
-        (LOCAL.x <= RESIZE_HANDLE || LOCAL.x >= assignedBoxGlobal().w - RESIZE_HANDLE)) {
-        // The bar lies outside the client box, so setCursorIconOnBorder only
-        // succeeds intermittently. Set the explicit diagonal cursor here.
-        g_pHyprRenderer->setCursorFromName(LOCAL.x <= RESIZE_HANDLE ? "nwse-resize" : "nesw-resize", true);
-    } else
+        (LOCAL.x <= RESIZE_HANDLE || LOCAL.x >= assignedBoxGlobal().w - RESIZE_HANDLE))
+        g_pInputManager->setCursorIconOnBorder(PWINDOW);
+    else
         g_pInputManager->restoreCursorIconToApp();
 
     if (!m_bDragPending || m_bTouchEv || !validMapped(m_pWindow) || m_touchId != 0)
