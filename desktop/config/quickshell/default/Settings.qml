@@ -315,7 +315,7 @@ FloatingWindow {
     // Merge rapid changes and serialize writes; the backend locks and commits
     // one data file, then checks the compositor's actual reload result.
     property var pendingHyprState: ({})
-    property bool floatExistingWindowsAfterApply: false
+    property string windowModeTransitionAfterApply: ""
 
     function requestHyprState(group, values) {
         pendingHyprState[group] = values
@@ -345,10 +345,13 @@ FloatingWindow {
         }
         onExited: function(code) {
             if (code !== 0) console.error("Hyprland settings could not be applied:", code)
-            if (floatExistingWindowsAfterApply) {
-                floatExistingWindowsAfterApply = false
+            if (windowModeTransitionAfterApply.length > 0) {
+                var transition = windowModeTransitionAfterApply
+                windowModeTransitionAfterApply = ""
                 if (code === 0)
-                    floatExistingWindowsProc.running = true
+                    windowModeTransitionProc.mode = transition
+                if (code === 0)
+                    windowModeTransitionProc.running = true
             }
         }
     }
@@ -357,12 +360,13 @@ FloatingWindow {
     // floating-mode rule; current normal clients retain their arrangement and
     // are simply released from their tiled layout after the config reload.
     Process {
-        id: floatExistingWindowsProc
-        command: ["windoesnot-float-existing-windows"]
+        id: windowModeTransitionProc
+        property string mode: ""
+        command: ["windoesnot-transition-window-mode", mode]
         running: false
         stderr: StdioCollector {
             onStreamFinished: {
-                if (text.trim().length > 0) console.error("Floating transition:", text)
+                if (text.trim().length > 0) console.error("Window mode transition:", text)
             }
         }
     }
@@ -1366,7 +1370,7 @@ FloatingWindow {
 
     onWindowModeChanged: {
         if (!isLoadingSettings) {
-            floatExistingWindowsAfterApply = windowMode === "floating"
+            windowModeTransitionAfterApply = windowMode
             saveSettings()
             updateWindowMode()
         }
