@@ -119,6 +119,10 @@ Connections {
 
 IpcHandler {
     target: "windoesnot-snap"
+    function open() {
+        if (!snapLayouts.opened)
+            snapManager.requestKeyboardLayouts()
+    }
     function toggle() {
         if (snapLayouts.opened)
             snapLayouts.close()

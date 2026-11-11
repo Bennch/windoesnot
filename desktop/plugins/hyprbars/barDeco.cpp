@@ -193,6 +193,29 @@ void CHyprBar::onMouseMove(Vector2D coords) {
         }
     }
 
+    // Windows-style snap entry point: hovering the maximize button opens the
+    // same layout picker as Super+Z. Fire once per hover, never toggle-close.
+    const auto HEIGHT = g_pGlobalState->config.barHeight->value();
+    const auto PAD = g_pGlobalState->config.barPadding->value();
+    const auto BUTTONPAD = g_pGlobalState->config.barButtonPadding->value();
+    const bool RIGHT = g_pGlobalState->config.barButtonsAlignment->value() != "left";
+    const auto HOVER = cursorRelativeToBar();
+    float offset = PAD;
+    bool overMaximize = false;
+    for (const auto& button : g_pGlobalState->buttons) {
+        Vector2D pos{RIGHT ? assignedBoxGlobal().w - BUTTONPAD - button.size - offset : offset,
+                     (HEIGHT - button.size) / 2.0};
+        if (button.icon == "◻" && VECINRECT(HOVER, pos.x, pos.y, pos.x + button.size + BUTTONPAD, pos.y + button.size))
+            overMaximize = true;
+        offset += BUTTONPAD + button.size;
+    }
+    if (overMaximize && !m_bMaxLayoutHover) {
+        m_bMaxLayoutHover = true;
+        Config::Supplementary::executor()->spawn("qs ipc call windoesnot-snap open");
+    } else if (!overMaximize) {
+        m_bMaxLayoutHover = false;
+    }
+
     // The decoration occupies the upper border, so Hyprland's regular border
     // cursor hit-test does not see these two resize handles. Ask it to select
     // the matching diagonal cursor while the pointer is in either handle.
