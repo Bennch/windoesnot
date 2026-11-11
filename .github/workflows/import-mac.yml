@@ -1,0 +1,33 @@
+name: Import private Mac source
+on:
+  push:
+    branches: [main]
+    paths: ['.bootstrap/mac.bundle.b64', '.github/workflows/import-mac.yml']
+permissions:
+  contents: write
+jobs:
+  import:
+    if: github.repository == 'Bennch/WinDoesNotMac'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Import verified source history and remove bootstrap files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .bootstrap/mac.bundle.b64
+          private_head=$(git rev-parse HEAD)
+          base64 --decode .bootstrap/mac.bundle.b64 > "$RUNNER_TEMP/mac.bundle"
+          git fetch https://github.com/Bennch/windoesnot.git e143c4dc83767ac82307aa3e3818d9f9f0352f49
+          git bundle verify "$RUNNER_TEMP/mac.bundle"
+          git fetch "$RUNNER_TEMP/mac.bundle" HEAD
+          mac_commit=$(git rev-parse FETCH_HEAD)
+          test "$mac_commit" = 5f36bce6b62628f4988f526ca668cf6399239fbb
+          test "$(git rev-parse "$mac_commit^{tree}")" = f370eeca3aab6e59c47ff4c3622e88b0d8b08ad8
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          imported=$(git commit-tree "$mac_commit^{tree}" -p "$private_head" -p "$mac_commit" -m "Import verified WinDoesNotMac source and upstream history")
+          git push origin "$imported:refs/heads/main"
