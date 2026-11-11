@@ -239,6 +239,10 @@ Item {
                 networkPanel.connectionStatus = "success"
                 networkPanel.isConnecting = false
                 console.log("Connection successful! (exit code 0)")
+                // onRunningChanged fires before onExited on some Qt versions,
+                // so closing from there could see an empty status and leave the
+                // password prompt open despite a successful connection.
+                passwordSuccessCloseTimer.restart()
             } else {
                 // Check error messages
                 var errorText = (connectToNetworkProc.stderrText + " " + connectToNetworkProc.stdoutText).toLowerCase()
@@ -267,14 +271,20 @@ Item {
                 Qt.callLater(function() {
                     // Wait a bit for connection to establish, then update
                     updateNetworkState()
-                    // Auto-hide password dialog after 2 seconds if successful
-                    if (networkPanel.connectionStatus === "success") {
-                        Qt.callLater(function() {
-                            networkPanel.showPasswordDialog = false
-                            networkPanel.connectionStatus = ""
-                        })
-                    }
                 })
+            }
+        }
+    }
+
+    Timer {
+        id: passwordSuccessCloseTimer
+        interval: 800
+        repeat: false
+        onTriggered: {
+            if (networkPanel.connectionStatus === "success") {
+                networkPanel.showPasswordDialog = false
+                networkPanel.connectionStatus = ""
+                networkPanel.selectedNetwork = ""
             }
         }
     }
