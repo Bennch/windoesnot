@@ -13,6 +13,19 @@ cd "${self%%step2.sh}"
 system_dir="$(cd ../../../; pwd)"
 os_name="${system_dir##*/}"
 
+wdn_phase() {
+    if [ "${WINDOESNOT_GUI:-}" = 1 ]; then
+        printf '\n@@WDN@@{"type":"phase","id":"%s"}\n' "$1"
+    fi
+}
+wdn_read() {
+    if [ "${WINDOESNOT_GUI:-}" = 1 ]; then
+        printf '\n@@WDN@@{"type":"prompt","kind":"continue"}\n'
+    fi
+    read -r REPLY
+}
+wdn_phase check
+
 # clear
 printf '\033[2J\033[H'
 
@@ -28,6 +41,7 @@ RST="$(printf '\033[m')"
 bputil -d -v "$VGID" >/tmp/bp.txt
 
 if ! grep -q ': Paired' /tmp/bp.txt; then
+    wdn_phase repair
     echo "Your system did not boot into the correct recoveryOS."
     echo
     echo "Each OS in your machine comes with its own copy of recoveryOS."
@@ -41,30 +55,31 @@ if ! grep -q ': Paired' /tmp/bp.txt; then
     echo "but it seems something went wrong there. Let's try that again."
     echo
     echo "Press enter to continue."
-    read
+    wdn_read
 
     while ! bless --setBoot --mount "$system_dir"; do
         echo
         echo "bless failed. Did you mistype your password?"
         echo "Press enter to try again."
-        read
+        wdn_read
     done
 
     echo
     echo "Phew, hopefully that fixed it!"
     echo
     echo "Your system will now shut down. Once the screen goes blank,"
-    echo "please wait 10 seconds, then press the power button and do not"
+    echo "please wait 25 seconds, then press the power button and do not"
     echo "release it until you see the 'Entering startup options...'"
     echo "message, then select '$os_name' again."
     echo
     echo "Press enter to shut down your system."
-    read
+    wdn_read
     shutdown -h now
     exit 1
 fi
 
 if ! grep -q 'one true recoveryOS' /tmp/bp.txt; then
+    wdn_phase repair
     echo "Your system did not boot in One True RecoveryOS (1TR) mode."
     echo
     echo "To finish the installation, the system must be in this special"
@@ -77,15 +92,17 @@ if ! grep -q 'one true recoveryOS' /tmp/bp.txt; then
     echo "in one continuous motion as you power on the machine."
     echo
     echo "Your system will now shut down. Once the screen goes blank,"
-    echo "please wait 10 seconds, then press the power button and do not"
+    echo "please wait 25 seconds, then press the power button and do not"
     echo "release it until you see the 'Entering startup options...'"
     echo "message, then select '$os_name' again."
     echo
     echo "Press enter to shut down your system."
-    read
+    wdn_read
     shutdown -h now
     exit 1
 fi
+
+wdn_phase auth
 
 echo "You will see some messages advising you that you are changing the"
 echo "security level of your system. These changes apply only to your"
@@ -102,13 +119,13 @@ echo
 echo "Press enter to continue."
 echo
 
-read
+wdn_read
 
 while ! bputil -nc -v "$VGID"; do
     echo
     echo "bputil failed. Did you mistype your password?"
     echo "Press enter to try again."
-    read
+    wdn_read
 done
 
 echo
@@ -126,10 +143,11 @@ while ! kmutil configure-boot -c boot.bin --raw --entry-point 2048 --lowest-virt
     echo
     echo "kmutil failed. Did you mistype your password?"
     echo "Press enter to try again."
-    read
+    wdn_read
 done
 
 echo
+wdn_phase finish
 echo "Wrapping up..."
 echo
 
@@ -144,7 +162,8 @@ if [ -e "$system_dir/System/Library/CoreServices/SystemVersion-disabled.plist" ]
 fi
 
 echo
+wdn_phase complete
 echo "Installation complete! Press enter to reboot."
-read
+wdn_read
 
 reboot

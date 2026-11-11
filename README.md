@@ -6,6 +6,19 @@ battery and graphics adjustments. See [Mac input](docs/asahi-input.md) and
 [platform decisions](docs/platform-fixes.md). No bootable Mac image has been built
 or validated from this repository yet; the source desktop installer is available.
 
+
+## Test the Mac apps / Downloads
+
+[Private app downloads](https://github.com/Bennch/WinDoesNotMac/releases) ·
+[MacBook test instructions](downloads/README.md) ·
+[Build status](https://github.com/Bennch/WinDoesNotMac/actions/workflows/mac-installer-preview.yml)
+
+The **Mac App Test Kit** includes the Electron app, native Recovery preview,
+source and checksums. Open under **macOS on Apple Silicon**; the safe test run
+changes no partitions or firmware. Real installation stays disabled until the
+complete ARM image is ready and validated. The public x86 ISO below is not an
+Apple Silicon installation medium.
+
 ---
 
 <div align="center">

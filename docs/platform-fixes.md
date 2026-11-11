@@ -316,3 +316,33 @@ Alle lokalen Änderungen bleiben uncommittet; nichts auf GitHub geschrieben.
   sowie ein unabhängig verifiziertes Basisarchiv. Dessen HTTP-Weiterleitung und
   HTTPS-Zertifikatfehler am Ziel sind in `installer/asahi/IMAGE-BUILD.md` erfasst.
   Bootstrap bleibt bis zum getesteten Image/Metadaten/Release-Endpunkt gesperrt.
+
+## Grafischer macOS-Bootstrapper und Recovery-App (2026-11-11)
+
+- **Asahi only:** `installer/mac-app` ist eine ARM64-Electron-App (45.3.0) mit
+  DE/EN-Oberfläche, Formularen statt Terminalbedienung, getrennten Passwortfeldern,
+  animierter Offline-Anleitung, ausdrücklich sicherem Testmodus und Vorschau-Sperre
+  für echte Installationen ohne vollständigen validierten Backend-/Image-Satz.
+- `gui_protocol.py`, `ui_backend.py` und optionale Adapter in `main.py`/`util.py`
+  erhalten den CLI-Pfad. Apple-Administratorfreigabe über osascript, private lokale
+  Socket-Verbindung mit Token/Dateirechten, feste Backendbefehle und PTY. Keine
+  freie Befehls-IPC, kein Node im Renderer, keine automatischen Antworten auf
+  destruktive Fragen; Antworten erscheinen nicht in GUI-Details. Arbeitsdateien
+  liegen außerhalb des App-Bundles. Bei GUI-Verlust wird dem Backend kein Abbruch
+  oder geratenes Eingabezeichen gesendet; es wartet spätestens an der nächsten Abfrage.
+- `installer/asahi/native/RecoveryApp.m`: kleine AppKit-Oberfläche ohne Electron/
+  Browser/Python in Recovery. Unterstützt DE/EN, Phasen, verdeckte Passwörter und
+  Bestätigung vor Neustart; vorhandene Asahi-Systembefehle bleiben erhalten.
+  Der Launcher prüft den nativen Einstieg und behält Terminal als Rückfall. Ohne
+  Recovery-Backend startet das separate Test-Bundle ausdrücklich als Vorschau.
+- `tools/build-recovery-app.sh`, `tools/build-mac-icon.py` und Asahi-Build integriert.
+  `.github/workflows/mac-installer-preview.yml` baut nur in der privaten Mac-Repo
+  auf macOS und veröffentlicht private Vorab-Releases mit beiden Apps, gesamtem
+  Quellstand, Testanleitung und SHA256SUMS. README/README.de und `downloads/README.md`
+  erklären Tests unter macOS sowie die Grenze zur echten Linux-Neuinstallation.
+- Lokal geprüft: 5 Python-Tests für GUI-Protokoll, Geheimnisbehandlung, Auswahltypen,
+  Bestätigungslogik und CLI-Rückfall; 3 Node-Tests für Quoting/Eingaben/Release-Sperre;
+  vorhandene 5 Recovery-Guide-Tests; DOM-Test für Demo, Passwortlöschung und Details;
+  Shell-/Python-/JS-Syntax. ARM64-Electron-App auf Linux paketiert. Native macOS-
+  Kompilierung/Signaturprüfung erfolgen im privaten CI; keine echte Recovery- oder
+  Neuinstallation getestet. x86-ISO unverändert. Vollständiges ARM-Image weiterhin offen.

@@ -1,0 +1,67 @@
+name: Private Mac installer test kit
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'installer/mac-app/**'
+      - 'installer/asahi/native/**'
+      - 'installer/asahi/src/gui_protocol.py'
+      - 'installer/asahi/src/ui_backend.py'
+      - 'installer/asahi/src/step2/**'
+      - 'tools/build-recovery-app.sh'
+      - 'tools/build-mac-icon.py'
+      - '.github/workflows/mac-installer-preview.yml'
+permissions:
+  contents: write
+concurrency:
+  group: private-mac-test-kit
+  cancel-in-progress: false
+jobs:
+  package:
+    if: github.repository == 'Bennch/WinDoesNotMac' && github.event.repository.private
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: installer/mac-app/package-lock.json
+      - name: Test and package Electron app
+        working-directory: installer/mac-app
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+          npm run package:mac
+          codesign --force --deep --sign - '../../out/mac-app/WinDoesNotMac Installer-darwin-arm64/WinDoesNotMac Installer.app'
+      - name: Build native Recovery preview with macOS SDK
+        run: |
+          mkdir -p out/mac-test-kit
+          cp -R 'installer/asahi/src/step2/Finish Installation.app' 'out/mac-test-kit/WinDoesNotMac Recovery Preview.app'
+          bash tools/build-recovery-app.sh 'out/mac-test-kit/WinDoesNotMac Recovery Preview.app'
+          sudo 'out/mac-test-kit/WinDoesNotMac Recovery Preview.app/Contents/MacOS/WinDoesNotRecovery' --probe
+          codesign --verify --deep --strict 'out/mac-test-kit/WinDoesNotMac Recovery Preview.app'
+      - name: Archive apps, source and test instructions
+        run: |
+          ditto -c -k --keepParent 'out/mac-app/WinDoesNotMac Installer-darwin-arm64/WinDoesNotMac Installer.app' out/mac-test-kit/WinDoesNotMac-Installer-arm64.zip
+          ditto -c -k --keepParent 'out/mac-test-kit/WinDoesNotMac Recovery Preview.app' out/mac-test-kit/WinDoesNotMac-Recovery-Preview-arm64.zip
+          git archive --format=zip --output=out/mac-test-kit/WinDoesNotMac-Source.zip HEAD
+          cp downloads/README.md out/mac-test-kit/TESTANLEITUNG.md
+          cd out/mac-test-kit
+          shasum -a 256 *.zip > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WinDoesNotMac-Mac-Test-Kit
+          path: |
+            out/mac-test-kit/*.zip
+            out/mac-test-kit/SHA256SUMS
+            out/mac-test-kit/TESTANLEITUNG.md
+      - name: Publish downloads inside the private repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="mac-app-preview-${GITHUB_RUN_NUMBER}"
+          gh release create "$tag" --target "$GITHUB_SHA" --prerelease --title "Mac App Test Kit ${GITHUB_RUN_NUMBER}" --notes-file downloads/README.md out/mac-test-kit/*.zip out/mac-test-kit/SHA256SUMS out/mac-test-kit/TESTANLEITUNG.md

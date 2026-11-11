@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 import re, logging, sys, os, stat, shutil, struct, subprocess, zlib, time, hashlib, lzma
 from ctypes import *
+import gui_protocol as gui
 
 if sys.platform == 'darwin':
     lzfse = CDLL('libcompression.dylib')
@@ -100,6 +101,7 @@ def p_info(*args):
     p_style(*args, color=(BRIGHT, BLUE))
 
 def p_progress(*args):
+    gui.event("stage", text=gui.clean(" ".join(map(str, args))))
     p_style(*args, color=(BRIGHT, MAGENTA))
 
 def p_message(*args):
@@ -112,18 +114,22 @@ def p_warning(*args):
     p_style(*args, color=(BRIGHT, YELLOW))
 
 def p_question(*args):
+    gui.last_prompt = gui.clean(" ".join(map(str, args)))
     p_style(*args, color=(BRIGHT, CYAN))
 
 def p_success(*args):
     p_style(*args, color=(BRIGHT, GREEN))
 
 def p_prompt(*args):
+    gui.last_prompt = gui.clean(" ".join(map(str, args)))
     p_style(*args, color=(BRIGHT, CYAN))
 
 def p_choice(*args):
     p_style(*args)
 
 def input_prompt(*args):
+    if gui.enabled:
+        return gui.request(" ".join(map(str, args)))
     while True:
         p_style(f"{col(BRIGHT, WHITE)}»{col(BRIGHT, CYAN)}", *args, end="")
         val = input()

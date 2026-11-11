@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 import system, osenum, stub, diskutil, osinstall, asahi_firmware, m1n1, bugs
 import recovery_guide
+import gui_protocol as gui
 from util import *
 
 PART_ALIGN = psize("1MiB")
@@ -142,7 +143,7 @@ class InstallerMain:
 
     def input(self):
         self.flush_input()
-        return input()
+        return gui.request(kind="continue") if gui.enabled else input()
 
     def get_size(self, prompt, default=None, min=None, max=None, total=None):
         self.flush_input()
@@ -180,6 +181,17 @@ class InstallerMain:
             if default is not None:
                 default += 1
 
+        if gui.enabled:
+            choices = [{"value": str(k), "label": gui.clean(str(v))} for k, v in options.items()]
+            keys = {str(k): k for k in options}
+            while True:
+                result = gui.request(prompt, kind="choice", choices=choices,
+                                     default=str(default) if default is not None else None)
+                if not result and default is not None:
+                    result = str(default)
+                if result in keys:
+                    return int(result) - 1 if is_array else keys[result]
+
         int_keys = all(isinstance(i, int) for i in options.keys())
 
         for k, v in options.items():
@@ -203,6 +215,15 @@ class InstallerMain:
                 return res
 
     def yesno(self, prompt, default=False):
+        if gui.enabled:
+            while True:
+                result = gui.request(prompt, kind="choice", choices=[
+                    {"value": "y", "label": "Ja / Yes"}, {"value": "n", "label": "Nein / No"}],
+                    default="y" if default else "n")
+                if result.lower() in ("y", "yes"):
+                    return True
+                if result.lower() in ("n", "no"):
+                    return False
         if default:
             prompt += " (Y/n): "
         else:
@@ -276,7 +297,8 @@ class InstallerMain:
                 idx = 0
             self.admin_user = self.cur_os.admin_users[idx]
 
-        self.admin_password = getpass.getpass(f'Password for {self.admin_user}: ')
+        self.admin_password = (gui.request(f'Password for {self.admin_user}: ', kind='password')
+                               if gui.enabled else getpass.getpass(f'Password for {self.admin_user}: '))
 
     def action_install_into_container(self, avail_parts):
         template = self.choose_os()
@@ -746,7 +768,10 @@ class InstallerMain:
         # Always keep full instructions in Terminal if no browser is available.
         recovery_guide.terminal_steps(self.part.label, language)
         try:
-            recovery_guide.show(self.part.label, language)
+            if gui.enabled:
+                gui.event('guide', html=recovery_guide.render(self.part.label, language))
+            else:
+                recovery_guide.show(self.part.label, language)
         except Exception:
             logging.exception("Could not open the offline recovery companion")
             p_warning("Grafische Anleitung nicht verfügbar / Graphical guide unavailable.")
@@ -1199,19 +1224,26 @@ if __name__ == "__main__":
         installer_version = open("version.tag", "r").read().strip()
         logging.info(f"Version: {installer_version}")
         InstallerMain(installer_version).main()
+        gui.event("completed")
     except KeyboardInterrupt:
         print()
         logging.info("KeyboardInterrupt")
         p_error("Interrupted")
+        if gui.enabled:
+            sys.exit(130)
     except subprocess.CalledProcessError as e:
         cmd = shlex.join(e.cmd)
         p_error(f"Failed to run process: {cmd}")
         if e.output is not None:
             p_error(f"Output: {e.output}")
         logging.exception("Process execution failed")
+        if gui.enabled:
+            sys.exit(1)
         p_warning("If you need to file a bug report, please attach the log file:")
         p_warning(f"  {os.getcwd()}/installer.log")
     except Exception:
         logging.exception("Exception caught")
+        if gui.enabled:
+            sys.exit(1)
         p_warning("If you need to file a bug report, please attach the log file:")
         p_warning(f"  {os.getcwd()}/installer.log")

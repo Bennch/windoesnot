@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; frame-src 'self' file:; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>WinDoesNotMac</title><link rel="stylesheet" href="style.css"></head>
+<body><header><div class="brand">Win<span>DoesNot</span>Mac</div><select id="language" aria-label="Sprache / Language"><option value="de">Deutsch</option><option value="en">English</option></select></header>
+<main><aside><div class="eyebrow">APPLE SILICON</div><h1 id="title"></h1><p id="intro"></p><ol id="steps"></ol><button id="guide-toggle" type="button"></button></aside>
+<section id="workspace"><div class="eyebrow" id="caption"></div><h2 id="heading"></h2><p id="description"></p><div id="availability" role="status"></div><button id="start" class="primary" type="button"></button>
+<button id="demo" type="button">Testlauf / Test run</button><p id="demo-notice" hidden role="status">TESTMODUS / TEST MODE · Keine Änderungen am Mac. Keine echten Passwörter eingeben. / No changes to your Mac. Do not enter real passwords.</p>
+<section id="activity" hidden><div class="spinner" aria-hidden="true"></div><p id="stage" role="status"></p></section>
+<form id="prompt" hidden><label id="prompt-label" for="answer"></label><select id="choices" hidden></select><input id="answer" type="text" autocomplete="off" spellcheck="false"><button id="respond" class="primary" type="submit"></button></form>
+<details id="details"><summary id="details-label"></summary><pre id="output"></pre></details>
+<p id="result" role="alert"></p></section></main>
+<section id="guide-panel" hidden><button id="guide-close" type="button"></button><iframe id="guide" title="Recovery-Anleitung / Recovery guide" sandbox="allow-scripts allow-downloads allow-modals"></iframe></section>
+<script src="app.js"></script></body></html>

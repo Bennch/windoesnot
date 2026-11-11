@@ -6,6 +6,19 @@ Eingabe, Akku und Grafikanzeige. Siehe [Mac-Eingabe](docs/asahi-input.md) und
 [Plattformentscheidungen](docs/platform-fixes.md). Noch kein bootfähiges Mac-Image
 gebaut oder geprüft; der Desktop-Installer für bestehendes Asahi ist vorhanden.
 
+
+## Mac-App testen / Downloads
+
+[Private App-Downloads](https://github.com/Bennch/WinDoesNotMac/releases) ·
+[Schritt-für-Schritt-Testanleitung](downloads/README.md) ·
+[Build-Status](https://github.com/Bennch/WinDoesNotMac/actions/workflows/mac-installer-preview.yml)
+
+Das **Mac App Test Kit** enthält die Electron-App, die native Recovery-Vorschau,
+Quellen und Prüfsummen. Unter **macOS auf Apple Silicon** öffnen; der sichere
+Testlauf verändert keine Partitionen oder Firmware. Die echte Installation bleibt
+bis zum fertigen, geprüften ARM-Image gesperrt. Die weiter unten beschriebene
+öffentliche x86-ISO ist kein Installationsmedium für Apple Silicon.
+
 ---
 
 <div align="center">

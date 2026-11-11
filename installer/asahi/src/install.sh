@@ -52,5 +52,10 @@ if [ $(arch) != "arm64" ]; then
     exec arch -arm64 ./install.sh
 fi
 
+# The graphical launcher has no terminal yet; its bridge creates the PTY.
+if [ "${1:-}" = "--gui-socket" ]; then
+    exec "$python" ui_backend.py "$@"
+fi
+
 exec </dev/tty >/dev/tty 2>/dev/tty
 exec $python main.py "$@"
