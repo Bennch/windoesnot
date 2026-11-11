@@ -18,6 +18,7 @@ typedef struct {
   bool is_floating;     /* Whether this window is floating (not tiled) */
   bool is_pinned;       /* Whether this window is pinned (shown on all workspaces, always on top) */
   int group_count;      /* Number of windows in this group */
+  int x, y, width, height; /* Logical client geometry for thumbnail capture */
 } WindowInfo;
 
 /* A single in-flight Wayland buffer and its backing resources.

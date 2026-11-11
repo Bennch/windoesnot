@@ -14,6 +14,7 @@
 #include <string.h>
 #include <strings.h>
 #include <sys/mman.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #ifndef M_PI
@@ -23,6 +24,8 @@
 #define LOG(fmt, ...) fprintf(stderr, "[Render] " fmt "\n", ##__VA_ARGS__)
 
 static Config *cfg = NULL;
+static cairo_surface_t *desktop_preview = NULL;
+static const char *desktop_preview_path = "/tmp/windoesnot-alt-tab-preview.png";
 
 /* Palette for letter icon fallbacks */
 static const uint32_t icon_colors[] = {
@@ -37,6 +40,34 @@ static const uint32_t icon_colors[] = {
 #define NUM_ICON_COLORS (sizeof(icon_colors) / sizeof(icon_colors[0]))
 
 void render_set_config(Config *config) { cfg = config; }
+
+void render_capture_desktop(void) {
+  if (desktop_preview) {
+    cairo_surface_destroy(desktop_preview);
+    desktop_preview = NULL;
+  }
+
+  unlink(desktop_preview_path);
+  pid_t child = fork();
+  if (child == 0) {
+    execlp("grim", "grim", desktop_preview_path, (char *)NULL);
+    _exit(127);
+  }
+  if (child < 0)
+    return;
+
+  int status = 0;
+  if (waitpid(child, &status, 0) < 0 || !WIFEXITED(status) ||
+      WEXITSTATUS(status) != 0)
+    return;
+
+  cairo_surface_t *preview =
+      cairo_image_surface_create_from_png(desktop_preview_path);
+  if (cairo_surface_status(preview) == CAIRO_STATUS_SUCCESS)
+    desktop_preview = preview;
+  else
+    cairo_surface_destroy(preview);
+}
 
 static int create_shm_file(off_t size) {
   int fd = -1;
@@ -158,6 +189,38 @@ static void draw_icon(cairo_t *cr, const char *cls, double cx, double cy) {
   }
 
   cairo_restore(cr);
+}
+
+static bool draw_window_preview(cairo_t *cr, const WindowInfo *win, double x,
+                                double y, double w, double h, double radius) {
+  if (!desktop_preview || win->width < 2 || win->height < 2)
+    return false;
+
+  int source_w = cairo_image_surface_get_width(desktop_preview);
+  int source_h = cairo_image_surface_get_height(desktop_preview);
+  if (source_w < win->x + win->width || source_h < win->y + win->height ||
+      win->x < 0 || win->y < 0)
+    return false;
+
+  double scale_x = w / win->width;
+  double scale_y = h / win->height;
+  double scale = scale_x < scale_y ? scale_x : scale_y;
+  double painted_w = win->width * scale;
+  double painted_h = win->height * scale;
+  double px = x + (w - painted_w) / 2.0;
+  double py = y + (h - painted_h) / 2.0;
+
+  cairo_save(cr);
+  draw_rounded_rect(cr, x, y, w, h, radius);
+  cairo_clip(cr);
+  cairo_set_source_rgba(cr, 0.04, 0.04, 0.05, 1.0);
+  cairo_paint(cr);
+  cairo_translate(cr, px, py);
+  cairo_scale(cr, scale, scale);
+  cairo_set_source_surface(cr, desktop_preview, -win->x, -win->y);
+  cairo_paint(cr);
+  cairo_restore(cr);
+  return true;
 }
 
 /* --- Workspace Tag Formatting --- */
@@ -419,9 +482,32 @@ static void draw_card(cairo_t *cr, WindowInfo *win, double x, double y,
   pango_cairo_show_layout(cr, title);
   g_object_unref(title);
 
-  /* Icon */
-  draw_icon(cr, win->class_name, x + w / 2.0,
-            y + 10 + 20 + 10 + (cfg ? cfg->icon_size / 2.0 : 32));
+  /* Live desktop crop.  The screenshot is made before the overlay appears,
+   * therefore the cards never recursively capture the switcher itself. */
+  bool has_preview = draw_window_preview(cr, win, x + 7, y + 31, w - 14,
+                                         h - 42, r > 7 ? r - 5 : r);
+  if (!has_preview) {
+    draw_icon(cr, win->class_name, x + w / 2.0,
+              y + 10 + 20 + 10 + (cfg ? cfg->icon_size / 2.0 : 32));
+  } else {
+    /* Small app identity marker stays useful for similar-looking windows. */
+    int marker = 22;
+    cairo_set_source_rgba(cr, bg_r, bg_g, bg_b, 0.94);
+    draw_rounded_rect(cr, x + 12, y + h - marker - 7, marker, marker, 6);
+    cairo_fill(cr);
+    int old_icon_size = cfg ? cfg->icon_size : 64;
+    int old_radius = cfg ? cfg->icon_radius : 12;
+    if (cfg) {
+      cfg->icon_size = 16;
+      cfg->icon_radius = 4;
+    }
+    draw_icon(cr, win->class_name, x + 12 + marker / 2.0,
+              y + h - marker / 2.0 - 7);
+    if (cfg) {
+      cfg->icon_size = old_icon_size;
+      cfg->icon_radius = old_radius;
+    }
+  }
 
   /* Badge (Count) — dynamically sized rounded square */
   if (win->group_count > 1) {

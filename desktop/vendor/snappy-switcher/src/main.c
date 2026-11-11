@@ -418,6 +418,9 @@ static void show_switcher(bool is_linear) {
     return;
   }
 
+  /* Must happen while the layer surface is still hidden. */
+  render_capture_desktop();
+
   if (is_linear) {
     /* Linear mode: find where the active window landed in the
      * deterministic sort order and select relative to it. */
