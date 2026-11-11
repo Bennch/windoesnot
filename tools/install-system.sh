@@ -9,3 +9,11 @@ done
 if [[ -x "$project/build/components/bin/snappy-switcher" ]]; then
     install -Dm755 "$project/build/components/bin/snappy-switcher" /usr/local/bin/snappy-switcher
 fi
+
+# Read-only settings queries (including battery status) use the same path as
+# packaged installations. Preserve an installed package's managed helper.
+helper=/usr/lib/windoesnot/system_tools.py
+if ! pacman -Qo "$helper" >/dev/null 2>&1; then
+    install -Dm755 "$project/desktop/lib/windoesnot/system_tools.py" "$helper"
+    install -Dm644 "$project/desktop/share/polkit-1/actions/org.windoesnot.system.policy" /usr/share/polkit-1/actions/org.windoesnot.system.policy
+fi
