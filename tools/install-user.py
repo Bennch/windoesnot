@@ -84,6 +84,8 @@ def main():
         if str(relative)=='hypr/scripts/start-quickshell.sh' and (config/relative).is_symlink():continue
         # User-adjusted application overrides and styles remain personal on the host.
         if relative.parts[0] in ['swaync','snappy-switcher'] or source.name=='replace.qml':continue
+        # IconMap.js in the repo is only a bootstrap; generate-icon-map.sh owns the live cache.
+        if str(relative)=='quickshell/default/IconMap.js' and (config/relative).exists():continue
         changes.append((config/relative,source.read_bytes(),source.stat().st_mode & 0o777))
     # swaync stays personal, but the former bottom margin of 720 truncated the
     # control center on screens below ~1400 logical pixels. Migrate only that value.
