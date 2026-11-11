@@ -30,6 +30,15 @@ for pid in pids:
 command='~/.config/hypr/scripts/start-quickshell.sh'
 code='return hl.dispatch(hl.dsp.exec_cmd('+json.dumps(command)+'))'
 if ctl('eval',code)!='ok':raise SystemExit('Shell restart failed')
+# Match only the interpreter running the watcher, not shells or editors mentioning it.
+WATCHER=r'^[^ ]*python[0-9.]* [^ ]*/windoesnot-layout --watch$'
+# A running watcher keeps the old geometry code in memory and holds the lock, so a
+# new instance would exit at once. Stop it and wait for the lock to be released.
+subprocess.run(['pkill','-u',str(os.getuid()),'-f',WATCHER],capture_output=True)
+for _ in range(30):
+    if subprocess.run(['pgrep','-u',str(os.getuid()),'-f',WATCHER],capture_output=True).returncode:break
+    time.sleep(0.1)
+else:raise SystemExit('Old layout watcher did not exit')
 ctl('eval','return hl.dispatch(hl.dsp.exec_cmd("windoesnot-layout --watch"))')
 ctl('eval','return hl.dispatch(hl.dsp.exec_cmd("pkill -u '+str(os.getuid())+' -x snappy-switcher; snappy-switcher --daemon"))')
 time.sleep(2)

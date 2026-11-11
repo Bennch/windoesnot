@@ -17,3 +17,11 @@ if ! pacman -Qo "$helper" >/dev/null 2>&1; then
     install -Dm755 "$project/desktop/lib/windoesnot/system_tools.py" "$helper"
     install -Dm644 "$project/desktop/share/polkit-1/actions/org.windoesnot.system.policy" /usr/share/polkit-1/actions/org.windoesnot.system.policy
 fi
+
+# Local source installs need the same wallpaper assets as packaged installations.
+for background in "$project"/desktop/share/backgrounds/windoesnot/*.jpg; do
+    target="/usr/share/backgrounds/windoesnot/$(basename -- "$background")"
+    if ! pacman -Qo "$target" >/dev/null 2>&1; then
+        install -Dm644 "$background" "$target"
+    fi
+done

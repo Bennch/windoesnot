@@ -85,6 +85,15 @@ def main():
         # User-adjusted application overrides and styles remain personal on the host.
         if relative.parts[0] in ['swaync','snappy-switcher'] or source.name=='replace.qml':continue
         changes.append((config/relative,source.read_bytes(),source.stat().st_mode & 0o777))
+    # swaync stays personal, but the former bottom margin of 720 truncated the
+    # control center on screens below ~1400 logical pixels. Migrate only that value.
+    swaync_config=config/'swaync/config.json'
+    if swaync_config.is_file():
+        try:swaync=json.loads(swaync_config.read_text())
+        except ValueError:swaync=None
+        if isinstance(swaync,dict) and swaync.get('control-center-margin-bottom')==720:
+            swaync['control-center-margin-bottom']=45
+            changes.append((swaync_config,(json.dumps(swaync,indent=2,ensure_ascii=False)+'\n').encode(),0o644))
     header='-- Host-only overrides preserved during release portability migration.\n'
     changes.append((personal_path,((prelude if prelude else header)+'return '+lua(personal)+'\n').encode(),0o644))
     changes.append((current/'state.lua',encode(state).encode(),0o644))
