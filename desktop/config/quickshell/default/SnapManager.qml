@@ -428,9 +428,12 @@ Item {
                     var currentPos = {x: windowInfo.at[0], y: windowInfo.at[1]}
                     var addr = windowInfo.address
                     var titleHeight = settingsMenu && settingsMenu.hyprbarsHeight > 0 ? settingsMenu.hyprbarsHeight : 30
-                    var cursorOnTitlebar = cursorPos.x >= windowInfo.at[0] &&
-                                             cursorPos.x <= windowInfo.at[0] + windowInfo.size[0] &&
-                                             cursorPos.y >= windowInfo.at[1] - titleHeight &&
+                    // Exclude titlebar border handles. They resize floating
+                    // windows and must never be mistaken for a window drag.
+                    var resizeHandle = 12
+                    var cursorOnTitlebar = cursorPos.x > windowInfo.at[0] + resizeHandle &&
+                                             cursorPos.x < windowInfo.at[0] + windowInfo.size[0] - resizeHandle &&
+                                             cursorPos.y > windowInfo.at[1] - titleHeight + resizeHandle &&
                                              cursorPos.y <= windowInfo.at[1]
 
                     // Normalize addresses: remove "0x" prefix for comparison
