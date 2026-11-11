@@ -16,7 +16,7 @@ und [Quickshell](https://quickshell.org).
 </div>
 
 > [!WARNING]
-> **Erste öffentliche Vorschau: 0.1.0-18.** [ISO herunterladen](https://windoesnot.me/download/).
+> **Öffentliche Vorschau: 0.1.0-28.** [ISO herunterladen](https://windoesnot.me/download/).
 > Live-System und Installer sind in UEFI-VMs getestet; Tests auf echter Hardware stehen
 > noch aus. Mit Ecken, Kanten und größeren Änderungen ist zu rechnen.
 
@@ -71,7 +71,7 @@ Arch-News vor dem Systemupdate.
 | Live-Start, Offline-/Online-Installation, alle vier Bootloader | In QEMU (UEFI) getestet |
 | Signierte Komponentenupdates | [Einmalige Einrichtung](UPDATE-CHANNEL.md#deutsch) · Update in einer UEFI-VM geprüft |
 | Echte Hardware, BIOS-Start, Secure Boot, mehrere Monitore | **Noch nicht getestet** |
-| Öffentlicher ISO-Download | [ISO 0.1.0-18](https://download.windoesnot.me/0.1.0-18/windoesnot-2026.10.24-x86_64.iso) · [SHA256](https://download.windoesnot.me/0.1.0-18/windoesnot-2026.10.24-x86_64.iso.sha256) |
+| Öffentlicher ISO-Download | [Download-Seite](https://windoesnot.me/download/) · aktuelle Version 0.1.0-28 |
 
 ## Bauen
 
@@ -144,15 +144,12 @@ Mitgelieferte Fremdkomponenten behalten ihre eigenen Lizenzen; siehe
 WinDoesNot ist ein unabhängiges Community-Projekt und steht in keiner Verbindung zu
 Microsoft. Windows ist eine Marke der Microsoft-Unternehmensgruppe.
 
-**Neue Testversion:** [ISO 0.1.0-20-rc1, Prüfsumme und geprüfte Abläufe](TESTING-ISO.md).
-Der reguläre Release-Download bleibt unverändert.
-
 ## Willkommen beim ersten Start
 
-Die nächste Test-ISO bietet direkten Zugriff auf Store, Geräte-Manager,
-Einstellungen, Dateien, Standardbrowser und Terminal. Darunter stehen die
-Einrichtungshinweise für den Rechner. Die Bilder zeigen die neue Oberfläche
-als Vorschau; die öffentliche ISO 0.1.0-18 enthält sie noch nicht.
+Der erste Start bietet direkten Zugriff auf Store, Geräte-Manager,
+Einstellungen, Dateien, Standardbrowser und Terminal. Oben stellst du Auflösung,
+Zoom und Mausgeschwindigkeit ein. Darunter stehen die Einrichtungshinweise
+für den Rechner.
 
 ![Willkommen mit den wichtigsten Programmen im dunklen Modus](docs/screenshots/welcome-dark.png)
 

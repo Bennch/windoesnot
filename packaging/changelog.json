@@ -3,8 +3,9 @@
   "releases": [
     {
       "version": "0.1.0-28",
-      "date": "2026-11-11",
+      "date": "2026-11-12",
       "de": [
+        "Beim ersten Start stellst du Auflösung, Zoom und Mausgeschwindigkeit ein. Eine neue Anzeige wird nach 12 Sekunden zurückgesetzt, wenn du sie nicht bestätigst.",
         "Fenster snappen: Beim Ziehen an der Titelleiste erscheint eine Vorschau. Über dem Maximieren-Knopf öffnet sich die Layout-Auswahl.",
         "Alt-Tab zeigt Vorschauen der einzelnen Fenster.",
         "Neue Task-Ansicht im Vollbild: alle Fenster auf einen Blick.",
@@ -15,9 +16,11 @@
         "Dateien teilen: Ziehe Dateien auf das Teilen-Symbol, dann öffnet sich das Fenster mit einer Ablagefläche. Der Verlauf ist ein eigener Tab, und eine grüne Lampe zeigt, dass Empfangen an ist.",
         "Wenn die Firewall LocalSend blockiert, öffnest du die Ports mit einem Klick.",
         "Systemeinstellungen: Kernel-Auswahl und Bereiche sind übersichtlicher. Das Wi-Fi-Passwortfenster schließt nach erfolgreicher Verbindung.",
-        "Installer und Start: Die Auswahl der Spiegelserver startet nicht mehr mit einem Boot-Fehler."
+        "Installer und Start: Die Auswahl der Spiegelserver startet nicht mehr mit einem Boot-Fehler.",
+        "Stürzt die Oberfläche in den ersten Sekunden ab, startet sie automatisch neu."
       ],
       "en": [
+        "At first start you set resolution, zoom and pointer speed. A new display setting is reverted after 12 seconds unless you keep it.",
         "Snap windows: dragging a title bar shows a preview. The maximize button opens the layout picker.",
         "Alt-Tab shows previews of each window.",
         "New full-screen task view: all windows at a glance.",
@@ -28,7 +31,8 @@
         "File sharing: drag files onto the sharing icon and the window opens with a drop zone. History is its own tab, and a green light shows that receiving is on.",
         "If the firewall blocks LocalSend, open the ports with one click.",
         "System settings: kernel selection and sections are clearer. The Wi-Fi password dialog closes after a successful connection.",
-        "Installer and boot: choosing the mirror server no longer causes a boot error."
+        "Installer and boot: choosing the mirror server no longer causes a boot error.",
+        "If the desktop shell crashes in its first seconds, it starts again automatically."
       ]
     },
     {

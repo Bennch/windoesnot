@@ -16,7 +16,7 @@ built on [CachyOS](https://cachyos.org), [Hyprland](https://hypr.land) and
 </div>
 
 > [!WARNING]
-> **First public preview: 0.1.0-18.** [Download the ISO](https://windoesnot.me/en/download/).
+> **Public preview: 0.1.0-28.** [Download the ISO](https://windoesnot.me/en/download/).
 > The live system and installer are tested in UEFI virtual machines; tests on real
 > hardware are still open. Expect rough edges and breaking changes.
 
@@ -62,15 +62,11 @@ Arch news shown before system updates.
 - App selection during installation
 - Quiet boot screen with logo; the error console opens automatically or with Esc
 
-**New test candidate:** [ISO 0.1.0-20-rc1, checksum and tested paths](TESTING-ISO.md).
-The regular release download remains unchanged.
-
 ## First-run welcome
 
-The next test ISO adds quick access to Store, Device Manager, Settings, Files,
-your default browser and Terminal. The installed system's setup summary stays
-below the shortcuts. These screenshots preview the new interface; the current
-public ISO 0.1.0-18 does not include this screen yet.
+The first start offers quick access to Store, Device Manager, Settings, Files,
+your default browser and Terminal. At the top you set resolution, zoom and pointer
+speed. The installed system's setup summary stays below the shortcuts.
 
 ![First-run welcome with essential app shortcuts, dark appearance](docs/screenshots/welcome-dark.png)
 
@@ -85,7 +81,7 @@ public ISO 0.1.0-18 does not include this screen yet.
 | Live boot, offline/online install, all four bootloaders | Tested in QEMU (UEFI) |
 | Signed component updates | [One-time setup](UPDATE-CHANNEL.md) · upgrade checked in a UEFI VM |
 | Real hardware, BIOS boot, Secure Boot, multi-monitor | **Not tested yet** |
-| Public ISO download | [ISO 0.1.0-18](https://download.windoesnot.me/0.1.0-18/windoesnot-2026.10.24-x86_64.iso) · [SHA256](https://download.windoesnot.me/0.1.0-18/windoesnot-2026.10.24-x86_64.iso.sha256) |
+| Public ISO download | [Download page](https://windoesnot.me/en/download/) · current version 0.1.0-28 |
 
 ## Building
 
