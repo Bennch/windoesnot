@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
+import Quickshell.Wayland
 import "../../common"
 import "../../services"
 
@@ -34,22 +35,28 @@ Item {
                         Image { width: 16; height: 16; source: "image://icon/" + (DesktopEntries.heuristicLookup(card.client?.class)?.icon ?? ""); fillMode: Image.PreserveAspectFit }
                         Text { width: parent.width - 24; text: card.client?.title ?? "Fenster"; color: "#f3f3f3"; font.pixelSize: 12; elide: Text.ElideRight }
                     }
-                    ScreencopyView { anchors { left: parent.left; right: parent.right; top: parent.top; bottom: parent.bottom; margins: 7; topMargin: 31 }; captureSource: modelData; live: true; layer.enabled: true; layer.smooth: true }
+                    ScreencopyView { anchors { left: parent.left; right: parent.right; top: parent.top; bottom: parent.bottom; margins: 7; topMargin: 31 }
+                        captureSource: modelData; live: true; layer.enabled: true; layer.smooth: true }
                 }
                 MouseArea { id: mouse; anchors.fill: parent; hoverEnabled: true; onClicked: { GlobalStates.overviewOpen = false; HyprlandData.dispatch(`focuswindow address:${card.client?.address}`) } }
             }
         }
     }
-    Rectangle { id: strip; anchors { left: parent.left; right: parent.right; bottom: parent.bottom }; height: 188; color: "#e9141519"
+    Rectangle { id: strip; anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+        height: 188; color: "#e9141519"
         Row { anchors.centerIn: parent; spacing: 16
             Repeater { model: root.desktops
                 delegate: Column { required property var modelData; spacing: 7
-                    Rectangle { width: 208; height: 117; radius: 9; color: "#e727282e"; border.width: modelData === root.workspaceId ? 2 : 1; border.color: modelData === root.workspaceId ? WinDoesNotTheme.accentColor : "#443f4148"; Text { anchors.centerIn: parent; text: modelData; font.pixelSize: 32; color: "#667f828a" }; MouseArea { anchors.fill: parent; onClicked: HyprlandData.dispatch(`workspace ${modelData}`) } }
+                    Rectangle { width: 208; height: 117; radius: 9; color: "#e727282e"; border.width: modelData === root.workspaceId ? 2 : 1; border.color: modelData === root.workspaceId ? WinDoesNotTheme.accentColor : "#443f4148"
+                        Text { anchors.centerIn: parent; text: modelData; font.pixelSize: 32; color: "#667f828a" }
+                        MouseArea { anchors.fill: parent; onClicked: HyprlandData.dispatch(`workspace ${modelData}`) } }
                     Text { width: 208; horizontalAlignment: Text.AlignHCenter; text: "Desktop " + modelData; color: "#eeeeee"; font.pixelSize: 13 }
                 }
             }
             Column { spacing: 7
-                Rectangle { width: 208; height: 117; radius: 9; color: "#e727282e"; Text { anchors.centerIn: parent; text: "+"; font.pixelSize: 34; color: "#f2f2f2" }; MouseArea { anchors.fill: parent; onClicked: HyprlandData.dispatch("workspace empty") } }
+                Rectangle { width: 208; height: 117; radius: 9; color: "#e727282e"
+                    Text { anchors.centerIn: parent; text: "+"; font.pixelSize: 34; color: "#f2f2f2" }
+                    MouseArea { anchors.fill: parent; onClicked: HyprlandData.dispatch("workspace empty") } }
                 Text { width: 208; horizontalAlignment: Text.AlignHCenter; text: "Neuer Desktop"; color: "#eeeeee"; font.pixelSize: 13 }
             }
         }
