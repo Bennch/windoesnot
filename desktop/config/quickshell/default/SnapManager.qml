@@ -477,9 +477,10 @@ Item {
                     }
 
                     // Fallback: hyprdrag-movestop sometimes requires cursor movement to fire.
-                    // If cursor has been stationary for 600 ms while drag is active, treat
+                    // 200 ms keeps edge drops responsive while still filtering a brief pause.
+                    // If cursor has been stationary for 200 ms while drag is active, treat
                     // it as a drop — the user almost certainly released the mouse button.
-                    if (snapManager.isDragging && snapManager.cursorUnchangedCount >= 6) {
+                    if (snapManager.isDragging && snapManager.cursorUnchangedCount >= 2) {
                         snapManager.isDragging = false
                         dragPollTimer.running = false
 
@@ -540,10 +541,10 @@ Item {
 
                     // Second fallback: window stopped moving but cursor IS moving.
                     // During a real drag, cursor movement always moves the window.
-                    // If the window has been stationary for 500 ms while the cursor
+                    // If the window has been stationary for 200 ms while the cursor
                     // is actively moving, the user almost certainly released the mouse.
                     if (snapManager.isDragging &&
-                            snapManager.unchangedCount >= 5 &&
+                            snapManager.unchangedCount >= 2 &&
                             snapManager.cursorUnchangedCount === 0) {
                         console.log("Window-stopped-but-cursor-moving fallback: ending drag")
                         snapManager.isDragging = false
