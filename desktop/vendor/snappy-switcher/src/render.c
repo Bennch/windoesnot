@@ -26,6 +26,7 @@
 static Config *cfg = NULL;
 static cairo_surface_t *desktop_preview = NULL;
 static const char *desktop_preview_path = "/tmp/windoesnot-alt-tab-preview.png";
+static pid_t desktop_preview_child = -1;
 
 /* Palette for letter icon fallbacks */
 static const uint32_t icon_colors[] = {
@@ -47,26 +48,41 @@ void render_capture_desktop(void) {
     desktop_preview = NULL;
   }
 
+  /* Never stall Alt+Tab for a screencopy.  The initial frame has icons; the
+   * main loop swaps in previews as soon as grim has finished. */
+  if (desktop_preview_child > 0)
+    return;
+
   unlink(desktop_preview_path);
-  pid_t child = fork();
-  if (child == 0) {
+  desktop_preview_child = fork();
+  if (desktop_preview_child == 0) {
     execlp("grim", "grim", desktop_preview_path, (char *)NULL);
     _exit(127);
   }
-  if (child < 0)
-    return;
+  if (desktop_preview_child < 0)
+    desktop_preview_child = -1;
+}
 
+bool render_poll_desktop_capture(void) {
+  if (desktop_preview_child <= 0)
+    return false;
   int status = 0;
-  if (waitpid(child, &status, 0) < 0 || !WIFEXITED(status) ||
-      WEXITSTATUS(status) != 0)
-    return;
+  pid_t result = waitpid(desktop_preview_child, &status, WNOHANG);
+  if (result == 0)
+    return false;
+  desktop_preview_child = -1;
+  if (result < 0 || !WIFEXITED(status) || WEXITSTATUS(status) != 0)
+    return false;
 
   cairo_surface_t *preview =
       cairo_image_surface_create_from_png(desktop_preview_path);
-  if (cairo_surface_status(preview) == CAIRO_STATUS_SUCCESS)
+  if (cairo_surface_status(preview) == CAIRO_STATUS_SUCCESS) {
     desktop_preview = preview;
-  else
+    return true;
+  } else {
     cairo_surface_destroy(preview);
+    return false;
+  }
 }
 
 static int create_shm_file(off_t size) {

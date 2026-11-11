@@ -19,6 +19,9 @@ void render_set_config(Config *config);
  * single image as their window previews, avoiding one grim process per app. */
 void render_capture_desktop(void);
 
+/* Returns true once the asynchronous capture became available. */
+bool render_poll_desktop_capture(void);
+
 /* Calculate optimal window dimensions based on window count */
 void calculate_dimensions(AppState *state, uint32_t *width, uint32_t *height);
 
