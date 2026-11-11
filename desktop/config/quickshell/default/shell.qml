@@ -51,6 +51,14 @@ Process {
     command: ["bash", Quickshell.env("HOME") + "/.config/hypr/hide_windows.sh"]
 }
 
+// The child holds a low-level lid inhibitor only for explicit user overrides.
+// Closing the desktop releases it and restores logind's normal handling.
+Process {
+    id: lidController
+    command: ["windoesnot-lid-controller"]
+    running: true
+}
+
 // Current Does window (null while it is being rebuilt).
 property var copilotWindow: copilotWindowLoader.item
 

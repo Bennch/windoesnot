@@ -1,0 +1,187 @@
+#!/usr/bin/env python3
+"""Per-session lid policy using logind's supported low-level inhibitor API."""
+import argparse
+import fcntl
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+CHOICES = ('system', 'suspend', 'lock', 'ignore')
+KEYS = {'battery': 'lidBatteryAction', 'ac': 'lidAcAction', 'docked': 'lidDockedAction'}
+HOME = Path.home()
+CONFIG = Path(os.environ.get('XDG_CONFIG_HOME', HOME / '.config'))
+RUNTIME = Path(os.environ.get('XDG_RUNTIME_DIR', '/run/user/' + str(os.getuid())))
+STATUS = RUNTIME / 'windoesnot-lid.json'
+INTERFACE = 'org.freedesktop.login1.Manager'
+BUS_NAME = 'org.freedesktop.login1'
+BUS_PATH = '/org/freedesktop/login1'
+
+
+def preferences(path=None):
+    path = path or CONFIG / 'quickshell/default/settings.txt'
+    raw = path.read_text()
+    if not raw.strip():
+        raise ValueError('Desktop preferences are being saved')
+    data = dict(line.split('=', 1) for line in raw.splitlines() if '=' in line)
+    return {name: data.get(key, 'system') if data.get(key, 'system') in CHOICES else 'system'
+            for name, key in KEYS.items()}
+
+
+def selected_action(prefs, manager):
+    context = 'docked' if manager.get('Docked') else 'ac' if manager.get('OnExternalPower') else 'battery'
+    action = prefs[context]
+    if action == 'system':
+        defaults = {'battery': manager.get('HandleLidSwitch', 'suspend'),
+                    'ac': manager.get('HandleLidSwitchExternalPower') or manager.get('HandleLidSwitch', 'suspend'),
+                    'docked': manager.get('HandleLidSwitchDocked', 'ignore')}
+        action = defaults[context]
+    return action
+
+
+def connection():
+    from gi.repository import Gio
+    return Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+
+
+def manager_state(bus):
+    from gi.repository import Gio, GLib
+    result = bus.call_sync(BUS_NAME, BUS_PATH, 'org.freedesktop.DBus.Properties', 'GetAll',
+                           GLib.Variant('(s)', (INTERFACE,)), None, Gio.DBusCallFlags.NONE, 3000, None)
+    return result.unpack()[0]
+
+
+def has_lid():
+    return any('lid' in p.read_text().lower() for p in Path('/sys/class/input').glob('event*/device/name') if p.is_file())
+
+
+def status():
+    bus = connection()
+    manager = manager_state(bus)
+    try:
+        current = json.loads(STATUS.read_text())
+        os.kill(current['pid'], 0)
+    except (OSError, ValueError, KeyError, TypeError):
+        current = {'running': False, 'error': ''}
+    fallback = False
+    model = Path('/proc/device-tree/model')
+    if model.is_file() and model.read_bytes().startswith(b'Apple '):
+        fallback = any('simple-framebuffer' in p.read_text() for p in Path('/sys/class/drm').glob('card[0-9]*/device/modalias'))
+    return {'available': has_lid(), 'running': current.get('running', False),
+            'inhibited': current.get('inhibited', False), 'error': current.get('error', ''),
+            'graphicsFallback': fallback, 'closed': manager.get('LidClosed', False),
+            'effective': selected_action(preferences(), manager),
+            'preferences': preferences()}
+
+
+class Controller:
+    def __init__(self):
+        self.bus = connection()
+        self.fd = None
+        self.prefs = {key: 'system' for key in KEYS}
+        self.closed = bool(manager_state(self.bus).get('LidClosed'))
+        self.error = ''
+
+    def persist(self):
+        tmp = STATUS.with_suffix('.tmp')
+        tmp.write_text(json.dumps({'pid': os.getpid(), 'running': True,
+                                  'inhibited': self.fd is not None, 'error': self.error}))
+        tmp.replace(STATUS)
+
+    def configure(self):
+        from gi.repository import Gio, GLib
+        try:
+            candidate = preferences()
+            need = any(v != 'system' for v in candidate.values())
+            if need and self.fd is None:
+                result, fds = self.bus.call_with_unix_fd_list_sync(
+                    BUS_NAME, BUS_PATH, INTERFACE, 'Inhibit',
+                    GLib.Variant('(ssss)', ('handle-lid-switch', 'WinDoesNot', 'Desktop lid preferences', 'block')),
+                    None, Gio.DBusCallFlags.NONE, 3000, None, None)
+                self.fd = fds.get(result.unpack()[0])
+            if not need and self.fd is not None:
+                os.close(self.fd)
+                self.fd = None
+            self.prefs = candidate
+            self.error = ''
+        except Exception as error:
+            # Keep the previous policy on a transient config/DBus failure.
+            self.error = str(error)
+        self.persist()
+        return True
+
+    def execute(self, action):
+        from gi.repository import Gio, GLib
+        if action == 'ignore':
+            return
+        if action == 'lock':
+            # The desktop's existing lock screen; no screenshot/blur CPU workload.
+            if subprocess.run(['pgrep', '-u', str(os.getuid()), '-x', 'hyprlock'],
+                              stdout=subprocess.DEVNULL).returncode:
+                subprocess.Popen(['hyprlock'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return
+        methods = {'suspend': 'Suspend', 'hibernate': 'Hibernate', 'hybrid-sleep': 'HybridSleep',
+                   'suspend-then-hibernate': 'SuspendThenHibernate', 'poweroff': 'PowerOff', 'reboot': 'Reboot'}
+        if action not in methods:
+            raise ValueError('Unsupported system lid action: ' + action)
+        if action in ('suspend', 'hibernate', 'hybrid-sleep', 'suspend-then-hibernate'):
+            self.execute('lock')
+            session = os.environ.get('XDG_SESSION_ID', 'self')
+            for _ in range(50):
+                locked = subprocess.run(['loginctl', 'show-session', session, '-p', 'LockedHint', '--value'],
+                                        capture_output=True, text=True)
+                if locked.returncode == 0 and locked.stdout.strip() == 'yes':
+                    break
+                time.sleep(0.1)
+            else:
+                raise RuntimeError('Screen lock could not be confirmed; suspend was cancelled')
+        self.bus.call_sync(BUS_NAME, BUS_PATH, INTERFACE, methods[action],
+                           GLib.Variant('(b)', (False,)), None, Gio.DBusCallFlags.NONE, 3000, None)
+
+    def changed(self, *unused):
+        try:
+            manager = manager_state(self.bus)
+            closed = bool(manager.get('LidClosed'))
+            edge = closed and not self.closed
+            self.closed = closed
+            if edge and self.fd is not None:
+                self.execute(selected_action(self.prefs, manager))
+        except Exception as error:
+            self.error = str(error)
+        self.persist()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--status', action='store_true')
+    args = parser.parse_args()
+    if args.status:
+        print(json.dumps(status()))
+        return
+    from gi.repository import Gio, GLib
+    lock = (RUNTIME / 'windoesnot-lid.lock').open('a')
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        return
+    controller = Controller()
+    controller.configure()
+    controller.bus.signal_subscribe(BUS_NAME, 'org.freedesktop.DBus.Properties', 'PropertiesChanged',
+                                    BUS_PATH, INTERFACE, Gio.DBusSignalFlags.NONE, controller.changed)
+    GLib.timeout_add_seconds(1, controller.configure)
+    try:
+        GLib.MainLoop().run()
+    finally:
+        if controller.fd is not None:
+            os.close(controller.fd)
+        STATUS.unlink(missing_ok=True)
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as error:
+        print(json.dumps({'error': str(error), 'available': False, 'running': False}))
+        sys.exit(1)

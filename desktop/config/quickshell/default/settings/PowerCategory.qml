@@ -16,6 +16,7 @@ Item {
     property bool ready: false
     property var state: ({battery: null, profiles: [], currentProfile: "", profilesAvailable: false})
     property string profileError: ""
+    property var lidStatus: ({available: false, running: false, error: ""})
     width: parent ? parent.width : 650
     height: content.height
 
@@ -25,6 +26,7 @@ Item {
         busy = true
         statusWorker.command = ["/usr/bin/python3", "-I", "/usr/lib/windoesnot/system_tools.py", "power-status", "{}"]
         statusWorker.running = true
+        lidStatusWorker.running = true
     }
     Component.onCompleted: if (autoLoad) refresh()
 
@@ -50,6 +52,21 @@ Item {
                 try { page.acceptStatus(JSON.parse(statusOutput.text)) } catch (error) {}
             }
         }
+    }
+
+    Process {
+        id: lidStatusWorker
+        command: ["windoesnot-lid-controller", "--status"]
+        stdout: StdioCollector { id: lidOutput }
+        onExited: (code) => {
+            try { page.lidStatus = JSON.parse(lidOutput.text) } catch (error) {}
+        }
+    }
+    Timer {
+        interval: 2000
+        repeat: true
+        running: page.autoLoad && !!page.settingsMenu && page.settingsMenu.visible === true && page.visible
+        onTriggered: if (!lidStatusWorker.running) lidStatusWorker.running = true
     }
 
     Process {
@@ -121,6 +138,50 @@ Item {
                     visible: remaining.length > 0
                     text: remaining
                 }
+            }
+        }
+
+        Rectangle {
+            objectName: "lidSettingsCard"
+            visible: page.lidStatus.available === true
+            width: parent.width
+            height: lidContent.implicitHeight + 32
+            radius: settingsMenu ? settingsMenu.borderRadius : 10
+            color: page.dark ? "#141414" : "#f5f5f5"
+            border.width: 1; border.color: page.dark ? "#3a3a3a" : "#d0d0d0"
+            Column {
+                id: lidContent
+                x: 16; y: 16; width: parent.width - 32; spacing: 12
+                Text { text: page.tr("power.lidTitle"); color: page.foreground; font.pixelSize: 15; font.bold: true }
+                Note { text: page.tr("power.lidHint") }
+                Repeater {
+                    model: [
+                        {key:"lidBatteryAction", label:"power.lidBattery"},
+                        {key:"lidAcAction", label:"power.lidAc"},
+                        {key:"lidDockedAction", label:"power.lidDocked"}
+                    ]
+                    delegate: Row {
+                        required property var modelData
+                        width: lidContent.width; spacing: 12
+                        Text {
+                            width: Math.max(100, parent.width - 292)
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: page.tr(modelData.label); color: page.secondary
+                            font.pixelSize: 13; wrapMode: Text.WordWrap
+                        }
+                        Tools.SystemToolsChoice {
+                            settingsMenu: page.settingsMenu
+                            width: 280
+                            model: ["system", "suspend", "lock", "ignore"]
+                            labelPrefix: "power.lidAction"
+                            currentIndex: page.settingsMenu ? Math.max(0, model.indexOf(page.settingsMenu[modelData.key])) : 0
+                            onActivated: if (page.settingsMenu) page.settingsMenu[modelData.key] = model[currentIndex]
+                        }
+                    }
+                }
+                Note { visible: page.lidStatus.graphicsFallback === true; text: page.tr("power.lidAsahiHint") }
+                Note { visible: !page.lidStatus.running; text: page.tr("power.lidControllerMissing") }
+                Note { visible: !!page.lidStatus.error; text: page.lidStatus.error || "" }
             }
         }
 

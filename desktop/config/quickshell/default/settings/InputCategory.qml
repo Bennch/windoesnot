@@ -5,6 +5,7 @@ import "." as Tools
 import "../i18n/Lang.js" as Lang
 
 Column {
+    id: inputPage
     property var settingsMenu: null
     property string _lang: settingsMenu ? settingsMenu.uiLanguage : "de"
 
@@ -572,14 +573,17 @@ Column {
             spacing: 8
             visible: !!settingsMenu && settingsMenu.isAsahi === true && settingsMenu.keyboardLayout === "de"
             Text {
-                text: _lang === "de" ? "@-Zeichen auf der Mac-Tastatur" : "@ on the Mac keyboard"
-                color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
+                text: Lang.get("input.macAtKey", _lang)
+                color: settingsMenu.darkMode ? "#aaa" : "#555"
                 font.pixelSize: 14
             }
-            ComboBox {
+            Tools.SystemToolsChoice {
                 objectName: "asahiAtKeyChoice"
-                width: 320
-                model: ["Option + L (macOS)", "Option + Q (PC)"]
+                settingsMenu: inputPage.settingsMenu
+                width: 280
+                x: parent.width - width
+                model: ["l", "q"]
+                labelPrefix: "input.macAt"
                 currentIndex: settingsMenu && settingsMenu.asahiAtKey === "q" ? 1 : 0
                 onActivated: settingsMenu.asahiAtKey = currentIndex === 0 ? "l" : "q"
             }

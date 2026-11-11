@@ -9,3 +9,8 @@ do not apply Asahi kernel, bootloader, or device assumptions to x86-64.
 Do not equate a successful desktop test on one machine with testing either ISO.
 Distinguish source changes, host deployment, built images, and live hardware tests.
 When a session ends, update the ledger so work can resume without chat history.
+
+This checkout targets the private `Bennch/WinDoesNotMac` ARM/Asahi repository.
+Keep it private. The public `Bennch/windoesnot` remote is upstream only; do not
+push Mac-branch changes there. Platform scope decisions still distinguish shared
+fixes from Apple-specific behavior for later deliberate backports.

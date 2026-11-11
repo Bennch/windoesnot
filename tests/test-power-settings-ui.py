@@ -36,7 +36,7 @@ ShellRoot {
  Window {
   id: testWindow
   visible: true; width: 900; height: 1100
-  QtObject { id: preferences; property bool darkMode: true; property string uiLanguage: "de"; property string accentColor: "#fe6f2d"; property bool fileDialogOpen: false; property bool showBatteryTray: true; property int borderRadius: 10 }
+  QtObject { id: preferences; property bool darkMode: true; property string uiLanguage: "de"; property string accentColor: "#fe6f2d"; property bool fileDialogOpen: false; property bool showBatteryTray: true; property string lidBatteryAction: "system"; property string lidAcAction: "system"; property string lidDockedAction: "system"; property int borderRadius: 10 }
   Loader { id: powerLoader; width: 650; Component.onCompleted: setSource("settings/PowerCategory.qml", {settingsMenu:preferences,autoLoad:false}) }
   Loader { id: systemLoader; width: 650; Component.onCompleted: setSource("settings/SystemCategory.qml", {settingsMenu:preferences}) }
   function check(ok,message) { if(!ok) throw new Error(message) }
@@ -45,6 +45,13 @@ ShellRoot {
    try {
     const page = powerLoader.item
     page.acceptStatus(__POWER_FIXTURE__)
+    page.lidStatus = {available:true,running:true,graphicsFallback:false,error:""}
+    testWindow.check(!!testWindow.find(page, o => o.objectName === "lidSettingsCard" && o.visible), "lid settings shown")
+    const lidChoice = testWindow.find(page, o => o.labelPrefix === "power.lidAction")
+    testWindow.check(!!lidChoice && lidChoice.background.radius === 6, "shared lid control style")
+    lidChoice.currentIndex = 2
+    lidChoice.activated(2)
+    testWindow.check(preferences.lidBatteryAction === "lock", "lid choice updates desktop preference")
     testWindow.check(page.ready, "power status applied")
     testWindow.check(page.height > 100, "power page has content")
     testWindow.check(!!testWindow.find(page, o => o.text === "72%"), "battery percentage shown")

@@ -250,6 +250,9 @@ FloatingWindow {
     // Input settings - Keyboard
     readonly property bool isAsahi: Quickshell.env("WINDOESNOT_PLATFORM") === "asahi"
     property string asahiAtKey: "l"
+    property string lidBatteryAction: "system"
+    property string lidAcAction: "system"
+    property string lidDockedAction: "system"
     property string keyboardLayout: "us"
     property int repeatRate: 25
     property int repeatDelay: 600
@@ -1021,6 +1024,9 @@ FloatingWindow {
             'else if (key === "mouseSensitivity") settingsMenu.mouseSensitivity = parseFloat(value); ' +
             'else if (key === "mouseAccelProfile") settingsMenu.mouseAccelProfile = value; ' +
             'else if (key === "followMouse") settingsMenu.followMouse = parseInt(value); ' +
+            'else if (key === "lidBatteryAction" && ["system", "suspend", "lock", "ignore"].indexOf(value) >= 0) settingsMenu.lidBatteryAction = value; ' +
+            'else if (key === "lidAcAction" && ["system", "suspend", "lock", "ignore"].indexOf(value) >= 0) settingsMenu.lidAcAction = value; ' +
+            'else if (key === "lidDockedAction" && ["system", "suspend", "lock", "ignore"].indexOf(value) >= 0) settingsMenu.lidDockedAction = value; ' +
             'else if (key === "asahiAtKey" && (value === "l" || value === "q")) settingsMenu.asahiAtKey = value; ' +
             'else if (key === "keyboardLayout") settingsMenu.keyboardLayout = value; ' +
             'else if (key === "repeatRate") settingsMenu.repeatRate = parseInt(value); ' +
@@ -1170,6 +1176,9 @@ FloatingWindow {
                       "followMouse=" + followMouse + "\\n" +
                       "keyboardLayout=" + keyboardLayout + "\\n" +
                       "asahiAtKey=" + asahiAtKey + "\\n" +
+                      "lidBatteryAction=" + lidBatteryAction + "\\n" +
+                      "lidAcAction=" + lidAcAction + "\\n" +
+                      "lidDockedAction=" + lidDockedAction + "\\n" +
                       "repeatRate=" + repeatRate + "\\n" +
                       "repeatDelay=" + repeatDelay + "\\n" +
                       "numlockByDefault=" + (numlockByDefault ? "true" : "false") + "\\n" +
@@ -1750,6 +1759,10 @@ FloatingWindow {
             updateInputSettings()
         }
     }
+
+    onLidBatteryActionChanged: if (!isLoadingSettings) saveSettings()
+    onLidAcActionChanged: if (!isLoadingSettings) saveSettings()
+    onLidDockedActionChanged: if (!isLoadingSettings) saveSettings()
 
     onAsahiAtKeyChanged: {
         if (!isLoadingSettings && isAsahi) {

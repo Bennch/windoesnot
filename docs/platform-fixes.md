@@ -175,3 +175,28 @@ Alle lokalen Änderungen bleiben uncommittet; nichts auf GitHub geschrieben.
   `tests/test-graphics-platform.py` prüft Apple mit/ohne Render-Node sowie PC ohne LACT.
 - Noch offen: physische Gestenbestätigung, native M3-Grafik-/Displayunterstützung,
   tatsächliche ISO-/Asahi-Installationsartefakte und echte Hardwaretests beider Varianten.
+
+## Deckel und einheitliche Steuerelemente (2026-11-11)
+
+- **Beide, bei vorhandenem Deckelschalter:** Akku & Energie enthält getrennte
+  Aktionen für Akku, Netzteil und Dock/externes Display. Systemvorgabe, Energiesparen,
+  nur sperren, nichts tun. Defaults bleiben Systemvorgabe.
+- `windoesnot-lid-controller` verwendet loginds low-level handle-lid-switch-Inhibitor
+  nur bei expliziter Benutzerabweichung und reagiert auf LidClosed-Änderungen.
+  Keine konkurrierenden Hyprland-Lid-Binds und keine root-Konfigurationsänderung.
+  Shell-Kindprozess, Sitzungs-Lock gegen Duplikate. Temporäre Schreibfehler behalten
+  die letzte Präferenz. Schlafaktionen erfordern vorher bestätigte Bildschirmsperre.
+- Host-Befund: HandleLidSwitch=suspend, ExternalPower erbt suspend, Docked=ignore;
+  kein vorhandener Deckel-Inhibitor. Beim Zuklappen würde daher Suspend angefordert.
+  Das ist kein Poweroff; tatsächliches Suspend/Resume wurde nicht ausgeführt.
+- **Nur Asahi:** Hinweis bei Apple-Boot-Framebuffer, dass Resume noch nicht geprüft
+  ist. Aktueller Kernel 7.2.12 bietet ausschließlich 3024×1890@60Hz, kein VRR; keine
+  künstliche 120-Hz-Konfiguration eingespielt.
+- @-Auswahl auf `SystemToolsChoice` umgestellt, mit bestehenden Abmessungen, Farben,
+  Dropdown- und Fokuszuständen sowie DE/EN-Labels. Keine ungestaltete Standard-ComboBox.
+- Host-Deployment: `~/.local/state/windoesnot/desktop-sync/20261111-183444`; Auth-Agent
+  registriert, persönliche Einstellungsdateien beim Deployment unverändert.
+- Tests: vier Logind-Policy-/Kantenfälle ohne Poweraktion; Power-UI mit sichtbarer
+  Deckelkarte, gemeinsamem Control-Stil und echter Auswahländerung; Gesamt-QML und
+  Desktop-Validierung bestanden. Inhibitor im Benutzerkontext kurz erworben/freigegeben,
+  ohne Deckel-, Sperr- oder Schlafaktion. Physisches Suspend/Resume bleibt offen.
