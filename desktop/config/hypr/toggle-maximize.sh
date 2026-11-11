@@ -95,5 +95,6 @@ with open(saved, 'w') as f:
                'w': aw['size'][0], 'h': aw['size'][1]}, f)
 
 subprocess.run(['windoesnot-hyprctl', '--batch',
+    f"dispatch resizewindowpixel exact {uw} {uh},address:{addr}; "
     f"dispatch movewindowpixel exact {ux} {uy},address:{addr}; "
-    f"dispatch resizewindowpixel exact {uw} {uh},address:{addr}"])
+    f"dispatch movewindowpixel exact {ux} {uy},address:{addr}"])

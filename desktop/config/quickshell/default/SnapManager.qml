@@ -986,10 +986,11 @@ Item {
 
     Timer {
         id: snapGroupTimer
-        // 300 ms is fine: group-resize and auto-detection don't need sub-frame precision.
+        // Fast enough to make a shared divider feel direct without issuing a
+        // command for every pointer frame.
         // We run whenever snap is enabled (floating mode) so manually-positioned adjacent
         // windows are detected even before any snap has happened.
-        interval: 300
+        interval: 100
         running: snapManager.enabled
         repeat: true
         onTriggered: {
@@ -1018,8 +1019,10 @@ Item {
 
                     // ── Auto-detect manually-positioned adjacent pairs ─────────────────────
                     // Two floating windows on the same monitor whose horizontal edges are
-                    // within 60 px of each other are treated as a left/right snap group.
-                    var adjacencyTolerance = 60
+                    // with the same top and bottom edge form a snap group.
+                    // Loose matching previously coupled unrelated nearby windows.
+                    var adjacencyTolerance = 16
+                    var alignmentTolerance = 24
                     var hbHeight = (snapManager.settingsMenu && snapManager.settingsMenu.hyprbarsHeight > 0)
                                    ? snapManager.settingsMenu.hyprbarsHeight : 30
 
@@ -1050,7 +1053,8 @@ Item {
 
                             // ── Horizontal pair (left / right) ────────────────────────────
                             if (Math.abs(caRight - cb.at[0]) <= adjacencyTolerance &&
-                                    Math.abs(ca.size[1] - cb.size[1]) <= 200) {
+                                    Math.abs(ca.at[1] - cb.at[1]) <= alignmentTolerance &&
+                                    Math.abs(caBottom - (cb.at[1] + cb.size[1])) <= alignmentTolerance) {
                                 if (!(members[caAddr] && members[caAddr].zone === "left" &&
                                       members[cbAddr] && members[cbAddr].zone === "right")) {
                                     var mon = monitorForWindow(ca.at[0], ca.at[1])
