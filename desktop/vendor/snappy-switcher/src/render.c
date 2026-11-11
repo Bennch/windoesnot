@@ -24,9 +24,12 @@
 #define LOG(fmt, ...) fprintf(stderr, "[Render] " fmt "\n", ##__VA_ARGS__)
 
 static Config *cfg = NULL;
-static cairo_surface_t *desktop_preview = NULL;
-static const char *desktop_preview_path = "/tmp/windoesnot-alt-tab-preview.png";
-static pid_t desktop_preview_child = -1;
+#define MAX_PREVIEW_JOBS 24
+typedef struct { pid_t pid; } PreviewJob;
+typedef struct { char path[160]; cairo_surface_t *surface; } PreviewCache;
+static PreviewJob preview_jobs[MAX_PREVIEW_JOBS];
+static int preview_job_count = 0;
+static PreviewCache preview_cache[MAX_PREVIEW_JOBS];
 
 /* Palette for letter icon fallbacks */
 static const uint32_t icon_colors[] = {
@@ -42,47 +45,53 @@ static const uint32_t icon_colors[] = {
 
 void render_set_config(Config *config) { cfg = config; }
 
-void render_capture_desktop(void) {
-  if (desktop_preview) {
-    cairo_surface_destroy(desktop_preview);
-    desktop_preview = NULL;
-  }
+static void preview_path(const WindowInfo *win, char path[160]) {
+  snprintf(path, 160, "/tmp/windoesnot-alt-tab-%s.png", win->address ? win->address : "unknown");
+}
 
-  /* Never stall Alt+Tab for a screencopy.  The initial frame has icons; the
-   * main loop swaps in previews as soon as grim has finished. */
-  if (desktop_preview_child > 0)
+static void clear_preview_cache(void) {
+  for (int i = 0; i < MAX_PREVIEW_JOBS; i++) {
+    if (preview_cache[i].surface)
+      cairo_surface_destroy(preview_cache[i].surface);
+    preview_cache[i].surface = NULL;
+    preview_cache[i].path[0] = '\0';
+  }
+}
+
+void render_capture_windows(const AppState *state) {
+  if (!state || preview_job_count > 0)
     return;
-
-  unlink(desktop_preview_path);
-  desktop_preview_child = fork();
-  if (desktop_preview_child == 0) {
-    execlp("grim", "grim", desktop_preview_path, (char *)NULL);
-    _exit(127);
+  clear_preview_cache();
+  for (int i = 0; i < state->count && preview_job_count < MAX_PREVIEW_JOBS; i++) {
+    const WindowInfo *win = &state->windows[i];
+    if (win->width < 2 || win->height < 2)
+      continue;
+    char path[160], geometry[96];
+    preview_path(win, path);
+    snprintf(geometry, sizeof(geometry), "%d,%d %dx%d", win->x, win->y,
+             win->width, win->height);
+    unlink(path);
+    pid_t child = fork();
+    if (child == 0) {
+      execlp("grim", "grim", "-s", "1", "-g", geometry, path, (char *)NULL);
+      _exit(127);
+    }
+    if (child > 0)
+      preview_jobs[preview_job_count++].pid = child;
   }
-  if (desktop_preview_child < 0)
-    desktop_preview_child = -1;
 }
 
 bool render_poll_desktop_capture(void) {
-  if (desktop_preview_child <= 0)
-    return false;
-  int status = 0;
-  pid_t result = waitpid(desktop_preview_child, &status, WNOHANG);
-  if (result == 0)
-    return false;
-  desktop_preview_child = -1;
-  if (result < 0 || !WIFEXITED(status) || WEXITSTATUS(status) != 0)
-    return false;
-
-  cairo_surface_t *preview =
-      cairo_image_surface_create_from_png(desktop_preview_path);
-  if (cairo_surface_status(preview) == CAIRO_STATUS_SUCCESS) {
-    desktop_preview = preview;
-    return true;
-  } else {
-    cairo_surface_destroy(preview);
-    return false;
+  bool ready = false;
+  for (int i = 0; i < preview_job_count;) {
+    int status = 0;
+    pid_t result = waitpid(preview_jobs[i].pid, &status, WNOHANG);
+    if (result == 0) { i++; continue; }
+    if (result > 0 && WIFEXITED(status) && WEXITSTATUS(status) == 0)
+      ready = true;
+    preview_jobs[i] = preview_jobs[--preview_job_count];
   }
+  return ready;
 }
 
 static int create_shm_file(off_t size) {
@@ -207,22 +216,40 @@ static void draw_icon(cairo_t *cr, const char *cls, double cx, double cy) {
   cairo_restore(cr);
 }
 
+static cairo_surface_t *window_preview(const WindowInfo *win) {
+  char path[160];
+  preview_path(win, path);
+  for (int i = 0; i < MAX_PREVIEW_JOBS; i++)
+    if (preview_cache[i].surface && strcmp(preview_cache[i].path, path) == 0)
+      return preview_cache[i].surface;
+  for (int i = 0; i < MAX_PREVIEW_JOBS; i++) {
+    if (preview_cache[i].path[0]) continue;
+    cairo_surface_t *surface = cairo_image_surface_create_from_png(path);
+    if (cairo_surface_status(surface) != CAIRO_STATUS_SUCCESS) {
+      cairo_surface_destroy(surface);
+      return NULL;
+    }
+    snprintf(preview_cache[i].path, sizeof(preview_cache[i].path), "%s", path);
+    preview_cache[i].surface = surface;
+    return surface;
+  }
+  return NULL;
+}
+
 static bool draw_window_preview(cairo_t *cr, const WindowInfo *win, double x,
                                 double y, double w, double h, double radius) {
-  if (!desktop_preview || win->width < 2 || win->height < 2)
+  cairo_surface_t *preview = window_preview(win);
+  if (!preview)
     return false;
-
-  int source_w = cairo_image_surface_get_width(desktop_preview);
-  int source_h = cairo_image_surface_get_height(desktop_preview);
-  if (source_w < win->x + win->width || source_h < win->y + win->height ||
-      win->x < 0 || win->y < 0)
+  int source_w = cairo_image_surface_get_width(preview);
+  int source_h = cairo_image_surface_get_height(preview);
+  if (source_w < 2 || source_h < 2)
     return false;
-
-  double scale_x = w / win->width;
-  double scale_y = h / win->height;
+  double scale_x = w / source_w;
+  double scale_y = h / source_h;
   double scale = scale_x < scale_y ? scale_x : scale_y;
-  double painted_w = win->width * scale;
-  double painted_h = win->height * scale;
+  double painted_w = source_w * scale;
+  double painted_h = source_h * scale;
   double px = x + (w - painted_w) / 2.0;
   double py = y + (h - painted_h) / 2.0;
 
@@ -233,7 +260,7 @@ static bool draw_window_preview(cairo_t *cr, const WindowInfo *win, double x,
   cairo_paint(cr);
   cairo_translate(cr, px, py);
   cairo_scale(cr, scale, scale);
-  cairo_set_source_surface(cr, desktop_preview, -win->x, -win->y);
+  cairo_set_source_surface(cr, preview, 0, 0);
   cairo_paint(cr);
   cairo_restore(cr);
   return true;
@@ -750,6 +777,7 @@ static RenderBuffer *acquire_buffer(uint32_t phys_w, uint32_t phys_h,
 
 /* Force-free all buffer slots (for shutdown) */
 void render_cleanup_buffers(void) {
+  clear_preview_cache();
   for (int i = 0; i < RENDER_BUFFER_COUNT; i++) {
     RenderBuffer *buf = &render_buffers[i];
     if (buf->buffer) {

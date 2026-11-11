@@ -419,7 +419,7 @@ static void show_switcher(bool is_linear) {
   }
 
   /* Must happen while the layer surface is still hidden. */
-  render_capture_desktop();
+  render_capture_windows(&app_state);
 
   if (is_linear) {
     /* Linear mode: find where the active window landed in the
