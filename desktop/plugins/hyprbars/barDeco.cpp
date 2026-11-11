@@ -253,6 +253,7 @@ void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch:
 
         m_bDraggingThis = false;
         m_bDragPending  = false;
+        m_bResizePending = false;
         m_bTouchEv      = false;
         return;
     }
@@ -272,6 +273,18 @@ void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch:
 
     if (doButtonPress(BARPADDING, BARBUTTONPADDING, HEIGHT, COORDS, BUTTONSRIGHT))
         return;
+
+    // The titlebar owns the top edge, so it must explicitly forward its two
+    // corners to the compositor's resize grab. The remaining edges are still
+    // handled by Hyprland's regular resize_on_border hit-test.
+    constexpr float RESIZE_HANDLE = 8.F;
+    if (PWINDOW->isFloating() && COORDS.y <= RESIZE_HANDLE &&
+        (COORDS.x <= RESIZE_HANDLE || COORDS.x >= assignedBoxGlobal().w - RESIZE_HANDLE)) {
+        m_eResizeCorner  = COORDS.x <= RESIZE_HANDLE ? Layout::CORNER_TOPLEFT : Layout::CORNER_TOPRIGHT;
+        m_bResizePending = true;
+        m_bDragPending   = true;
+        return;
+    }
 
     if (!ON_DOUBLE_CLICK.empty() &&
         std::chrono::duration_cast<std::chrono::milliseconds>(Time::steadyNow() - m_lastMouseDown).count() < 400 /* Arbitrary delay I found suitable */) {
@@ -302,12 +315,19 @@ void CHyprBar::handleUpEvent(Event::SCallbackInfo& info) {
     }
 
     m_bDragPending = false;
+    m_bResizePending = false;
     m_bTouchEv     = false;
     m_touchId      = 0;
 }
 
 void CHyprBar::handleMovement() {
-    g_layoutManager->beginDragTarget(m_pWindow.lock()->layoutTarget(), MBIND_MOVE);
+    if (m_bResizePending) {
+        g_layoutManager->beginDragTarget(m_pWindow.lock()->layoutTarget(), MBIND_RESIZE, m_eResizeCorner);
+        m_bResizePending = false;
+        m_eResizeCorner  = Layout::CORNER_NONE;
+    } else {
+        g_layoutManager->beginDragTarget(m_pWindow.lock()->layoutTarget(), MBIND_MOVE);
+    }
     m_bDraggingThis = true;
     LOG(Log::DEBUG, "[hyprbars] Dragging initiated on {:x}", (uintptr_t)m_pWindow.lock().get());
     return;
