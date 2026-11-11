@@ -112,8 +112,8 @@ SnapLayouts {
 
 Connections {
     target: snapManager
-    function onLayoutPickerRequested(monitorName) {
-        snapLayouts.openOn(monitorName)
+    function onLayoutPickerRequested(monitorName, anchorX, anchorY) {
+        snapLayouts.openOn(monitorName, anchorX, anchorY)
     }
 }
 
@@ -122,6 +122,10 @@ IpcHandler {
     function open() {
         if (!snapLayouts.opened)
             snapManager.requestKeyboardLayouts()
+    }
+    function hover() {
+        if (!snapLayouts.opened)
+            snapManager.requestKeyboardLayouts(true)
     }
     function toggle() {
         if (snapLayouts.opened)

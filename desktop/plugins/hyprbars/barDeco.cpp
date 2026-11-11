@@ -211,7 +211,7 @@ void CHyprBar::onMouseMove(Vector2D coords) {
     }
     if (overMaximize && !m_bMaxLayoutHover) {
         m_bMaxLayoutHover = true;
-        Config::Supplementary::executor()->spawn("qs ipc call windoesnot-snap open");
+        Config::Supplementary::executor()->spawn("qs ipc call windoesnot-snap hover");
     } else if (!overMaximize) {
         m_bMaxLayoutHover = false;
     }

@@ -13,7 +13,7 @@ Item {
 
     signal previewChanged(string zone, rect rect, string screenName, int monX, int monY)
     signal hidePreview()
-    signal layoutPickerRequested(string monitorName)
+    signal layoutPickerRequested(string monitorName, int anchorX, int anchorY)
 
     property rect previewRect: Qt.rect(0, 0, 0, 0)
 
@@ -224,10 +224,10 @@ Item {
         }
     }
 
-    function requestKeyboardLayouts() {
+    function requestKeyboardLayouts(anchorAtCursor) {
         if (!enabled || keyboardSnapQueryProc.running)
             return
-        keyboardSnapQueryProc.intent = "picker"
+        keyboardSnapQueryProc.intent = anchorAtCursor ? "picker-hover" : "picker"
         keyboardSnapQueryProc.running = true
     }
 
@@ -279,18 +279,22 @@ Item {
     Process {
         id: keyboardSnapQueryProc
         property string intent: "picker"
-        command: ["bash", "-c", "windoesnot-hyprctl activewindow -j; echo '---MONSEP---'; windoesnot-hyprctl monitors -j"]
+        command: ["bash", "-c", "windoesnot-hyprctl activewindow -j; echo '---MONSEP---'; windoesnot-hyprctl monitors -j; echo '---CURSEP---'; windoesnot-hyprctl cursorpos -j"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
                     var parts = this.text.split("---MONSEP---")
                     var client = JSON.parse(parts[0].trim())
-                    var monitors = JSON.parse(parts[1].trim())
+                    var monitorText = parts[1].split("---CURSEP---")
+                    var monitors = JSON.parse(monitorText[0].trim())
+                    var cursor = monitorText.length > 1 ? JSON.parse(monitorText[1].trim()) : null
                     var monitor = snapManager.monitorForClient(client, monitors)
                     if (!monitor) return
-                    if (keyboardSnapQueryProc.intent === "picker") {
-                        snapManager.layoutPickerRequested(monitor.name)
+                    if (keyboardSnapQueryProc.intent === "picker" || keyboardSnapQueryProc.intent === "picker-hover") {
+                        snapManager.layoutPickerRequested(monitor.name,
+                            keyboardSnapQueryProc.intent === "picker-hover" && cursor ? cursor.x : -1,
+                            keyboardSnapQueryProc.intent === "picker-hover" && cursor ? cursor.y : -1)
                         return
                     }
                     var rect = snapManager.keyboardLayoutRect(keyboardSnapQueryProc.intent, snapManager.keyboardUsableArea(monitor))
