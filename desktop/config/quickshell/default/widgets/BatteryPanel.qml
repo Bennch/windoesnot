@@ -55,7 +55,7 @@ Item {
     }
 
     Component.onCompleted: refresh()
-    onVisibleChanged: if (visible) refresh()
+    onWindowVisibleChanged: if (windowVisible) refresh()
 
     Timer {
         interval: 10000

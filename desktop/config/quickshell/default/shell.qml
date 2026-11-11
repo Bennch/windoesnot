@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
+import Quickshell.Services.UPower
 import Quickshell.Services.SystemTray
 import QtQuick
 import QtQuick.Controls
@@ -1607,17 +1608,15 @@ PanelWindow {
                         }
 
                         // Battery icon content
-                        Image {
+                        BatteryTrayIcon {
                             visible: model.iconType === "battery"
                             anchors.centerIn: parent
-                            source: "img/Win11-dark/devices/symbolic/battery-symbolic.svg"
-                            width: 18; height: 18
-                            sourceSize.width: 36; sourceSize.height: 36
-                            fillMode: Image.PreserveAspectFit
-                            smooth: true; antialiasing: true; mipmap: true
+                            width: 22; height: 18
+                            available: UPower.displayDevice.ready && UPower.displayDevice.isPresent
+                            percentage: UPower.displayDevice.percentage * 100
+                            pluggedIn: !UPower.onBattery
+                            darkMode: settingsMenu.darkMode
                             opacity: trayDragArea.containsMouse ? 0.7 : 1.0
-                            layer.enabled: !settingsMenu.darkMode
-                            layer.effect: MultiEffect { colorization: 1.0; colorizationColor: "#333333" }
                             Behavior on opacity { NumberAnimation { duration: 150 } }
                         }
 
@@ -1729,6 +1728,8 @@ PanelWindow {
                                 else if (model.iconType === "bluetooth") tipText = "Bluetooth"
                 else if (model.iconType === "network") tipText = Lang.get("shell.network", settingsMenu.uiLanguage)
                                 else if (model.iconType === "battery") tipText = Lang.get("power.battery", settingsMenu.uiLanguage)
+                                    + (UPower.displayDevice.ready && UPower.displayDevice.isPresent ? " · " + Math.round(UPower.displayDevice.percentage * 100) + "%" : "")
+                                    + (!UPower.onBattery ? (settingsMenu.uiLanguage === "de" ? " · Netzbetrieb" : " · Plugged in") : "")
                                 else if (model.iconType === "nearby") tipText = Lang.get("nearby.title", settingsMenu.uiLanguage)
                                     + " · " + Lang.get(nearbyService.state.receiving ? "nearby.receivingOn" : "nearby.receivingOff", settingsMenu.uiLanguage)
                                 else if (model.iconType === "ollama") tipText = "Ollama"
