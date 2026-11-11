@@ -15,9 +15,8 @@ extern struct wl_surface *surface;
 /* Set config for rendering */
 void render_set_config(Config *config);
 
-/* Capture the desktop before the layer-shell panel is mapped.  Cards use this
- * single image as their window previews, avoiding one grim process per app. */
-void render_capture_desktop(void);
+/* Start the same per-window screencopy used by the taskbar previews. */
+void render_capture_windows(const AppState *state);
 
 /* Returns true once the asynchronous capture became available. */
 bool render_poll_desktop_capture(void);
