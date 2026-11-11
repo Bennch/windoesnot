@@ -200,3 +200,25 @@ Alle lokalen Änderungen bleiben uncommittet; nichts auf GitHub geschrieben.
   Deckelkarte, gemeinsamem Control-Stil und echter Auswahländerung; Gesamt-QML und
   Desktop-Validierung bestanden. Inhibitor im Benutzerkontext kurz erworben/freigegeben,
   ohne Deckel-, Sperr- oder Schlafaktion. Physisches Suspend/Resume bleibt offen.
+
+## Technische C-Locale in den Spracheinstellungen (2026-11-11)
+
+- **Beide:** portable Minimalinstallationen können nur C/C.utf8/POSIX enthalten.
+  Host bestätigt `/etc/locale.conf`: LANG=C; `locale -a`: nur C, C.utf8, POSIX.
+  Dies ist kein fälschlich erkannter Sprachname; menschliche Sprachdaten fehlen.
+- `LocaleNames.js` normalisiert UTF-8-Namen und schließt technische Locales aus
+  der Sprachauswahl aus. Anzeige: „Keine Systemsprache eingerichtet“, kein C als
+  auswählbare Sprache und kein irreführender Hinweis auf eine unbekannte Sprache.
+- Deutsch/Englisch werden bei fehlenden Locales mit „einrichten“ angeboten.
+  Auswahl öffnet das bekannte Terminal mit sudo-Abfrage, aktiviert nur die
+  gewählte Locale in locale.gen, führt locale-gen aus und setzt sie per localectl.
+  Andere Locale-Einträge und Dateirechte bleiben erhalten. Kein automatisches
+  Generieren ohne Auswahl; aktuelle Session-Locale erfordert erneute Anmeldung.
+- Erfolgsprüfung liest locale.conf statt sich auf den Terminal-Exitcode oder
+  eine eventuell vom Agent gesetzte LC_ALL-Umgebung zu verlassen. Vorhandene
+  Locales verwenden weiter den bisherigen localectl-Pfad. Dateimanager werden
+  bei Auswahl nicht vorzeitig mit SIGKILL beendet.
+- Tests: echte QML-Spracheinstellungen mit C-Anzeige, Einrichtungspfad, vorhandenen
+  Sprachen, Fehlerbehandlung; technische/humane Locale-Fälle; temporäre locale.gen
+  (Rechte, Erhalt fremder Einträge, Idempotenz, ungültige Locale). Keine Host-Locale
+  und kein Root-Systemzustand während der Tests geändert.

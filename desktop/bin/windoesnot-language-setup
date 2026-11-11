@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Generate a chosen supported locale with visible sudo authentication."""
+import argparse
+from pathlib import Path
+import re
+import shlex
+import subprocess
+import sys
+
+LOCALES = {'de': 'de_DE.UTF-8', 'en': 'en_US.UTF-8'}
+GENERATOR = r'''
+from pathlib import Path
+import re,sys,tempfile,os,stat
+locale = sys.argv[1]
+if locale not in ('de_DE.UTF-8','en_US.UTF-8'):
+    raise SystemExit('Unsupported locale')
+p = Path('/etc/locale.gen')
+text = p.read_text()
+pattern = r'^\s*#?\s*' + re.escape(locale) + r'\s+UTF-8\s*$'
+text,count = re.subn(pattern,locale+' UTF-8',text,flags=re.M)
+if not count:
+    text = text.rstrip()+'\n'+locale+' UTF-8\n'
+with tempfile.NamedTemporaryFile(mode='w',dir=p.parent,delete=False) as out:
+    temporary=Path(out.name)
+    os.fchmod(out.fileno(),stat.S_IMODE(p.stat().st_mode))
+    out.write(text);out.flush();os.fsync(out.fileno())
+temporary.replace(p)
+'''
+
+
+def configured_locale(path=Path('/etc/locale.conf')):
+    for line in path.read_text().splitlines():
+        key, sep, value = line.partition('=')
+        if sep and key.strip() == 'LANG':
+            words = shlex.split(value, comments=True)
+            return words[0] if words else ''
+    return ''
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('language', choices=LOCALES)
+    args = parser.parse_args()
+    locale = LOCALES[args.language]
+    commands = [
+        ['sudo', '/usr/bin/python3', '-I', '-c', GENERATOR, locale],
+        ['sudo', '/usr/bin/locale-gen'],
+        ['sudo', '/usr/bin/localectl', 'set-locale', 'LANG='+locale, 'LC_MESSAGES='+locale, 'LC_TIME='+locale],
+    ]
+    script = ' && '.join(shlex.join(c) for c in commands)
+    script += '; result=$?; printf "Exit: %s\\n" "$result"; read -r -p "Enter / Eingabe: " ignored; exit "$result"'
+    subprocess.run(['windoesnot-terminal', '--gtk-single-instance=false', '-e', 'bash', '-c', script], check=False)
+    # A terminal's own exit code does not reliably reflect its child command.
+    return 0 if configured_locale() == locale else 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())
