@@ -11,6 +11,7 @@
 #include <hyprland/src/helpers/AnimatedVariable.hpp>
 #include <hyprland/src/helpers/time/Time.hpp>
 #include <hyprland/src/helpers/signal/Signal.hpp>
+#include <hyprland/src/layout/LayoutManager.hpp>
 #include "globals.hpp"
 
 #define private public
@@ -113,6 +114,8 @@ class CHyprBar : public IHyprWindowDecoration {
     bool                m_bDraggingThis  = false;
     bool                m_bTouchEv       = false;
     bool                m_bDragPending   = false;
+    bool                m_bResizePending = false;
+    Layout::eRectCorner m_eResizeCorner  = Layout::CORNER_NONE;
     bool                m_bCancelledDown = false;
     int                 m_touchId        = 0;
 
