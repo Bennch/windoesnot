@@ -7,7 +7,9 @@ import "../i18n/Lang.js" as Lang
 Item {
     id: batteryPanel
     width: 320
-    height: 360
+    // The available controls differ between desktops and laptops. Keep the
+    // popup tight to its actual content instead of leaving a large dead area.
+    height: Math.max(150, contentColumn.implicitHeight + 30)
 
     property color accentColor: "#FE6F2D"
     property int borderRadius: 12
@@ -240,6 +242,7 @@ Item {
         anchors.margins: 15
 
         Column {
+            id: contentColumn
             width: parent.width
             spacing: 15
 
