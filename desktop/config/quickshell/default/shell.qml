@@ -117,6 +117,19 @@ Connections {
     }
 }
 
+// Windows-like maximize hover: do not query or create the picker until the
+// pointer deliberately rests on the button. Leaving it cancels the pending
+// opening completely.
+Timer {
+    id: maximizeHoverTimer
+    interval: 480
+    repeat: false
+    onTriggered: {
+        if (!snapLayouts.opened)
+            snapManager.requestKeyboardLayouts(true)
+    }
+}
+
 IpcHandler {
     target: "windoesnot-snap"
     function open() {
@@ -125,9 +138,10 @@ IpcHandler {
     }
     function hover() {
         if (!snapLayouts.opened)
-            snapManager.requestKeyboardLayouts(true)
+            maximizeHoverTimer.restart()
     }
     function leave() {
+        maximizeHoverTimer.stop()
         snapLayouts.scheduleClose()
     }
     function toggle() {
