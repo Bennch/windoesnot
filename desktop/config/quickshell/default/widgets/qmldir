@@ -4,5 +4,6 @@ StartOrb 1.0 StartOrb.qml
 
 AuthenticationCard 1.0 AuthenticationCard.qml
 SystemAuthentication 1.0 SystemAuthentication.qml
+BatteryTrayIcon 1.0 BatteryTrayIcon.qml
 NearbyPanel 1.0 NearbyPanel.qml
 NearbyService 1.0 NearbyService.qml
