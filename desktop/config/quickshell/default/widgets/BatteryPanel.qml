@@ -6,10 +6,12 @@ import "../i18n/Lang.js" as Lang
 
 Item {
     id: batteryPanel
-    width: 320
-    // The available controls differ between desktops and laptops. Keep the
-    // popup tight to its actual content instead of leaving a large dead area.
-    height: Math.max(150, contentColumn.implicitHeight + 30)
+    // The available controls differ between desktops and laptops: the popup is exactly
+    // as tall as its visible rows, so hidden rows never leave empty space.
+    implicitWidth: 320
+    implicitHeight: contentColumn.height + 30
+    width: implicitWidth
+    height: implicitHeight
 
     property color accentColor: "#FE6F2D"
     property int borderRadius: 12
@@ -32,7 +34,9 @@ Item {
     // Desktops with no laptop backlight (brightnessctl finds nothing) fall
     // back to DDC/CI on the first detected external monitor.
     property bool usesDdc: false
-    property string ddcDisplay: ""
+    // I2C buses of all DDC/CI monitors. Every one gets the slider value, not only the first.
+    property string ddcBus: ""
+    property var ddcBuses: []
     property bool ddcProbed: false
 
     // Eye-comfort / blue-light filter. State is just "is hyprsunset running
@@ -50,20 +54,23 @@ Item {
         return key ? tr(key) : (value || tr("power.stateUnknown"))
     }
 
-    function refresh() {
+    // Brightness is read only when the popup opens: each DDC/CI read takes ~0.5 s per
+    // monitor and blocks the I2C bus that the slider writes need.
+    function refresh(withBrightness) {
         statusProc.running = true
-        if (usesDdc) { ddcGetProc.running = true } else { brightnessProc.running = true }
         nightLightStatusProc.running = true
+        if (!withBrightness) return
+        if (usesDdc) { ddcGetProc.running = true } else { brightnessProc.running = true }
     }
 
-    Component.onCompleted: refresh()
-    onWindowVisibleChanged: if (windowVisible) refresh()
+    Component.onCompleted: refresh(true)
+    onWindowVisibleChanged: if (windowVisible) refresh(true)
 
     Timer {
         interval: 10000
         running: batteryPanel.windowVisible
         repeat: true
-        onTriggered: batteryPanel.refresh()
+        onTriggered: batteryPanel.refresh(false)
     }
 
     Process {
@@ -131,15 +138,17 @@ Item {
     // refresh -- ddcutil is slow (seconds, not milliseconds).
     Process {
         id: ddcDetectProc
-        command: ["bash", "-c", "command -v ddcutil >/dev/null 2>&1 && ddcutil detect --brief 2>/dev/null | sed -n 's/^Display \\([0-9]\\+\\)/\\1/p' | head -1"]
+        command: ["bash", "-c", "command -v ddcutil >/dev/null 2>&1 && ddcutil detect 2>/dev/null | awk '/I2C bus/ { match($0, /i2c-[0-9]+/); print substr($0, RSTART + 4, RLENGTH - 4) }'"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
-                var display = this.text.trim()
-                if (display) {
+                var buses = this.text.trim().split("\n").filter(function(b) { return b.length > 0 })
+                var bus = buses.length > 0 ? buses[0] : ""
+                if (bus) {
                     batteryPanel.usesDdc = true
-                    batteryPanel.ddcDisplay = display
-                    ddcGetProc.command = ["bash", "-c", "ddcutil getvcp 10 --display " + display + " 2>/dev/null"]
+                    batteryPanel.ddcBuses = buses
+                    batteryPanel.ddcBus = bus
+                    ddcGetProc.command = ["bash", "-c", "ddcutil --noconfig --skip-ddc-checks --bus " + bus + " getvcp 10 2>/dev/null"]
                     ddcGetProc.running = true
                 } else {
                     batteryPanel.hasBrightness = false
@@ -167,22 +176,32 @@ Item {
     Process {
         id: setBrightnessProc
         running: false
+        onExited: batteryPanel.writeDdc()
     }
 
-    // Dragging the slider fires setBrightness continuously; ddcutil's I2C
-    // writes take noticeably longer than brightnessctl, so only the DDC path
-    // gets debounced -- brightnessctl stays as responsive as before.
-    Timer {
-        id: ddcWriteDebounce
-        interval: 150
-        onTriggered: setBrightnessProc.running = true
+    // DDC writes are slow I2C transactions, and dragging fires many of them. Only one
+    // write runs at a time; while it runs, just the newest slider value is kept and
+    // written next, so the queue never builds up stale values.
+    property int pendingDdcValue: -1
+
+    function writeDdc() {
+        if (setBrightnessProc.running || pendingDdcValue < 0) return
+        var value = pendingDdcValue
+        pendingDdcValue = -1
+        // All monitors in parallel, so three of them take as long as one.
+        // --skip-ddc-checks: the default initial checks scan every bus and block each other.
+        var writes = ddcBuses.map(function(b) {
+            return "ddcutil --noconfig --skip-ddc-checks --bus " + b + " setvcp 10 " + value + " --noverify 2>/dev/null &"
+        })
+        setBrightnessProc.command = ["bash", "-c", writes.join(" ") + " wait"]
+        setBrightnessProc.running = true
     }
 
     function setBrightness(value) {
         brightness = Math.max(1, Math.min(100, value))
         if (usesDdc) {
-            setBrightnessProc.command = ["bash", "-c", "ddcutil setvcp 10 " + brightness + " --display " + ddcDisplay + " --noverify 2>/dev/null"]
-            ddcWriteDebounce.restart()
+            pendingDdcValue = brightness
+            writeDdc()
         } else {
             setBrightnessProc.command = ["bash", "-c", "brightnessctl -c backlight set " + brightness + "%"]
             setBrightnessProc.running = true

@@ -131,6 +131,15 @@ Timer {
     }
 }
 
+// Opens or closes the battery popup from the command line (used to test it without a click).
+IpcHandler {
+    target: "windoesnot-battery"
+    function toggle() {
+        if (batteryWindow.visible) batteryWindow.visible = false
+        else batteryWindow.openBattery()
+    }
+}
+
 IpcHandler {
     target: "windoesnot-snap"
     function open() {
@@ -1831,7 +1840,8 @@ PanelWindow {
                                         networkWindow.visible = false
                                         nearbyWindow.visible = false
                                         calendarWindow.visible = false
-                                        batteryWindow.visible = !batteryWindow.visible
+                                        if (batteryWindow.visible) batteryWindow.visible = false
+                                        else batteryWindow.openBattery()
                                     } else if (model.iconType === "nearby") {
                                         if (nearbyWindow.visible) nearbyWindow.visible = false
                                         else desktopShell.openNearby()
@@ -5477,7 +5487,9 @@ FloatingWindow {
     id: batteryWindow
     visible: false
     implicitWidth: 320
-    implicitHeight: 360
+    // Follows BatteryPanel's real content height: compact on desktops, taller on laptops.
+    implicitHeight: batteryLoader.height
+    height: batteryLoader.height
     color: "transparent"
     title: "quickshell-battery"
     screen: {
@@ -5494,10 +5506,33 @@ FloatingWindow {
         onCleared: batteryWindow.visible = false
     }
 
+    // Bottom-right above the taskbar (45 px), like the weather and power popups:
+    // the rule is set before the window maps, from the real content height.
+    function bottomRightX() { return screen ? screen.x + screen.width - implicitWidth - 8 : 0 }
+    function bottomRightY() { return screen ? screen.y + screen.height - 45 - implicitHeight : 0 }
+
+    function openBattery() {
+        var posProc = Qt.createQmlObject('import Quickshell.Io; Process {}', batteryWindow)
+        posProc.command = ["windoesnot-hyprctl", "keyword", "windowrule[battery-config]:move",
+            Math.round(bottomRightX()) + " " + Math.round(bottomRightY())]
+        posProc.exited.connect(function() { batteryWindow.visible = true })
+        posProc.running = true
+    }
+
+    // Content height arrives after the window is shown (power data loads): move the live window.
+    Process { id: placeProc; running: false }
+    onImplicitHeightChanged: if (visible) {
+        placeProc.command = ["windoesnot-hyprctl", "dispatch", "movewindowpixel",
+            "exact " + Math.round(bottomRightX()) + " " + Math.round(bottomRightY()) + ",title:^(quickshell-battery)$"]
+        placeProc.running = true
+    }
+
     onVisibleChanged: panelWindow.syncFocusGrab(batteryFocusGrab, visible)
 
+    // Not anchored to the window: anchors.fill would force the panel to the window's
+    // height, while the window height follows the panel (a loop that froze the size).
     Loader {
-        anchors.fill: parent
+        id: batteryLoader
         source: "widgets/BatteryPanel.qml"
 
         onLoaded: {

@@ -27,7 +27,6 @@ def window_rules(monitor, settings):
         'audio-config': (320, 400, 'right'),
         'bluetooth-config': (320, 450, 'right'),
         'network-config': (320, 500, 'right'),
-        'battery-config': (320, 360, 'right'),
         'graphics-config': (340, 410, 'right'),
         'nearby-config': (400, 580, 'right'),
         # Seed the rule before the first context-menu click.  The click handler
