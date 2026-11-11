@@ -3,4 +3,3 @@ OverviewWidget 1.0 OverviewWidget.qml
 OverviewWindow 1.0 OverviewWindow.qml
 WorkspaceStrip 1.0 WorkspaceStrip.qml
 ScrollingOverviewWidget 1.0 ScrollingOverviewWidget.qml
-TaskViewWidget 1.0 TaskViewWidget.qml
