@@ -5325,7 +5325,7 @@ FloatingWindow {
     id: calendarWindow
     visible: false
     implicitWidth: 320
-    implicitHeight: 360
+    implicitHeight: batteryPanelLoader.item ? batteryPanelLoader.item.height : 150
     color: "transparent"
     title: "quickshell-calendar"
     screen: {
@@ -5349,6 +5349,7 @@ FloatingWindow {
     }
 
     Loader {
+        id: batteryPanelLoader
         anchors.fill: parent
         source: "calendar/SimpleCalendarWidget.qml"
 
