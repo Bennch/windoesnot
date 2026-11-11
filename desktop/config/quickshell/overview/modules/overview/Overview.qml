@@ -290,7 +290,7 @@ Scope {
 
                 Component {
                     id: classicComponent
-                    TaskViewWidget {
+                    OverviewWidget {
                         panelWindow: root
                         visible: true
                     }
