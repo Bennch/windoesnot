@@ -104,6 +104,29 @@ SnapManager {
     settingsMenu: settingsMenu
 }
 
+SnapLayouts {
+    id: snapLayouts
+    snapManager: snapManager
+    settingsMenu: settingsMenu
+}
+
+Connections {
+    target: snapManager
+    function onLayoutPickerRequested(monitorName) {
+        snapLayouts.openOn(monitorName)
+    }
+}
+
+IpcHandler {
+    target: "windoesnot-snap"
+    function toggle() {
+        if (snapLayouts.opened)
+            snapLayouts.close()
+        else
+            snapManager.requestKeyboardLayouts()
+    }
+}
+
 PanelWindow {
     id: panelWindow
     property var audioTrayItem: null
