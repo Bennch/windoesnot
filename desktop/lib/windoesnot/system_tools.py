@@ -299,7 +299,8 @@ def maintenance_status():
 
 PRINTER_NAME = re.compile(r'[A-Za-z0-9_-]{1,64}')
 PRINTER_URI = re.compile(r'[a-z][a-z0-9+.-]{1,20}://[\x21-\x7e]{1,400}')
-# No extra ports are opened: LocalSend (53317) stays closed until it has been tested.
+# LocalSend's port (53317) is opened only by the explicit nearby-ports-set action.
+NEARBY_PORT = 53317
 
 
 def parse_printers(queues, default, found):
@@ -918,6 +919,9 @@ def validate(action, payload):
     elif action == 'firewall-set':
         if set(payload) != {'enabled'} or type(payload['enabled']) is not bool:
             raise ValueError('Invalid firewall setting')
+    elif action == 'nearby-ports-set':
+        if set(payload) != {'open'} or type(payload['open']) is not bool:
+            raise ValueError('Invalid LocalSend port setting')
     elif action == 'scx-set':
         if (set(payload) != {'scheduler', 'mode', 'onBoot'} or payload['scheduler'] not in SCHEDULERS
                 or payload['mode'] not in MODES or type(payload['onBoot']) is not bool):
@@ -1140,6 +1144,16 @@ def apply(action, payload):
         if payload['name'] not in names:
             raise ValueError('Unknown printer')
         command('/usr/bin/lpadmin', '-d', payload['name'], timeout=60)
+        return {'reboot': False}
+    if action == 'nearby-ports-set':
+        if not available('ufw'):
+            raise ValueError('ufw is not installed')
+        for proto in ('tcp', 'udp'):
+            rule = f'{NEARBY_PORT}/{proto}'
+            if payload['open']:
+                command('/usr/bin/ufw', 'allow', rule, timeout=60)
+            else:
+                command('/usr/bin/ufw', '--force', 'delete', 'allow', rule, timeout=60, allowed=(0, 1))
         return {'reboot': False}
     if action == 'firewall-set':
         if not available('ufw'):

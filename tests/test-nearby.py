@@ -161,5 +161,47 @@ class Nearby(unittest.TestCase):
             connection.return_value.close.assert_called_once()
 
 
+class LocalSendPorts(unittest.TestCase):
+    """Port status comes from ufw's readable rules; opening goes through the authorized helper."""
+
+    def setUp(self):
+        import tempfile
+        self.dir = Path(tempfile.mkdtemp(prefix='wdn-ufw-'))
+        self.rules = self.dir / 'user.rules'
+        self.conf = self.dir / 'ufw.conf'
+        self.patches = [patch.object(m, 'UFW_RULES', self.rules), patch.object(m, 'UFW_CONF', self.conf)]
+        for item in self.patches:
+            item.start()
+        m._ports.update(stamp=None, open=None)
+
+    def tearDown(self):
+        for item in self.patches:
+            item.stop()
+        import shutil
+        shutil.rmtree(self.dir, ignore_errors=True)
+
+    def write(self, rules, enabled='yes'):
+        self.rules.write_text(rules)
+        self.conf.write_text(f'ENABLED={enabled}\n')
+
+    def test_closed_without_rules(self):
+        self.write('-A ufw-user-input -p tcp --dport 22 -j ACCEPT\n')
+        self.assertFalse(m.ports_open())
+
+    def test_open_only_with_tcp_and_udp(self):
+        self.write('-A ufw-user-input -p tcp --dport 53317 -j ACCEPT\n')
+        self.assertFalse(m.ports_open())
+        self.write('-A ufw-user-input -p tcp --dport 53317 -j ACCEPT\n-A ufw-user-input -p udp --dport 53317 -j ACCEPT\n')
+        self.assertTrue(m.ports_open())
+
+    def test_disabled_firewall_accepts_everything(self):
+        self.write('', enabled='no')
+        self.assertTrue(m.ports_open())
+
+    def test_missing_ufw_is_unknown(self):
+        self.rules.unlink(missing_ok=True)
+        self.assertIsNone(m.ports_open())
+
+
 if __name__ == '__main__':
     unittest.main()

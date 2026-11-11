@@ -12,6 +12,9 @@ Rectangle {
     property int borderRadius: 12
     property string uiLanguage: "de"
     readonly property bool dialogOpen: picker.visible
+    // True while files are dragged over the panel (highlights the file card).
+    property bool dropping: false
+    property int tab: 0
     readonly property var viewState: service ? service.state : ({devices:[],selected:[],history:[]})
     readonly property color foreground: darkMode ? "#eeeeee" : "#202020"
     readonly property color secondary: darkMode ? "#bbbbbb" : "#555555"
@@ -22,7 +25,11 @@ Rectangle {
     topRightRadius: borderRadius
     bottomLeftRadius: 0
     bottomRightRadius: 0
-    width: 400; height: 580
+    // Exactly as tall as the content, up to 580 px; the window follows this height.
+    implicitWidth: 400
+    implicitHeight: Math.min(580, nearbyColumn.height + 36)
+    width: implicitWidth
+    height: implicitHeight
 
     function tr(key) { return Lang.get(key, uiLanguage) }
     function act(action, extra) {
@@ -46,44 +53,101 @@ Rectangle {
         fileMode: FileDialog.OpenFiles
         onAccepted: panel.act("select", {files:selectedFiles.map(url => url.toString())})
     }
+    // Drop files anywhere on the panel to select them for the devices below.
+    DropArea {
+        anchors.fill: parent
+        onEntered: panel.dropping = true
+        onExited: panel.dropping = false
+        onDropped: function(drop) {
+            panel.dropping = false
+            panel.tab = 0
+            if (drop.hasUrls) panel.act("select", {files: drop.urls.map(url => url.toString())})
+        }
+    }
     ScrollView {
-        anchors.fill: parent; anchors.margins: 20
+        anchors.fill: parent; anchors.margins: 18
         clip: true; contentWidth: availableWidth
         Column {
-            width: parent.width; spacing: 16
-            Heading { text: panel.tr("nearby.title"); font.pixelSize: 20 }
-            Label { text: panel.tr("nearby.intro") }
+            id: nearbyColumn
+            width: parent.width; spacing: 14
+
+            // Header: what this panel is, and whether it accepts files.
+            Heading { text: panel.tr("nearby.title"); font.pixelSize: 18 }
+            Row {
+                spacing: 20
+                Repeater {
+                    model: ["nearby.tabSend", "nearby.history"]
+                    delegate: Item {
+                        required property int index
+                        required property string modelData
+                        width: tabText.width; height: 28
+                        Text { id: tabText; text: panel.tr(modelData); font.pixelSize: 14; font.bold: panel.tab === index
+                               color: panel.tab === index ? panel.foreground : panel.secondary }
+                        Rectangle { visible: panel.tab === index; width: parent.width; height: 2; y: parent.height - 2; color: panel.accentColor }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: panel.tab = index }
+                    }
+                }
+            }
+            Column {
+                id: sendTab
+                width: parent.width; spacing: 14
+                visible: panel.tab === 0
             Tools.SystemToolsToggle {
                 settingsMenu: panel
-                text: panel.tr("nearby.receive")
+                text: panel.tr(panel.viewState.receiving ? "nearby.receivingOn" : "nearby.receivingOff")
                 checked: panel.viewState.requestedReceiving === true
                 onToggled: panel.act("receive", {value:checked})
             }
-            Label { text: panel.tr(panel.viewState.receiving ? "nearby.receivingOn" : "nearby.receivingOff") }
-            Label { visible: !!panel.viewState.error; text: panel.tr("nearby.error." + panel.viewState.error) }
-            Row {
-                spacing: 8
-                Action { text: panel.tr("nearby.chooseFiles"); onClicked: picker.open() }
-                Action { text: panel.tr("nearby.refresh"); onClicked: panel.act("discover") }
+            Label { visible: !!panel.viewState.error; color: "#ef5350"; text: panel.tr("nearby.error." + panel.viewState.error) }
+
+            // Firewall: only shown when the LocalSend ports are closed, with the one fix.
+            Column {
+                width: parent.width; spacing: 8
+                visible: panel.viewState.portsOpen === false
+                Label { text: panel.tr("nearby.portsClosed") }
+                Action { text: panel.tr("nearby.openPorts"); onClicked: panel.act("ports", {value:true}) }
             }
-            Label { visible: panel.viewState.selected.length > 0; text: panel.viewState.selected.join("\n") }
-            Action { visible: panel.viewState.selected.length > 0; text: panel.tr("nearby.clearSelection"); onClicked: panel.act("clear") }
-            Heading { text: panel.tr("nearby.devices") }
+
+            // Files to send: one button when empty, the selection otherwise.
+            Rectangle {
+                width: parent.width; height: filesContent.height + 24
+                radius: 8; color: panel.darkMode ? "#141414" : "#f5f5f5"
+                border.width: panel.dropping ? 2 : 1
+                border.color: panel.dropping ? panel.accentColor : (panel.darkMode ? "#3a3a3a" : "#d0d0d0")
+                Column {
+                    id: filesContent
+                    x: 12; y: 12; width: parent.width - 24; spacing: 10
+                    Label { visible: panel.viewState.selected.length === 0; text: panel.tr("nearby.dropHint") }
+                    Label {
+                        visible: panel.viewState.selected.length > 0
+                        color: panel.foreground
+                        text: panel.viewState.selected.slice(0, 3).join("\n") + (panel.viewState.selected.length > 3 ? "\n+ " + (panel.viewState.selected.length - 3) : "")
+                    }
+                    Row {
+                        spacing: 8
+                        Action { primary: panel.viewState.selected.length === 0; text: panel.tr("nearby.chooseFiles"); onClicked: picker.open() }
+                        Action { visible: panel.viewState.selected.length > 0; text: panel.tr("nearby.clearSelection"); onClicked: panel.act("clear") }
+                    }
+                }
+            }
+
+            // Devices: tap one to send the selected files to it.
+            Row {
+                width: parent.width; spacing: 8
+                Text { text: panel.tr("nearby.devices"); color: panel.foreground; font.bold: true; font.pixelSize: 15; anchors.verticalCenter: parent.verticalCenter }
+            }
             Label { visible: panel.viewState.devices.length === 0; text: panel.tr("nearby.noDevices") }
             Repeater {
                 model: panel.viewState.devices
-                delegate: Column {
+                delegate: Action {
                     required property var modelData
-                    width: parent.width; spacing: 6
-                    Action {
-                        width: parent.width
-                        text: modelData.alias
-                        enabled: panel.viewState.selected.length > 0 && !panel.viewState.outgoing
-                        onClicked: panel.act("send", {peer:modelData.id})
-                    }
-                    Label { visible: modelData.protocol !== "https"; text: panel.tr("nearby.unencrypted") }
+                    width: parent.width
+                    text: modelData.alias
+                    enabled: panel.viewState.selected.length > 0 && !panel.viewState.outgoing
+                    onClicked: panel.act("send", {peer:modelData.id})
                 }
             }
+
             Repeater {
                 model: [panel.viewState.incoming, panel.viewState.outgoing].filter(value => !!value)
                 delegate: Rectangle {
@@ -116,19 +180,27 @@ Rectangle {
                     }
                 }
             }
-            Action { text: panel.tr("nearby.openFolder"); onClicked: panel.act("folder") }
-            Heading { text: panel.tr("nearby.history") }
-            Label { visible: panel.viewState.history.length === 0; text: panel.tr("nearby.noHistory") }
-            Repeater {
-                model: panel.viewState.history
-                delegate: Column {
-                    required property var modelData
-                    width: parent.width; spacing: 4
-                    Label { color: panel.foreground; text: modelData.peer + " · " + panel.tr("nearby.status." + modelData.status) }
-                    Label { text: modelData.files.join(", ") + " · " + new Date(modelData.time * 1000).toLocaleString(Qt.locale(panel.uiLanguage), Locale.ShortFormat) }
+            // Keeps the window as tall as the Send tab, so switching tabs does not resize it.
+            Item { width: 1; visible: panel.tab === 1; height: Math.max(0, sendTab.height - historyTab.height) }
+            // Footer: the received-files folder and the transfer history popup.
+            Action { width: parent.width; text: panel.tr("nearby.openFolder"); onClicked: panel.act("folder") }
+            }
+            Column {
+                id: historyTab
+                width: parent.width; spacing: 12
+                visible: panel.tab === 1
+                Label { visible: panel.viewState.history.length === 0; text: panel.tr("nearby.noHistory") }
+                Repeater {
+                    model: panel.viewState.history
+                    delegate: Column {
+                        required property var modelData
+                        width: parent.width; spacing: 2
+                        Label { color: panel.foreground; text: modelData.peer + " \u00b7 " + panel.tr("nearby.status." + modelData.status) }
+                        Label { text: modelData.files.join(", ") }
+                        Label { font.pixelSize: 11; text: new Date(modelData.time * 1000).toLocaleString(Qt.locale(panel.uiLanguage), Locale.ShortFormat) }
+                    }
                 }
             }
-            Label { text: panel.tr("nearby.networkHint") }
         }
     }
 }
