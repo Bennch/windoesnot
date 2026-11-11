@@ -279,7 +279,9 @@ Scope {
                 anchors {
                     horizontalCenter: parent.horizontalCenter
                     top: parent.top
-                    topMargin: Config.options.position.topMargin
+                    // The classic workspace grid starts below the top edge;
+                    // the task view is deliberately full-screen.
+                    topMargin: Config.options.overview.scrolling.enable ? Config.options.position.topMargin : 0
                 }
 
                 Loader {
