@@ -1,0 +1,7 @@
+#!/bin/sh
+# Use the same terminal on x86-64 and Asahi; never silently substitute another app.
+if command -v ghostty >/dev/null 2>&1; then
+    exec ghostty "$@"
+fi
+echo 'WinDoesNot requires Ghostty. Install the ghostty package or build it for this architecture.' >&2
+exit 127

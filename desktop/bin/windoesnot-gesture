@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+"""Translate desktop gestures into WinDoesNot's own app/overview actions."""
+import argparse
+import json
+import os
+from pathlib import Path
+import subprocess
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", choices=["windows", "app-windows", "apps", "desktop"])
+    action = parser.parse_args().action
+    shell = str(Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / "quickshell/default/shell.qml")
+    if action in ("windows", "app-windows"):
+        subprocess.run(["qs", "ipc", "-p", shell, "call", "desktop-gestures", "closeApps"], check=True)
+        command = ["qs", "ipc", "-c", "overview", "call", "overview"]
+        if action == "app-windows":
+            window = json.loads(subprocess.check_output(["hyprctl", "activewindow", "-j"]))
+            app = window.get("class") or window.get("initialClass") or ""
+            command += ["appWindows", app]
+        else:
+            command += ["open"]
+    else:
+        subprocess.run(["qs", "ipc", "-c", "overview", "call", "overview", "close"], check=True)
+        command = ["qs", "ipc", "-p", shell, "call", "desktop-gestures",
+                   "openApps" if action == "apps" else "toggleDesktop"]
+    subprocess.run(command, check=True)
+
+
+if __name__ == "__main__":
+    main()

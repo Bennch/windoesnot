@@ -567,6 +567,24 @@ Column {
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
 
+        Column {
+            width: parent.width
+            spacing: 8
+            visible: !!settingsMenu && settingsMenu.isAsahi === true && settingsMenu.keyboardLayout === "de"
+            Text {
+                text: _lang === "de" ? "@-Zeichen auf der Mac-Tastatur" : "@ on the Mac keyboard"
+                color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
+                font.pixelSize: 14
+            }
+            ComboBox {
+                objectName: "asahiAtKeyChoice"
+                width: 320
+                model: ["Option + L (macOS)", "Option + Q (PC)"]
+                currentIndex: settingsMenu && settingsMenu.asahiAtKey === "q" ? 1 : 0
+                onActivated: settingsMenu.asahiAtKey = currentIndex === 0 ? "l" : "q"
+            }
+        }
+
         // Keyboard Layout
         Column {
             width: parent.width

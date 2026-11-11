@@ -16,7 +16,7 @@ Scope {
             || ((settingsMenu.currentCategory === "maintenance" || settingsMenu.currentCategory === "apps")
                 && flow.actionId.indexOf("org.windoesnot.system.") === 0))
     readonly property bool registered: agent.item !== null && agent.item.isRegistered
-    property string guardPath: "/usr/bin/windoesnot-auth-guard"
+    property string guardPath: "windoesnot-auth-guard"
 
     IpcHandler {
         target: "authentication"

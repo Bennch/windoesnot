@@ -116,7 +116,16 @@ def service():
 
 
 def main():
-    info = {"lact": bool(shutil.which("lact")), "unit": service()}
+    model = (read("/proc/device-tree/model") or "").replace("\x00", "")
+    apple = model.startswith("Apple ")
+    diagnostics = bool(shutil.which("glxinfo") and shutil.which("vulkaninfo"))
+    info = {"lact": bool(shutil.which("lact")), "unit": False if apple else service(),
+            "apple": apple, "model": model,
+            "renderAvailable": bool(glob.glob("/sys/class/drm/renderD*/dev")),
+            "diagnostics": diagnostics}
+    if apple:
+        print(json.dumps({**info, "running": False, "gpus": [], "processes": []}))
+        return
     gpus = list_gpus() if info["lact"] else None
     if gpus is None:
         print(json.dumps({**info, "running": False, "gpus": [], "processes": []}))
@@ -129,4 +138,5 @@ def main():
     print(json.dumps({**info, "running": True, "gpus": gpus, "processes": processes()}))
 
 
-main()
+if __name__ == "__main__":
+    main()

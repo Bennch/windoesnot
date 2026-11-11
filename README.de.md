@@ -1,3 +1,13 @@
+# WinDoesNotMac
+
+Private ARM64-/Asahi-Entwicklungsversion von WinDoesNot für Apple Silicon.
+Enthält die gemeinsamen Desktop-Commits bis `e143c4d` sowie Mac-Anpassungen für
+Eingabe, Akku und Grafikanzeige. Siehe [Mac-Eingabe](docs/asahi-input.md) und
+[Plattformentscheidungen](docs/platform-fixes.md). Noch kein bootfähiges Mac-Image
+gebaut oder geprüft; der Desktop-Installer für bestehendes Asahi ist vorhanden.
+
+---
+
 <div align="center">
 
 # WinDoesNot
@@ -94,6 +104,30 @@ Hyprland-Plugins und das eingebettete Terminalmodul werden gegen genau die Hyprl
 und Qt-Versionen im Image gebaut. Kopierte Binärdateien gelten nicht als portabel.
 
 ## Desktop auf einem bestehenden System installieren
+
+Für Arch Linux, CachyOS und Arch Linux ARM (einschließlich Asahi) gibt es denselben
+Installer. Als normaler Desktop-Benutzer ausführen:
+
+```sh
+./tools/install-desktop.sh          # Installationsplan anzeigen
+./tools/install-desktop.sh --apply  # Abhängigkeiten installieren, bauen und einrichten
+```
+
+Das Skript erkennt x86-64 oder ARM64 automatisch, aktualisiert die Pakete mit
+`pacman -Syu`, baut die nativen Komponenten und prüft die Oberfläche vor dem
+Einrichten. Vorhandene Konfiguration wird unter `~/Backups/windoesnot-release/`
+gesichert. Die Hyprland-Einstiegsdatei wird durch WinDoesNot ersetzt; ihre alte
+Version bleibt im Backup. Eine laufende Sitzung wird nicht neu geladen.
+Nach dem Abmelden lässt sich der Desktop über `windoesnot-session` im TTY starten.
+
+Mit `--skip-deps` werden bereits installierte Abhängigkeiten verwendet.
+`--skip-build` verwendet vorhandene Komponenten, sofern Architektur und gespeicherte
+Hyprland-/Qt-Paketversionen zum System passen. Nach entsprechenden Updates neu bauen.
+Der ARM-Build wurde auf Asahi geprüft; die vollständige Installation auf x86-64
+muss noch auf einem entsprechenden Gerät getestet werden.
+
+Für die manuelle Aktualisierung einer bestehenden WinDoesNot-Installation:
+
 
 > [!CAUTION]
 > Gedacht für Arch-basierte Systeme mit installiertem Hyprland und Quickshell.

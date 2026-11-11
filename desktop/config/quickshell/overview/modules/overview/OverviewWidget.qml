@@ -719,6 +719,8 @@ Item {
                         return ToplevelManager.toplevels.values.filter((toplevel) => {
                             const address = `0x${toplevel.HyprlandToplevel.address}`
                             var win = windowByAddress[address]
+                            if (GlobalStates.overviewAppClass && (win?.class ?? "").toLowerCase() !== GlobalStates.overviewAppClass)
+                                return false;
                             if (root.isSpecialWorkspace(win))
                                 return false;
                             const minWorkspace = root.workspaceGroup * root.workspacesShown + 1 + workspaceOffset;

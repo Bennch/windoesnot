@@ -47,6 +47,47 @@ end
 if options["quirks.skip_non_kms_dmabuf_formats"] == nil and gpuVendors["0x1af4"] then
     options["quirks.skip_non_kms_dmabuf_formats"] = false
 end
+-- M3 boot-framebuffer sessions have no GPU render node. Avoid expensive
+-- effects until the native display/GPU stack is available. Explicit user state
+-- wins; a captured host.lua snapshot is not an explicit effects preference.
+local modelFile = io.open("/proc/device-tree/model", "r")
+local appleModel = ""
+if modelFile then appleModel = modelFile:read("*a"); modelFile:close() end
+-- Asahi trackpads: finger count chooses the click, instead of click location.
+-- These are defaults; values selected in WinDoesNot settings take precedence.
+local isApple = appleModel:match("^Apple ") ~= nil
+if isApple then
+    local trackpadDefaults = {
+        ["input.touchpad.clickfinger_behavior"] = true,
+        ["input.touchpad.tap_button_map"] = "lrm",
+        ["input.touchpad.tap_to_click"] = true,
+        ["input.touchpad.drag_3fg"] = 1,
+        ["input.touchpad.natural_scroll"] = true,
+        ["input.scroll_method"] = "2fg",
+    }
+    for key, value in pairs(trackpadDefaults) do
+        if state.options[key] == nil then options[key] = value end
+    end
+end
+local simpleFramebuffer = false
+local hasRenderNode = false
+for card = 0, 15 do
+    local alias = io.open("/sys/class/drm/card" .. card .. "/device/modalias", "r")
+    if alias then
+        local value = alias:read("*a"); alias:close()
+        if value and value:find("simple%-framebuffer") then simpleFramebuffer = true end
+    end
+    local render = io.open("/sys/class/drm/renderD" .. (128 + card) .. "/dev", "r")
+    if render then hasRenderNode = true; render:close() end
+end
+if appleModel:match("^Apple ") and simpleFramebuffer and not hasRenderNode then
+    for _, key in ipairs({"decoration.blur.enabled", "decoration.shadow.enabled",
+                          "animations.enabled", "plugin.hyprbars.bar_blur"}) do
+        if state.options[key] == nil and (not key:match("^plugin%.") or hasBars) then
+            options[key] = false
+        end
+    end
+end
 hl.config(options)
 if isolated then
     hl.config({debug = {enable_stdout_logs = true, disable_logs = false},
@@ -59,6 +100,23 @@ if isolated or primary ~= "" then
 end
 for _, device in ipairs(personal.devices or reference.devices) do hl.device(device) end
 for _, gesture in ipairs(reference.gestures) do hl.gesture(gesture) end
+if isApple then
+    -- Three fingers drag; four fingers navigate. Leave two-finger gestures
+    -- to applications so scrolling, browser history and pinch zoom still work.
+    hl.gesture({fingers = 3, direction = "horizontal", action = "unset"})
+    hl.gesture({fingers = 4, direction = "horizontal", action = "workspace"})
+    for _, spec in ipairs({
+        {direction = "up", command = "windows"},
+        {direction = "down", command = "app-windows"},
+        {direction = "pinchin", command = "apps"},
+        {direction = "pinchout", command = "desktop"},
+    }) do
+        local command = spec.command
+        hl.gesture({fingers = 4, direction = spec.direction, action = function()
+            hl.exec_cmd("windoesnot-gesture " .. command)
+        end})
+    end
+end
 for _, curve in ipairs(reference.curves) do hl.curve(curve[1], curve[2]) end
 for _, animation in ipairs(reference.animations) do hl.animation(animation) end
 
@@ -92,6 +150,7 @@ dofile(root .. "bindings.lua")
 -- The verification entry point makes no external calls. Isolated compositor
 -- tests load real plugins and dispatchers but never start the user's desktop.
 if not verify and not isolated then
+    hl.env("WINDOESNOT_PLATFORM", isApple and "asahi" or "generic")
     hl.env("PATH", os.getenv("HOME") .. "/.local/bin:" .. (os.getenv("PATH") or "/usr/local/bin:/usr/bin"))
     -- VMware guests (vmwgfx): the compositor cannot import GPU dmabufs, so
     -- every GPU client dies on wl_surface.attach and the desktop stays black

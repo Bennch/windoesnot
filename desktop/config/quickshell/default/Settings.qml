@@ -248,6 +248,8 @@ FloatingWindow {
     property int followMouse: 1  // 0=disabled, 1=move, 2=move+focus, 3=focus
 
     // Input settings - Keyboard
+    readonly property bool isAsahi: Quickshell.env("WINDOESNOT_PLATFORM") === "asahi"
+    property string asahiAtKey: "l"
     property string keyboardLayout: "us"
     property int repeatRate: 25
     property int repeatDelay: 600
@@ -1019,6 +1021,7 @@ FloatingWindow {
             'else if (key === "mouseSensitivity") settingsMenu.mouseSensitivity = parseFloat(value); ' +
             'else if (key === "mouseAccelProfile") settingsMenu.mouseAccelProfile = value; ' +
             'else if (key === "followMouse") settingsMenu.followMouse = parseInt(value); ' +
+            'else if (key === "asahiAtKey" && (value === "l" || value === "q")) settingsMenu.asahiAtKey = value; ' +
             'else if (key === "keyboardLayout") settingsMenu.keyboardLayout = value; ' +
             'else if (key === "repeatRate") settingsMenu.repeatRate = parseInt(value); ' +
             'else if (key === "repeatDelay") settingsMenu.repeatDelay = parseInt(value); ' +
@@ -1095,6 +1098,12 @@ FloatingWindow {
             settingsMenu.keyboardLayout = layout
             return settingsMenu.keyboardLayout
         }
+        function setMacAtKey(key: string): string {
+            if (!settingsMenu.isAsahi || (key !== "q" && key !== "l")) return "unsupported"
+            settingsMenu.asahiAtKey = key
+            settingsMenu.updateInputSettings()
+            return key
+        }
         function setDarkMode(enabled: bool): string {
             settingsMenu.darkMode = enabled
             return enabled ? "dark" : "light"
@@ -1160,6 +1169,7 @@ FloatingWindow {
                       "mouseAccelProfile=" + mouseAccelProfile + "\\n" +
                       "followMouse=" + followMouse + "\\n" +
                       "keyboardLayout=" + keyboardLayout + "\\n" +
+                      "asahiAtKey=" + asahiAtKey + "\\n" +
                       "repeatRate=" + repeatRate + "\\n" +
                       "repeatDelay=" + repeatDelay + "\\n" +
                       "numlockByDefault=" + (numlockByDefault ? "true" : "false") + "\\n" +
@@ -1741,6 +1751,13 @@ FloatingWindow {
         }
     }
 
+    onAsahiAtKeyChanged: {
+        if (!isLoadingSettings && isAsahi) {
+            saveSettings()
+            updateInputSettings()
+        }
+    }
+
     onKeyboardLayoutChanged: {
         if (!isLoadingSettings) {
             saveSettings()
@@ -2052,6 +2069,7 @@ FloatingWindow {
         requestHyprState("input", {
             sensitivity: mouseSensitivity, accel_profile: mouseAccelProfile,
             follow_mouse: followMouse, kb_layout: keyboardLayout,
+            mac_at_key: isAsahi ? asahiAtKey : undefined,
             repeat_rate: repeatRate, repeat_delay: repeatDelay,
             numlock_by_default: numlockByDefault,
             natural_scroll: touchpadNaturalScroll,

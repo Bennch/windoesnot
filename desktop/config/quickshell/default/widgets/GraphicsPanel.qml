@@ -14,6 +14,11 @@ Item {
     property bool darkMode: true
     property string uiLanguage: "de"
     signal openLact()
+    signal openUpdates()
+    property bool appleGraphics: false
+    property bool renderAvailable: false
+    property bool diagnosticsAvailable: false
+    property string deviceModel: ""
 
     property var gpus: []
     property var processes: []
@@ -59,6 +64,10 @@ Item {
             onStreamFinished: {
                 try {
                     var data = JSON.parse(this.text)
+                    gpuPanel.appleGraphics = !!data.apple
+                    gpuPanel.renderAvailable = !!data.renderAvailable
+                    gpuPanel.diagnosticsAvailable = !!data.diagnostics
+                    gpuPanel.deviceModel = data.model || ""
                     gpuPanel.gpus = data.gpus || []
                     gpuPanel.processes = data.processes || []
                     gpuPanel.lactAvailable = !!data.lact
@@ -68,6 +77,12 @@ Item {
                 } catch (error) {}
             }
         }
+    }
+
+    Process {
+        id: setupProc
+        command: ["windoesnot-graphics-setup", gpuPanel.appleGraphics ? "diagnostics" : "monitoring"]
+        onExited: gpuPanel.refresh()
     }
 
     Process {
@@ -149,11 +164,56 @@ Item {
                 color: gpuPanel.subColor
             }
 
+            Column {
+                width: parent.width
+                spacing: 10
+                visible: gpuPanel.loaded && gpuPanel.appleGraphics
+                Text {
+                    width: parent.width
+                    text: gpuPanel.deviceModel
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: 13
+                    color: gpuPanel.textColor
+                }
+                Text {
+                    width: parent.width
+                    text: gpuPanel.tr(gpuPanel.renderAvailable ? "graphics.appleNative" : "graphics.appleSoftware")
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: 13
+                    color: gpuPanel.subColor
+                }
+                Text {
+                    width: parent.width
+                    text: gpuPanel.tr("graphics.appleMonitoring")
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: 12
+                    color: gpuPanel.subColor
+                }
+                Rectangle {
+                    width: parent.width; height: 32; radius: 6
+                    color: gpuPanel.accentColor
+                    Text { anchors.centerIn: parent; text: gpuPanel.tr("graphics.systemUpdates"); color: "white"; font.pixelSize: 13 }
+                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: gpuPanel.openUpdates() }
+                }
+            }
+            Rectangle {
+                visible: gpuPanel.loaded && (gpuPanel.appleGraphics ? !gpuPanel.diagnosticsAvailable : !gpuPanel.lactAvailable)
+                width: parent.width; height: 32; radius: 6
+                color: gpuPanel.accentColor
+                opacity: setupProc.running ? 0.5 : 1
+                Text {
+                    anchors.centerIn: parent
+                    text: gpuPanel.tr(gpuPanel.appleGraphics ? "graphics.installDiagnostics" : "graphics.installMonitoring")
+                    color: "white"; font.pixelSize: 13
+                }
+                MouseArea { anchors.fill: parent; enabled: !setupProc.running; cursorShape: Qt.PointingHandCursor; onClicked: setupProc.running = true }
+            }
+
             // LACT service stopped: explain and offer to start it right here
             Column {
                 width: parent.width
                 spacing: 10
-                visible: gpuPanel.loaded && !gpuPanel.daemonRunning
+                visible: gpuPanel.loaded && !gpuPanel.appleGraphics && !gpuPanel.daemonRunning
                 Text {
                     width: parent.width
                     wrapMode: Text.WordWrap

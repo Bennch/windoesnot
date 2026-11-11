@@ -38,3 +38,8 @@
 /docs/*
 !/docs/screenshots/
 igloo-windoesnot/
+
+# Shared platform decisions must travel with both variants.
+!/AGENTS.md
+!/docs/platform-fixes.md
+!/docs/asahi-input.md

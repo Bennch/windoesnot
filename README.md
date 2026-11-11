@@ -1,3 +1,13 @@
+# WinDoesNotMac
+
+Private ARM64 / Asahi development variant of WinDoesNot for Apple Silicon.
+Includes upstream desktop changes through `e143c4d` and the Mac-specific input,
+battery and graphics adjustments. See [Mac input](docs/asahi-input.md) and
+[platform decisions](docs/platform-fixes.md). No bootable Mac image has been built
+or validated from this repository yet; the source desktop installer is available.
+
+---
+
 <div align="center">
 
 # WinDoesNot
@@ -108,6 +118,30 @@ Hyprland and Qt versions inside the image. Copied binaries are not assumed to be
 portable.
 
 ## Installing the desktop on an existing system
+
+For Arch Linux, CachyOS and Arch Linux ARM (including Asahi), use the same
+installer as your regular desktop user:
+
+```sh
+./tools/install-desktop.sh          # preview dependencies and installation plan
+./tools/install-desktop.sh --apply  # install dependencies, build and deploy
+```
+
+The installer performs a full pacman upgrade, builds plugins and the terminal
+module for the detected `x86_64` or `aarch64` architecture, checks the QML shell,
+and backs up your configuration under `~/Backups/windoesnot-release/` before
+installing. It keeps existing personal desktop settings. It does not change the
+kernel, bootloader or running session. Log out and run `windoesnot-session` from
+a TTY to start the desktop. Existing Hyprland configuration is replaced by the
+WinDoesNot entry point; the original is retained in the backup.
+
+`--skip-deps` uses dependencies already installed; `--skip-build` reuses local
+components only when the recorded Hyprland/Qt package versions still match.
+After a Hyprland or Qt update, rerun without `--skip-build`.
+ARM builds are tested locally on Asahi; the same installer supports x86-64,
+but its complete installation path has not yet been tested on x86-64.
+
+For manual deployment to an existing WinDoesNot installation:
 
 > [!CAUTION]
 > This targets Arch-based systems with Hyprland and Quickshell installed. Make a

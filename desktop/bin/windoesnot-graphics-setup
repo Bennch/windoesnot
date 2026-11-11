@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+"""Open a visible terminal to install the selected fixed graphics tool set."""
+import argparse
+import shutil
+import subprocess
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("kind", choices=["diagnostics", "monitoring"])
+args = parser.parse_args()
+if not shutil.which("pacman"):
+    raise SystemExit("Graphics tool installation currently supports Arch-based systems.")
+packages = "mesa-utils vulkan-tools" if args.kind == "diagnostics" else "lact"
+script = ("sudo pacman -Syu --needed " + packages
+          + '; result=$?; printf "Exit: %s" "$result"; read -r -p "Enter / Eingabe: " ignored; exit "$result"')
+raise SystemExit(subprocess.call(["windoesnot-terminal", "-e", "bash", "-c", script]))

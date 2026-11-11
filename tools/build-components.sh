@@ -9,7 +9,12 @@ trap 'rm -rf -- "$work"' EXIT
 jobs=${BUILD_JOBS:-$(nproc)}
 # CachyOS makepkg defaults include -march=native. These are redistributable
 # binaries: explicitly override local CPU tuning for every component.
-export CFLAGS='-march=x86-64 -mtune=generic -O2 -pipe -fno-plt -fexceptions -Wp,-D_FORTIFY_SOURCE=3 -Wformat -Werror=format-security -fstack-clash-protection -fcf-protection'
+case $(uname -m) in
+    x86_64) architecture_flags='-march=x86-64 -mtune=generic -fcf-protection' ;;
+    aarch64) architecture_flags='-march=armv8-a -mtune=generic' ;;
+    *) echo 'Unsupported build architecture' >&2; exit 1 ;;
+esac
+export CFLAGS="$architecture_flags -O2 -pipe -fno-plt -fexceptions -Wp,-D_FORTIFY_SOURCE=3 -Wformat -Werror=format-security -fstack-clash-protection"
 export CXXFLAGS="$CFLAGS -Wp,-D_GLIBCXX_ASSERTIONS"
 printf 'CFLAGS=%s\nCXXFLAGS=%s\n' "$CFLAGS" "$CXXFLAGS" > "$output/NATIVE-FLAGS.txt"
 for plugin in hyprbars hyprdrag; do
@@ -35,5 +40,6 @@ make -C "$work/snappy-switcher" protocols
 snappy_flags="$CFLAGS -Wall -Wextra -D_POSIX_C_SOURCE=200809L $(pkg-config --cflags wayland-client cairo pango pangocairo json-c xkbcommon librsvg-2.0) -DHAVE_RSVG"
 make -C "$work/snappy-switcher" -j "$jobs" CFLAGS="$snappy_flags"
 install -Dm755 "$work/snappy-switcher/snappy-switcher" "$output/bin/snappy-switcher"
+uname -m > "$output/BUILD-ARCH.txt"
 pacman -Q hyprland quickshell qt6-base qtermwidget gcc > "$output/BUILD-PACKAGES.txt"
 sha256sum "$output/plugins/"*.so "$output/LocalTerminal/"*.so "$output/bin/snappy-switcher" > "$output/SHA256SUMS"

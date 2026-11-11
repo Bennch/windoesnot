@@ -96,7 +96,8 @@ class Boundaries(unittest.TestCase):
     def test_read_policy_is_scoped_to_exact_executable_and_argument(self):
         root = ET.parse(ROOT / 'desktop/share/polkit-1/actions/org.windoesnot.snapshots.policy')
         actions = root.findall('action')
-        self.assertEqual(len(actions), 4)
+        self.assertEqual({action.attrib['id'].rsplit('.', 1)[1] for action in actions},
+                         {'status', 'create', 'delete', 'schedule', 'restore'})
         for action in actions:
             self.assertEqual(action.findtext('defaults/allow_any'), 'no')
             self.assertEqual(action.findtext('defaults/allow_inactive'), 'no')

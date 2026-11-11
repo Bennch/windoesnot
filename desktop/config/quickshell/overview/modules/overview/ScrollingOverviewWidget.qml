@@ -125,6 +125,8 @@ Item {
                     return ToplevelManager.toplevels.values.filter((toplevel) => {
                         const address = `0x${toplevel.HyprlandToplevel?.address}`;
                         const win = root.windowByAddress[address];
+                        if (GlobalStates.overviewAppClass && (win?.class ?? "").toLowerCase() !== GlobalStates.overviewAppClass)
+                            return false;
                         if (!win)
                             return false;
                         return win.workspace?.id >= 1 && win.workspace?.id <= root.workspaceCount;

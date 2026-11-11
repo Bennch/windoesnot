@@ -25,8 +25,8 @@ with tempfile.TemporaryDirectory(prefix='wdn-power-ui-') as temp:
     shutil.copy2(SOURCE / 'settings/AccountCategory.qml', profile / 'settings')
     system_fixture = profile / 'settings/SystemCategory.qml'
     system_fixture.write_text(system_fixture.read_text().replace(
-        'id: maintenanceSection\n', 'id: maintenanceSection\n        autoLoad: false\n').replace(
-        'id: kernelSection\n', 'id: kernelSection\n        autoLoad: false\n'))
+        'Tools.MaintenanceCategory {', 'Tools.MaintenanceCategory { autoLoad: false;').replace(
+        'Tools.KernelCategory {', 'Tools.KernelCategory { autoLoad: false;'))
     for name in ('SystemToolsButton', 'SystemToolsChoice', 'SystemToolsToggle', 'SystemToolsConfirm'):
         shutil.copy2(SOURCE / ('settings/' + name + '.qml'), profile / 'settings')
     (profile / 'shell.qml').write_text('''import QtQuick
@@ -36,7 +36,7 @@ ShellRoot {
  Window {
   id: testWindow
   visible: true; width: 900; height: 1100
-  QtObject { id: preferences; property bool darkMode: true; property string uiLanguage: "de"; property string accentColor: "#fe6f2d"; property bool fileDialogOpen: false; property int borderRadius: 10 }
+  QtObject { id: preferences; property bool darkMode: true; property string uiLanguage: "de"; property string accentColor: "#fe6f2d"; property bool fileDialogOpen: false; property bool showBatteryTray: true; property int borderRadius: 10 }
   Loader { id: powerLoader; width: 650; Component.onCompleted: setSource("settings/PowerCategory.qml", {settingsMenu:preferences,autoLoad:false}) }
   Loader { id: systemLoader; width: 650; Component.onCompleted: setSource("settings/SystemCategory.qml", {settingsMenu:preferences}) }
   function check(ok,message) { if(!ok) throw new Error(message) }
@@ -58,10 +58,10 @@ ShellRoot {
     testWindow.check(system.height < 800, "system settings show one focused section")
     testWindow.check(system.section === 0, "account section is selected by default")
     system.section = 1
-    testWindow.check(system.children[2].visible, "maintenance section can be selected")
-    system.section = 2
-    testWindow.check(system.children[3].visible, "kernel section can be selected")
+    testWindow.check(system.activeSection && system.activeSection.visible, "maintenance section can be selected")
     testWindow.check(!!testWindow.find(system, o => !!o.text && o.text.indexOf("Werkzeuge helfen bei Problemen") >= 0), "maintenance section content present")
+    system.section = 2
+    testWindow.check(system.activeSection && system.activeSection.visible, "kernel section can be selected")
     testWindow.check(!!testWindow.find(system, o => !!o.text && o.text.indexOf("technische Grundlage") >= 0), "kernel section content present")
 
     preferences.uiLanguage = "en"

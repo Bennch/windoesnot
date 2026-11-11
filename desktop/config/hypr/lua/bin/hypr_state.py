@@ -46,6 +46,18 @@ def color(value, alpha=None):
     raise ValueError('Invalid color')
 
 
+def configure_mac_keyboard(options, layout, at_key):
+    at_key = text(at_key, r'q|l')
+    german = layout == 'de'
+    options['input.kb_variant'] = 'mac' if german and at_key == 'l' else ''
+    # Preserve unrelated choices (Compose, Caps Lock, etc.).
+    xkb_options = [v for v in options.get('input.kb_options', '').split(',')
+                   if v and not v.startswith('lv3:')]
+    if german:
+        xkb_options.append('lv3:alt_switch')
+    options['input.kb_options'] = ','.join(xkb_options)
+
+
 def update(state, payload):
     state = copy.deepcopy(state)
     options = state['options']
@@ -60,6 +72,8 @@ def update(state, payload):
         elif group == 'input':
             options.update({
                 'input.sensitivity': number(values['sensitivity'], -1, 1, False),
+                # Flat/adaptive and sensitivity must use libinput's processed motion.
+                'input.force_no_accel': False,
                 'input.accel_profile': text(values['accel_profile'], r'flat|adaptive'),
                 'input.follow_mouse': number(values['follow_mouse'], 0, 3),
                 'input.kb_layout': text(values['kb_layout'], r'[a-zA-Z0-9_,()+-]{1,128}'),
@@ -70,6 +84,10 @@ def update(state, payload):
                 'input.touchpad.disable_while_typing': boolean(values['disable_while_typing']),
                 'input.touchpad.tap_to_click': boolean(values['tap_to_click']),
             })
+            if 'mac_at_key' in values:
+                at_key = text(values['mac_at_key'], r'q|l')
+                configure_mac_keyboard(options, values['kb_layout'], at_key)
+                state['asahi_at_key'] = at_key
         elif group == 'window_mode':
             state['window_mode'] = text(values, r'floating|tiling')
             options['general.resize_on_border'] = values == 'floating'

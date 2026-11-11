@@ -55,7 +55,7 @@ Item {
     }
 
     Component.onCompleted: refresh()
-    onVisibleChanged: if (visible) refresh()
+    onWindowVisibleChanged: if (windowVisible) refresh()
 
     Timer {
         interval: 10000
@@ -338,6 +338,17 @@ Item {
                         }
                     }
                 }
+            }
+
+            Text {
+                width: parent.width
+                visible: !batteryPanel.hasBrightness
+                wrapMode: Text.WordWrap
+                color: batteryPanel.darkMode ? "#b0b0b0" : "#666666"
+                font.pixelSize: 12
+                text: batteryPanel.uiLanguage === "de"
+                    ? "Displayhelligkeit nicht verfügbar. Backlight-Treiber und brightnessctl prüfen."
+                    : "Display brightness unavailable. Check the backlight driver and brightnessctl."
             }
 
             // Brightness

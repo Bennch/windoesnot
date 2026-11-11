@@ -54,3 +54,11 @@ Der Release wurde in UEFI-VMs geprüft. Rückmeldungen zu echter Hardware sammel
 erst; BIOS-Start und Secure Boot sind noch ungeprüft. Ein öffentlicher signierter
 Updatekanal für WinDoesNot-Komponenten fehlt noch. Den aktuellen
 [Release-Stand findest du hier](https://windoesnot.me/hilfe/release-stand/).
+
+## Platform scope for development
+
+For every fix, record whether it targets both variants, x86-64 only, or Asahi only
+in [the platform fix ledger](docs/platform-fixes.md), including separate validation
+status for each platform. See [AGENTS.md](AGENTS.md) for the working rules.
+
+The [Asahi input profile](docs/asahi-input.md) maps MacBook gestures to WinDoesNot apps.

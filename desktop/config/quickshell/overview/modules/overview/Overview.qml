@@ -58,6 +58,7 @@ Scope {
                         keyHandler.superHeld = GlobalStates.overviewSuperHeld;
                         delayedGrabTimer.start();
                     } else {
+                        GlobalStates.overviewAppClass = "";
                         // Nothing clears the grab when the overview closes any
                         // other way; a stale grab on a hidden surface is risky
                         grab.active = false;
@@ -341,7 +342,13 @@ Scope {
     IpcHandler {
         target: "overview"
 
+        function appWindows(appClass: string) {
+            GlobalStates.overviewAppClass = appClass.toLowerCase();
+            GlobalStates.overviewSuperHeld = false;
+            GlobalStates.overviewOpen = true;
+        }
         function toggle() {
+            GlobalStates.overviewAppClass = "";
             // Not part of the Alt-Tab flow: Super isn't necessarily held, so
             // arrows should switch workspaces immediately after this
             GlobalStates.overviewSuperHeld = false;
@@ -351,6 +358,7 @@ Scope {
             GlobalStates.overviewOpen = false;
         }
         function open() {
+            GlobalStates.overviewAppClass = "";
             GlobalStates.overviewSuperHeld = false;
             GlobalStates.overviewOpen = true;
         }

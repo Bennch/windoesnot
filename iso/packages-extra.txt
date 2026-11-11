@@ -140,3 +140,6 @@ ufw
 fwupd
 accountsservice
 imagemagick
+brightnessctl
+firefox
+mesa-utils

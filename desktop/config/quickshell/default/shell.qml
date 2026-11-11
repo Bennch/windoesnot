@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
+import Quickshell.Services.UPower
 import Quickshell.Services.SystemTray
 import QtQuick
 import QtQuick.Controls
@@ -24,6 +25,31 @@ ShellRoot {
         appContextMenu.visible = false
         taskbarBgMenu.visible = false
     }
+
+// Passive IPC endpoints used by the Asahi gesture profile.
+IpcHandler {
+    target: "desktop-gestures"
+    function closeApps() { startMenu.visible = false }
+    function openApps() {
+        settingsMenu.visible = false
+        audioWindow.visible = false
+        bluetoothWindow.visible = false
+        networkWindow.visible = false
+        nearbyWindow.visible = false
+        calendarWindow.visible = false
+        startMenu.searchText = ""
+        startMenu.currentSection = "allApps"
+        startMenu.visible = true
+    }
+    function toggleDesktop() {
+        startMenu.visible = false
+        gestureDesktopProc.running = true
+    }
+}
+Process {
+    id: gestureDesktopProc
+    command: ["bash", Quickshell.env("HOME") + "/.config/hypr/hide_windows.sh"]
+}
 
 // Current Does window (null while it is being rebuilt).
 property var copilotWindow: copilotWindowLoader.item
@@ -239,7 +265,12 @@ PanelWindow {
 
                             // Match strategies (in order of preference):
                             // 1. Exact class match
-                            if (clientClass === appName || clientClass === execName) {
+                            if (execName === "windoesnot-terminal"
+                                    && (["kitty", "ghostty", "com.mitchellh.ghostty"].indexOf(clientClass) >= 0
+                                        || ["kitty", "ghostty", "com.mitchellh.ghostty"].indexOf(clientInitialClass) >= 0)) {
+                                matched = true
+                            }
+                            else if (clientClass === appName || clientClass === execName) {
                                 matched = true
                             }
                             // 2. Class contains app name or vice versa
@@ -1558,19 +1589,16 @@ PanelWindow {
                             Behavior on opacity { NumberAnimation { duration: 150 } }
                         }
 
-                        // Battery icon content
-                        Image {
+                        // UPower bindings update even while the battery popup is closed.
+                        BatteryTrayIcon {
                             visible: model.iconType === "battery"
                             anchors.centerIn: parent
-                            source: "img/Win11-dark/devices/symbolic/battery-symbolic.svg"
-                            width: 18; height: 18
-                            sourceSize.width: 36; sourceSize.height: 36
-                            fillMode: Image.PreserveAspectFit
-                            smooth: true; antialiasing: true; mipmap: true
+                            width: 22; height: 18
+                            available: UPower.displayDevice.ready && UPower.displayDevice.isPresent
+                            percentage: UPower.displayDevice.percentage * 100
+                            pluggedIn: !UPower.onBattery
+                            darkMode: settingsMenu.darkMode
                             opacity: trayDragArea.containsMouse ? 0.7 : 1.0
-                            layer.enabled: !settingsMenu.darkMode
-                            layer.effect: MultiEffect { colorization: 1.0; colorizationColor: "#333333" }
-                            Behavior on opacity { NumberAnimation { duration: 150 } }
                         }
 
                         // Ollama icon content
@@ -1681,6 +1709,9 @@ PanelWindow {
                                 else if (model.iconType === "bluetooth") tipText = "Bluetooth"
                 else if (model.iconType === "network") tipText = Lang.get("shell.network", settingsMenu.uiLanguage)
                                 else if (model.iconType === "battery") tipText = Lang.get("power.battery", settingsMenu.uiLanguage)
+                                    + (UPower.displayDevice.ready && UPower.displayDevice.isPresent
+                                       ? " · " + Math.round(UPower.displayDevice.percentage * 100) + "%" : "")
+                                    + (!UPower.onBattery ? (settingsMenu.uiLanguage === "de" ? " · Netzbetrieb" : " · Plugged in") : "")
                                 else if (model.iconType === "nearby") tipText = Lang.get("nearby.title", settingsMenu.uiLanguage)
                                     + " · " + Lang.get(nearbyService.state.receiving ? "nearby.receivingOn" : "nearby.receivingOff", settingsMenu.uiLanguage)
                                 else if (model.iconType === "ollama") tipText = "Ollama"
@@ -5497,6 +5528,11 @@ FloatingWindow {
                 graphicsWindow.visible = false
                 panelWindow.openGraphics()
             })
+            item.openUpdates.connect(function() {
+                graphicsWindow.visible = false
+                settingsMenu.currentCategory = "updates"
+                settingsMenu.visible = true
+            })
         }
     }
 }
@@ -5944,7 +5980,7 @@ FloatingWindow {
                         powerMenu.visible = false; powerSubMenu.visible = false
                         var term = settingsMenu.defaultTerminal.length > 0
                             ? settingsMenu.defaultTerminal
-                            : "ghostty"
+                            : "windoesnot-terminal"
                         Qt.createQmlObject('import Quickshell.Io; Process { command: ["bash", "-c", "' + term + ' -e bash -c \\"fastfetch; exec bash\\" & disown"]; running: true }', powerMenu)
                     }
                 }

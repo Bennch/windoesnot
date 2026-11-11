@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import platform
 from pathlib import Path
 import shutil
 import subprocess
@@ -36,8 +37,28 @@ def missing_tree(origin, target):
         shutil.copy2(item, dest)
 
 missing_tree(source / 'desktop/config', config)
+ghostty_missing = not (config / 'ghostty/config').exists()
 missing_tree(source / 'desktop/defaults/config', config)
+# Apple defaults belong only to Asahi; preserve existing terminal preferences.
+model_file = Path('/proc/device-tree/model')
+is_asahi = (platform.machine() == 'aarch64' and model_file.is_file()
+            and model_file.read_bytes().startswith(b'Apple '))
+if is_asahi:
+    missing_tree(source / 'desktop/defaults/asahi/config', config)
+    if ghostty_missing:
+        ghostty_config = config / 'ghostty/config'
+        with ghostty_config.open('a') as stream:
+            stream.write('\nconfig-file = asahi-keybindings.conf\n')
 data_home = Path(os.environ.get('XDG_DATA_HOME', home / '.local/share'))
+# The source installer must expose the same icon theme as the desktop package.
+# Preserve any user theme; packaged installs already provide /usr/share/icons/Win11.
+icon_theme = data_home / 'icons/Win11'
+if not Path('/usr/share/icons/Win11/index.theme').is_file() and not icon_theme.exists() and not icon_theme.is_symlink():
+    theme_source = config / 'quickshell/default/img/Win11-dark'
+    if (theme_source / 'index.theme').is_file():
+        icon_theme.parent.mkdir(parents=True, exist_ok=True)
+        icon_theme.symlink_to(theme_source, target_is_directory=True)
+
 share_defaults = source / 'desktop/defaults/share'
 if share_defaults.is_dir():
     missing_tree(share_defaults, data_home)
@@ -106,17 +127,28 @@ if desktop_dir.exists():
             except OSError:
                 pass
 sys.path.insert(0, str(config / 'hypr/lua/bin'))
-from hypr_state import encode, read_state, atomic_write
+from hypr_state import encode, read_state, atomic_write, configure_mac_keyboard
 from system_defaults import system_defaults
 defaults = system_defaults()
 state_path = config / 'hypr/lua/state.lua'
 if not state_path.exists() or args.adopt_system:
     state = read_state(config / 'hypr/lua') if state_path.exists() else json.loads((source / 'desktop/defaults/hypr-state.json').read_text())
     state['options'].update(defaults['options'])
+    if is_asahi:
+        prefs = config / 'quickshell/default/settings.txt'
+        existing = dict(line.split('=', 1) for line in prefs.read_text().splitlines() if '=' in line) if prefs.exists() else {}
+        at_key = existing.get('asahiAtKey', 'l')
+        if at_key not in ('q', 'l'):
+            at_key = 'l'
+        configure_mac_keyboard(state['options'], defaults['options']['input.kb_layout'], at_key)
+        state['asahi_at_key'] = at_key
     atomic_write(state_path, encode(state))
 settings_path = config / 'quickshell/default/settings.txt'
 if not settings_path.exists() or args.adopt_system:
     settings = dict(line.split('=', 1) for line in settings_path.read_text().splitlines() if '=' in line) if settings_path.exists() else {'borderRadius': '10'}
+    if is_asahi:
+        settings.setdefault('touchpadNaturalScroll', 'true')
+        settings.setdefault('asahiAtKey', 'l')
     settings.update(defaults['settings'])
     settings_path.write_text(''.join(f'{key}={value}\n' for key, value in settings.items()))
 for name in ['hyprbars', 'hyprdrag']:
