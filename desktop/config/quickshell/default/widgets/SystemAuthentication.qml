@@ -14,7 +14,11 @@ Scope {
         && ((settingsMenu.currentCategory === "backups"
              && flow.actionId.indexOf("org.windoesnot.snapshots.") === 0)
             || ((settingsMenu.currentCategory === "maintenance" || settingsMenu.currentCategory === "apps")
-                && flow.actionId.indexOf("org.windoesnot.system.") === 0))
+                && flow.actionId.indexOf("org.windoesnot.system.") === 0)
+            || (settingsMenu.currentCategory === "input" && settingsMenu.localeChangeBusy
+                && (flow.actionId === "org.windoesnot.system.locale-set"
+                    || flow.actionId === "org.freedesktop.locale1.set-locale"
+                    || flow.actionId === "org.freedesktop.policykit.exec")))
     readonly property bool registered: agent.item !== null && agent.item.isRegistered
     property string guardPath: "/usr/bin/windoesnot-auth-guard"
 

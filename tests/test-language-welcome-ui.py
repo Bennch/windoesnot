@@ -30,7 +30,7 @@ with tempfile.TemporaryDirectory(prefix='wdn-language-welcome-') as temp:
         shutil.copy2(SOURCE / f'settings/{name}.qml', profile / 'settings')
     shutil.copy2(SOURCE / 'LocaleNames.js', profile / 'LocaleNames.js')
     references = set(re.findall(r'settingsMenu\.(\w+)', (SOURCE / 'settings/InputCategory.qml').read_text()))
-    references |= {'pendingSystemLocale', 'previousUiLanguage', 'fileDialogOpen', 'borderRadius'}
+    references |= {'localeDialogOpen', 'localeTaskStage', 'localeTaskStep', 'localeTaskTotal', 'localeTaskDetail', 'pendingSystemLocale', 'previousUiLanguage', 'fileDialogOpen', 'borderRadius'}
     properties = []
     for name in sorted(references - {'selectLanguage'}):
         match = re.search(r'^    (?:readonly )?property (\w+) ' + name + r': (.+)$', settings, re.M)

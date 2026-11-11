@@ -258,7 +258,8 @@ class SystemTools(unittest.TestCase):
     def test_policy_has_exact_entry_points(self):
         policy=ET.parse(ROOT/'desktop/share/polkit-1/actions/org.windoesnot.system.policy')
         for action in policy.findall('action'):
-            self.assertEqual(action.findtext('defaults/allow_active'),'auth_admin_keep')
+            self.assertEqual(action.findtext('defaults/allow_active'),
+                             'auth_admin' if action.attrib['id'].endswith('.locale-set') else 'auth_admin_keep')
             annotations={a.attrib['key']:a.text for a in action.findall('annotate')}
             self.assertEqual(annotations['org.freedesktop.policykit.exec.path'],'/usr/lib/windoesnot/system_tools.py')
             self.assertEqual(action.attrib['id'],'org.windoesnot.system.'+annotations['org.freedesktop.policykit.exec.argv1'])
