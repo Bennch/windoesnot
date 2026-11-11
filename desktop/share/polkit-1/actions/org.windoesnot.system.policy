@@ -235,6 +235,20 @@
     <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
     <annotate key="org.freedesktop.policykit.exec.argv1">firewall-set</annotate>
   </action>
+  <action id="org.windoesnot.system.nearby-ports-set">
+    <description>Open or close the LocalSend port in the firewall</description>
+    <description xml:lang="de">LocalSend-Port in der Firewall öffnen oder schließen</description>
+    <message>Please confirm: Open or close the LocalSend port in the firewall</message>
+    <message xml:lang="de">Bitte bestätigen: LocalSend-Port in der Firewall öffnen oder schließen</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">nearby-ports-set</annotate>
+  </action>
   <action id="org.windoesnot.system.firmware-apply">
     <description>Install firmware updates</description>
     <description xml:lang="de">Firmware-Updates installieren</description>

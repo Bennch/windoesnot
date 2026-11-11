@@ -165,6 +165,8 @@ IpcHandler {
 PanelWindow {
     id: panelWindow
     property var audioTrayItem: null
+    // The file-sharing tray icon, so the taskbar drop area can tell whether a file drop hit it.
+    property var nearbyTrayItem: null
     anchors { bottom: true; left: true; right: true }
     implicitHeight: 45
     color: settingsMenu.darkMode ? Qt.rgba(0.11, 0.11, 0.12, 0.78) : Qt.rgba(0.95, 0.95, 0.95, 0.85)
@@ -1523,6 +1525,8 @@ PanelWindow {
                         id: trayIconDelegate
                         width: 32
                         height: 32
+                        Component.onCompleted: if (model.iconType === "nearby") panelWindow.nearbyTrayItem = trayIconDelegate
+                        Component.onDestruction: if (panelWindow.nearbyTrayItem === trayIconDelegate) panelWindow.nearbyTrayItem = null
 
                         property int visualIndex: index
                         property bool isBeingDragged: false
@@ -1670,7 +1674,7 @@ PanelWindow {
                             Rectangle {
                                 visible: nearbyService.state.receiving
                                 anchors.right: parent.right; anchors.bottom: parent.bottom
-                                width: 6; height: 6; radius: 3; color: settingsMenu.accentColor
+                                width: 6; height: 6; radius: 3; color: "#4caf50"
                             }
                         }
 
@@ -1983,16 +1987,50 @@ PanelWindow {
         anchors.fill: parent
 
         property bool isHovered: false
+        property bool nearbyHoverOpened: false
+
+        // True when the pointer of a file drag is over the file-sharing tray icon.
+        function overNearbyIcon(x, y) {
+            var icon = panelWindow.nearbyTrayItem
+            if (!icon) return false
+            var spot = icon.mapFromItem(taskbarDropArea, x, y)
+            return spot.x >= 0 && spot.x <= icon.width && spot.y >= 0 && spot.y <= icon.height
+        }
 
         onEntered: {
             isHovered = true
         }
 
+        // Dragging files over the icon opens the panel, so they can be dropped on its drop zone.
+        onPositionChanged: function(drag) {
+            if (drag.hasUrls && !nearbyHoverOpened && overNearbyIcon(drag.x, drag.y)) {
+                nearbyHoverOpened = true
+                desktopShell.openNearby()
+            }
+        }
+
         onExited: {
             isHovered = false
+            nearbyHoverOpened = false
+        }
+
+        // A drop on the icon itself opens the panel after the release, so that the release
+        // on the taskbar does not count as a click outside and close it again.
+        Timer {
+            id: nearbyOpenAfterDrop
+            interval: 250
+            onTriggered: if (!nearbyWindow.visible) desktopShell.openNearby()
         }
 
         onDropped: function(drop) {
+            // Files dropped on the file-sharing tray icon are selected there and the panel opens.
+            if (drop.hasUrls && overNearbyIcon(drop.x, drop.y)) {
+                nearbyService.command({action:"select", files: drop.urls.map(url => url.toString())})
+                nearbyOpenAfterDrop.restart()
+                isHovered = false
+                nearbyHoverOpened = false
+                return
+            }
             if (drop.hasText) {
                 var data = drop.text.split("|")
                 if (data.length >= 3) {
@@ -5513,8 +5551,9 @@ FloatingWindow {
 
     function openBattery() {
         var posProc = Qt.createQmlObject('import Quickshell.Io; Process {}', batteryWindow)
+        // Window rules take monitor-relative coordinates; clamped otherwise (see nearby).
         posProc.command = ["windoesnot-hyprctl", "keyword", "windowrule[battery-config]:move",
-            Math.round(bottomRightX()) + " " + Math.round(bottomRightY())]
+            Math.round(bottomRightX() - screen.x) + " " + Math.round(bottomRightY() - screen.y)]
         posProc.exited.connect(function() { batteryWindow.visible = true })
         posProc.running = true
     }
@@ -5640,7 +5679,7 @@ function openNearby() {
     startMenu.visible = false
     dockerWindow.visible = false
     ollamaWindow.visible = false
-    nearbyWindow.visible = true
+    nearbyWindow.openAt()
 }
 
 NearbyService {
@@ -5652,7 +5691,8 @@ IpcHandler {
     target: "windoesnot-nearby"
     function share(files: string): string {
         try {
-            const values = JSON.parse(files)
+            // Accepts one path or a JSON array; the IPC command line strips the brackets of an array.
+            const values = files.charAt(0) === "[" ? JSON.parse(files) : [files]
             if (!Array.isArray(values) || !values.length || values.length > 1000) return "invalid"
             nearbyService.command({action:"select", files:values})
             desktopShell.openNearby()
@@ -5665,10 +5705,36 @@ FloatingWindow {
     id: nearbyWindow
     visible: false
     implicitWidth: 400
-    implicitHeight: 580
+    // Follows the panel's real height (short when idle, up to 580 with transfers and history).
+    implicitHeight: nearbyLoader.height
     color: "transparent"
     title: "quickshell-nearby"
     screen: networkWindow.screen
+
+    // Bottom-right above the taskbar (45 px). Like the battery popup: the rule is set
+    // before the window maps, and a live window is moved when its height changes.
+    function bottomRightX() { return screen ? screen.x + screen.width - implicitWidth - 8 : 0 }
+    // Uses the window's real height: the implicit height can lead the size Hyprland applied.
+    function bottomRightY() { return screen ? screen.y + screen.height - 45 - height : 0 }
+    function openAt() {
+        if (visible) return
+        var posProc = Qt.createQmlObject('import Quickshell.Io; Process {}', nearbyWindow)
+        // Window rules take coordinates relative to the monitor; dispatch takes global ones.
+        posProc.command = ["windoesnot-hyprctl", "keyword", "windowrule[nearby-config]:move",
+            Math.round(bottomRightX() - screen.x) + " " + Math.round(bottomRightY() - screen.y)]
+        posProc.exited.connect(function() { nearbyWindow.visible = true; nearbyPlaceTimer.restart() })
+        posProc.running = true
+    }
+    // Moves the mapped window to its final position once the panel has its real height.
+    function placeLive() {
+        nearbyPlaceProc.command = ["windoesnot-hyprctl", "dispatch", "movewindowpixel",
+            "exact " + Math.round(bottomRightX()) + " " + Math.round(bottomRightY()) + ",title:^(quickshell-nearby)$"]
+        nearbyPlaceProc.running = true
+    }
+    Timer { id: nearbyPlaceTimer; interval: 150; repeat: false; onTriggered: nearbyWindow.placeLive() }
+    Process { id: nearbyPlaceProc; running: false }
+    onImplicitHeightChanged: if (visible) nearbyPlaceTimer.restart()
+    onHeightChanged: if (visible) nearbyPlaceTimer.restart()
 
     function syncNearbyGrab() {
         panelWindow.syncFocusGrab(nearbyFocusGrab, visible && !(nearbyLoader.item && nearbyLoader.item.dialogOpen))
@@ -5684,9 +5750,10 @@ FloatingWindow {
         onCleared: nearbyWindow.visible = false
     }
 
+    // Not anchored to the window (see the battery popup): anchors would force the panel
+    // to the window height, which is itself derived from the panel.
     Loader {
         id: nearbyLoader
-        anchors.fill: parent
         source: "widgets/NearbyPanel.qml"
 
         onLoaded: {

@@ -28,7 +28,6 @@ def window_rules(monitor, settings):
         'bluetooth-config': (320, 450, 'right'),
         'network-config': (320, 500, 'right'),
         'graphics-config': (340, 410, 'right'),
-        'nearby-config': (400, 580, 'right'),
         # Seed the rule before the first context-menu click.  The click handler
         # still supplies the icon-specific position and actual menu height.
         'appcontextmenu-config': (220, 129, 'bottom'),

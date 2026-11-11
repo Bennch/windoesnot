@@ -34,6 +34,29 @@ API = '/api/localsend/v2/'
 CHUNK = 65536
 MAX_JSON = 1024 * 1024
 MAX_FILES = 1000
+UFW_RULES = Path('/etc/ufw/user.rules')
+UFW_CONF = Path('/etc/ufw/ufw.conf')
+_ports = {'stamp': None, 'open': None}
+
+
+def ports_open():
+    """True when LocalSend's port accepts connections; None when ufw is absent.
+    user.rules and ufw.conf are readable without a password, so the status needs no prompt.
+    A disabled firewall accepts everything, so it counts as open."""
+    try:
+        stamp = (UFW_RULES.stat().st_mtime_ns, UFW_CONF.stat().st_mtime_ns)
+    except OSError:
+        return None
+    if _ports['stamp'] != stamp:
+        try:
+            rules = UFW_RULES.read_text()
+            enabled = 'ENABLED=yes' in UFW_CONF.read_text()
+        except OSError:
+            return None
+        found = {proto for proto in ('tcp', 'udp')
+                 if f'-A ufw-user-input -p {proto} --dport {PORT} -j ACCEPT' in rules}
+        _ports.update(stamp=stamp, open=(not enabled) or found == {'tcp', 'udp'})
+    return _ports['open']
 
 
 def private_write(path, data):
@@ -511,6 +534,24 @@ class Adapter:
             subprocess.Popen(['xdg-open', str(self.downloads)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         elif action == 'clear':
             self.selected = []
+        elif action == 'ports':
+            if getattr(self, 'ports_busy', False):
+                raise ValueError('busy')
+            value = data.get('value') is True
+            self.ports_busy = True
+            def run_ports():
+                try:
+                    result = subprocess.run(['/usr/bin/pkexec', '--disable-internal-agent',
+                                             '/usr/lib/windoesnot/system_tools.py', 'nearby-ports-set',
+                                             json.dumps({'open': value})], capture_output=True, text=True, timeout=180)
+                    if result.returncode != 0:
+                        self.error = 'ports'
+                except (OSError, subprocess.SubprocessError):
+                    self.error = 'ports'
+                finally:
+                    self.ports_busy = False
+                    self.dirty = True
+            threading.Thread(target=run_ports, daemon=True).start()
         else:
             raise ValueError('invalid-files')
         self.dirty = True
@@ -518,7 +559,7 @@ class Adapter:
     def snapshot(self):
         with self.lock:
             return {'receiving': self.receiving and self.server is not None, 'requestedReceiving': self.receiving,
-                    'alias': self.alias, 'error': self.error,
+                    'alias': self.alias, 'error': self.error, 'portsOpen': ports_open(),
                     'devices': [p for p in self.peers.values() if time.monotonic() - p['lastSeen'] < 45],
                     'selected': [p.name for p in self.selected],
                     'incoming': self.incoming.public() if self.incoming else None,
