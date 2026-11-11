@@ -1,5 +1,7 @@
 #include "barDeco.hpp"
 
+#include <format>
+
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/desktop/state/FocusState.hpp>
 #include <hyprland/src/desktop/state/WindowState.hpp>
@@ -318,6 +320,10 @@ void CHyprBar::handleUpEvent(Event::SCallbackInfo& info) {
     m_bCancelledDown = false;
 
     if (m_bDraggingThis) {
+        if (m_bSnapDragEventSent) {
+            (void)Config::Actions::event(std::format("hyprdrag-movestop>>0x{:x}", reinterpret_cast<uintptr_t>(m_pWindow.lock().get())));
+            m_bSnapDragEventSent = false;
+        }
         g_layoutManager->endDragTarget();
         m_bDraggingThis = false;
         if (m_bTouchEv)
@@ -339,6 +345,8 @@ void CHyprBar::handleMovement() {
         m_iResizeCorner  = Layout::CORNER_NONE;
     } else {
         g_layoutManager->beginDragTarget(m_pWindow.lock()->layoutTarget(), MBIND_MOVE);
+        (void)Config::Actions::event(std::format("hyprdrag-movestart>>0x{:x}", reinterpret_cast<uintptr_t>(m_pWindow.lock().get())));
+        m_bSnapDragEventSent = true;
     }
     m_bDraggingThis = true;
     LOG(Log::DEBUG, "[hyprbars] Dragging initiated on {:x}", (uintptr_t)m_pWindow.lock().get());

@@ -111,6 +111,7 @@ class CHyprBar : public IHyprWindowDecoration {
     int                 m_iLastScaledTextSize = 0;
 
     bool                m_bDraggingThis  = false;
+    bool                m_bSnapDragEventSent = false;
     bool                m_bTouchEv       = false;
     bool                m_bDragPending   = false;
     bool                m_bResizePending = false;
