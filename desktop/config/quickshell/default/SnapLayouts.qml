@@ -15,6 +15,7 @@ Scope {
     property string targetMonitor: ""
     property int anchorX: -1
     property int anchorY: -1
+    property bool menuHovered: false
 
     function openOn(monitorName, x, y) {
         targetMonitor = monitorName || ""
@@ -25,6 +26,23 @@ Scope {
 
     function close() {
         opened = false
+        menuHovered = false
+        closeTimer.stop()
+    }
+
+    function scheduleClose() {
+        if (opened && !menuHovered)
+            closeTimer.restart()
+    }
+
+    Timer {
+        id: closeTimer
+        interval: 260
+        repeat: false
+        onTriggered: {
+            if (!root.menuHovered)
+                root.close()
+        }
     }
 
     function choose(layout) {
@@ -68,7 +86,13 @@ Scope {
                 border.color: root.settingsMenu ? Qt.rgba(root.settingsMenu.accentColor.r, root.settingsMenu.accentColor.g, root.settingsMenu.accentColor.b, 0.7) : "#fe6f2d"
 
                 // Prevent the backdrop click handler from closing the picker.
-                MouseArea { anchors.fill: parent; onClicked: function(mouse) { mouse.accepted = true } }
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onEntered: { root.menuHovered = true; closeTimer.stop() }
+                    onExited: { root.menuHovered = false; root.scheduleClose() }
+                    onClicked: function(mouse) { mouse.accepted = true }
+                }
 
                 Text {
                     id: heading
