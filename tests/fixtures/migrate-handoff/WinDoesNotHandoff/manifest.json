@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "locale": "de_DE.UTF-8",
+  "windows_version": "Windows 11 24H2",
+  "profiles": {"Ada": ["Pictures", "Firefox"]},
+  "wlan": true
+}

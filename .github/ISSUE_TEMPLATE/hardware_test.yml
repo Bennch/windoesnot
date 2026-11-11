@@ -1,0 +1,60 @@
+name: Hardware test / Hardwaretest
+description: Tell us what works on your computer, including partial tests. English or German welcome.
+title: "[Hardware] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A live USB test is useful; installing is optional. Only report what you actually tried.
+        Ein Live-USB-Test hilft bereits; eine Installation ist freiwillig. Berichte nur, was du wirklich geprüft hast.
+        You can write in German or English. Do not include serial numbers or private logs.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      value: "0.1.0-18"
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Computer, CPU and GPU / Rechner, Prozessor und Grafik
+      description: Include the model if known. Exact specifications are optional.
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Test environment / Testumgebung
+      options:
+        - Real hardware / Echte Hardware
+        - Virtual machine / Virtuelle Maschine
+    validations:
+      required: true
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Overall result / Gesamtergebnis
+      options:
+        - Works in my test / Funktioniert in meinem Test
+        - Partly works / Funktioniert teilweise
+        - Could not start / Start nicht möglich
+    validations:
+      required: true
+  - type: textarea
+    id: results
+    attributes:
+      label: What did you test? / Was hast du getestet?
+      description: Replace each entry with works, fails, or not tested. Installation is optional; keep untested entries as they are.
+      value: |
+        - Live boot / Live-Start: not tested / nicht getestet
+        - Display and scaling / Anzeige und Skalierung: not tested / nicht getestet
+        - Keyboard and mouse / Tastatur und Maus: not tested / nicht getestet
+        - Wi-Fi or Ethernet / WLAN oder LAN: not tested / nicht getestet
+        - Sound / Ton: not tested / nicht getestet
+        - Settings and Store / Einstellungen und Store: not tested / nicht getestet
+        - Installation, reboot and login / Installation, Neustart und Anmeldung: not tested / nicht getestet
+        - Suspend and resume / Standby und Aufwachen: not tested / nicht getestet
+        - Other observations / Weitere Beobachtungen:
+    validations:
+      required: true

@@ -1,0 +1,13 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = systemd
+Target = refind
+Target = limine
+Target = windoesnot-boot-language
+
+[Action]
+Description = Prepare version-matched multilingual bootloader files...
+When = PostTransaction
+Exec = /usr/lib/windoesnot/boot_language.py prepare

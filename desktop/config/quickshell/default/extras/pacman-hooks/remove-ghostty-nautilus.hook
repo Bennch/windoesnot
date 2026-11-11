@@ -1,0 +1,11 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = ghostty
+Target = nautilus-python
+
+[Action]
+Description = Remove ghostty Nautilus extension (WindoesNot uses its own)
+When = PostTransaction
+Exec = /bin/rm -f /usr/share/nautilus-python/extensions/ghostty.py

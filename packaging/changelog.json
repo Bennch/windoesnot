@@ -1,0 +1,277 @@
+{
+  "comment": "WinDoesNot changes per desktop package release, newest first. Shown in Settings > Updates; entries marked unreleased are never offered as an update.",
+  "releases": [
+    {
+      "version": "0.1.0-27",
+      "date": "2026-11-09",
+      "de": [
+        "Drucker werden automatisch erkannt. Die Wartung zeigt eine Drucker-Karte mit dem Status des Druckers.",
+        "Die Firewall ist an. Die Freigabe für Namensauflösung im Netz (mDNS) bleibt offen, damit Drucker und andere Geräte gefunden werden.",
+        "Neue Konto-Seite in den Einstellungen: Passwort ändern und Profilbild festlegen.",
+        "Neue Standard-Apps im Software-Katalog: Bildbetrachter, Kalender und Kontakte.",
+        "Die Einstellungen haben weniger Seiten. Konto und Info sind zusammengelegt.",
+        "VMware-Gäste nutzen Software-Rendering. Der Bildschirm bleibt dadurch nicht mehr schwarz.",
+        "Die Wartung zeigt die Firmware-Version deines Rechners.",
+        "Installer und Start: Ein Boot-Fehler beim Zeitdienst ist behoben. Der Start wartet nicht mehr auf die Zeit-Synchronisation."
+      ],
+      "en": [
+        "Printers are detected automatically. Maintenance shows a printer card with the printer status.",
+        "The firewall is on. Network name discovery (mDNS) stays allowed, so printers and other devices can be found.",
+        "New account page in Settings: change your password and set a profile picture.",
+        "New default apps in the software catalog: image viewer, calendar and contacts.",
+        "Settings has fewer pages. Account and info are combined.",
+        "VMware guests use software rendering. The screen no longer stays black.",
+        "Maintenance shows the firmware version of your computer.",
+        "Installer and boot: a boot error in the time service is fixed. Startup no longer waits for time synchronization."
+      ]
+    },
+    {
+      "version": "0.1.0-26",
+      "date": "2026-11-09",
+      "de": [
+        "Systemupdates bleiben möglich: Die Fensterleisten (Hyprland-Plugins) und der eingebettete Terminal hängen nicht mehr an einer festen Hyprland-, Qt- oder C++-Version. Nach einem Update werden sie automatisch neu gebaut. Der WinDoesNot-Update-Kanal ist ab Werk eingerichtet.",
+        "Im Store warnt eine Sperre, wenn ein Systemupdate schneller ist als unsere Fensterleisten. Du kannst warten oder trotzdem aktualisieren.",
+        "Es gibt eine englische und eine deutsche ISO. Startmenü, Installer, Anmeldebildschirm und die Bootmenüs folgen der gewählten Sprache. Mit dem Startparameter windoesnot.lang=en oder de lässt sich die Sprache beim Start ändern.",
+        "Die Taskleiste kommt zurück, wenn du das Kabel des Hauptmonitors ziehst und wieder einsteckst. Neu im Kontextmenü von Desktop und Taskleiste: „Oberfläche neu starten“.",
+        "Die Kontextmenüs auf dem Desktop haben keinen Scrollbalken mehr. „Neu“ öffnet ein eigenes Menü daneben, und die Menüs folgen Hell/Dunkel, Akzentfarbe und Eckenradius aus den Einstellungen.",
+        "Neu im Installer: Symbol für die GTA-2-Anleitung.",
+        "Neue Boot-Themes für rEFInd, Limine und GRUB mit WinDoesNot-Logo, Hintergrund und gut sichtbarer Auswahl. In Einstellungen > Hintergrund lassen sie sich ein- und ausschalten. Der Schalter erkennt auch GRUB nach der Installation.",
+        "Windows-Umzug: Dateien vom Windows-Desktop landen im richtigen Ordner, die Größe wird in KiB angezeigt, es gibt einen Hinweis zu Passwörtern, und das falsche Warndreieck ist weg.",
+        "Webapps starten als eigene Fenster ohne Browserleiste und mit eigenem Icon.",
+        "Die ArtCraft-Apps (Launcher, PdfCraft, PhotoCraft, VectorCraft, FilmCraft, Alpha) stehen zur Auswahl und werden nach der Installation geladen.",
+        "Das Terminal begrüßt dich mit einem Schriftzug und Systeminfos. Abschalten geht in Einstellungen > Apps > Shell.",
+        "Desktop: Kopieren, Ausschneiden und Einfügen (Strg+C, Strg+X, Strg+V und Menü) sowie Ablegen aus dem Dateimanager. Die Icons springen beim Minimieren nicht mehr.",
+        "Der Alt+Tab-Wechsler ist jetzt Version 4.5.0 und erscheint auf dem Hauptmonitor. Die Akzentfarbe gilt sofort.",
+        "Die Arbeitsflächen-Übersicht ist aktualisiert und folgt Akzentfarbe und Eckenradius sofort.",
+        "Die Oberfläche startet auf dem Hauptmonitor, ohne dass sie von einem anderen Monitor herüberspringt.",
+        "Installer: Der Starter wird nach der Installation entfernt, das Boot-Menü der Live-ISO ist gut lesbar, und die Version steht im Banner.",
+        "Neues Icon für die Grafik-App.",
+        "Wenn der Hintergrund-Dienst hyprpaper ohne 3D-Beschleunigung abstürzt, gibt es jetzt einen Ersatz."
+      ],
+      "en": [
+        "System updates stay possible: the window bars (Hyprland plugins) and the embedded terminal no longer depend on a fixed Hyprland, Qt or C++ library version. They are rebuilt automatically after an update. The WinDoesNot update channel is set up from the start.",
+        "A guard in the Store warns when a system update outruns our window bars. You can wait or update anyway.",
+        "There is an English and a German ISO. The start menu, installer, login screen and boot menus follow the chosen language. The kernel parameter windoesnot.lang=en or de changes the language at boot.",
+        "The taskbar comes back when you unplug and replug the main monitor's cable. New in the desktop and taskbar context menus: \"Restart interface\".",
+        "The desktop context menus no longer have a scrollbar. \"New\" opens its own menu next to it, and the menus follow light/dark, accent colour and corner radius from the settings.",
+        "New in the installer: icon for the GTA 2 guide.",
+        "New boot themes for rEFInd, Limine and GRUB with the WinDoesNot logo, a background and a clearly visible selection. You can switch them on and off in Settings > Background. The switch also detects GRUB after installation.",
+        "Windows migration: files from the Windows desktop land in the right folder, sizes are shown in KiB, there is a note about passwords, and the false warning triangle is gone.",
+        "Web apps start as their own windows without a browser bar and with their own icon.",
+        "The ArtCraft apps (Launcher, PdfCraft, PhotoCraft, VectorCraft, FilmCraft, Alpha) can be selected and are downloaded after installation.",
+        "The terminal greets you with a banner and system info. You can turn it off in Settings > Apps > Shell.",
+        "Desktop: copy, cut and paste (Ctrl+C, Ctrl+X, Ctrl+V and menu) and dropping files from the file manager. Icons no longer jump when you minimize.",
+        "The Alt+Tab switcher is now version 4.5.0 and appears on the main monitor. The accent colour applies immediately.",
+        "The workspace overview is updated and follows accent colour and corner radius immediately.",
+        "The interface starts on the main monitor without jumping over from another monitor.",
+        "Installer: the launcher is removed after installation, the live ISO boot menu is easy to read, and the version is shown in the banner.",
+        "New icon for the Graphics app.",
+        "If the wallpaper service hyprpaper crashes without 3D acceleration, a fallback now takes over."
+      ]
+    },
+    {
+      "version": "0.1.0-25",
+      "date": "2026-11-07",
+      "de": [
+        "Der Installer hat eine neue Seite „Über WinDoesNot“, und das Logo auf der Willkommensseite ist kleiner.",
+        "Mehr Programme im Installer, auch Google Chrome, Sublime Text und KI-Werkzeuge. Sie werden nach der Installation geladen, sobald du online bist. Web-Apps wie Netflix oder YouTube werden als eigene Starter angelegt.",
+        "Die Standardordner (Dokumente, Bilder und so weiter) folgen der Systemsprache, auch wenn du sie später umstellst.",
+        "Flatpak mit Flathub ist vorbereitet, dazu kommt ein zusätzliches Icon-Theme, damit der Store mehr App-Symbole zeigt.",
+        "Der Store zeigt Programme aus dem Installer, die noch auf ihre Installation warten.",
+        "Das Audio-Widget hat einen Mixer: Lautstärke und Stumm für jede Anwendung einzeln, umschaltbar mit den Ausgabegeräten. Das Lautstärke-Symbol entspricht jetzt dem in der Taskleiste.",
+        "Das Grafik-Symbol in der Taskleiste zeigt mit einem Klick Temperatur, Auslastung, Lüfter, Leistung und Speicher der Grafikkarte, mit Schalter für den Grafikdienst. Ein Doppelklick öffnet weiter die Grafikeinstellungen.",
+        "Im Kontextmenü des Startsymbols öffnet „Installierte Apps“ jetzt den WinDoesNot Store direkt auf der Seite „Installiert“."
+      ],
+      "en": [
+        "The installer has a new page \"About WinDoesNot\", and the logo on the welcome page is smaller.",
+        "More apps in the installer, including Google Chrome, Sublime Text and AI tools. They are installed after setup, once you are online. Web apps such as Netflix or YouTube are created as their own launchers.",
+        "The standard folders (Documents, Pictures and so on) follow the system language, also when you change it later.",
+        "Flatpak with Flathub is prepared, plus an additional icon theme so the Store shows more app icons.",
+        "The Store lists apps from the installer that are still waiting to be installed.",
+        "The audio widget has a mixer: volume and mute for each application, switchable with the output devices. The volume icon now matches the one in the taskbar.",
+        "The graphics icon in the taskbar shows temperature, load, fan, power and memory of the graphics card with one click, with a switch for the graphics service. A double-click still opens the graphics settings.",
+        "In the Start button's context menu, \"Installed apps\" now opens the WinDoesNot Store directly on the Installed page."
+      ]
+    },
+    {
+      "version": "0.1.0-24",
+      "date": "2026-11-06",
+      "de": [
+        "Neue App „Grafik“ (auf Basis von LACT): Grafikkarten von AMD, NVIDIA und Intel steuern und überwachen, mit Lüftern, Powerlimit, Takt und Temperaturen. Sie ist im WinDoesNot-Stil gestaltet und folgt Sprache, Hell/Dunkel und Akzentfarbe aus den Einstellungen.",
+        "Die Taskleiste hat ein Grafik-Symbol (Doppelklick öffnet die Grafik-App, ein- und ausblendbar unter Einstellungen → Apps). App-Symbole im Tray behalten ihre eigenen Rechtsklick-Menüs; das Audio-App-Menü öffnet sich über das vorhandene Lautstärke-Symbol. Das Lautstärke-Symbol zeigt jetzt die Lautstärke.",
+        "Store: Updates sind nach Quelle und Thema sortiert (Programme, System & Treiber, Werkzeuge, Bibliotheken), die Startseite hat eine Schnellsuche mit Treffern beim Tippen sowie beliebte und im Trend liegende Apps von Flathub. Die Detailseite zeigt Screenshots, formatierte Beschreibung und weitere Infos und weist auf nötige Systemupdates hin.",
+        "Store: Flatpak wird bei neuen Installationen bevorzugt, wenn verfügbar. Ein Fortschrittsbalken mit aufklappbarem Protokoll, eine optionale Sofortausführung und aktualisierte Installationsanzeigen erleichtern die Paketverwaltung.",
+        "Das Startmenü liest neue Programme beim Öffnen ein und zeigt lange App-Namen vollständig als Hinweis an.",
+        "Netzwerk, Bluetooth und Audio haben das einheitliche WinDoesNot-Aussehen mit Logo. Bluetooth startet mit der Geräteliste, die WLAN-Seite fehlt nicht mehr, wenn ein Ethernet-Anschluss vorhanden ist, und Audio folgt Sprache, Hell/Dunkel und Akzentfarbe der Einstellungen und startet auf „Players“.",
+        "Die geteilte Zwischenablage mit virtuellen Maschinen funktioniert jetzt auch in QEMU, in beide Richtungen."
+      ],
+      "en": [
+        "New app “Graphics” (based on LACT): control and monitor AMD, NVIDIA and Intel graphics cards, with fans, power limit, clocks and temperatures. It follows the WinDoesNot look and takes language, light/dark and accent colour from Settings.",
+        "The taskbar has a graphics icon (double-click opens the Graphics app; show or hide it under Settings → Apps). App icons in the tray keep their own right-click menus; the Audio app menu opens from the existing volume icon. The volume icon now shows the volume.",
+        "Store: updates are sorted by source and topic (programs, system & drivers, tools, libraries); the home page has a quick search with results while typing, plus popular and trending apps from Flathub. The details page shows screenshots, a formatted description and more information, and says when a system update is required.",
+        "Store: Flatpak is preferred for new installs when available. A progress bar with expandable logs, optional immediate actions and refreshed installation states make package management clearer.",
+        "The Start menu refreshes newly installed apps when opened and shows full names for long app labels in tooltips.",
+        "Network, Bluetooth and Audio share the WinDoesNot look with the logo. Bluetooth starts with the device list, the Wi-Fi page is no longer hidden when an Ethernet port exists, and Audio follows language, light/dark and accent colour from Settings and opens on “Players”.",
+        "The shared clipboard with virtual machines now also works in QEMU, in both directions."
+      ]
+    },
+    {
+      "version": "0.1.0-23",
+      "date": "2026-10-31",
+      "de": [
+        "Die Einstellungen haben eine Volltextsuche (Strg+F). Sie findet Einstellungen in jeder Sprache, springt zum Schalter und hebt ihn hervor.",
+        "Die Einstellungen sind neu gegliedert: „Taskleiste & Startmenü“, „Eingabe, Sprache & Zeit“, und Fenster-Radius und -Abstände stehen unter „Aussehen“.",
+        "Die Info-Seite zeigt die installierte Version statt einer festen Zahl.",
+        "Die Wetter- und Startmenü-Einstellungen sind übersetzt und erscheinen auch auf Englisch.",
+        "Behoben: GTK-3-Programme meldeten Fehler wegen der Nautilus-Farbregeln.",
+        "Bereits in 0.1.0-22 enthalten, dort aber nicht aufgeführt: Wetter nur mit Standort, sofortige Wahl der Terminal-Shell sowie überarbeitete Store-, Bluetooth- und Netzwerk-Fenster."
+      ],
+      "en": [
+        "Settings has a full-text search (Ctrl+F). It finds settings in any language, jumps to the switch and highlights it.",
+        "Settings are regrouped: “Taskbar & start menu”, “Input, language & time”, and window radius and gaps now sit under “Appearance”.",
+        "The About page shows the installed version instead of a fixed number.",
+        "The weather and start menu settings are translated and also appear in English.",
+        "Fixed: GTK 3 programs reported errors because of the Nautilus color rules.",
+        "Already in 0.1.0-22 but not listed there: weather only with a location, instant terminal shell choice, and reworked Store, Bluetooth and Network windows."
+      ]
+    },
+    {
+      "version": "0.1.0-22",
+      "date": "2026-10-31",
+      "de": [
+        "Apps ohne eigenes Symbol zeigen ein passendes Ersatz-Symbol statt eines Platzhalterbilds.",
+        "Das Rechtsklick-Menü einer App im Startmenü schließt sich mit jedem Klick ins Menü.",
+        "Markierte Ordner und Dateien in Nautilus folgen der Akzentfarbe aus den Einstellungen. Beim Farbwechsel werden offene Nautilus-Fenster geschlossen.",
+        "Der Audio-Mixer in der Taskleiste öffnet WinDoesNot Audio, mit mitgelieferten EasyEffects-Voreinstellungen.",
+        "Akku und Energie: Helligkeit auch über DDC/CI und ein Augenschonmodus.",
+        "Bilder und PDFs öffnen in eigenen Betrachtern. Nautilus hat eine Seitenleiste mit den üblichen Ordnern und folgt der Systemsprache.",
+        "Neuer Anmeldebildschirm „Silent“: zeigt dein aktuelles Hintergrundbild vom Hauptmonitor."
+      ],
+      "en": [
+        "Apps without their own icon show a matching stand-in icon instead of a placeholder image.",
+        "The right-click menu of an app in the start menu closes with any click inside the menu.",
+        "Selected folders and files in Nautilus follow the accent color from Settings. Changing the color closes open Nautilus windows.",
+        "The audio mixer in the taskbar opens WinDoesNot Audio, with bundled EasyEffects presets.",
+        "Battery and power: brightness via DDC/CI as well, and an eye-care (night light) mode.",
+        "Images and PDFs open in dedicated viewers. Nautilus has a sidebar with the usual folders and follows the system language.",
+        "New login screen “Silent”: shows your current wallpaper from the main monitor."
+      ]
+    },
+    {
+      "version": "0.1.0-21",
+      "date": "2026-10-29",
+      "de": [
+        "Neue Windows-nahe Tastenkombinationen: Sperren, Desktop anzeigen, Task-Manager und Einstellungen sind direkt erreichbar.",
+        "Die Einstellungen enthalten jetzt eine eigene Akku-/Energie-Seite und eine konsolidierte, übersichtlichere Navigation.",
+        "Kontextmenüs im Tray und an der Taskleiste werden passend am jeweiligen Symbol verankert und schließen wieder zuverlässig bei Außenklicks.",
+        "Nautilus übernimmt die WinDoesNot-Akzentfarbe auch in der Dateiverwaltung.",
+        "Die nativen Hyprland-Plugins hyprbars und hyprdrag sind auf die aktuelle Hyprland-API portiert."
+      ],
+      "en": [
+        "New Windows-like keyboard shortcuts: lock, show desktop, Task Manager and Settings are directly accessible.",
+        "Settings now includes a dedicated battery/power page and a more consistent, consolidated navigation.",
+        "Tray and taskbar context menus are anchored to their respective icons and close reliably when clicking outside.",
+        "Nautilus now uses the WinDoesNot accent color in the file manager as well.",
+        "The native Hyprland plugins hyprbars and hyprdrag are ported to the current Hyprland API."
+      ]
+    },
+    {
+      "version": "0.1.0-19",
+      "date": "2026-10-24",
+      "de": [
+        "Die Desktop-Pakete enthalten den öffentlichen WinDoesNot-Release-Schlüssel für die Einrichtung signierter Paketupdates. Der Updatekanal muss einmal eingerichtet werden.",
+        "Die Update-Seite nennt direkt eingerichtete Desktop-Dateien jetzt „lokale Desktop-Installation“."
+      ],
+      "en": [
+        "The desktop packages include the public WinDoesNot release key for setting up signed package updates. The update channel needs a one-time setup.",
+        "The update page now calls directly configured desktop files a “local desktop installation”."
+      ]
+    },
+    {
+      "version": "0.1.0-18",
+      "date": "2026-10-24",
+      "de": [
+        "Bei der Installation erkennt WinDoesNot deinen Prozessor und schaltet die passenden optimierten CachyOS-Pakete ein (x86-64-v3, v4 oder Zen 4/5).",
+        "Grafiktreiber für NVIDIA, AMD, Intel und virtuelle Maschinen werden automatisch eingerichtet, auch ohne Internet, inklusive 32-Bit-Treibern für Spiele.",
+        "Die schnellsten Download-Server werden automatisch gewählt: online schon bei der Installation, sonst bei der ersten Internetverbindung.",
+        "Nach dem ersten Anmelden zeigt eine Meldung, was erkannt und eingerichtet wurde.",
+        "Store: Installationsquelle wählen (Paketquelle, Flathub, AUR) und AUR-Pakete vor dem Bauen prüfen.",
+        "Neue Einstellungsseiten „Kernel und Leistung“ (Kernel wechseln, sched-ext) und „Wartung“ (Server, Zwischenspeicher, Schlüsselbund, Treiber).",
+        "Wiederherstellungspunkte vor und nach jeder Programmänderung; mit GRUB, Limine und rEFInd lässt sich ein früherer Stand aus dem Bootmenü starten.",
+        "Fünf mitgelieferte Hintergründe, direkt in den Einstellungen auswählbar."
+      ],
+      "en": [
+        "During installation WinDoesNot detects your processor and enables the matching optimized CachyOS packages (x86-64-v3, v4 or Zen 4/5).",
+        "Graphics drivers for NVIDIA, AMD, Intel and virtual machines are set up automatically, even offline, including 32-bit drivers for games.",
+        "The fastest download servers are chosen automatically: during an online installation, otherwise on the first internet connection.",
+        "After the first login a notification shows what was detected and set up.",
+        "Store: choose the installation source (repositories, Flathub, AUR) and review AUR packages before building.",
+        "New settings pages “Kernel and performance” (switch kernels, sched-ext) and “Maintenance” (mirrors, cache, keyring, drivers).",
+        "Restore points before and after every program change; with GRUB, Limine and rEFInd an earlier state can be started from the boot menu.",
+        "Five bundled wallpapers, selectable right in Settings."
+      ]
+    },
+    {
+      "version": "0.1.0-17",
+      "date": "2026-10-23",
+      "de": [
+        "Updates in einfacher Sprache: ein Knopf für alles, getrennt nach WinDoesNot, Programmen und System, mit Hinweis auf Neustart.",
+        "„Jetzt aktualisieren“ öffnet direkt den Store mit allen Updates und wichtigen Arch-Hinweisen.",
+        "Backups heißen jetzt Wiederherstellungspunkte und erklären, was gesichert wird und was nicht.",
+        "Does sitzt angeheftet direkt über der Taskleiste und lässt sich nach dem Lösen wieder normal schließen.",
+        "Der Anmeldebildschirm zeigt die richtige Tastaturbelegung; der Startbildschirm zeigt das Logo auch beim Live-System."
+      ],
+      "en": [
+        "Updates in plain language: one button for everything, grouped into WinDoesNot, programs and system, with restart hints.",
+        "“Update now” opens the Store with all updates and important Arch notices right away.",
+        "Backups are now called restore points and explain what is and is not saved.",
+        "Does sits pinned right above the taskbar and closes normally again after detaching.",
+        "The login screen shows the correct keyboard layout; the live system shows the boot logo."
+      ]
+    },
+    {
+      "version": "0.1.0-16",
+      "date": "2026-10-23",
+      "de": [
+        "Der KI-Assistent heißt jetzt Does und hat ein eigenes Symbol.",
+        "Ein gelöstes Does-Fenster lässt sich nach dem Schließen wieder öffnen.",
+        "Die Update-Seite der Einstellungen zeigt echte Daten: WinDoesNot-Neuerungen, Systemupdates, Arch-Neuigkeiten und ob ein Neustart nötig ist.",
+        "Backups: Die Passwortabfrage erscheint direkt in den Einstellungen; die Snapshot-Liste braucht kein Passwort mehr.",
+        "AUR lässt sich gemeinsam in Store und Desktop-Einstellungen schalten; Updates und Suchergebnisse folgen der Auswahl."
+      ],
+      "en": [
+        "The AI assistant is now called Does and has its own icon.",
+        "A detached Does window opens again after it was closed.",
+        "The settings update page shows real data: WinDoesNot changes, system updates, Arch news and whether a restart is needed.",
+        "Backups: the password prompt appears inside the settings; listing snapshots no longer asks for a password.",
+        "AUR can be toggled consistently from the Store and desktop settings; updates and search results follow the preference."
+      ]
+    },
+    {
+      "version": "0.1.0-15",
+      "date": "2026-10-23",
+      "de": [
+        "Das Terminal im KI-Panel lädt wieder.",
+        "Neue Benutzer sehen schon bei der ersten Anmeldung die richtigen Symbole.",
+        "Kein Hyprland-Spruch mehr im Hintergrund und keine Hyprland-Update-Meldung nach Updates."
+      ],
+      "en": [
+        "The terminal in the AI panel loads again.",
+        "New users get the right icons from their first login.",
+        "No Hyprland splash text in the background and no Hyprland update notice after upgrades."
+      ]
+    },
+    {
+      "version": "0.1.0-14",
+      "date": "2026-10-22",
+      "de": [
+        "Der WinDoesNot Store hat eine feste Schaltfläche in der Taskleiste (in den Einstellungen abschaltbar).",
+        "Während der Sitzung installierte Programme bekommen sofort ihr Symbol in der Taskleiste."
+      ],
+      "en": [
+        "The WinDoesNot Store has a fixed taskbar button (can be turned off in the settings).",
+        "Programs installed during a session get their taskbar icon right away."
+      ]
+    }
+  ]
+}

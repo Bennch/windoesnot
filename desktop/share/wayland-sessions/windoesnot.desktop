@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=WinDoesNot
+Comment=Hyprland with the WinDoesNot Quickshell desktop
+Exec=windoesnot-session
+Icon=windoesnot
+Type=Application
+DesktopNames=Hyprland
+Keywords=tiling;wayland;desktop;

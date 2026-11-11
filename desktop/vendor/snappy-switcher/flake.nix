@@ -1,0 +1,128 @@
+{
+  description = "Snappy Switcher - A fast, keyboard-driven window switcher for Wayland";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, nixpkgs, flake-utils }:
+    let
+      # System-independent overlay export
+      overlay = final: prev: {
+        snappy-switcher = self.packages.${final.system}.default;
+      };
+    in
+    {
+      overlays.default = overlay;
+    }
+    //
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages.${system};
+      in
+      rec {
+        packages = rec {
+          snappy-switcher = pkgs.stdenv.mkDerivation {
+            pname = "snappy-switcher";
+            version = "4.5.0";
+
+            src = pkgs.lib.cleanSource ./.;
+
+            nativeBuildInputs = with pkgs; [
+              pkg-config
+              wayland-scanner
+              makeWrapper
+            ];
+
+            buildInputs = with pkgs; [
+              wayland
+              wayland-protocols
+              cairo
+              pango
+              json_c
+              libxkbcommon
+              glib
+              librsvg
+              gdk-pixbuf
+            ];
+
+            enableParallelBuilding = true;
+
+            postPatch = ''
+              patchShebangs scripts/
+
+              substituteInPlace scripts/install-config.sh \
+                --replace-fail "/usr/local" "$out"
+              substituteInPlace scripts/snappy-wrapper.sh \
+                --replace-fail "/usr/local" "$out"
+              substituteInPlace src/config.c \
+                --replace-fail "/usr/local" "$out"
+              substituteInPlace snappy-switcher.service \
+                --replace-fail "/usr/bin" "$out/bin"
+            '';
+
+            installPhase = ''
+              runHook preInstall
+
+              mkdir -p $out/bin
+              mkdir -p $out/share/snappy-switcher/themes
+              mkdir -p $out/share/doc/snappy-switcher
+              mkdir -p $out/lib/systemd/user
+
+              # Install main binary
+              install -m 755 snappy-switcher $out/bin/
+
+              # Install themes and sample configs
+              install -m 644 themes/*.ini $out/share/snappy-switcher/themes/
+              install -m 644 config.ini.example $out/share/doc/snappy-switcher/
+              install -m 644 README.md $out/share/doc/snappy-switcher/ || true
+
+              # Install systemd user service
+              install -m 644 snappy-switcher.service $out/lib/systemd/user/
+
+              # Install and wrap helper shell scripts
+              install -m 755 scripts/snappy-wrapper.sh $out/bin/snappy-wrapper
+              wrapProgram $out/bin/snappy-wrapper \
+                --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.coreutils pkgs.gnugrep pkgs.gnused ]}
+
+              install -m 755 scripts/install-config.sh $out/bin/snappy-install-config
+              wrapProgram $out/bin/snappy-install-config \
+                --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.coreutils pkgs.gnugrep pkgs.gnused ]}
+
+              runHook postInstall
+            '';
+
+            meta = with pkgs.lib; {
+              description = "A fast, keyboard-driven window switcher for Wayland compositors";
+              homepage = "https://github.com/OpalAayan/snappy-switcher";
+              license = licenses.gpl3;
+              platforms = platforms.linux;
+              maintainers = [ ];
+              mainProgram = "snappy-switcher";
+            };
+          };
+
+          default = snappy-switcher;
+        };
+
+        apps = rec {
+          snappy-switcher = flake-utils.lib.mkApp {
+            drv = packages.snappy-switcher;
+          } // { meta = packages.snappy-switcher.meta; };
+          default = snappy-switcher;
+        };
+
+        # Development environment with debugging utilities
+        devShells.default = pkgs.mkShell {
+          inputsFrom = [ packages.default ];
+          packages = with pkgs; [
+            gcc
+            gnumake
+            gdb
+            valgrind
+          ];
+        };
+      }
+    );
+}

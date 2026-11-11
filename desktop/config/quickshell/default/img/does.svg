@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <title>Does</title>
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="#202024"/>
+  <!-- D in the proportions of the WinDoesNot wordmark (Inter Bold) -->
+  <path fill="#f3f0ea" fill-rule="evenodd" transform="translate(26 24) scale(0.68)"
+        d="M0 0H44C78 0 98 20 98 50C98 80 78 100 44 100H0Z M21 18H43C65 18 77 31 77 50C77 69 65 82 43 82H21Z"/>
+  <!-- Speech bubble tail growing out of the stem -->
+  <path fill="#f3f0ea" d="M26 91.5H46.5L26 109Z"/>
+  <!-- The orange full stop of the wordmark -->
+  <circle cx="100" cy="85" r="9" fill="#fe6f2d"/>
+</svg>

@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+"""User-independent entry point for the desktop's Hyprland IPC adapter."""
+import os
+from pathlib import Path
+import runpy
+import sys
+
+root = Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config')))
+module = root / 'hypr/lua/bin/hypr_bridge.py'
+sys.path.insert(0, str(module.parent))
+runpy.run_path(str(module), run_name='__main__')

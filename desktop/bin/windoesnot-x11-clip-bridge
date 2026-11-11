@@ -1,0 +1,191 @@
+#!/usr/bin/env python3
+"""Event-driven clipboard bridge between XWayland (X11) and Wayland (no polling).
+
+Hyprland imports CLIPBOARD changes from XWayland clients only while that
+client's window is focused. Some X11 applications (VMware Workstation, for
+example) announce a new selection owner only after losing focus, so the copy
+never reaches Wayland. This helper listens for XFixes selection-owner events on
+the XWayland display, reads the text with xclip and hands it to wl-copy.
+
+The other way round, a copy in a Wayland application is only exported to X11
+while an X11 window has focus. A guest agent (spice-vdagent) that watches the
+X11 selection would never see it, so a Wayland change is also put into the X11
+clipboard with xclip. Both directions compare the text first, so they never
+ping-pong.
+
+Text only. The log (~/.cache/windoesnot-x11-clip-bridge.log) holds sizes, never
+contents. Only one instance runs per session.
+"""
+import fcntl
+import os
+import subprocess
+import sys
+import threading
+import time
+
+MAX_BYTES = 1_000_000
+LOG = os.path.expanduser('~/.cache/windoesnot-x11-clip-bridge.log')
+LOG_LIMIT = 256_000
+
+
+def log(message):
+    try:
+        os.makedirs(os.path.dirname(LOG), exist_ok=True)
+        if os.path.exists(LOG) and os.path.getsize(LOG) > LOG_LIMIT:
+            os.replace(LOG, LOG + '.1')
+        with open(LOG, 'a') as handle:
+            handle.write(time.strftime('%F %T ') + message + '\n')
+    except OSError:
+        pass
+
+
+def single_instance():
+    runtime = os.environ.get('XDG_RUNTIME_DIR') or '/tmp'
+    handle = open(os.path.join(runtime, 'windoesnot-x11-clip-bridge.lock'), 'a+')
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        sys.exit(0)
+    handle.truncate(0)
+    handle.write(str(os.getpid()))  # lets windoesnot-vm-clipboard stop us
+    handle.flush()
+    return handle
+
+
+def wayland_has(data):
+    """True when the Wayland clipboard already holds this text, or holds
+    non-text data (an image) that a text copy must not clobber."""
+    try:
+        types = subprocess.run(['wl-paste', '--list-types'], capture_output=True, text=True, timeout=2).stdout.split()
+        if any(t.startswith('image/') for t in types):
+            return True
+        current = subprocess.run(['wl-paste', '--no-newline'], capture_output=True, timeout=2).stdout
+    except Exception:
+        return False
+    return current == data or current == data.rstrip(b'\n')
+
+
+def wayland_text():
+    """Text on the Wayland clipboard, or None (empty, an image, too large)."""
+    try:
+        types = subprocess.run(['wl-paste', '--list-types'], capture_output=True, text=True, timeout=2).stdout.split()
+        if not types or any(t.startswith('image/') for t in types):
+            return None
+        data = subprocess.run(['wl-paste', '--no-newline'], capture_output=True, timeout=3).stdout
+    except Exception:
+        return None
+    return data if data and len(data) <= MAX_BYTES else None
+
+
+def watch_wayland(display_name):
+    """Put Wayland copies into the X11 clipboard (see the module docstring)."""
+    env = {**os.environ, 'DISPLAY': display_name}
+    last = None
+    while True:
+        try:
+            # One line per clipboard change (wl-paste also fires once at start).
+            watcher = subprocess.Popen(['wl-paste', '--no-newline', '--watch', 'sh', '-c', 'echo changed'],
+                                       stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+            for _ in watcher.stdout:
+                data = wayland_text()
+                if data is None or data == last:
+                    continue
+                try:
+                    current = subprocess.run(['xclip', '-selection', 'clipboard', '-o', '-t', 'UTF8_STRING'],
+                                             capture_output=True, timeout=2, env=env).stdout
+                except Exception:
+                    current = b''
+                if current == data or current == data.rstrip(b'\n'):
+                    continue
+                subprocess.run(['xclip', '-selection', 'clipboard', '-i'], input=data, timeout=5,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env)
+                last = data
+                log(f'wayland: {len(data)} B copied to X11')
+        except Exception as exc:
+            log(f'wayland watcher: {exc.__class__.__name__}')
+        time.sleep(3)
+
+
+def run(display_name):
+    from Xlib import X, display
+    from Xlib.ext import xfixes
+
+    dpy = display.Display(display_name)
+    dpy.xfixes_query_version()
+    root = dpy.screen().root
+    clipboard = dpy.intern_atom('CLIPBOARD')
+    dpy.xfixes_select_selection_input(root, clipboard, xfixes.XFixesSetSelectionOwnerNotifyMask)
+    dpy.flush()
+    env = {**os.environ, 'DISPLAY': display_name}
+    pid_atom = dpy.intern_atom('_NET_WM_PID')
+    own_pid = os.getpid()
+    last = None
+    log(f'start display={display_name}')
+    threading.Thread(target=watch_wayland, args=(display_name,), daemon=True).start()
+    while True:
+        event = dpy.next_event()
+        if getattr(event, 'selection', None) != clipboard:
+            continue
+        window = getattr(event.owner, 'id', event.owner)
+        if not window:
+            continue
+        try:
+            prop = dpy.create_resource_object('window', window).get_full_property(pid_atom, X.AnyPropertyType)
+            pid = int(prop.value[0]) if prop else None
+        except Exception:
+            pid = None
+        if pid == own_pid:
+            continue
+        # Owners without _NET_WM_PID are either Hyprland re-exporting a Wayland
+        # copy to X11 (nothing to do) or a guest agent / tool that never sets a
+        # PID (spice-vdagent, xclip). Those are told apart below by comparing
+        # with the current Wayland clipboard.
+        anonymous = pid is None
+        time.sleep(0.15)
+        try:
+            targets = subprocess.run(['xclip', '-selection', 'clipboard', '-o', '-t', 'TARGETS'],
+                                     capture_output=True, text=True, timeout=3, env=env).stdout
+            kind = 'UTF8_STRING' if 'UTF8_STRING' in targets else ('STRING' if 'STRING' in targets else None)
+            if not kind:
+                log(f'owner pid={pid or "-"}: no text target, ignored')
+                continue
+            data = subprocess.run(['xclip', '-selection', 'clipboard', '-o', '-t', kind],
+                                  capture_output=True, timeout=3, env=env).stdout
+        except Exception as exc:
+            log(f'owner pid={pid or "-"}: read failed ({exc.__class__.__name__})')
+            continue
+        if anonymous and wayland_has(data):
+            continue
+        if not data or len(data) > MAX_BYTES or data == last:
+            log(f'owner pid={pid or "-"}: skipped ({len(data)} B)')
+            continue
+        try:
+            subprocess.run(['wl-copy'], input=data, timeout=5,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception as exc:
+            log(f'owner pid={pid or "-"}: wl-copy failed ({exc.__class__.__name__})')
+            continue
+        last = data
+        log(f'owner pid={pid or "-"}: {len(data)} B copied to Wayland')
+
+
+def main():
+    if os.path.exists(os.path.join(os.environ.get('XDG_CONFIG_HOME') or os.path.expanduser('~/.config'),
+                                   'windoesnot', 'vm-clipboard-off')):
+        return  # switched off in Settings -> Apps
+    lock = single_instance()  # keep the handle alive
+    while True:
+        name = os.environ.get('DISPLAY')
+        if not name:
+            time.sleep(5)  # XWayland not announced yet
+            continue
+        try:
+            run(name)
+        except Exception as exc:
+            log(f'error: {exc.__class__.__name__}: {exc}')
+            time.sleep(3)
+    del lock
+
+
+if __name__ == '__main__':
+    main()

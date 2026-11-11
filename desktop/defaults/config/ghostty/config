@@ -1,0 +1,2 @@
+theme = light:Adwaita,dark:Adwaita Dark
+freetype-load-flags = hinting,no-force-autohint,no-monochrome,autohint

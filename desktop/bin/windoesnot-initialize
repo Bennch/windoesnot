@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+"""Create missing desktop defaults, preserving every existing user file."""
+import argparse
+import json
+import os
+import platform
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--adopt-system', action='store_true', help='Adopt installer choices for a newly installed account')
+args = parser.parse_args()
+home = Path.home()
+config = Path(os.environ.get('XDG_CONFIG_HOME', home / '.config'))
+choices = [Path(os.environ.get('WINDOESNOT_SOURCE', '/usr/share/windoesnot')), home / '.local/share/windoesnot']
+source = next((p for p in choices if (p / 'desktop/defaults').is_dir()), None)
+if source is None:
+    if (config / 'hypr/lua/state.lua').is_file():
+        sys.exit(0)
+    sys.exit('WinDoesNot desktop sources are missing')
+
+# Package-managed code is refreshed only before session startup. Never run user
+# migration from a root pacman hook or overwrite an already running shell.
+if (source / 'VERSION').is_file():
+    subprocess.run(['/usr/bin/windoesnot-desktop-sync', '--source', str(source)], check=True)
+
+def missing_tree(origin, target):
+    for item in origin.rglob('*'):
+        if item.is_dir():
+            continue
+        dest = target / item.relative_to(origin)
+        if dest.exists() or dest.is_symlink():
+            continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(item, dest)
+
+missing_tree(source / 'desktop/config', config)
+ghostty_missing = not (config / 'ghostty/config').exists()
+missing_tree(source / 'desktop/defaults/config', config)
+# Apple defaults belong only to Asahi; preserve existing terminal preferences.
+model_file = Path('/proc/device-tree/model')
+is_asahi = (platform.machine() == 'aarch64' and model_file.is_file()
+            and model_file.read_bytes().startswith(b'Apple '))
+if is_asahi:
+    missing_tree(source / 'desktop/defaults/asahi/config', config)
+    if ghostty_missing:
+        ghostty_config = config / 'ghostty/config'
+        with ghostty_config.open('a') as stream:
+            stream.write('\nconfig-file = asahi-keybindings.conf\n')
+data_home = Path(os.environ.get('XDG_DATA_HOME', home / '.local/share'))
+# The source installer must expose the same icon theme as the desktop package.
+# Preserve any user theme; packaged installs already provide /usr/share/icons/Win11.
+icon_theme = data_home / 'icons/Win11'
+if not Path('/usr/share/icons/Win11/index.theme').is_file() and not icon_theme.exists() and not icon_theme.is_symlink():
+    theme_source = config / 'quickshell/default/img/Win11-dark'
+    if (theme_source / 'index.theme').is_file():
+        icon_theme.parent.mkdir(parents=True, exist_ok=True)
+        icon_theme.symlink_to(theme_source, target_is_directory=True)
+
+share_defaults = source / 'desktop/defaults/share'
+if share_defaults.is_dir():
+    missing_tree(share_defaults, data_home)
+# The extension stays linked to managed code; preserve an existing user extension.
+nearby_extension = config / 'quickshell/default/extras/nautilus/windoesnot-nearby.py'
+nearby_target = Path(os.environ.get('XDG_DATA_HOME', home / '.local/share')) / 'nautilus-python/extensions/windoesnot-nearby.py'
+if nearby_extension.is_file() and not nearby_target.exists() and not nearby_target.is_symlink():
+    nearby_target.parent.mkdir(parents=True, exist_ok=True)
+    nearby_target.symlink_to(nearby_extension)
+
+# Standard folders follow the system language (live-switchable); skipped for /etc/skel,
+# whose literal $HOME entries stay portable.
+if home != Path('/etc/skel'):
+    tool = Path(__file__).resolve().parent / 'windoesnot-user-dirs'
+    tool = str(tool) if tool.is_file() else shutil.which('windoesnot-user-dirs')
+    if tool:
+        subprocess.run([tool], check=False, stderr=subprocess.DEVNULL)
+
+
+def user_folder(key, fallback):
+    """Folder name from user-dirs.dirs (so a German session never recreates 'Documents')."""
+    try:
+        for line in (config / 'user-dirs.dirs').read_text().splitlines():
+            if line.startswith(f'XDG_{key}_DIR='):
+                value = line.split('=', 1)[1].strip().strip('"').replace('$HOME', str(home))
+                path = Path(value)
+                if path.parent == home:
+                    return path.name
+    except OSError:
+        pass
+    return fallback
+
+
+folders = {key: user_folder(key, name) for key, name in
+           [('DESKTOP', 'Desktop'), ('DOWNLOAD', 'Downloads'), ('TEMPLATES', 'Templates'), ('PUBLICSHARE', 'Public'),
+            ('DOCUMENTS', 'Documents'), ('MUSIC', 'Music'), ('PICTURES', 'Pictures'), ('VIDEOS', 'Videos')]}
+for directory in folders.values():
+    (home / directory).mkdir(exist_ok=True)
+
+# Nautilus/GTK sidebar favorites for the common folders. Bookmarks are plain
+# file:// URIs with no $HOME-style substitution, so they must be written here
+# (where the real path is known) rather than shipped as a static default.
+bookmarks_path = config / 'gtk-3.0/bookmarks'
+# The skeleton must not carry bookmarks: they hold absolute paths (an /etc/skel copy would point every
+# new user's sidebar into /etc/skel, with English names). Each real user gets their own, localised.
+if home != Path('/etc/skel'):
+    from urllib.parse import quote
+    existing = bookmarks_path.read_text().splitlines() if bookmarks_path.exists() else []
+    stale = any('/etc/skel/' in line for line in existing)
+    if not existing or stale:
+        bookmark_dirs = [folders[k] for k in ('DESKTOP', 'DOCUMENTS', 'DOWNLOAD', 'PICTURES', 'MUSIC')]
+        lines = [f'file://{quote(str(home / d))} {d}\n' for d in bookmark_dirs]
+        # keep what the user added themselves, drop only the broken skeleton entries
+        lines += [line + '\n' for line in existing if line and '/etc/skel/' not in line]
+        bookmarks_path.parent.mkdir(parents=True, exist_ok=True)
+        bookmarks_path.write_text(''.join(lines))
+
+# Clean up duplicate installer desktop files from language switching
+desktop_dir = home / 'Desktop'
+if desktop_dir.exists():
+    installer_files = list(desktop_dir.glob('*[Ii]nstall*'))
+    if len(installer_files) > 1:
+        for f in installer_files[1:]:
+            try:
+                f.unlink()
+            except OSError:
+                pass
+sys.path.insert(0, str(config / 'hypr/lua/bin'))
+from hypr_state import encode, read_state, atomic_write, configure_mac_keyboard
+from system_defaults import system_defaults
+defaults = system_defaults()
+state_path = config / 'hypr/lua/state.lua'
+if not state_path.exists() or args.adopt_system:
+    state = read_state(config / 'hypr/lua') if state_path.exists() else json.loads((source / 'desktop/defaults/hypr-state.json').read_text())
+    state['options'].update(defaults['options'])
+    if is_asahi:
+        prefs = config / 'quickshell/default/settings.txt'
+        existing = dict(line.split('=', 1) for line in prefs.read_text().splitlines() if '=' in line) if prefs.exists() else {}
+        at_key = existing.get('asahiAtKey', 'l')
+        if at_key not in ('q', 'l'):
+            at_key = 'l'
+        configure_mac_keyboard(state['options'], defaults['options']['input.kb_layout'], at_key)
+        state['asahi_at_key'] = at_key
+    atomic_write(state_path, encode(state))
+settings_path = config / 'quickshell/default/settings.txt'
+if not settings_path.exists() or args.adopt_system:
+    settings = dict(line.split('=', 1) for line in settings_path.read_text().splitlines() if '=' in line) if settings_path.exists() else {'borderRadius': '10'}
+    if is_asahi:
+        settings.setdefault('touchpadNaturalScroll', 'true')
+        settings.setdefault('asahiAtKey', 'l')
+    settings.update(defaults['settings'])
+    settings_path.write_text(''.join(f'{key}={value}\n' for key, value in settings.items()))
+for name in ['hyprbars', 'hyprdrag']:
+    dest = config / f'hypr/plugins/{name}.so'
+    origin = Path(f'/usr/lib/windoesnot/plugins/{name}.so')
+    if not dest.exists() and origin.exists():
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.symlink_to(origin)
+module = config / 'quickshell/default/widgets/terminalmodule/LocalTerminal'
+if Path('/usr/lib/windoesnot/LocalTerminal').is_dir():
+    missing_tree(Path('/usr/lib/windoesnot/LocalTerminal'), module)

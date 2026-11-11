@@ -1,0 +1,45 @@
+# Sub-repositories
+/store/
+/device-manager/
+/bluetooth/
+/network/
+/audio/
+/graphics/
+/website/
+/upstream/
+
+# Build artifacts & outputs
+/build/
+/out/
+/vm/
+*.iso
+*.qcow2
+
+# Logs and runtime checks
+/*.log
+/checks/*
+!/checks/.gitkeep
+/private-backups/
+
+# Compiler and cache artifacts
+**/__pycache__/
+**/*.pyc
+**/CMakeFiles/
+**/CMakeCache.txt
+**/*.o
+**/*.so
+
+# Host specific manifests & secrets
+/desktop/import-manifest.json
+.env
+
+# Internal working notes, agent handoffs and agent instructions stay local only
+/AGENTS.md
+/docs/*
+!/docs/screenshots/
+igloo-windoesnot/
+
+# Shared platform decisions must travel with both variants.
+!/AGENTS.md
+!/docs/platform-fixes.md
+!/docs/asahi-input.md

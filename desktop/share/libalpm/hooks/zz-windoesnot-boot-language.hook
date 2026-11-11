@@ -1,0 +1,16 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = systemd
+Target = refind
+Target = limine
+Target = grub
+Target = linux*
+Target = windoesnot-boot-language
+Target = windoesnot-tools
+
+[Action]
+Description = Refresh the WinDoesNot boot menu language...
+When = PostTransaction
+Exec = /usr/lib/windoesnot/boot_language.py refresh

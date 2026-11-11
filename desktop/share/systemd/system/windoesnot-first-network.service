@@ -1,0 +1,11 @@
+[Unit]
+Description=WinDoesNot: rank download mirrors on the first internet connection
+ConditionPathExists=!/var/lib/windoesnot/mirrors-ranked
+After=network-online.target nss-lookup.target
+
+[Service]
+Type=oneshot
+StateDirectory=windoesnot
+# A lost connection is normal. Leave the marker absent so the next connection retries.
+ExecStart=/usr/bin/sh -c "/usr/bin/cachyos-rate-mirrors && /usr/bin/touch /var/lib/windoesnot/mirrors-ranked || true"
+TimeoutStartSec=10min

@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+"""Refresh package-managed user code, preserving private files and local edits.
+
+Called before starting the desktop, never by a root package-install hook.
+Runtime copies retain the relative paths used by existing QML components.
+"""
+import argparse
+from contextlib import contextmanager
+from datetime import datetime
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import tempfile
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--source', type=Path, default=Path('/usr/share/windoesnot'))
+parser.add_argument('--native', type=Path, default=Path('/usr/lib/windoesnot'))
+parser.add_argument('--adopt', action='store_true', help='Record only files identical to this source as managed; use before migrating a legacy installation')
+parser.add_argument('--dry-run', action='store_true')
+args = parser.parse_args()
+home = Path.home()
+config = Path(os.environ.get('XDG_CONFIG_HOME', home / '.config'))
+state = Path(os.environ.get('XDG_STATE_HOME', home / '.local/state')) / 'windoesnot'
+manifest_path = state / 'desktop-files.json'
+
+def digest(path):
+    if path.is_symlink() or not path.is_file():
+        return None
+    with path.open('rb') as stream:
+        return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+def atomic(path, data, mode=0o600):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as stream:
+        temp = Path(stream.name)
+        try:
+            stream.write(data)
+            stream.flush()
+            os.fsync(stream.fileno())
+        except BaseException:
+            temp.unlink(missing_ok=True)
+            raise
+    temp.chmod(mode)
+    os.replace(temp, path)
+
+@contextmanager
+def locked():
+    state.mkdir(parents=True, exist_ok=True, mode=0o700)
+    with (state / 'desktop-files.lock').open('a') as stream:
+        fcntl.flock(stream, fcntl.LOCK_EX)
+        yield
+
+def sources():
+    root = args.source / 'desktop/config'
+    if not root.is_dir():
+        raise SystemExit('Packaged desktop source is missing')
+    for source in sorted(root.rglob('*')):
+        relative = source.relative_to(root)
+        if not source.is_file() or source.is_symlink() or '__pycache__' in relative.parts:
+            continue
+        # These are editable application preferences, not managed code.
+        if personal_or_generated(relative.as_posix()):
+            continue
+        yield relative.as_posix(), source
+    module = args.native / 'LocalTerminal'
+    if module.is_dir():
+        for source in sorted(module.iterdir()):
+            if source.is_file():
+                yield 'quickshell/default/widgets/terminalmodule/LocalTerminal/' + source.name, source
+    for name in ('hyprbars', 'hyprdrag'):
+        source = args.native / 'plugins' / (name + '.so')
+        if source.is_file():
+            yield 'hypr/plugins/' + source.name, source
+
+def personal_or_generated(name):
+    return Path(name).parts[0] in ('snappy-switcher', 'swaync') or name == 'quickshell/default/IconMap.js'
+
+def main():
+    previous = json.loads(manifest_path.read_text()) if manifest_path.exists() else {'schema': 1, 'files': {}}
+    if previous.get('schema') != 1:
+        raise SystemExit('Unsupported desktop manifest schema; no files changed')
+    old = previous['files']
+    candidates = dict(sources())
+    managed = dict(old)
+    changed, removed, conflicts = [], [], []
+    actions = []
+    for name, source in candidates.items():
+        target = config / name
+        # A user-supplied symlinked directory is outside our managed tree.
+        if any(parent.is_symlink() for parent in [target, *target.parents] if parent != home and home in parent.parents):
+            if name.startswith('hypr/plugins/') and target.is_symlink() and target.resolve() == source.resolve():
+                continue
+            conflicts.append(name)
+            continue
+        wanted = digest(source)
+        current = digest(target)
+        if args.adopt:
+            if current == wanted:
+                managed[name] = wanted
+            continue
+        if current == wanted:
+            managed[name] = wanted
+        elif not target.exists() or (name in old and current == old[name]):
+            actions.append(('write', name, source))
+            managed[name] = wanted
+            changed.append(name)
+        else:
+            conflicts.append(name)
+    if not args.adopt:
+        for name, checksum in old.items():
+            if name in candidates:
+                continue
+            # Retire old ownership records for mutable runtime caches without
+            # deleting the user's generated data, even if the bytes match.
+            if personal_or_generated(name):
+                managed.pop(name, None)
+                continue
+            target = config / name
+            if digest(target) == checksum:
+                actions.append(('remove', name, None))
+                removed.append(name)
+                managed.pop(name, None)
+            elif not target.exists() and not target.is_symlink():
+                managed.pop(name, None)
+            else:
+                conflicts.append(name)
+    # Resolve every parent BEFORE any write, including retired manifest entries.
+    for _, name, _ in actions:
+        target = config / name
+        if Path(name).is_absolute() or '..' in Path(name).parts or not target.resolve().is_relative_to(config.resolve()):
+            raise SystemExit('Unsafe manifest path; no files changed')
+        if any(parent.is_symlink() for parent in target.parents if parent != home and home in parent.parents):
+            raise SystemExit('Symlinked config parent; no files changed')
+    report = {'schema': 1, 'changed': changed, 'removed': removed, 'conflicts': sorted(set(conflicts)), 'managed_count': len(managed), 'adopt': args.adopt, 'dry_run': args.dry_run}
+    if not args.dry_run:
+        backup = None
+        if actions:
+            backup = state / 'backups' / datetime.now().strftime('%Y%m%d-%H%M%S-%f')
+            for _, name, _ in actions:
+                target = config / name
+                if target.is_file() and not target.is_symlink():
+                    saved = backup / name
+                    saved.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(target, saved)
+            if backup.exists():
+                report['backup'] = str(backup)
+        # Keep the previous ledger with the backup for a reviewable recovery.
+        if backup and backup.exists():
+            atomic(backup / 'desktop-files.json', json.dumps(previous, indent=2).encode())
+        for action, name, source in actions:
+            target = config / name
+            if action == 'remove':
+                target.unlink()
+            else:
+                atomic(target, source.read_bytes(), source.stat().st_mode & 0o777)
+        revision = args.source / 'VERSION'
+        ledger = {'schema': 1, 'version': revision.read_text().strip() if revision.exists() else 'legacy', 'files': managed}
+        atomic(manifest_path, (json.dumps(ledger, indent=2, sort_keys=True) + '\n').encode())
+        atomic(state / 'last-sync.json', (json.dumps(report, indent=2) + '\n').encode())
+    print(json.dumps(report, indent=2))
+    if conflicts:
+        print('Local edits preserved. Review ~/.local/state/windoesnot/last-sync.json before adopting changed files.', file=__import__('sys').stderr)
+
+with locked():
+    main()

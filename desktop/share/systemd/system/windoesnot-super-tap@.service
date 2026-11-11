@@ -1,0 +1,15 @@
+[Unit]
+Description=WinDoesNot Super-key tap for %i
+After=systemd-user-sessions.service
+[Service]
+ExecStart=/usr/bin/python3 /usr/share/windoesnot/desktop/config/quickshell/default/extras/super-tap/super_tap_daemon.py
+Environment=SUPER_TAP_USER=%i
+Environment=SUPER_TAP_TIMEOUT_MS=250
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=tmpfs
+BindReadOnlyPaths=/run/user
+[Install]
+WantedBy=multi-user.target

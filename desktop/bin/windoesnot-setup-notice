@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""Show once per user what the installer recognized and set up."""
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+
+RECORD = Path('/var/lib/windoesnot/system-setup.json')
+PROFILES = {
+    'nvidia-open-dkms': ('NVIDIA', 'NVIDIA'),
+    'nvidia-open-dkms.prime': ('NVIDIA mit Hybridgrafik', 'NVIDIA hybrid graphics'),
+    'nouveau': ('NVIDIA (nouveau)', 'NVIDIA (nouveau)'),
+    'intel': ('Intel', 'Intel'),
+    'amd': ('AMD', 'AMD'),
+    'qemu': ('virtuelle Maschine', 'virtual machine'),
+    'virtualbox': ('VirtualBox', 'VirtualBox'),
+    'vmware': ('VMware', 'VMware'),
+    'fallback': ('Standardgrafik', 'standard graphics'),
+}
+LEVELS = {'znver4': 'AMD Zen 4/5', 'v4': 'x86-64-v4', 'v3': 'x86-64-v3'}
+
+
+def summary(data, german):
+    lines = []
+    level = data.get('cpu_level')
+    if level in LEVELS:
+        lines.append(f'Optimierte Pakete für {LEVELS[level]}' if german else f'Optimized packages for {LEVELS[level]}')
+    else:
+        lines.append('Standardpakete (x86-64)' if german else 'Standard packages (x86-64)')
+    names = [PROFILES.get(p, (p, p))[0 if german else 1] for p in data.get('driver_profiles', [])]
+    if data.get('drivers') == 'configured' and names:
+        lines.append(('Treiber: ' if german else 'Drivers: ') + ', '.join(names))
+    else:
+        lines.append('Grafiktreiber folgt mit dem ersten Update' if german else 'Graphics driver follows with the first update')
+    if data.get('mirrors_ranked'):
+        lines.append('Schnellste Download-Server ausgewählt' if german else 'Fastest download servers selected')
+    else:
+        lines.append('Download-Server werden bei der ersten Internetverbindung gewählt' if german else 'Download servers are chosen on the first internet connection')
+    return lines
+
+
+def welcome_payload(data, preferences):
+    german = preferences.get('uiLanguage', os.environ.get('LANG', '')[:2]) == 'de'
+    apps = [
+        ('WinDoesNot Store', 'Programme entdecken und aktualisieren', 'Discover and update apps', 'img/scalable/system-software-install.svg', ['windoesnot-store']),
+        ('Geräte-Manager' if german else 'Device Manager', 'Hardware und Treiber verwalten', 'Manage hardware and drivers', 'img/brand/windoesnot-icon-64.png', ['windoesnot-device-manager']),
+        ('Einstellungen' if german else 'Settings', 'Aussehen, Sprache und System anpassen', 'Adjust appearance, language and system', 'img/settings.svg', ['windoesnot-hyprctl', 'dispatch', 'global', 'quickshell:show-settings']),
+        ('Dateien' if german else 'Files', 'Ordner, Dokumente und Laufwerke öffnen', 'Open folders, documents and drives', 'img/folder.svg', ['nautilus']),
+        ('Webbrowser' if german else 'Web browser', 'Mit deinem Standardbrowser ins Internet', 'Go online with your default browser', 'img/scalable/firefox.svg', ['xdg-open', 'https://windoesnot.me']),
+        ('Terminal', 'Befehle und Werkzeuge für Fortgeschrittene', 'Commands and tools for advanced users', 'img/scalable/terminal.svg', ['windoesnot-terminal']),
+    ]
+    return {
+        'dark': preferences.get('darkMode', 'true') == 'true',
+        'accent': preferences.get('accentColor', '#FE6F2D'),
+        'title': 'Willkommen bei WinDoesNot' if german else 'Welcome to WinDoesNot',
+        'intro': ('Dein System ist bereit. Hier findest du die wichtigsten Programme für den Einstieg.'
+                  if german else 'Your system is ready. Start with these essential apps.'),
+        'appsTitle': 'Deine ersten Schritte' if german else 'Your first steps',
+        'apps': [{'name': name, 'description': de if german else en, 'icon': icon,
+                  'command': command, 'available': bool(shutil.which(command[0]))}
+                 for name, de, en, icon, command in apps],
+        'open': 'Öffnen' if german else 'Open',
+        'unavailable': 'Nicht installiert' if german else 'Not installed',
+        'launchError': 'Das Programm konnte nicht geöffnet werden.' if german else 'The app could not be opened.',
+        'setupTitle': 'Für deinen Rechner eingerichtet' if german else 'Set up for your computer',
+        'lines': summary(data, german),
+        'hint': ('Du findest diese Informationen auch in den Einstellungen unter „Kernel und Leistung“ und „Wartung“.'
+                 if german else 'You can also find this information in Settings under “Kernel and performance” and “Maintenance”.'),
+        'close': 'Los geht’s' if german else 'Get started',
+    }
+
+
+def main():
+    state = Path(os.environ.get('XDG_STATE_HOME', Path.home() / '.local/state')) / 'windoesnot/setup-notice-shown'
+    if state.exists() or not RECORD.is_file() or not shutil.which('quickshell'):
+        return
+    config = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'quickshell/default'
+    window = config / 'SetupWelcome.qml'
+    if not window.is_file():
+        window = Path('/usr/share/windoesnot/desktop/config/quickshell/default/SetupWelcome.qml')
+    if not window.is_file():
+        return
+    try:
+        data = json.loads(RECORD.read_text())
+    except (OSError, ValueError):
+        return
+    preferences = {}
+    try:
+        for line in (config / 'settings.txt').read_text().splitlines():
+            key, separator, value = line.partition('=')
+            if separator:
+                preferences[key] = value
+    except OSError:
+        pass
+    env = {**os.environ, 'WINDOESNOT_WELCOME': json.dumps(welcome_payload(data, preferences))}
+    if subprocess.run(['quickshell', '--path', str(window)], env=env).returncode == 0:
+        state.parent.mkdir(parents=True, exist_ok=True)
+        state.touch()
+
+
+if __name__ == '__main__':
+    main()

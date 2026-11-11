@@ -1,0 +1,5 @@
+---
+type: job
+name: windoesnotbootreuse
+interface: python
+script: main.py

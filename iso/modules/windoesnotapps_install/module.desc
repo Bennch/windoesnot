@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+type: job
+name: windoesnotapps_install
+interface: python
+script: main.py

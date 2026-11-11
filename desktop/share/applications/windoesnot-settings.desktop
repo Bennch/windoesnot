@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=WinDoesNot Settings
+Name[de]=WinDoesNot Einstellungen
+Exec=windoesnot-hyprctl dispatch global quickshell:show-settings
+Icon=windoesnot
+Terminal=false
+Categories=Settings;DesktopSettings;

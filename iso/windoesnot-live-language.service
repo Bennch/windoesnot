@@ -1,0 +1,12 @@
+[Unit]
+Description=Apply WinDoesNot live boot language
+ConditionPathExists=/etc/windoesnot-image-build
+After=local-fs.target
+Before=getty@tty1.service display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/share/windoesnot/iso/live-language.py --boot
+
+[Install]
+WantedBy=multi-user.target

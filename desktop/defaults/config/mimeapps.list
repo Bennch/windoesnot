@@ -1,0 +1,18 @@
+[Default Applications]
+image/png=eog.desktop
+image/jpeg=eog.desktop
+image/gif=eog.desktop
+image/webp=eog.desktop
+image/svg+xml=eog.desktop
+image/bmp=eog.desktop
+image/tiff=eog.desktop
+application/pdf=evince.desktop
+text/plain=gedit.desktop
+text/html=firefox.desktop
+x-scheme-handler/http=firefox.desktop
+x-scheme-handler/https=firefox.desktop
+
+[Added Associations]
+image/png=eog.desktop;org.gnome.eog.desktop;firefox.desktop;
+image/jpeg=eog.desktop;org.gnome.eog.desktop;firefox.desktop;
+application/pdf=evince.desktop;org.gnome.Evince.desktop;firefox.desktop;

@@ -1,0 +1,54 @@
+title-text: ""
+desktop-image: "background.png"
+desktop-color: "#141414"
+terminal-font: "Unifont Regular 16"
+
++ image {
+  left = 50%-240
+  top = 5%
+  width = 480
+  height = 90
+  file = "windoesnot-logo-hell.png"
+}
+
++ boot_menu {
+  left = 8%
+  top = 28%
+  width = 84%
+  height = 56%
+  item_font = "Unifont Regular 16"
+  item_color = "#f4f1eb"
+  selected_item_color = "#ffffff"
+  menu_pixmap_style = "menu_*.png"
+  icon_width = 32
+  icon_height = 32
+  item_icon_space = 20
+  item_height = 40
+  item_padding = 8
+  item_spacing = 6
+  selected_item_pixmap_style = "select_*.png"
+  scrollbar = false
+}
+
++ label {
+  left = 8%
+  top = 90%
+  width = 84%
+  height = 24
+  color = "#d8d4cc"
+  align = "center"
+  text = "@KEYMAP_SHORT@"
+  font = "Unifont Regular 16"
+}
+
++ label {
+  left = 8%
+  top = 94%
+  width = 84%
+  height = 24
+  color = "#b8b4ac"
+  align = "center"
+  id = "__timeout__"
+  text = "Automatischer Start in %d Sekunden"
+  font = "Unifont Regular 16"
+}

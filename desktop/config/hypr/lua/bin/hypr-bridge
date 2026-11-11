@@ -1,0 +1,8 @@
+#!/usr/bin/env python3
+from hypr_bridge import main
+import sys
+try:
+    main()
+except (ValueError, RuntimeError, OSError) as error:
+    print(str(error), file=sys.stderr)
+    sys.exit(1)

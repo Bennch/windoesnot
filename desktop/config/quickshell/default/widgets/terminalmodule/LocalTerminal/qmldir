@@ -1,0 +1,8 @@
+module LocalTerminal
+linktarget localterminalpluginplugin
+optional plugin localterminalpluginplugin
+classname LocalTerminalPlugin
+typeinfo localterminalplugin.qmltypes
+prefer :/LocalTerminal/
+depends QtQuick
+

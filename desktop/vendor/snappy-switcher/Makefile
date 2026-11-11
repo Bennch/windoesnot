@@ -1,0 +1,195 @@
+# Makefile - Snappy Switcher v4.5.0
+CC = gcc
+PKG_CFLAGS = $(shell pkg-config --cflags wayland-client cairo pango pangocairo json-c xkbcommon)
+PKG_LIBS = $(shell pkg-config --libs wayland-client wayland-cursor cairo pango pangocairo json-c xkbcommon glib-2.0 gobject-2.0)
+
+# Optional SVG support via librsvg
+RSVG_CFLAGS = $(shell pkg-config --cflags librsvg-2.0 2>/dev/null)
+RSVG_LIBS = $(shell pkg-config --libs librsvg-2.0 2>/dev/null)
+ifneq ($(RSVG_LIBS),)
+  RSVG_FLAG = -DHAVE_RSVG
+else
+  $(warning ════════════════════════════════════════════════════════════════)
+  $(warning  SVG icon support DISABLED — librsvg-2.0 not found.)
+  $(warning  Install librsvg2-dev [Debian/Ubuntu] or librsvg2-devel [Fedora])
+  $(warning  to enable SVG icon rendering. PNG fallback will be used.)
+  $(warning ════════════════════════════════════════════════════════════════)
+endif
+
+# Added -O2 for release builds, kept -g for symbols
+CFLAGS = -Wall -Wextra -O2 -g -D_POSIX_C_SOURCE=200809L $(PKG_CFLAGS) $(RSVG_CFLAGS) $(RSVG_FLAG)
+LIBS = $(PKG_LIBS) $(RSVG_LIBS) -lm
+
+# Installation paths
+PREFIX ?= /usr/local
+BINDIR = $(PREFIX)/bin
+DATADIR = $(PREFIX)/share/snappy-switcher
+DOCDIR = $(PREFIX)/share/doc/snappy-switcher
+SYSCONFDIR = /etc/xdg/snappy-switcher
+
+# Systemd auto-detection: install service file only when systemd is available
+HAS_SYSTEMD := $(shell pkg-config --exists systemd 2>/dev/null && echo yes)
+ifeq ($(HAS_SYSTEMD),yes)
+  SYSTEMD_USER_UNIT_DIR ?= $(shell pkg-config --variable=systemd_user_unit_dir systemd 2>/dev/null)
+  # Fallback if pkg-config returns empty
+  ifeq ($(strip $(SYSTEMD_USER_UNIT_DIR)),)
+    SYSTEMD_USER_UNIT_DIR = $(PREFIX)/lib/systemd/user
+  endif
+endif
+
+# Source files
+SRC = src/main.c src/hyprland.c src/render.c src/input.c src/config.c src/icons.c src/socket.c src/backend.c src/wlr_backend.c
+OBJ = $(SRC:.c=.o) src/xdg-shell-protocol.o src/wlr-layer-shell-unstable-v1-protocol.o src/wlr-foreign-toplevel-management-unstable-v1-protocol.o
+TARGET = snappy-switcher
+
+# Protocol Paths
+# Ask pkg-config for the path, but fallback to the standard Linux path if it fails
+WAYLAND_PROTOCOLS_DIR_PKG := $(shell pkg-config --variable=pkgdatadir wayland-protocols 2>/dev/null)
+ifeq ($(strip $(WAYLAND_PROTOCOLS_DIR_PKG)),)
+    WAYLAND_PROTOCOLS_DIR = /usr/share/wayland-protocols
+else
+    WAYLAND_PROTOCOLS_DIR = $(WAYLAND_PROTOCOLS_DIR_PKG)
+endif
+WAYLAND_SCANNER = $(shell pkg-config --variable=wayland_scanner wayland-scanner)
+XDG_SHELL_XML = $(WAYLAND_PROTOCOLS_DIR)/stable/xdg-shell/xdg-shell.xml
+LAYER_SHELL_XML = protocol/wlr-layer-shell-unstable-v1.xml
+FOREIGN_TOPLEVEL_XML = protocol/wlr-foreign-toplevel-management-unstable-v1.xml
+
+all: $(TARGET) protocols
+
+# Compile the Main Program
+$(TARGET): $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+
+# Protocol generation targets
+protocols: src/xdg-shell-client-protocol.h src/wlr-layer-shell-unstable-v1-client-protocol.h src/wlr-foreign-toplevel-management-unstable-v1-client-protocol.h
+
+# Generate XDG Shell Protocol
+src/xdg-shell-protocol.c:
+	$(WAYLAND_SCANNER) private-code $(XDG_SHELL_XML) $@
+src/xdg-shell-client-protocol.h:
+	$(WAYLAND_SCANNER) client-header $(XDG_SHELL_XML) $@
+
+# Generate Layer Shell Protocol
+src/wlr-layer-shell-unstable-v1-protocol.c:
+	$(WAYLAND_SCANNER) private-code $(LAYER_SHELL_XML) $@
+src/wlr-layer-shell-unstable-v1-client-protocol.h:
+	$(WAYLAND_SCANNER) client-header $(LAYER_SHELL_XML) $@
+
+# Generate Foreign Toplevel Protocol
+src/wlr-foreign-toplevel-management-unstable-v1-protocol.c:
+	$(WAYLAND_SCANNER) private-code $(FOREIGN_TOPLEVEL_XML) $@
+src/wlr-foreign-toplevel-management-unstable-v1-client-protocol.h:
+	$(WAYLAND_SCANNER) client-header $(FOREIGN_TOPLEVEL_XML) $@
+
+# Compile C files
+src/main.o: src/main.c src/xdg-shell-client-protocol.h src/wlr-layer-shell-unstable-v1-client-protocol.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+src/wlr_backend.o: src/wlr_backend.c src/wlr-foreign-toplevel-management-unstable-v1-client-protocol.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+src/%.o: src/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# ═══════════════════════════════════════════════════════════════════════════
+# INSTALLATION
+# ═══════════════════════════════════════════════════════════════════════════
+install: $(TARGET)
+	@echo "╔═══════════════════════════════════════════════════════════════╗"
+	@echo "║           Installing Snappy Switcher v4.5.0                   ║"
+	@echo "╚═══════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "Installing binaries to $(BINDIR)..."
+	install -d $(BINDIR)
+	install -m 755 $(TARGET) $(BINDIR)/$(TARGET)
+	install -m 755 scripts/snappy-wrapper.sh $(BINDIR)/snappy-wrapper
+	@echo ""
+	@echo "Installing themes to $(DATADIR)/themes/..."
+	install -d $(DATADIR)/themes
+	install -m 644 themes/*.ini $(DATADIR)/themes/
+	@echo ""
+	@echo "Installing documentation to $(DOCDIR)..."
+	install -d $(DOCDIR)
+	install -m 644 config.ini.example $(DOCDIR)/
+	install -m 644 README.md $(DOCDIR)/ 2>/dev/null || true
+	@echo ""
+	@echo "Installing system config to $(SYSCONFDIR)..."
+	install -d $(SYSCONFDIR)
+	install -m 644 config.ini.example $(SYSCONFDIR)/config.ini
+	@echo ""
+	@echo "Installing helper scripts..."
+	install -m 755 scripts/install-config.sh $(BINDIR)/snappy-install-config
+ifeq ($(HAS_SYSTEMD),yes)
+	@echo ""
+	@echo "Installing systemd user service to $(SYSTEMD_USER_UNIT_DIR)..."
+	install -d $(SYSTEMD_USER_UNIT_DIR)
+	install -m 644 snappy-switcher.service $(SYSTEMD_USER_UNIT_DIR)/snappy-switcher.service
+else
+	@echo ""
+	@echo "NOTE: systemd not detected — skipping service file installation."
+	@echo "      If you use systemd, install pkg-config's systemd module and re-run."
+endif
+	@echo ""
+	@echo "╔═══════════════════════════════════════════════════════════════╗"
+	@echo "║                   Installation Complete!                      ║"
+	@echo "╚═══════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "NEXT STEPS:"
+	@echo ""
+	@echo "  1. Setup your config:"
+	@echo "     snappy-install-config"
+	@echo ""
+	@echo "  2. Add to ~/.config/hypr/hyprland.lua:"
+	@echo "     hl.on(\"hyprland.start\", function() hl.dispatch(hl.dsp.exec_cmd(\"snappy-wrapper\")) end)"
+	@echo "     hl.bind(\"ALT + Tab\", hl.dsp.exec_cmd(\"snappy-switcher next --mod alt\"))"
+	@echo "     hl.bind(\"ALT + SHIFT + Tab\", hl.dsp.exec_cmd(\"snappy-switcher prev --mod alt\"))"
+	@echo ""
+	@echo "  3. (Optional) Choose a theme in ~/.config/snappy-switcher/config.ini"
+	@echo "     Available: snappy-slate, catppuccin-mocha, nord, dracula, etc."
+	@echo ""
+
+install-user: $(TARGET)
+	@echo "Installing to user directory (~/.local)..."
+	install -d $(HOME)/.local/bin
+	install -m 755 $(TARGET) $(HOME)/.local/bin/$(TARGET)
+	install -m 755 scripts/snappy-wrapper.sh $(HOME)/.local/bin/snappy-wrapper
+	install -d $(HOME)/.config/snappy-switcher/themes
+	install -m 644 themes/*.ini $(HOME)/.config/snappy-switcher/themes/
+	@if [ ! -f $(HOME)/.config/snappy-switcher/config.ini ]; then \
+		install -m 644 config.ini.example $(HOME)/.config/snappy-switcher/config.ini; \
+	fi
+ifeq ($(HAS_SYSTEMD),yes)
+	@echo "Installing systemd user service..."
+	install -d $(HOME)/.config/systemd/user
+	install -m 644 snappy-switcher.service $(HOME)/.config/systemd/user/snappy-switcher.service
+else
+	@echo "NOTE: systemd not detected — skipping service file."
+endif
+	@echo "User installation complete!"
+
+uninstall:
+	@echo "Removing Snappy Switcher..."
+	rm -f $(BINDIR)/$(TARGET)
+	rm -f $(BINDIR)/snappy-wrapper
+	rm -f $(BINDIR)/snappy-install-config
+	rm -rf $(DATADIR)
+	rm -rf $(DOCDIR)
+	rm -rf $(SYSCONFDIR)
+ifeq ($(HAS_SYSTEMD),yes)
+	rm -f $(SYSTEMD_USER_UNIT_DIR)/snappy-switcher.service
+endif
+	@echo "Done! (User config in ~/.config/snappy-switcher was NOT removed)"
+
+clean:
+	rm -f $(TARGET)
+	rm -f src/*.o
+	rm -f src/*-protocol.c
+	rm -f src/*-client-protocol.h
+
+test: $(TARGET)
+	@chmod +x scripts/stress-test.sh
+	@echo "Running stress test..."
+	@./scripts/stress-test.sh
+
+.PHONY: all clean install install-user uninstall test

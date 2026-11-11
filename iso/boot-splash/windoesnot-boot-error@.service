@@ -1,0 +1,12 @@
+[Unit]
+Description=Reveal boot diagnostics for %i
+DefaultDependencies=no
+After=systemd-journald.service
+ConditionPathExists=/run/plymouth/pid
+# Do not inherit the generic failure handler recursively.
+OnFailure=
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/windoesnot/boot-error %i
+TimeoutStartSec=10

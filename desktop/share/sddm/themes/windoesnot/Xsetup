@@ -1,0 +1,23 @@
+#!/bin/sh
+# Preserve SDDM's upstream (or administrator-customized) display setup.
+if [ -x /usr/share/sddm/scripts/Xsetup ]; then
+    /usr/share/sddm/scripts/Xsetup "$@"
+fi
+# Xorg may retain an initial US core-keyboard map until the first device key
+# event. Apply the server's existing rules, layout(s), variant(s) and options
+# before the greeter reads them. No layout is hardcoded and no keys are sent.
+if ! /usr/bin/setxkbmap; then
+    printf '%s\n' 'WinDoesNot: could not initialize the greeter keyboard map' >&2
+fi
+# Replace the bare "X" root cursor with the normal arrow (best-effort).
+if command -v xsetroot >/dev/null 2>&1; then
+    XCURSOR_THEME=Adwaita XCURSOR_SIZE=24 xsetroot -cursor_name left_ptr || true
+fi
+# Best-effort: point X11's primary output / layout at Hyprland's main monitor.
+# Time-limited, never blocks or fails the login screen; the greeter theme
+# shows the login form on every screen regardless of the result.
+theme_dir=$(dirname -- "$0")
+timeout 10 /usr/bin/python3 "$theme_dir/set-primary-monitor.py" >>/var/log/windoesnot-sddm-primary.log 2>&1 || true
+# A keyboard-query or primary-monitor-detection failure must not prevent
+# the login screen from starting.
+exit 0

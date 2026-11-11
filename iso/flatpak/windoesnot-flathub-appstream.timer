@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh the Flathub app catalogue after boot and weekly
+
+[Timer]
+# Not at boot itself: never slow down the start of the desktop.
+OnBootSec=3min
+OnUnitInactiveSec=1week
+RandomizedDelaySec=15min
+
+[Install]
+WantedBy=timers.target

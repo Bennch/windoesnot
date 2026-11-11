@@ -1,0 +1,39 @@
+pkgname=windoesnot-boot-language
+pkgver=20261027
+pkgrel=1
+pkgdesc='Boot menus following the WinDoesNot system language (German and English)'
+arch=('x86_64')
+license=('GPL-2.0-or-later' 'GPL-3.0-or-later' 'LGPL-2.1-or-later' 'BSD-2-Clause' 'MIT')
+depends=(python)
+makedepends=(gcc binutils make patch meson ninja nasm gnu-efi gperf python-jinja python-pyelftools)
+options=('!strip' '!debug' '!lto')
+source=('windoesnot-boot-language-source.tar.gz')
+sha256sums=('@SHA256@')
+
+build() {
+    cd "$srcdir/windoesnot-boot-language"
+    tools/build-boot-language-source.sh "$srcdir/boot-build"
+}
+
+package() {
+    cd "$srcdir/windoesnot-boot-language"
+    install -d "$pkgdir/usr/lib/windoesnot/boot-language"
+    cp -a "$srcdir/boot-build/artifacts/." "$pkgdir/usr/lib/windoesnot/boot-language/"
+    install -Dm755 desktop/lib/windoesnot/boot_language.py "$pkgdir/usr/lib/windoesnot/boot_language.py"
+    for unit in desktop/share/systemd/system/windoesnot-boot-language.*; do
+        install -Dm644 "$unit" "$pkgdir/usr/lib/systemd/system/${unit##*/}"
+    done
+    for hook in desktop/share/libalpm/hooks/*boot-language.hook; do
+        install -Dm644 "$hook" "$pkgdir/usr/share/libalpm/hooks/${hook##*/}"
+    done
+    install -Dm644 iso/boot-language/README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+    # Corresponding source, build scripts and exact text patches accompany the
+    # firmware binaries, including every upstream license in its source archive.
+    install -Dm644 "$srcdir/../windoesnot-boot-language-source.tar.gz" "$pkgdir/usr/share/$pkgname/corresponding-source.tar.gz"
+    install -d "$pkgdir/usr/share/doc/$pkgname/build"
+    cp -a "$srcdir/boot-build/logs/." "$pkgdir/usr/share/doc/$pkgname/build/"
+    install -Dm644 "$srcdir/boot-build/work/limine-12.9.4/COPYING" "$pkgdir/usr/share/licenses/$pkgname/limine-COPYING"
+    install -Dm644 "$srcdir/boot-build/work/refind-0.14.2/LICENSE.txt" "$pkgdir/usr/share/licenses/$pkgname/refind-LICENSE.txt"
+    install -d "$pkgdir/usr/share/licenses/$pkgname/systemd"
+    cp -a "$srcdir/boot-build/work/systemd-262.1/LICENSES/." "$pkgdir/usr/share/licenses/$pkgname/systemd/"
+}

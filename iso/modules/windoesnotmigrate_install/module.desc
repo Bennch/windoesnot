@@ -1,0 +1,5 @@
+---
+type: job
+name: windoesnotmigrate_install
+interface: python
+script: main.py

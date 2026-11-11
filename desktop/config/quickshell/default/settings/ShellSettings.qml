@@ -1,0 +1,113 @@
+import QtQuick
+import Quickshell.Io
+import "." as Tools
+import "../i18n/Lang.js" as Lang
+
+Column {
+    id: page
+    property var settingsMenu: null
+    property string language: settingsMenu ? settingsMenu.uiLanguage : "de"
+    property var available: []
+    property string current: ""
+    property string result: ""
+    property bool busy: false
+    spacing: 12
+    function tr(key) { return Lang.get(key, language) }
+    function run(action, args) {
+        if (busy) return
+        busy = true
+        worker.operation = action
+        worker.command = (action === "shell-status" ? ["/usr/bin/python3", "-I"] : ["/usr/bin/pkexec", "--disable-internal-agent"])
+            .concat(["/usr/lib/windoesnot/system_tools.py", action, JSON.stringify(args)])
+        worker.running = true
+    }
+    Component.onCompleted: run("shell-status", {})
+    Process {
+        id: worker
+        property string operation
+        stdout: StdioCollector { id: output }
+        onExited: code => {
+            page.busy = false
+            let data = {}
+            try { data = JSON.parse(output.text) } catch (error) {}
+            if (code !== 0 || data.error) {
+                page.result = page.tr(code === 126 ? "systemTools.cancelled" : "systemTools.failed")
+            } else if (operation === "shell-status") {
+                page.available = data.available || []
+                page.current = data.current || ""
+                choice.currentIndex = page.available.indexOf(page.current)
+            } else {
+                page.result = page.tr("apps.shellSaved")
+                page.run("shell-status", {})
+            }
+        }
+    }
+    Text {
+        text: page.tr("apps.shellTitle"); font.pixelSize: 18; font.bold: true
+        color: settingsMenu && !settingsMenu.darkMode ? "#1a1a1a" : "#ffffff"
+    }
+    Text {
+        width: parent.width; text: page.tr("apps.shellHint"); wrapMode: Text.WordWrap
+        font.pixelSize: 13; color: settingsMenu && !settingsMenu.darkMode ? "#555555" : "#bbbbbb"
+    }
+    Tools.SystemToolsChoice {
+        id: choice
+        width: 180; settingsMenu: page.settingsMenu
+        model: page.available; enabled: !page.busy
+        // onActivated = only a user pick. onCurrentTextChanged also fired while the list was
+        // filled from shell-status, which started a pkexec password prompt on opening the page.
+        onActivated: {
+            if (choice.currentText && choice.currentText !== page.current && !page.busy) {
+                page.run("shell-set", {shell: choice.currentText})
+            }
+        }
+    }
+    Column {
+        id: greetingSection
+        width: parent.width
+        spacing: 6
+        property bool greetingOff: false
+        property bool syncing: false
+        function refresh() { greetingCheck.running = true }
+        Component.onCompleted: refresh()
+        Process {
+            id: greetingCheck
+            command: ["sh", "-c", "test -e \"$HOME/.config/windoesnot/no-greeting\""]
+            onExited: code => {
+                greetingSection.syncing = true
+                greetingSection.greetingOff = (code === 0)
+                greetingToggle.checked = !greetingSection.greetingOff
+                greetingSection.syncing = false
+            }
+        }
+        Process {
+            id: greetingSet
+            property bool enable: true
+            command: ["sh", "-c", enable
+                ? "rm -f \"$HOME/.config/windoesnot/no-greeting\""
+                : "mkdir -p \"$HOME/.config/windoesnot\" && touch \"$HOME/.config/windoesnot/no-greeting\""]
+            onExited: greetingSection.refresh()
+        }
+        Item { width: 1; height: 8 }
+        Tools.SystemToolsToggle {
+            id: greetingToggle
+            settingsMenu: page.settingsMenu
+            text: page.tr("apps.greetingTitle")
+            checked: true
+            onToggled: {
+                if (greetingSection.syncing) return
+                greetingSet.enable = checked
+                greetingSet.running = true
+            }
+        }
+        Text {
+            width: parent.width; text: page.tr("apps.greetingDesc"); wrapMode: Text.WordWrap
+            font.pixelSize: 13; color: settingsMenu && !settingsMenu.darkMode ? "#555555" : "#bbbbbb"
+        }
+    }
+    Text {
+        width: parent.width; text: page.result; visible: text.length > 0
+        wrapMode: Text.WordWrap; font.pixelSize: 13
+        color: settingsMenu && !settingsMenu.darkMode ? "#555555" : "#bbbbbb"
+    }
+}

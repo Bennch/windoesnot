@@ -1,0 +1,5 @@
+---
+type: job
+name: windoesnotprepare
+interface: python
+script: main.py

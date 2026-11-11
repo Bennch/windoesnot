@@ -1,0 +1,52 @@
+{
+  "windoesnot-icon-1024.png": {
+    "height": 1024,
+    "sha256": "91aa026c3c1264cff2f90f4a7f918117d336754a940004d7bef61bba88b66c32",
+    "width": 1024
+  },
+  "windoesnot-icon-128.png": {
+    "height": 128,
+    "sha256": "f8a4d8d76fff6d3d81b25a5c79c9581ff90d294fcc53395eec619942bf70af81",
+    "width": 128
+  },
+  "windoesnot-icon-16.png": {
+    "height": 16,
+    "sha256": "0e1e61dfc62f1cac3ac727e49b56bfd3017d4ddaa1134c3089ba4d9e6744c43a",
+    "width": 16
+  },
+  "windoesnot-icon-256.png": {
+    "height": 256,
+    "sha256": "34fbae2b02d1dfc2ad26d481597f7797edb5e88ca3adbc3a09b386d5c2418a04",
+    "width": 256
+  },
+  "windoesnot-icon-32.png": {
+    "height": 32,
+    "sha256": "3d850cb5a261bc665f345be71379c12f1b19eb7dedf9fdd49cce7651e07b2d4b",
+    "width": 32
+  },
+  "windoesnot-icon-48.png": {
+    "height": 48,
+    "sha256": "24a049782c2c05fdb90ba6a81039f3302efcec83887ae4d637d5d2ef3c8a1da8",
+    "width": 48
+  },
+  "windoesnot-icon-512.png": {
+    "height": 512,
+    "sha256": "e9d31441f0fe04e48c557d32d6a3f6266f4c1a7045150a90d7fc059a151a9ff5",
+    "width": 512
+  },
+  "windoesnot-icon-64.png": {
+    "height": 64,
+    "sha256": "cb0d6a25ca62f8afc5229a5d7a6bae6949b1f6b1d8934825807f6f7cb8cfc12e",
+    "width": 64
+  },
+  "windoesnot-logo-dunkel.png": {
+    "height": 459,
+    "sha256": "bc47532b1cc2e38e709703813428070906dd81045a218663202352e339b8fbd3",
+    "width": 2446
+  },
+  "windoesnot-logo-hell.png": {
+    "height": 459,
+    "sha256": "e05666d241cd9291e1ec6e61f2f46bff5a2cfb946e84264ffe386572e653c638",
+    "width": 2446
+  }
+}

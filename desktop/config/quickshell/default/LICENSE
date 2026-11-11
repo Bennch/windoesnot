@@ -1,0 +1,18 @@
+WinDoesNot Quickshell desktop
+Copyright (C) 2025-2026 Benjamin Stähle and WinDoesNot contributors
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+The full license text is in the LICENSE file at the root of the WinDoesNot
+repository and at <https://www.gnu.org/licenses/gpl-3.0.html>.
+
+Bundled third-party material keeps its own license: see THIRD-PARTY.md at the
+repository root (Win11-dark icons: GPL-3.0, img/project icons: MIT; the weather
+icons under widgets/weather/ are still under review).

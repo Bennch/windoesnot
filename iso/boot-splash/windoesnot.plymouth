@@ -1,0 +1,37 @@
+[Plymouth Theme]
+Name=WinDoesNot
+Description=WinDoesNot logo and spinner; Escape shows boot details
+ModuleName=two-step
+
+[two-step]
+Font=Sans 12
+TitleFont=Sans 24
+MonospaceFont=Monospace 12
+ImageDir=/usr/share/plymouth/themes/windoesnot
+DialogHorizontalAlignment=.5
+DialogVerticalAlignment=.5
+TitleHorizontalAlignment=.5
+TitleVerticalAlignment=.5
+HorizontalAlignment=.5
+VerticalAlignment=.62
+WatermarkHorizontalAlignment=.5
+WatermarkVerticalAlignment=.40
+Transition=none
+TransitionDuration=0.0
+BackgroundStartColor=0x000000
+BackgroundEndColor=0x000000
+ProgressBarBackgroundColor=0x202024
+ProgressBarForegroundColor=0xfe6f2d
+MessageBelowAnimation=true
+
+[boot-up]
+UseEndAnimation=false
+SuppressMessages=true
+
+[shutdown]
+UseEndAnimation=false
+SuppressMessages=true
+
+[reboot]
+UseEndAnimation=false
+SuppressMessages=true

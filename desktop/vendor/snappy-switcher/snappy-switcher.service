@@ -1,0 +1,77 @@
+[Unit]
+Description=Snappy Switcher - Alt+Tab Window Switcher for Hyprland
+Documentation=https://github.com/OpalAayan/snappy-switcher
+
+# Ordering: start after the graphical session is established
+After=graphical-session.target
+PartOf=graphical-session.target
+
+# Pre-flight checks — don't even attempt to start unless these are true
+ConditionEnvironment=WAYLAND_DISPLAY
+ConditionEnvironment=HYPRLAND_INSTANCE_SIGNATURE
+
+# Rate-limit restarts: max 5 attempts within 30s, then stop trying
+# (these directives MUST be in [Unit], not [Service])
+StartLimitIntervalSec=30
+StartLimitBurst=5
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/snappy-switcher --daemon
+
+# Graceful shutdown via IPC before SIGTERM (clean Wayland surface teardown)
+ExecStop=/usr/bin/snappy-switcher quit
+
+Restart=on-failure
+RestartSec=3
+
+# If daemon hasn't started within 15s, something is wrong
+TimeoutStartSec=15
+TimeoutStopSec=10
+
+# ── Environment ──────────────────────────────────────────────────────
+# Inherit the full user session environment so WAYLAND_DISPLAY,
+# XDG_RUNTIME_DIR, and HYPRLAND_INSTANCE_SIGNATURE are available
+# (graphical-session.target doesn't guarantee passthrough on all distros)
+ImportCredential=*
+
+# ── Logging ──────────────────────────────────────────────────────────
+# Tag journal entries for easy filtering:
+#   journalctl --user -u snappy-switcher
+SyslogIdentifier=snappy-switcher
+StandardOutput=journal
+StandardError=journal
+
+# ── Sandboxing / Hardening ───────────────────────────────────────────
+# Drop all capabilities — we're an unprivileged Wayland client
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+
+# Filesystem restrictions
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+# Allow write to XDG_RUNTIME_DIR (Wayland/Hyprland sockets + our IPC socket)
+ReadWritePaths=/run/user
+
+# Network is not needed
+RestrictAddressFamilies=AF_UNIX
+PrivateNetwork=yes
+
+# Restrict kernel interfaces
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectProc=invisible
+RestrictNamespaces=yes
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+SystemCallArchitectures=native
+
+# Memory/security mitigations
+MemoryDenyWriteExecute=yes
+
+[Install]
+WantedBy=graphical-session.target

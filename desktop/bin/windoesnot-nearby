@@ -1,0 +1,755 @@
+#!/usr/bin/env python3
+"""User-session LocalSend v2 upload/discovery adapter. No privileged operations.
+
+Protocol: https://github.com/localsend/protocol (Apache-2.0).
+The v1.17 Flutter app has --hidden, but no headless approval/progress API.
+This adapter implements the public protocol instead of driving its GUI.
+Control and state use newline-delimited JSON on the owning shell's pipes.
+"""
+import hashlib
+import http.client
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import ipaddress
+import json
+import mimetypes
+import os
+from pathlib import Path
+import secrets
+import select
+import signal
+import shutil
+import socket
+import ssl
+import stat
+import subprocess
+import sys
+import threading
+import time
+from urllib.parse import parse_qs, unquote, urlencode, urlsplit
+import uuid
+
+PORT = 53317
+GROUP = '224.0.0.167'
+API = '/api/localsend/v2/'
+CHUNK = 65536
+MAX_JSON = 1024 * 1024
+MAX_FILES = 1000
+
+
+def private_write(path, data):
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    temp = path.with_name('.' + path.name + '.' + uuid.uuid4().hex)
+    try:
+        with open(temp, 'x', opener=lambda p, f: os.open(p, f, 0o600)) as output:
+            json.dump(data, output, ensure_ascii=False)
+        os.replace(temp, path)
+    finally:
+        temp.unlink(missing_ok=True)
+
+
+def filename(value):
+    if (not isinstance(value, str) or not value or len(value.encode('utf-8')) > 240
+            or value in ('.', '..') or any(c in value for c in '/\\\x00')
+            or any(ord(c) < 32 for c in value)):
+        raise ValueError('invalid-files')
+    return value
+
+
+def local_paths(values):
+    if not isinstance(values, list) or not 0 < len(values) <= MAX_FILES:
+        raise ValueError('invalid-files')
+    paths = []
+    for value in values:
+        if not isinstance(value, str):
+            raise ValueError('invalid-files')
+        if value.startswith('file:'):
+            url = urlsplit(value)
+            if url.netloc not in ('', 'localhost'):
+                raise ValueError('invalid-files')
+            value = unquote(url.path)
+        path = Path(value).resolve(strict=True)
+        if not path.is_file():
+            raise ValueError('invalid-files')
+        filename(path.name)
+        paths.append(path)
+    return list(dict.fromkeys(paths))
+
+
+def manifest(files):
+    if not isinstance(files, dict) or not 0 < len(files) <= MAX_FILES:
+        raise ValueError('invalid-files')
+    result = {}
+    for key, item in files.items():
+        if not isinstance(key, str) or not 0 < len(key) <= 128 or not isinstance(item, dict):
+            raise ValueError('invalid-files')
+        size = item.get('size')
+        if type(size) is not int or not 0 <= size <= 2**50:
+            raise ValueError('invalid-files')
+        digest = item.get('sha256')
+        if digest is not None and (not isinstance(digest, str) or len(digest) != 64
+                                   or any(c not in '0123456789abcdefABCDEF' for c in digest)):
+            raise ValueError('invalid-files')
+        result[key] = {'name': filename(item.get('fileName')), 'size': size, 'hash': digest,
+                       'token': secrets.token_hex(32), 'claimed': False, 'done': False}
+    return result
+
+
+def lan_address(value):
+    address = ipaddress.IPv4Address(value)
+    if address.is_multicast or address.is_unspecified or not (address.is_private or address.is_link_local):
+        raise ValueError('network')
+    return str(address)
+
+
+def downloads_directory():
+    try:
+        result = subprocess.run(['xdg-user-dir', 'DOWNLOAD'], capture_output=True, text=True, timeout=3)
+        if result.returncode == 0 and result.stdout.strip().startswith('/'):
+            return Path(result.stdout.strip())
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    return Path.home() / 'Downloads'
+
+
+class Transfer:
+    def __init__(self, direction, peer, files):
+        self.id = uuid.uuid4().hex
+        self.direction = direction
+        self.peer = peer
+        self.files = files
+        self.total = sum(item['size'] for item in files.values())
+        self.bytes = 0
+        self.status = 'waiting'
+        self.decision = threading.Event()
+        self.cancelled = threading.Event()
+        self.created = time.monotonic()
+        self.connection = None
+        self.remote_session = ''
+        self.temporary = set()
+
+    def public(self):
+        return {'id': self.id, 'direction': self.direction, 'peer': self.peer['alias'],
+                'files': [item['name'] for item in self.files.values()], 'total': self.total,
+                'bytes': self.bytes, 'status': self.status}
+
+
+class Adapter:
+    def __init__(self, state=None, downloads=None, emit=None, port=PORT, alias=None):
+        self.directory = state or Path(os.environ.get('XDG_STATE_HOME', Path.home() / '.local/state')) / 'windoesnot/nearby'
+        self.downloads = downloads or downloads_directory()
+        self.emit = emit or (lambda value: print(json.dumps(value, ensure_ascii=False), flush=True))
+        self.port = port
+        self.alias = alias or socket.gethostname()[:80]
+        self.receiving = False
+        self.active = False
+        self.peers = {}
+        self.history = []
+        self.recent = {}
+        self.selected = []
+        self.incoming = None
+        self.outgoing = None
+        self.error = ''
+        self.server = None
+        self.udp = None
+        self.context = None
+        self.fingerprint = ''
+        self.lock = threading.RLock()
+        self.closed = threading.Event()
+        self.workers = threading.BoundedSemaphore(12)
+        self.dirty = True
+        try:
+            self.receiving = json.loads((self.directory / 'preferences.json').read_text()).get('receiving') is True
+        except (OSError, ValueError, AttributeError):
+            pass
+        try:
+            history = json.loads((self.directory / 'history.json').read_text())
+            if isinstance(history, list):
+                self.history = history[-20:]
+        except (OSError, ValueError, AttributeError):
+            pass
+
+    def info(self, announce=False):
+        return {'alias': self.alias, 'version': '2.0', 'deviceModel': 'WinDoesNot',
+                'deviceType': 'desktop', 'fingerprint': self.fingerprint, 'port': self.port,
+                'protocol': 'https', 'download': False, 'announce': announce}
+
+    def certificate(self):
+        self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        cert, key = self.directory / 'certificate.pem', self.directory / 'private-key.pem'
+        if not cert.exists() or not key.exists():
+            subprocess.run(['openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '3650',
+                            '-subj', '/CN=WinDoesNot LocalSend', '-keyout', str(key), '-out', str(cert)],
+                           check=True, capture_output=True, timeout=20)
+            key.chmod(0o600)
+        self.context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        self.context.minimum_version = ssl.TLSVersion.TLSv1_2
+        self.context.load_cert_chain(cert, key)
+        self.fingerprint = hashlib.sha256(ssl.PEM_cert_to_DER_cert(cert.read_text())).hexdigest()
+
+    def network(self):
+        needed = self.active or self.receiving or self.outgoing is not None
+        if needed and not self.server:
+            try:
+                self.certificate()
+                adapter = self
+
+                class Server(ThreadingHTTPServer):
+                    daemon_threads = True
+                    block_on_close = False
+                    allow_reuse_address = True
+
+                    def process_request(self, request, address):
+                        if not adapter.workers.acquire(blocking=False):
+                            request.close()
+                            return
+                        try:
+                            super().process_request(request, address)
+                        except Exception:
+                            adapter.workers.release()
+                            raise
+
+                    def process_request_thread(self, request, address):
+                        try:
+                            super().process_request_thread(request, address)
+                        finally:
+                            adapter.workers.release()
+
+                    def handle_error(self, *args):
+                        pass
+
+                self.server = Server(('0.0.0.0', self.port), Handler)
+                self.server.adapter = self
+                self.port = self.server.server_address[1]
+                threading.Thread(target=self.server.serve_forever, kwargs={'poll_interval': 0.2}, daemon=True).start()
+                udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+                udp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                udp.bind(('', PORT))
+                udp.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, socket.inet_aton(GROUP) + socket.inet_aton('0.0.0.0'))
+                udp.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
+                udp.settimeout(1)
+                self.udp = udp
+                threading.Thread(target=self.discover_loop, args=(udp,), daemon=True).start()
+                self.announce()
+                self.error = ''
+            except (OSError, subprocess.SubprocessError) as error:
+                self.error = 'port' if isinstance(error, OSError) and error.errno == 98 else 'network'
+                self.stop_network()
+        elif not needed:
+            self.stop_network()
+        self.dirty = True
+
+    def stop_network(self):
+        if self.udp:
+            udp, self.udp = self.udp, None
+            udp.close()
+        if self.server:
+            server, self.server = self.server, None
+            server.shutdown()
+            server.server_close()
+
+    def announce(self, target=None, announce=True):
+        if self.udp:
+            try:
+                self.udp.sendto(json.dumps(self.info(announce)).encode(), target or (GROUP, PORT))
+            except OSError:
+                self.error = 'network'
+
+    def remember(self, info, address):
+        if not isinstance(info, dict):
+            raise ValueError('network')
+        key = info.get('fingerprint')
+        if not isinstance(key, str) or not 1 <= len(key) <= 128:
+            raise ValueError('network')
+        if key.lower() == self.fingerprint.lower():
+            return None
+        port = info.get('port', PORT)
+        if type(port) is not int or not 1 <= port <= 65535 or info.get('protocol') not in ('http', 'https'):
+            raise ValueError('network')
+        if info['protocol'] == 'https' and (len(key) != 64 or any(c not in '0123456789abcdefABCDEF' for c in key)):
+            raise ValueError('certificate')
+        alias = info.get('alias', 'LocalSend')
+        if not isinstance(alias, str) or not alias or len(alias) > 100:
+            raise ValueError('network')
+        peer = {'id': key, 'alias': alias, 'address': lan_address(address), 'port': port,
+                'protocol': info['protocol'], 'lastSeen': time.monotonic()}
+        with self.lock:
+            peer['replied'] = self.peers.get(key, {}).get('replied', 0)
+            if len(self.peers) < 100 or key in self.peers:
+                self.peers[key] = peer
+                self.dirty = True
+            else:
+                return None
+        return peer
+
+    def discover_loop(self, udp):
+        while not self.closed.is_set() and self.udp is udp:
+            try:
+                raw, origin = udp.recvfrom(MAX_JSON)
+                info = json.loads(raw)
+                peer = self.remember(info, origin[0])
+                if peer and info.get('announce') is True and time.monotonic() - peer.get('replied', 0) > 5:
+                    peer['replied'] = time.monotonic()
+                    self.announce((origin[0], PORT), False)
+                    threading.Thread(target=self.register, args=(peer,), daemon=True).start()
+            except (OSError, ValueError, TypeError):
+                continue
+
+    def connect(self, peer, timeout=15):
+        address = lan_address(peer['address'])
+        if peer['protocol'] == 'https':
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+            context.minimum_version = ssl.TLSVersion.TLSv1_2
+            conn = http.client.HTTPSConnection(address, peer['port'], timeout=timeout, context=context)
+            conn.connect()
+            fingerprint = hashlib.sha256(conn.sock.getpeercert(binary_form=True)).hexdigest()
+            if not secrets.compare_digest(fingerprint, peer['id'].lower()):
+                conn.close()
+                raise ValueError('certificate')
+            return conn
+        return http.client.HTTPConnection(address, peer['port'], timeout=timeout)
+
+    def post(self, peer, route, data, timeout=15):
+        conn = self.connect(peer, timeout)
+        try:
+            conn.request('POST', API + route, json.dumps(data).encode(), {'Content-Type': 'application/json'})
+            response = conn.getresponse()
+            body = response.read(MAX_JSON + 1)
+            if response.status != 200 or len(body) > MAX_JSON:
+                raise ValueError('rejected' if response.status == 403 else 'transfer')
+            return json.loads(body) if body else {}
+        finally:
+            conn.close()
+
+    def register(self, peer):
+        try:
+            self.post(peer, 'register', self.info())
+        except (OSError, ValueError, http.client.HTTPException):
+            pass
+
+    def finish(self, transfer, status):
+        with self.lock:
+            if transfer.status in ('done', 'rejected', 'cancelled', 'failed'):
+                if transfer.status != 'failed' or status != 'cancelled':
+                    return
+                # The cancel request may arrive just after the upload socket closes.
+                self.history = [entry for entry in self.history if entry['id'] != transfer.id]
+            transfer.status = status
+            record = {**transfer.public(), 'time': int(time.time())}
+            self.history = (self.history + [record])[-20:]
+            if transfer.direction == 'receive':
+                self.recent[transfer.id] = transfer
+                self.recent = dict(list(self.recent.items())[-20:])
+            if self.incoming is transfer:
+                self.incoming = None
+            if self.outgoing is transfer:
+                self.outgoing = None
+            self.dirty = True
+            try:
+                private_write(self.directory / 'history.json', self.history)
+            except OSError:
+                self.error = 'storage'
+
+    def cancel(self, transfer, status='cancelled'):
+        if not transfer:
+            return
+        with self.lock:
+            transfer.cancelled.set()
+            transfer.decision.set()
+            for directory, name in transfer.temporary:
+                try:
+                    os.unlink(name, dir_fd=directory)
+                except FileNotFoundError:
+                    pass
+        if transfer.connection and transfer.connection.sock:
+            try:
+                transfer.connection.sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+        if transfer.direction == 'send' and transfer.remote_session:
+            threading.Thread(target=self.cancel_remote, args=(transfer,), daemon=True).start()
+        self.finish(transfer, status)
+
+    def cancel_remote(self, transfer):
+        try:
+            self.post(transfer.peer, 'cancel?' + urlencode({'sessionId': transfer.remote_session}), {})
+        except (OSError, ValueError, http.client.HTTPException):
+            pass
+
+    def send(self, peer, paths):
+        opened = {}
+        transfer = None
+        try:
+            for path in paths:
+                fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+                stream = os.fdopen(fd, 'rb')
+                data = os.fstat(fd)
+                if not stat.S_ISREG(data.st_mode):
+                    stream.close()
+                    raise ValueError('invalid-files')
+                opened[uuid.uuid4().hex] = {'name': filename(path.name), 'size': data.st_size, 'stream': stream}
+            transfer = Transfer('send', peer, opened)
+            with self.lock:
+                self.outgoing = transfer
+                self.dirty = True
+            files = {key: {'id': key, 'fileName': item['name'], 'size': item['size'],
+                           'fileType': mimetypes.guess_type(item['name'])[0] or 'application/octet-stream'}
+                     for key, item in opened.items()}
+            conn = self.connect(peer, 100)
+            transfer.connection = conn
+            if transfer.cancelled.is_set():
+                return
+            conn.request('POST', API + 'prepare-upload', json.dumps({'info': self.info(), 'files': files}),
+                         {'Content-Type': 'application/json'})
+            response = conn.getresponse()
+            raw = response.read(MAX_JSON + 1)
+            if transfer.cancelled.is_set():
+                return
+            if response.status == 403:
+                self.finish(transfer, 'rejected')
+                return
+            if response.status != 200 or len(raw) > MAX_JSON:
+                raise ValueError('transfer')
+            prepared = json.loads(raw)
+            transfer.remote_session = prepared['sessionId']
+            accepted = prepared['files']
+            if not isinstance(transfer.remote_session, str) or not isinstance(accepted, dict) or not accepted:
+                raise ValueError('transfer')
+            if any(key not in opened or not isinstance(token, str) for key, token in accepted.items()):
+                raise ValueError('transfer')
+            transfer.total = sum(opened[key]['size'] for key in accepted)
+            transfer.status = 'transferring'
+            for key, token in accepted.items():
+                conn.close()
+                conn = self.connect(peer)
+                transfer.connection = conn
+                item = opened[key]
+                conn.putrequest('POST', API + 'upload?' + urlencode({'sessionId': transfer.remote_session, 'fileId': key, 'token': token}))
+                conn.putheader('Content-Length', str(item['size']))
+                conn.putheader('Content-Type', 'application/octet-stream')
+                conn.endheaders()
+                remaining = item['size']
+                while remaining:
+                    if transfer.cancelled.is_set():
+                        return
+                    chunk = item['stream'].read(min(CHUNK, remaining))
+                    if not chunk:
+                        raise ValueError('transfer')
+                    conn.send(chunk)
+                    remaining -= len(chunk)
+                    transfer.bytes += len(chunk)
+                    self.dirty = True
+                response = conn.getresponse()
+                response.read(MAX_JSON)
+                if response.status != 200:
+                    raise ValueError('transfer')
+            self.finish(transfer, 'done')
+        except (OSError, ValueError, KeyError, TypeError, http.client.HTTPException) as error:
+            if transfer and not transfer.cancelled.is_set():
+                self.cancel_remote(transfer) if transfer.remote_session else None
+                self.finish(transfer, 'failed')
+            self.error = str(error) if isinstance(error, ValueError) and str(error) in ('certificate', 'invalid-files') else 'transfer'
+            self.dirty = True
+        finally:
+            if transfer and transfer.connection:
+                transfer.connection.close()
+            for item in opened.values():
+                item['stream'].close()
+
+    def control(self, data):
+        action = data['action']
+        self.error = ''
+        if action == 'active':
+            self.active = data.get('value') is True
+            self.network()
+        elif action == 'receive':
+            self.receiving = data.get('value') is True
+            private_write(self.directory / 'preferences.json', {'receiving': self.receiving})
+            if not self.receiving:
+                self.cancel(self.incoming)
+            self.network()
+        elif action == 'discover':
+            self.network()
+            self.announce()
+        elif action == 'select':
+            self.selected = local_paths(data.get('files'))
+        elif action == 'send':
+            if self.outgoing or getattr(self, 'sending', False):
+                raise ValueError('busy')
+            peer = self.peers[data['peer']]
+            if time.monotonic() - peer['lastSeen'] > 45:
+                raise ValueError('network')
+            paths = local_paths([str(p) for p in self.selected])
+            self.sending = True
+            def run():
+                try:
+                    self.send(peer, paths)
+                finally:
+                    self.sending = False
+                    self.dirty = True
+            threading.Thread(target=run, daemon=True).start()
+        elif action in ('accept', 'reject'):
+            with self.lock:
+                transfer = self.incoming
+                if not transfer or transfer.id != data['id'] or transfer.status != 'waiting':
+                    raise ValueError('transfer')
+                if action == 'accept':
+                    self.downloads.mkdir(parents=True, exist_ok=True)
+                    if shutil.disk_usage(self.downloads).free < transfer.total:
+                        raise ValueError('storage')
+                    transfer.status = 'transferring'
+                    transfer.decision.set()
+                else:
+                    self.cancel(transfer, 'rejected')
+        elif action == 'cancel':
+            for transfer in (self.incoming, self.outgoing):
+                if transfer and transfer.id == data['id']:
+                    self.cancel(transfer)
+        elif action == 'folder':
+            self.downloads.mkdir(parents=True, exist_ok=True)
+            subprocess.Popen(['xdg-open', str(self.downloads)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        elif action == 'clear':
+            self.selected = []
+        else:
+            raise ValueError('invalid-files')
+        self.dirty = True
+
+    def snapshot(self):
+        with self.lock:
+            return {'receiving': self.receiving and self.server is not None, 'requestedReceiving': self.receiving,
+                    'alias': self.alias, 'error': self.error,
+                    'devices': [p for p in self.peers.values() if time.monotonic() - p['lastSeen'] < 45],
+                    'selected': [p.name for p in self.selected],
+                    'incoming': self.incoming.public() if self.incoming else None,
+                    'outgoing': self.outgoing.public() if self.outgoing else None,
+                    'history': list(reversed(self.history))}
+
+    def updates(self):
+        last_announce = 0
+        while not self.closed.wait(0.25):
+            if self.server and time.monotonic() - last_announce > 15:
+                self.announce()
+                last_announce = time.monotonic()
+                self.dirty = True
+                with self.lock:
+                    self.peers = {k: p for k, p in self.peers.items() if time.monotonic() - p['lastSeen'] < 45}
+            with self.lock:
+                transfer = self.incoming
+                if transfer and time.monotonic() - transfer.created > (90 if transfer.status == 'waiting' else 1800):
+                    self.cancel(transfer)
+            if self.dirty:
+                self.dirty = False
+                self.emit(self.snapshot())
+
+    def close(self):
+        self.closed.set()
+        self.cancel(self.incoming)
+        self.cancel(self.outgoing)
+        self.stop_network()
+
+
+class Handler(BaseHTTPRequestHandler):
+    def setup(self):
+        self.request.settimeout(15)
+        self.request = self.server.adapter.context.wrap_socket(self.request, server_side=True)
+        super().setup()
+
+    def log_message(self, *args):
+        pass
+
+    def respond(self, code, value=None):
+        if getattr(self, '_responded', False):
+            return
+        self._responded = True
+        body = json.dumps(value).encode() if value is not None else b''
+        self.send_response(code)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def read_json(self):
+        length = int(self.headers.get('Content-Length', '0'))
+        if not 0 < length <= MAX_JSON or self.headers.get('Transfer-Encoding'):
+            raise ValueError('invalid-files')
+        data = json.loads(self.rfile.read(length))
+        if not isinstance(data, dict):
+            raise ValueError('invalid-files')
+        return data
+
+    def do_GET(self):
+        self.respond(200, self.server.adapter.info()) if self.path == API + 'info' else self.respond(404)
+
+    def do_POST(self):
+        adapter = self.server.adapter
+        try:
+            route = urlsplit(self.path)
+            query = {k: v[0] for k, v in parse_qs(route.query).items()}
+            if route.path == API + 'register':
+                adapter.remember(self.read_json(), self.client_address[0])
+                self.respond(200, adapter.info())
+            elif route.path == API + 'prepare-upload':
+                self.prepare(adapter)
+            elif route.path == API + 'upload':
+                self.upload(adapter, query)
+            elif route.path == API + 'cancel':
+                transfer = adapter.incoming
+                if not transfer or transfer.id != query.get('sessionId'):
+                    transfer = adapter.recent.get(query.get('sessionId'))
+                if not transfer or transfer.id != query.get('sessionId') or transfer.peer['address'] != self.client_address[0]:
+                    self.respond(403)
+                    return
+                adapter.cancel(transfer)
+                self.respond(200)
+            else:
+                self.respond(404)
+        except (OSError, ValueError, KeyError, TypeError, http.client.HTTPException):
+            try:
+                self.respond(400)
+            except OSError:
+                pass
+
+    def prepare(self, adapter):
+        data = self.read_json()
+        files = manifest(data.get('files'))
+        peer = adapter.remember(data.get('info'), self.client_address[0])
+        if not peer:
+            raise ValueError('invalid-files')
+        with adapter.lock:
+            if not adapter.receiving:
+                self.respond(403)
+                return
+            if adapter.incoming:
+                self.respond(409)
+                return
+            transfer = Transfer('receive', peer, files)
+            adapter.incoming = transfer
+            adapter.dirty = True
+        while not transfer.decision.wait(0.25):
+            if time.monotonic() - transfer.created > 90 or adapter.closed.is_set():
+                adapter.cancel(transfer)
+                break
+            if select.select([self.connection], [], [], 0)[0]:
+                # A disconnected sender must not leave a stale approval prompt.
+                adapter.cancel(transfer)
+                break
+        if transfer.cancelled.is_set():
+            self.respond(403)
+        else:
+            self.respond(200, {'sessionId': transfer.id, 'files': {key: item['token'] for key, item in files.items()}})
+
+    def upload(self, adapter, query):
+        with adapter.lock:
+            transfer = adapter.incoming
+            if (not transfer or transfer.id != query.get('sessionId') or transfer.status != 'transferring'
+                    or transfer.peer['address'] != self.client_address[0]):
+                self.respond(403)
+                return
+            item = transfer.files.get(query.get('fileId'))
+            if not item or item['claimed'] or not secrets.compare_digest(item['token'], query.get('token', '')):
+                self.respond(403)
+                return
+            if self.headers.get('Transfer-Encoding') or int(self.headers.get('Content-Length', '-1')) != item['size']:
+                self.respond(400)
+                return
+            item['claimed'] = True
+        directory = -1
+        temporary = '.windoesnot-' + uuid.uuid4().hex + '.part'
+        digest = hashlib.sha256()
+        try:
+            with adapter.lock:
+                if transfer.cancelled.is_set():
+                    raise ValueError('cancelled')
+                directory = os.open(adapter.downloads, os.O_RDONLY | os.O_DIRECTORY)
+                fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=directory)
+                transfer.temporary.add((directory, temporary))
+            with os.fdopen(fd, 'wb') as output:
+                remaining = item['size']
+                while remaining:
+                    if transfer.cancelled.is_set():
+                        raise ValueError('cancelled')
+                    chunk = self.rfile.read(min(CHUNK, remaining))
+                    if not chunk:
+                        raise ValueError('transfer')
+                    output.write(chunk)
+                    digest.update(chunk)
+                    transfer.bytes += len(chunk)
+                    adapter.dirty = True
+                    remaining -= len(chunk)
+                output.flush()
+                os.fsync(output.fileno())
+            if transfer.cancelled.is_set():
+                raise ValueError('cancelled')
+            if item['hash'] and digest.hexdigest() != item['hash'].lower():
+                self.respond(422)
+                raise ValueError('checksum')
+            with adapter.lock:
+                if transfer.cancelled.is_set():
+                    raise ValueError('cancelled')
+                for index in range(10000):
+                    path = Path(item['name'])
+                    name = path.name if index == 0 else f'{path.stem} ({index}){path.suffix}'
+                    try:
+                        os.link(temporary, name, src_dir_fd=directory, dst_dir_fd=directory, follow_symlinks=False)
+                        break
+                    except FileExistsError:
+                        continue
+                else:
+                    raise OSError('No free filename')
+                item['done'] = True
+                if all(f['done'] for f in transfer.files.values()):
+                    adapter.finish(transfer, 'done')
+            self.respond(200)
+        except (OSError, ValueError):
+            if not transfer.cancelled.is_set():
+                adapter.finish(transfer, 'failed')
+            raise
+        finally:
+            if directory >= 0:
+                with adapter.lock:
+                    transfer.temporary.discard((directory, temporary))
+                    try:
+                        os.unlink(temporary, dir_fd=directory)
+                    except FileNotFoundError:
+                        pass
+                    os.close(directory)
+
+
+def main():
+    if len(sys.argv) > 1 and sys.argv[1] == 'share':
+        try:
+            files = [str(path) for path in local_paths(sys.argv[2:])]
+            config = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'quickshell/default/shell.qml'
+            return subprocess.run(['quickshell', 'ipc', '--path', str(config), 'call', 'windoesnot-nearby',
+                                   'share', json.dumps(files)]).returncode
+        except (OSError, ValueError):
+            return 1
+    if sys.argv[1:] != ['serve']:
+        print('Usage: windoesnot-nearby serve | share FILE...', file=sys.stderr)
+        return 2
+    os.umask(0o077)
+    adapter = Adapter()
+    def terminate(*_):
+        adapter.close()
+        raise SystemExit(0)
+    signal.signal(signal.SIGTERM, terminate)
+    signal.signal(signal.SIGINT, terminate)
+    adapter.network()
+    threading.Thread(target=adapter.updates, daemon=True).start()
+    try:
+        for line in sys.stdin:
+            if len(line) > MAX_JSON:
+                continue
+            try:
+                adapter.control(json.loads(line))
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                adapter.error = str(error) if isinstance(error, ValueError) else 'transfer'
+                adapter.dirty = True
+    finally:
+        adapter.close()
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

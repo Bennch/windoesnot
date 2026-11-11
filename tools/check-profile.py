@@ -1,0 +1,173 @@
+#!/usr/bin/env python3
+"""Fail early if an upstream update breaks the offline image contract."""
+import argparse
+import hashlib
+import json
+import re
+import subprocess
+from pathlib import Path
+import yaml
+
+parser=argparse.ArgumentParser();parser.add_argument('profile',type=Path);args=parser.parse_args()
+p=args.profile;a=p/'airootfs';cal=a/'usr/share/windoesnot/iso/calamares'
+build_pacman=(p/'pacman.conf').read_text()
+assert not re.search(r'(?m)^\s*(?:\[windoesnot\]|Include\s*=\s*/etc/pacman.d/windoesnot.conf\s*$)', build_pacman)
+assert 'windoesnot' not in build_pacman.lower()
+assert (a/'etc/pacman.conf').read_text()==build_pacman
+customize=(a/'root/customize_airootfs.sh').read_text()
+assert customize.index('build-image-packages.sh') < customize.index('cat > /etc/pacman.d/windoesnot.conf')
+assert 'SigLevel = Required DatabaseRequired TrustedOnly' in customize
+assert 'Server = https://download.windoesnot.me/repo/x86_64' in customize
+assert "lines.insert(position, include + '\\n\\n')" in customize
+fingerprint='ED9530A990C6D39EB7D4BA8F9BDCA578FBF1DDB0'
+keyrings=a/'usr/share/pacman/keyrings'
+assert (keyrings/'windoesnot-trusted').read_text()==fingerprint+':4:\n'
+key_listing=subprocess.check_output(['gpg','--batch','--with-colons','--show-keys',str(keyrings/'windoesnot.gpg')],text=True)
+assert next(line.split(':')[9] for line in key_listing.splitlines() if line.startswith('fpr:'))==fingerprint
+assert "'archlinux', 'cachyos', 'windoesnot'" in (a/'usr/share/windoesnot/iso/installation.py').read_text()
+assert 'ExecStart=/usr/bin/pacman-key --populate' in (a/'etc/systemd/system/pacman-init.service').read_text()
+language=(a/'etc/windoesnot-live-language').read_text().strip()
+assert language in ('en', 'de')
+locale='de_DE.UTF-8' if language=='de' else 'en_US.UTF-8'
+layout='de' if language=='de' else 'us'
+zone='Europe/Berlin' if language=='de' else 'UTC'
+assert (a/'etc/locale.conf').read_text()=='LANG='+locale+'\n'
+assert {line.split()[0] for line in (a/'etc/locale.gen').read_text().splitlines()}=={'de_DE.UTF-8','en_US.UTF-8'}
+assert (a/'etc/default/keyboard').read_text()=='XKBLAYOUT="'+layout+'"\n'
+assert (a/'etc/vconsole.conf').read_text()=='KEYMAP='+layout+'\n'
+assert (a/'etc/localtime').readlink()==Path('/usr/share/zoneinfo/'+zone)
+assert 'GreeterEnvironment=LANG='+locale in (a/'etc/sddm.conf.d/windoesnot.conf').read_text()
+assert (a/'usr/lib/systemd/system/windoesnot-live-language.service').is_file()
+assert 'enable windoesnot-live-language.service' in (a/'root/customize_airootfs.sh').read_text()
+assert 'iso_version=' in (p/'profiledef.sh').read_text() and ')-'+language+'"' in (p/'profiledef.sh').read_text()
+assert 'file_permissions["/usr/lib/os-probes/55windoesnot-btrfs"]="0:0:755"' in (p/'profiledef.sh').read_text()
+assert (cal/'qml').is_symlink() and (cal/'qml').readlink()==Path('/usr/share/calamares/qml')
+settings=yaml.safe_load((cal/'settings.conf').read_text())
+sequence=next(s['exec'] for s in settings['sequence'] if 'exec' in s)
+assert 'unpackfs' in sequence and 'pacstrap' not in sequence and 'netinstall' not in sequence
+assert 'windoesnotapps' in settings['sequence'][0]['show']
+assert sequence.index('shellprocess') < sequence.index('windoesnotapps_install') < sequence.index('windoesnotfinish') < sequence.index('umount')
+pages=settings['sequence'][0]['show']
+assert pages.index('keyboard') < pages.index('windoesnotboot') < pages.index('partition')
+assert (a/'usr/share/windoesnot/vendor/calamares/src/modules/windoesnotapps/CMakeLists.txt').is_file()
+assert (a/'usr/share/windoesnot/vendor/calamares/src/modules/windoesnotapps_install/module.desc').is_file()
+assert (a/'usr/share/windoesnot/iso/software/catalog.json').is_file()
+assert 'software/prepare.py' in (a/'root/customize_airootfs.sh').read_text()
+assert (a/'usr/share/windoesnot/boot-language-build/PKGBUILD').is_file()
+assert (a/'usr/share/windoesnot/boot-language-build/windoesnot-boot-language-source.tar.gz').is_file()
+assert 'build-image-boot-language.sh' in (a/'root/customize_airootfs.sh').read_text()
+assert sequence.index('shellprocess@preparetarget')<sequence.index('initcpiocfg')<sequence.index('initcpio')<sequence.index('bootloader')<sequence.index('shellprocess')
+assert sequence.index('shellprocess@preparetarget') < sequence.index('windoesnotprepare') < sequence.index('windoesnotsystem') < sequence.index('initcpiocfg')
+assert sequence.index('grubcfg') < sequence.index('bootloader')
+boot=yaml.safe_load((cal/'modules/bootloader.conf').read_text())
+assert boot['efiBootLoader']=='grub' and boot['efiBootLoaderVar']=='windoesnotBootInstall'
+assert sequence.index('windoesnotbootreuse@preflight') < sequence.index('partition')
+assert sequence.index('mount') < sequence.index('windoesnotbootreuse@guard') < sequence.index('unpackfs')
+assert sequence.index('grubcfg') < sequence.index('windoesnotbootreuse@install') < sequence.index('bootloader')
+assert sequence.index('windoesnotfinish') < sequence.index('windoesnotbootreuse@finish') < sequence.index('umount')
+assert (a/'usr/share/windoesnot/iso/boot_environment.py').is_file()
+assert (a/'usr/lib/os-probes/55windoesnot-btrfs').read_bytes()==(a/'usr/share/windoesnot/iso/os-prober-btrfs').read_bytes()
+assert (a/'usr/lib/os-probes/55windoesnot-btrfs').stat().st_mode & 0o111
+assert (a/'usr/share/windoesnot/vendor/calamares/src/modules/windoesnotbootreuse/module.desc').is_file()
+partition=yaml.safe_load((cal/'modules/partition.conf').read_text())
+assert partition['efiSystemPartition']=='/boot' and partition['efiSystemPartitionSize']=='1024M'
+assert '${USER}' in yaml.safe_load((cal/'modules/shellprocess.conf').read_text())['script'][0]['command']
+assert '@@USER@@' not in (cal/'modules/shellprocess.conf').read_text()
+welcome=yaml.safe_load((cal/'modules/welcome.conf').read_text())
+assert 'internet' not in welcome['requirements']['required']
+for instance in settings['instances']:
+    assert (cal/'modules'/instance['config']).is_file(),instance
+for required in ['unpackfs','users','removeuser','partition','bootloader','displaymanager']:
+    assert required in sequence,required
+packages=set((p/'packages.x86_64').read_text().split())
+for required in ['hyprland','quickshell','sddm','linux-cachyos','linux-cachyos-lts','cachyos-calamares-next']:
+    assert required in packages,required
+assert 'plymouth' in packages
+assert {'firefox-i18n-de','firefox-i18n-en-us'} <= packages
+assert 'windoesnot-boot-errors' in yaml.safe_load((cal/'modules/initcpiocfg.conf').read_text())['hooks']['append']
+assert 'Theme=windoesnot' in (a/'etc/plymouth/plymouthd.conf').read_text()
+assert (a/'usr/share/plymouth/themes/windoesnot/watermark.png').is_file()
+assert 'windoesnot-boot-errors' in (a/'etc/mkinitcpio.conf.d/archiso.conf').read_text()
+assert (a/'usr/lib/systemd/system/windoesnot-boot-error@.service.d/99-no-recursion.conf').read_text().endswith('OnFailure=\n')
+for forbidden in ['plasma-desktop','plasma-workspace','plasma-login-manager','gnome-shell','gdm','cinnamon','xfce4-session','cosmic-session','mate-session-manager','lxqt-session']:
+    assert forbidden not in packages,forbidden
+for required in ['usr/share/windoesnot/tools/build-components.sh','usr/share/windoesnot/tools/build-image-packages.sh','usr/share/windoesnot/packaging/PKGBUILD.in','usr/share/windoesnot/packaging/version.json','usr/share/windoesnot/iso/prepare-target.sh','usr/share/windoesnot/iso/finalize-install.sh','root/customize_airootfs.sh']:
+    assert (a/required).is_file(),required
+# The store is built in the image from pinned, hash-verified, vendored sources only.
+store=a/'usr/share/windoesnot/store'
+store_pkgbuild=(store/'PKGBUILD').read_text()
+assert 'SKIP' not in store_pkgbuild and '--frozen' in store_pkgbuild and 'cargo fetch' not in store_pkgbuild
+assert sorted(x.name for x in store.glob('*.tar.gz'))==sorted(x for x in store_pkgbuild.split('source=(',1)[1].split(')',1)[0].replace('"',' ').split())
+assert (store/'windoesnot-store.install').is_file()
+device=a/'usr/share/windoesnot/device-manager-build'
+device_source=json.loads((device/'source.json').read_text())
+assert device_source['commit']==json.loads((a/'usr/share/windoesnot/sources.json').read_text())['windoesnot-device-manager']['commit']
+assert device_source['archive_sha256']==hashlib.sha256((device/'windoesnot-device-manager-source.tar.gz').read_bytes()).hexdigest()
+assert device_source['archive_sha256'] in (device/'PKGBUILD').read_text()
+assert 'build-image-device-manager.sh' in (a/'root/customize_airootfs.sh').read_text()
+for app in ('windoesnot-bluetooth', 'windoesnot-network', 'windoesnot-graphics'):
+    staged = a / 'usr/share/windoesnot' / (app + '-build')
+    recipe = (staged / 'PKGBUILD').read_text()
+    assert 'SKIP' not in recipe and '--frozen' in recipe and 'cargo fetch' not in recipe
+    for source in staged.glob('*.tar.gz'):
+        assert hashlib.sha256(source.read_bytes()).hexdigest() in recipe
+assert 'build-image-connectivity.sh' in (a/'root/customize_airootfs.sh').read_text()
+
+for required in ['appstream','archlinux-appstream-data','rust','clang']:
+    assert required in packages,required
+image_packages=(a/'usr/share/windoesnot/tools/build-image-packages.sh').read_text()
+assert 'check-packages.py" --store' in image_packages and 'CARGO_NET_OFFLINE=true' in image_packages and 'pacman -Rns' in image_packages
+# No prebuilt host ABI can leak into a target image.
+assert not list((a/'usr/share/windoesnot/desktop').rglob('*.so'))
+assert 'build-image-packages.sh' in (a/'root/customize_airootfs.sh').read_text()
+assert 'var MAP = {};' in (a/'usr/share/windoesnot/desktop/config/quickshell/default/IconMap.js').read_text()
+# All new-user settings come from explicit defaults, not imported private state.
+for private in ['settings.txt','calendar_notes.json','copilot-state.json','icons.json','state.lua','host.lua','geometry.lua']:
+    hits=[x for x in (a/'usr/share/windoesnot/desktop/config').rglob(private) if 'widgets/weather' not in str(x)]
+    assert not hits,private
+launcher=(a/'usr/local/bin/windoesnot-installer').read_text()
+assert 'pkexec /usr/bin/env' in launcher and 'QT_QPA_PLATFORM=wayland' in launcher
+assert '/usr/bin/calamares -c "$configuration"' in launcher
+assert 'windoesnot.install=online' in launcher and '--offline' in launcher
+for mode,directory in [('offline',cal),('online',cal/'online')]:
+    mode_settings=yaml.safe_load((directory/'settings.conf').read_text())
+    assert mode_settings['sequence']==settings['sequence']
+    for module in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotfinish','windoesnotapps']:
+        assert yaml.safe_load((directory/'modules'/(module+'.conf')).read_text())['mode']==mode
+    requirements=yaml.safe_load((directory/'modules/welcome.conf').read_text())['requirements']
+    assert ('internet' in requirements['required'])==(mode=='online')
+grubmenu=(p/'grub/grub.cfg').read_text()
+assert 'default=windoesnot-offline' in grubmenu
+assert grubmenu.count('windoesnot.install=offline')==3
+assert grubmenu.count('windoesnot.install=online')==3
+assert ('Willkommen bei WinDoesNot' if language=='de' else 'Welcome to WinDoesNot') in grubmenu
+assert ('Offline-Installation' if language=='de' else 'offline install') in grubmenu
+loopback=(p/'grub/loopback.cfg').read_text()
+assert ('Willkommen bei WinDoesNot' if language=='de' else 'Welcome to WinDoesNot') in loopback
+bios=(p/'syslinux/archiso_sys-linux.cfg').read_text()
+assert bios.count('windoesnot.install=offline')==2 and bios.count('windoesnot.install=online')==2
+assert ('Offline-Installation' if language=='de' else 'offline install') in bios
+pxe=(p/'syslinux/archiso_pxe-linux.cfg').read_text()
+assert ('WinDoesNot-Installationsmedium' if language=='de' else 'WinDoesNot install medium') in pxe
+efi=(p/'efiboot/loader/entries/02-archiso-linux-cachyos.conf').read_text()
+assert ('UEFI-Standard' if language=='de' else 'UEFI Default') in efi
+assert 'DEFAULT wdn-offline' in (p/'syslinux/archiso_sys.cfg').read_text()
+assert 'subject.user === "liveuser"' in (a/'etc/polkit-1/rules.d/49-nopasswd_global.rules').read_text()
+assert 'rm -f /etc/polkit-1/rules.d/49-nopasswd_global.rules' in (a/'usr/share/windoesnot/iso/finalize-install.sh').read_text()
+# Branded paths must all exist before spending time on an ISO build.
+branding = yaml.safe_load((cal / 'branding/windoesnot/branding.desc').read_text())
+assert branding['images']['productIcon'] == 'windoesnot-icon-256.png'
+assert branding['windowExpanding'] == 'noexpand'
+assert yaml.safe_load((cal / 'modules/users.conf').read_text())['hostname']['template'] == '${first}-windoesnot'
+for filename in branding['images'].values():
+    assert (cal / 'branding/windoesnot' / filename).is_file(), filename
+assert 'Current=windoesnot' in (a / 'etc/sddm.conf.d/windoesnot.conf').read_text()
+assert (a / 'usr/share/windoesnot/desktop/share/sddm/themes/windoesnot/src/Main.qml').is_file()
+assert (p / 'grub/themes/windoesnot/theme.txt').is_file()
+assert (p / 'grub/themes/windoesnot/windoesnot-logo-hell.png').is_file()
+assert 'set theme="(${root})/boot/grub/themes/windoesnot/theme.txt"' in (p / 'grub/grub.cfg').read_text()
+grub_dropin = (a / 'etc/default/grub.d/90-windoesnot.cfg').read_text()
+assert 'GRUB_THEME=' in grub_dropin and 'GRUB_TOP_LEVEL="/boot/vmlinuz-linux-cachyos"' in grub_dropin
+assert 'GRUB_DISABLE_OS_PROBER=false' in grub_dropin and 'GRUB_DISABLE_BOOTNEXT=true' in grub_dropin
+assert 'Icon=windoesnot' in (a / 'usr/share/applications/windoesnot-installer.desktop').read_text()
+print('PASS: online/offline menus and profiles, required bootloader selection/order, desktop packages, sources-only components and clean defaults')

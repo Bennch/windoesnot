@@ -1,0 +1,378 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
+import Quickshell.Wayland
+import Quickshell.Hyprland
+import "../../common"
+import "../../services"
+import "."
+
+Scope {
+    id: overviewScope
+    Variants {
+        id: overviewVariants
+        model: Quickshell.screens
+        PanelWindow {
+            id: root
+            required property var modelData
+            readonly property HyprlandMonitor monitor: Hyprland.monitorFor(root.screen)
+            property bool monitorIsFocused: (Hyprland.focusedMonitor?.id == monitor?.id)
+            property bool blurEnabled: Config.options.overview.effects.enableBlur
+            property bool backdropEnabled: Config.options.overview.effects.enableBackdrop
+            property real backdropOpacity: Math.max(0, Math.min(1, Config.options.overview.effects.backdropOpacity))
+            property bool closeOnFocusLoss: Config.options.overview.closeOnFocusLoss ?? true
+            screen: modelData
+            visible: GlobalStates.overviewOpen
+
+            WlrLayershell.namespace: blurEnabled ? "quickshell:overview-blur" : "quickshell:overview"
+            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+            color: "transparent"
+
+            anchors {
+                top: true
+                bottom: true
+                left: true
+                right: true
+            }
+
+            HyprlandFocusGrab {
+                id: grab
+                windows: [root]
+                property bool canBeActive: root.monitorIsFocused
+                active: false
+                onCleared: () => {
+                    // Only the monitor that owns the grab may close the overview
+                    if (root.closeOnFocusLoss && !active && canBeActive)
+                        GlobalStates.overviewOpen = false;
+                }
+            }
+
+            Connections {
+                target: GlobalStates
+                function onOverviewOpenChanged() {
+                    if (GlobalStates.overviewOpen) {
+                        GlobalStates.overviewSelectedWorkspaceId = -1;
+                        keyHandler.superHeld = GlobalStates.overviewSuperHeld;
+                        delayedGrabTimer.start();
+                    } else {
+                        GlobalStates.overviewAppClass = "";
+                        // Nothing clears the grab when the overview closes any
+                        // other way; a stale grab on a hidden surface is risky
+                        grab.active = false;
+                    }
+                }
+            }
+
+            // Re-evaluate grab ownership when focused monitor changes
+            Connections {
+                target: Hyprland
+                function onFocusedMonitorChanged() {
+                    if (!GlobalStates.overviewOpen)
+                        return;
+                    // Transfer the grab to the newly focused monitor
+                    if (root.monitorIsFocused && !grab.active) {
+                        grab.active = true;
+                    } else if (!root.monitorIsFocused && grab.active) {
+                        grab.active = false;
+                    }
+                }
+            }
+
+            Timer {
+                id: delayedGrabTimer
+                interval: Config.options.hacks.arbitraryRaceConditionDelay
+                repeat: false
+                onTriggered: {
+                    if (!grab.canBeActive)
+                        return;
+                    grab.active = GlobalStates.overviewOpen;
+                }
+            }
+
+            // Keep the layershell surface full-screen so backdrop/blur are not constrained by content size.
+            implicitWidth: screen.width
+            implicitHeight: screen.height
+
+            Item {
+                id: keyHandler
+                anchors.fill: parent
+                visible: GlobalStates.overviewOpen
+                focus: GlobalStates.overviewOpen
+                z: 0
+
+                // True from open (the usual flow is Super+Tab, whose press we
+                // never see) until Super is released inside the overview.
+                // While held, arrows/hjkl/numbers only move the selection
+                // (Alt-Tab style); once released they switch workspaces
+                // immediately like they used to.
+                property bool superHeld: true
+
+                function commitKeyboardSelection() {
+                    const selected = GlobalStates.overviewSelectedWorkspaceId;
+                    if (selected < 0)
+                        return;
+                    GlobalStates.overviewSelectedWorkspaceId = -1;
+                    GlobalStates.overviewOpen = false;
+                    HyprlandData.dispatch("workspace " + selected);
+                }
+
+                function goToWorkspace(targetId) {
+                    HyprlandData.dispatch("workspace " + targetId);
+                }
+
+                Rectangle {
+                    id: backdropLayer
+                    anchors.fill: parent
+                    visible: root.backdropEnabled
+                    color: "#000000"
+                    opacity: root.backdropOpacity
+                    z: 0
+                }
+
+                MouseArea {
+                    id: outsideClickCatcher
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                    enabled: root.closeOnFocusLoss && GlobalStates.overviewOpen
+                    z: 0
+                    onPressed: mouse => {
+                        GlobalStates.overviewOpen = false;
+                        mouse.accepted = true;
+                    }
+                }
+
+                Keys.onReleased: event => {
+                    // Alt-Tab style: jumping to the selection happens on Super release
+                    if (event.key === Qt.Key_Meta || event.key === Qt.Key_Super_L || event.key === Qt.Key_Super_R) {
+                        keyHandler.superHeld = false;
+                        keyHandler.commitKeyboardSelection();
+                        event.accepted = true;
+                    }
+                }
+
+                Keys.onPressed: event => {
+                    if (event.key === Qt.Key_Meta || event.key === Qt.Key_Super_L || event.key === Qt.Key_Super_R) {
+                        keyHandler.superHeld = true;
+                        event.accepted = true;
+                        return;
+                    }
+                    // close: Escape (cancels selection) or Enter (commits it)
+                    if (event.key === Qt.Key_Escape) {
+                        GlobalStates.overviewSelectedWorkspaceId = -1;
+                        GlobalStates.overviewOpen = false;
+                        event.accepted = true;
+                        return;
+                    }
+                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                        keyHandler.commitKeyboardSelection();
+                        if (GlobalStates.overviewOpen)
+                            GlobalStates.overviewOpen = false;
+                        event.accepted = true;
+                        return;
+                    }
+
+                    // Helper: compute current group bounds; strip mode is a
+                    // single vertical column of overview.scrolling.workspaceCount
+                    const scrollingMode = Config.options.overview.scrolling.enable;
+                    const rows = scrollingMode ? Config.options.overview.scrolling.workspaceCount : Config.options.overview.rows;
+                    const columns = scrollingMode ? 1 : Config.options.overview.columns;
+                    const workspacesPerGroup = rows * columns;
+                    const useWorkspaceMap = Config.options.overview.useWorkspaceMap;
+                    const workspaceMap = Config.options.overview.workspaceMap ?? [];
+                    const focusedMonitorId = Hyprland.focusedMonitor?.id ?? root.monitor?.id ?? 0;
+                    const workspaceOffset = useWorkspaceMap ? Number(workspaceMap[focusedMonitorId] ?? 0) : 0;
+                    const rawActiveId = GlobalStates.overviewSelectedWorkspaceId >= 0
+                        ? GlobalStates.overviewSelectedWorkspaceId
+                        : (Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1);
+                    // Special workspaces have negative ids and don't belong to
+                    // any grid group; navigate from the group's first workspace
+                    const currentId = rawActiveId >= 1 ? rawActiveId : (workspaceOffset + 1);
+                    const currentGroup = Math.floor((currentId - workspaceOffset - 1) / workspacesPerGroup);
+                    const minWorkspaceId = currentGroup * workspacesPerGroup + 1 + workspaceOffset;
+                    const maxWorkspaceId = minWorkspaceId + workspacesPerGroup - 1;
+
+                    const reverseColumns = Config.options.overview.orderRightLeft;
+                    const reverseRows = Config.options.overview.orderBottomUp;
+
+                    const clampedIndex = Math.max(0, Math.min(workspacesPerGroup - 1, currentId - minWorkspaceId));
+                    const currentNormalRow = Math.floor(clampedIndex / columns);
+                    const currentNormalColumn = clampedIndex % columns;
+
+                    function toVisualRow(normalRow) {
+                        return reverseRows ? (rows - normalRow - 1) : normalRow;
+                    }
+
+                    function toVisualColumn(normalColumn) {
+                        return reverseColumns ? (columns - normalColumn - 1) : normalColumn;
+                    }
+
+                    function toNormalRow(visualRow) {
+                        return reverseRows ? (rows - visualRow - 1) : visualRow;
+                    }
+
+                    function toNormalColumn(visualColumn) {
+                        return reverseColumns ? (columns - visualColumn - 1) : visualColumn;
+                    }
+
+                    let targetVisualRow = toVisualRow(currentNormalRow);
+                    let targetVisualColumn = toVisualColumn(currentNormalColumn);
+
+                    let targetId = null;
+
+                    // Arrow keys and vim-style hjkl.
+                    // NOTE: Tab cycling is handled by the compositor bind calling IPC
+                    // `overview cycle` (binds consume keypresses, so this layer never sees Tab).
+                    const backtabPressed = event.key === Qt.Key_Backtab;
+                    if (event.key === Qt.Key_Left || event.key === Qt.Key_H || backtabPressed) {
+                        targetVisualColumn = (targetVisualColumn - 1 + columns) % columns;
+                    } else if (event.key === Qt.Key_Right || event.key === Qt.Key_L) {
+                        targetVisualColumn = (targetVisualColumn + 1) % columns;
+                    } else if (event.key === Qt.Key_Up || event.key === Qt.Key_K) {
+                        targetVisualRow = (targetVisualRow - 1 + rows) % rows;
+                    } else if (event.key === Qt.Key_Down || event.key === Qt.Key_J) {
+                        targetVisualRow = (targetVisualRow + 1) % rows;
+                    }
+
+                    // Number keys: jump to workspace within the current group
+                    // 1-9 map to positions 1-9, 0 maps to position 10
+                    else if (event.key >= Qt.Key_1 && event.key <= Qt.Key_9) {
+                        const position = event.key - Qt.Key_0; // 1-9
+                        if (position <= workspacesPerGroup) {
+                            targetId = minWorkspaceId + position - 1;
+                        }
+                    } else if (event.key === Qt.Key_0) {
+                        // 0 = 10th workspace in the group (if group has 10+ workspaces)
+                        if (workspacesPerGroup >= 10) {
+                            targetId = minWorkspaceId + 9; // 10th position = offset 9
+                        }
+                    }
+
+                    if (targetId === null && (
+                        event.key === Qt.Key_Left || event.key === Qt.Key_H || backtabPressed ||
+                        event.key === Qt.Key_Right || event.key === Qt.Key_L ||
+                        event.key === Qt.Key_Up || event.key === Qt.Key_K ||
+                        event.key === Qt.Key_Down || event.key === Qt.Key_J
+                    )) {
+                        const targetNormalRow = toNormalRow(targetVisualRow);
+                        const targetNormalColumn = toNormalColumn(targetVisualColumn);
+                        targetId = minWorkspaceId + targetNormalRow * columns + targetNormalColumn;
+                    }
+
+                    if (targetId !== null) {
+                        const clampedTarget = Math.max(minWorkspaceId, Math.min(maxWorkspaceId, targetId));
+                        GlobalStates.overviewSelectedWorkspaceId = clampedTarget;
+                        // Only defer to the Super-release commit while Super is
+                        // actually held; otherwise switch right away
+                        if (!keyHandler.superHeld)
+                            keyHandler.goToWorkspace(clampedTarget);
+                        event.accepted = true;
+                    }
+                }
+            }
+
+            ColumnLayout {
+                id: columnLayout
+                visible: GlobalStates.overviewOpen
+                z: 1
+                anchors {
+                    horizontalCenter: parent.horizontalCenter
+                    top: parent.top
+                    topMargin: Config.options.position.topMargin
+                }
+
+                Loader {
+                    id: overviewLoader
+                    active: Config?.options.overview.enable ?? true
+                    sourceComponent: Config.options.overview.scrolling.enable ? stripComponent : classicComponent
+                }
+
+                Component {
+                    id: classicComponent
+                    OverviewWidget {
+                        panelWindow: root
+                        visible: true
+                    }
+                }
+
+                Component {
+                    id: stripComponent
+                    ScrollingOverviewWidget {
+                        panelWindow: root
+                        visible: true
+                    }
+                }
+            }
+        }
+    }
+
+    // Shared by the cycle IPC functions. Lives outside the IpcHandler because
+    // IpcHandler exports every function, and the QVariant arg can't cross IPC.
+    function cycleSelection(direction) {
+        if (!GlobalStates.overviewOpen) {
+            GlobalStates.overviewOpen = true;
+            return;
+        }
+        const rows = Config.options.overview.rows;
+        const columns = Config.options.overview.columns;
+        const workspacesPerGroup = rows * columns;
+        const useWorkspaceMap = Config.options.overview.useWorkspaceMap;
+        const workspaceMap = Config.options.overview.workspaceMap ?? [];
+        const focusedMonitorId = Hyprland.focusedMonitor?.id ?? 0;
+        const workspaceOffset = useWorkspaceMap ? Number(workspaceMap[focusedMonitorId] ?? 0) : 0;
+        const rawBaseId = GlobalStates.overviewSelectedWorkspaceId >= 0
+            ? GlobalStates.overviewSelectedWorkspaceId
+            : (Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1);
+        // Special workspaces have negative ids outside the grid; cycle from
+        // the group's first workspace instead of computing a bogus group
+        const baseId = rawBaseId >= 1 ? rawBaseId : (workspaceOffset + 1);
+        const group = Math.floor((baseId - workspaceOffset - 1) / workspacesPerGroup);
+        const minWorkspaceId = group * workspacesPerGroup + 1 + workspaceOffset;
+        const maxWorkspaceId = minWorkspaceId + workspacesPerGroup - 1;
+        let next = baseId + direction;
+        if (next > maxWorkspaceId)
+            next = minWorkspaceId;
+        else if (next < minWorkspaceId)
+            next = maxWorkspaceId;
+        GlobalStates.overviewSelectedWorkspaceId = next;
+    }
+
+    IpcHandler {
+        target: "overview"
+
+        function appWindows(appClass: string) {
+            GlobalStates.overviewAppClass = appClass.toLowerCase();
+            GlobalStates.overviewSuperHeld = false;
+            GlobalStates.overviewOpen = true;
+        }
+        function toggle() {
+            GlobalStates.overviewAppClass = "";
+            // Not part of the Alt-Tab flow: Super isn't necessarily held, so
+            // arrows should switch workspaces immediately after this
+            GlobalStates.overviewSuperHeld = false;
+            GlobalStates.overviewOpen = !GlobalStates.overviewOpen;
+        }
+        function close() {
+            GlobalStates.overviewOpen = false;
+        }
+        function open() {
+            GlobalStates.overviewAppClass = "";
+            GlobalStates.overviewSuperHeld = false;
+            GlobalStates.overviewOpen = true;
+        }
+        // Alt-Tab style: opens when closed, advances the selection when open.
+        // Bind Super+Tab to this so repeated Tab presses (which re-fire the
+        // compositor bind) cycle instead of toggling.
+        function cycle() {
+            GlobalStates.overviewSuperHeld = true;
+            overviewScope.cycleSelection(1);
+        }
+        // Reverse cycle, bind to Super+Shift+Tab
+        function cycleBack() {
+            GlobalStates.overviewSuperHeld = true;
+            overviewScope.cycleSelection(-1);
+        }
+    }
+}

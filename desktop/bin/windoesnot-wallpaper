@@ -1,0 +1,35 @@
+#!/bin/sh
+# Start hyprpaper (wallpaper from ~/.config/hypr/hyprpaper.conf, unchanged).
+# hyprpaper crashes without 3D acceleration (upstream bug, e.g. VMs without
+# GL) and the desktop would stay black. If it exits within a few seconds, try
+# once more, then fall back to a solid brand-colour background (Hyprland's
+# own misc.background_color). At most two starts, no loop afterwards.
+WATCH=6       # seconds hyprpaper has to stay alive to count as started
+BG='rgba(141414ff)'
+
+fallback() {
+    windoesnot-hyprctl keyword misc:background_color "$BG" >/dev/null 2>&1
+    exit 0
+}
+
+command -v hyprpaper >/dev/null 2>&1 || fallback
+
+attempt=0
+while [ "$attempt" -lt 2 ]; do
+    attempt=$((attempt + 1))
+    hyprpaper &
+    pid=$!
+    waited=0
+    while [ "$waited" -lt "$WATCH" ]; do
+        sleep 1
+        waited=$((waited + 1))
+        kill -0 "$pid" 2>/dev/null || break
+    done
+    # Still alive after the watch window: normal start, nothing more to do.
+    kill -0 "$pid" 2>/dev/null && exit 0
+    wait "$pid" 2>/dev/null
+    # A clean exit 0 (e.g. user stopped it) is not a crash: leave it alone.
+    [ "$?" -eq 0 ] && exit 0
+    sleep 1
+done
+fallback
