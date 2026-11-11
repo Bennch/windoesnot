@@ -191,6 +191,18 @@ void CHyprBar::onMouseMove(Vector2D coords) {
         }
     }
 
+    // The decoration occupies the upper border, so Hyprland's regular border
+    // cursor hit-test does not see these two resize handles. Ask it to select
+    // the matching diagonal cursor while the pointer is in either handle.
+    const auto PWINDOW = m_pWindow.lock();
+    const auto LOCAL   = cursorRelativeToBar();
+    constexpr float RESIZE_HANDLE = 8.F;
+    if (PWINDOW && PWINDOW->isFloating() && LOCAL.y <= RESIZE_HANDLE &&
+        (LOCAL.x <= RESIZE_HANDLE || LOCAL.x >= assignedBoxGlobal().w - RESIZE_HANDLE))
+        g_pInputManager->setCursorIconOnBorder(PWINDOW);
+    else
+        g_pInputManager->restoreCursorIconToApp();
+
     if (!m_bDragPending || m_bTouchEv || !validMapped(m_pWindow) || m_touchId != 0)
         return;
 
@@ -280,7 +292,7 @@ void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch:
     constexpr float RESIZE_HANDLE = 8.F;
     if (PWINDOW->isFloating() && COORDS.y <= RESIZE_HANDLE &&
         (COORDS.x <= RESIZE_HANDLE || COORDS.x >= assignedBoxGlobal().w - RESIZE_HANDLE)) {
-        m_eResizeCorner  = COORDS.x <= RESIZE_HANDLE ? Layout::CORNER_TOPLEFT : Layout::CORNER_TOPRIGHT;
+        m_iResizeCorner  = COORDS.x <= RESIZE_HANDLE ? Layout::CORNER_TOPLEFT : Layout::CORNER_TOPRIGHT;
         m_bResizePending = true;
         m_bDragPending   = true;
         return;
@@ -322,9 +334,9 @@ void CHyprBar::handleUpEvent(Event::SCallbackInfo& info) {
 
 void CHyprBar::handleMovement() {
     if (m_bResizePending) {
-        g_layoutManager->beginDragTarget(m_pWindow.lock()->layoutTarget(), MBIND_RESIZE, m_eResizeCorner);
+        g_layoutManager->beginDragTarget(m_pWindow.lock()->layoutTarget(), MBIND_RESIZE, static_cast<Layout::eRectCorner>(m_iResizeCorner));
         m_bResizePending = false;
-        m_eResizeCorner  = Layout::CORNER_NONE;
+        m_iResizeCorner  = Layout::CORNER_NONE;
     } else {
         g_layoutManager->beginDragTarget(m_pWindow.lock()->layoutTarget(), MBIND_MOVE);
     }
