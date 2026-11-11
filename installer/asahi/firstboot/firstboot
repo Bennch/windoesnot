@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+[[ -f /var/lib/windoesnot/firstboot-pending ]] || exit 0
+udevadm settle --timeout=15 || true
+export HOME=/run/windoesnot-firstboot
+install -dm700 "$HOME"
+export XDG_RUNTIME_DIR="$HOME/runtime"
+install -dm700 "$XDG_RUNTIME_DIR"
+unset DISPLAY WAYLAND_DISPLAY
+export QT_QPA_PLATFORM=wayland
+export QT_STYLE_OVERRIDE=Fusion
+export QT_QPA_PLATFORMTHEME=
+if ! compgen -G '/dev/dri/renderD*' >/dev/null; then
+    export WLR_RENDERER=pixman
+fi
+# Scale native Retina panels without requiring a GPU rendering node.
+for modes in /sys/class/drm/card*-*/modes; do
+    [[ -r $modes ]] || continue
+    width=$(cut -dx -f1 "$modes" | sort -n | tail -1)
+    if [[ ${width:-0} -ge 2800 ]]; then export QT_SCALE_FACTOR=2; break; fi
+done
+cd "$HOME"
+# No killall: systemd owns this compositor and its children as one cgroup.
+/usr/bin/cage -s -- /usr/bin/calamares -c /usr/share/calamares-windoesnotmac
+[[ ! -f /var/lib/windoesnot/firstboot-pending ]]

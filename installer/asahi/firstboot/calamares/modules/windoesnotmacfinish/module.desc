@@ -1,0 +1,5 @@
+---
+type: job
+name: windoesnotmacfinish
+interface: python
+script: main.py

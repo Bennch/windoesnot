@@ -278,3 +278,41 @@ Alle lokalen Änderungen bleiben uncommittet; nichts auf GitHub geschrieben.
 - Offen: Safari/macOS-Browserübergabe und echter Recovery-Lauf; Backend- und
   Recovery-Terminaltexte bleiben außerhalb dieser Anleitung vorerst Englisch.
   ARM-Image/Calamares-Ersteinrichtung weiter ausstehend. x86 unverändert.
+
+## System-/Boot-Branding und ARM-Ersteinrichtung (2026-11-11)
+
+- **Asahi only:** `tools/brand-asahi.py` verwendet die gemeinsamen Logo-/GRUB-/
+  Plymouth-Quellen. `/etc/os-release` als WinDoesNotMac mit `ID_LIKE=archarm arch`,
+  Standardhostname `alarm` zu `windoesnotmac`; individuelle Hostnamen bleiben.
+  Keine Änderungen an Apple-Firmware, EFI-Binärdateien, Paketquellen oder Konten.
+- Host angewandt nach Polkit-Freigabe. Plymouth installiert, separate Initramfs
+  erzeugt und auf Logo geprüft, separate GRUB-Konfiguration syntaktisch geprüft,
+  dann aktiviert. Asahi-Hook, BTRFS-Modul und Root-Parameter erhalten. Sicherung:
+  `/var/backups/windoesnot-branding/20261111-193253-732423`. Kein Neustart.
+  Sichtbares Bootlogo und GRUB-Darstellung bleiben bis zum Neustart ungeprüft.
+  Frühe Apple-/Recovery-Volumenbezeichnung der bestehenden Installation unverändert.
+- **Asahi only:** `installer/asahi/firstboot` liefert Calamares-OEM-Konfiguration
+  und eigenen Cage-Startdienst. Keine Partitionierungs-/Bootloader-/Paketdownload-
+  Jobs. Neuer Benutzer wird mit Apple-Defaults und Sprachwahl initialisiert.
+  Abschlussmarker erst nach Erfolg; SDDM wartet auf erfolgreichen Abschluss.
+  Fehler löschen keine Benutzer. Diese Dienste sind auf dem Host nicht installiert.
+- `tools/prepare-asahi-image.py` exportiert den geprüften ALARM-Builder-Pin
+  `58cc158c7fda3ef6aeae36606f84a63b4b0867e7`; entfernt fremde Publish-Workflows;
+  eigenes BTRFS-ZIP, Label und UUIDs; prüft ARM-Paketmetadaten, gleiche Core-Version
+  und Eingabe-Hashes. `installer/asahi/image-configure.py` verlangt Image-Marker.
+  Paket-Snapshots fehlen noch; kein Versprechen bitidentischer Reproduzierbarkeit.
+- **Beide (Paketbau):** `packaging/PKGBUILD.in` unterstützt ARM zusätzlich zu x86.
+  CachyOS-Mirror-Werkzeug nur auf x86; dessen bisheriger Pfad bleibt erhalten.
+  Vier Pakete nativ auf dem Mac gebaut, generische ARMv8-Flags, keine Installation:
+  `build/asahi-native-packages/*-0.1.0-27-aarch64.pkg.tar.xz`.
+- Geprüft: 3 Branding-/Rollback-Fälle, 4 Firstboot-/Fehler-/Kontoprüfungen,
+  3 Image-Input-/Architektur-/Hashprüfungen und 4 bestehende Boot-Splash-Tests;
+  YAML-/Shell-/Python-Syntax, systemd-Unit-Prüfung und nativer Paketbau.
+  Vorhandene Paket-Upgrade-/Personal-State-Tests verweigerten erwartungsgemäß den
+  Lauf außerhalb einer VM; keine Paketinstallation dafür auf dem physischen Host.
+  Kein x86-Image gebaut, kein kompletter ARM-Image- oder Calamares-Hardwarelauf.
+- Vorbereiteter Build: `build/asahi-image-20261111-ready/build-inputs.json`.
+  Noch fehlen ARM-Pakete Ghostty, LocalSend, Bluetooth, Device Manager und Network
+  sowie ein unabhängig verifiziertes Basisarchiv. Dessen HTTP-Weiterleitung und
+  HTTPS-Zertifikatfehler am Ziel sind in `installer/asahi/IMAGE-BUILD.md` erfasst.
+  Bootstrap bleibt bis zum getesteten Image/Metadaten/Release-Endpunkt gesperrt.

@@ -4,7 +4,7 @@ pkgname=(windoesnot-desktop windoesnot-tools windoesnot-plugins windoesnot-compo
 pkgver=@VERSION@
 pkgrel=@RELEASE@
 pkgdesc='WinDoesNot Hyprland/Quickshell desktop (development build)'
-arch=('x86_64')
+arch=('x86_64' 'aarch64')
 license=('GPL-3.0-or-later' 'MIT' 'BSD-3-Clause')
 makedepends=(gcc make cmake ninja pkgconf binutils wayland-protocols hyprland quickshell qt6-base qt6-declarative qtermwidget wayland cairo pango glib2 librsvg json-c libxkbcommon python)
 options=('!strip' '!debug' '!lto')
@@ -87,7 +87,8 @@ package_windoesnot-desktop() {
 
 package_windoesnot-tools() {
     pkgdesc='WinDoesNot session, layout, settings and user-code migration tools'
-    depends=(python python-evdev python-xlib xclip wl-clipboard python-gobject gtk4 libadwaita rsync ntfs-3g cryptsetup python-cairo hyprland polkit cachyos-rate-mirrors pacman-contrib btrfs-progs diffutils)
+    depends=(python python-evdev python-xlib xclip wl-clipboard python-gobject gtk4 libadwaita rsync ntfs-3g cryptsetup python-cairo hyprland polkit pacman-contrib btrfs-progs diffutils)
+    [[ $CARCH == x86_64 ]] && depends+=(cachyos-rate-mirrors)
     cd "$srcdir/windoesnot-$pkgver"
     install -d "$pkgdir/usr/bin"
     for command in desktop/bin/*; do

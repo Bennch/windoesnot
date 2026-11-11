@@ -1,0 +1,29 @@
+---
+componentName: windoesnotmac
+welcomeStyleCalamares: true
+windowExpanding: fullscreen
+windowPlacement: center
+sidebar: widget
+navigation: widget
+strings:
+  productName: WinDoesNotMac
+  shortProductName: WinDoesNotMac
+  versionedName: WinDoesNotMac
+  shortVersionedName: WinDoesNotMac
+  bootloaderEntryName: WinDoesNotMac
+  productUrl: https://github.com/Bennch/WinDoesNotMac
+  supportUrl: ""
+  donateUrl: ""
+images:
+  productIcon: windoesnot-icon-256.png
+  productLogo: windoesnot-icon-256.png
+  productWelcome: windoesnot-logo-hell.png
+style:
+  sidebarBackground: "#181a1c"
+  sidebarText: "#f4f1eb"
+  sidebarTextHighlight: "#fe6f2d"
+  sidebarTextSelect: "#161616"
+slideshow: show.qml
+slideshowAPI: 2
+uploadServer:
+  type: none

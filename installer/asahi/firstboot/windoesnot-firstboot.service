@@ -1,0 +1,19 @@
+[Unit]
+Description=WinDoesNotMac first-boot setup
+ConditionPathExists=/var/lib/windoesnot/firstboot-pending
+Before=display-manager.service sddm.service
+After=systemd-user-sessions.service getty@tty1.service systemd-logind.service plymouth-quit.service
+
+[Service]
+Environment=XDG_SEAT=seat0
+Environment=XDG_VTNR=1
+Environment=XDG_SESSION_TYPE=wayland
+Environment=XDG_SESSION_CLASS=greeter
+Environment=XDG_SESSION_DESKTOP=none
+Type=oneshot
+RemainAfterExit=yes
+TimeoutStartSec=infinity
+ExecStart=/usr/bin/runuser -l root -c /usr/lib/windoesnot/firstboot
+
+[Install]
+WantedBy=graphical.target

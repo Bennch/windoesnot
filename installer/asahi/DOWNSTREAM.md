@@ -30,8 +30,10 @@ Upstream GitHub workflows are intentionally excluded.
 5. Launch our Calamares first-boot setup for user, language and keyboard. Do not
    reuse the x86 ISO partition/bootloader sequence on the installed Mac system.
 
-Calamares first-boot configuration is a separate downstream component:
-https://github.com/asahi-alarm/asahi-calamares-configs . It is not integrated yet.
+Our installed-system Calamares configuration is in `firstboot/`. Its design
+follows the Asahi OEM setup approach; it does not run the x86 partitioning flow.
+See [IMAGE-BUILD.md](IMAGE-BUILD.md) for the prepared image pipeline, built ARM
+packages, remaining inputs and hardware validation.
 The precise reason this host never displayed Calamares has not been established;
 it must not be described as having run invisibly.
 
