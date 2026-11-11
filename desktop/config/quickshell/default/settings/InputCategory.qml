@@ -3,6 +3,7 @@ import QtQuick.Controls
 import Quickshell.Io
 import "." as Tools
 import "../i18n/Lang.js" as Lang
+import "../LocaleNames.js" as LocaleNames
 
 Column {
     property var settingsMenu: null
@@ -48,7 +49,8 @@ Column {
                 }
                 Text {
                     id: currentLanguageValue
-                    text: settingsMenu.systemLocale
+                    text: LocaleNames.isLanguageLocale(settingsMenu.systemLocale)
+                        ? settingsMenu.systemLocale : Lang.get("input.noSystemLanguage", _lang)
                     font.pixelSize: 14
                     color: settingsMenu.accentColor
                     font.bold: true
@@ -81,11 +83,11 @@ Column {
                     }
                     return -1
                 }
-                displayText: currentIndex >= 0 ? model.get(currentIndex).text : settingsMenu.systemLocale
+                displayText: currentIndex >= 0 ? model.get(currentIndex).text
+                    : (LocaleNames.isLanguageLocale(settingsMenu.systemLocale) ? settingsMenu.systemLocale : Lang.get("input.noSystemLanguage", _lang))
                 enabled: !settingsMenu.localeChangeBusy
                 onActivated: {
                     settingsMenu.selectLanguage(model.get(currentIndex).value)
-                    restartFileManager()
                 }
 
                 background: Rectangle {
@@ -157,7 +159,16 @@ Column {
             Text {
                 width: parent.width
                 wrapMode: Text.WordWrap
-                visible: settingsMenu.systemLocale.split(/[_ .@-]/)[0] !== "de"
+                visible: !LocaleNames.isLanguageLocale(settingsMenu.systemLocale)
+                text: Lang.get("input.noSystemLanguageHint", _lang)
+                font.pixelSize: 13
+                color: settingsMenu.darkMode ? "#bbb" : "#555"
+            }
+            Text {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                visible: LocaleNames.isLanguageLocale(settingsMenu.systemLocale)
+                    && settingsMenu.systemLocale.split(/[_ .@-]/)[0] !== "de"
                     && settingsMenu.systemLocale.split(/[_ .@-]/)[0] !== "en"
                 text: Lang.get("input.languageFallback", _lang)
                 font.pixelSize: 13

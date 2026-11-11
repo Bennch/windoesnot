@@ -7,6 +7,7 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import Quickshell.Widgets
 import "i18n/Lang.js" as Lang
+import "LocaleNames.js" as LocaleNames
 import "settings/Search.js" as SettingsSearch
 import "widgets"
 
@@ -582,7 +583,7 @@ FloatingWindow {
     // Load available locales from system
     Process {
         id: systemLocalesLoader
-        command: ["bash", "-c", "locale -a | grep -E '\\.utf8$|\\.UTF-8$' | sed 's/\\.utf8$/.UTF-8/' | sort"]
+        command: ["locale", "-a"]
         running: false
 
         stdout: StdioCollector {
@@ -590,11 +591,22 @@ FloatingWindow {
                 var locales = this.text.trim().split("\n").filter(function(l) { return l.length > 0; })
                 _systemLocalesModel.clear()
                 for (var i = 0; i < locales.length; i++) {
-                    var locale = locales[i].trim()
+                    var locale = LocaleNames.normalize(locales[i])
+                    if (!LocaleNames.isLanguageLocale(locale) || locale.indexOf(".UTF-8") < 0) continue
                     var info = Qt.locale(locale)
                     var label = info.nativeLanguageName || locale
                     if (info.nativeTerritoryName) label += " (" + info.nativeTerritoryName + ")"
-                    _systemLocalesModel.append({value: locale, text: label})
+                    _systemLocalesModel.append({value: locale, text: label, installed: true})
+                }
+                for (const target of ["de_DE.UTF-8", "en_US.UTF-8"]) {
+                    var found = false
+                    for (var j = 0; j < _systemLocalesModel.count; j++) if (_systemLocalesModel.get(j).value === target) found = true
+                    if (!found) {
+                        var info = Qt.locale(target)
+                        var label = info.nativeLanguageName + " (" + info.nativeTerritoryName + ")"
+                            + " · " + Lang.get("input.localeSetup", settingsMenu.uiLanguage)
+                        _systemLocalesModel.append({value: target, text: label, installed: false})
+                    }
                 }
                 console.log("Loaded", _systemLocalesModel.count, "system locales")
             }
@@ -1124,7 +1136,12 @@ FloatingWindow {
             return enabled ? "dark" : "light"
         }
         function state(): string {
-            return JSON.stringify({language: settingsMenu.uiLanguage, dark: settingsMenu.darkMode,
+            var locales = []
+            for (var i = 0; i < settingsMenu.systemLocalesModel.count; i++) {
+                var entry = settingsMenu.systemLocalesModel.get(i)
+                locales.push({value: entry.value, installed: entry.installed})
+            }
+            return JSON.stringify({locale: settingsMenu.systemLocale, localeOptions: locales, language: settingsMenu.uiLanguage, dark: settingsMenu.darkMode,
                 loading: settingsMenu.isLoadingSettings, docker: settingsMenu.showDockerTray,
                 ollama: settingsMenu.showOllamaTray, nearby: settingsMenu.showNearbyTray})
         }
@@ -2098,6 +2115,13 @@ FloatingWindow {
         localeChangeBusy = true
         localeChangeFailed = false
         localeProc.command = ["localectl", "set-locale", "LANG=" + pendingSystemLocale, "LC_MESSAGES=" + pendingSystemLocale, "LC_TIME=" + pendingSystemLocale]
+        for (var i = 0; i < systemLocalesModel.count; i++) {
+            var entry = systemLocalesModel.get(i)
+            if (entry.value === pendingSystemLocale && entry.installed === false) {
+                localeProc.command = ["windoesnot-language-setup", pendingSystemLocale.startsWith("de_") ? "de" : "en"]
+                break
+            }
+        }
         localeProc.running = true
     }
 
@@ -2106,6 +2130,7 @@ FloatingWindow {
         localeChangeFailed = code !== 0
         if (code === 0) {
             systemLocale = pendingSystemLocale
+            systemLocalesLoader.running = true
             // Documents, Pictures, ... follow the language, also when switched live
             userDirsProc.command = ["bash", "-c", "windoesnot-user-dirs --locale \"$1\" >/dev/null 2>&1 || true", "bash", pendingSystemLocale]
             userDirsProc.running = true
