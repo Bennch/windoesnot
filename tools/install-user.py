@@ -19,7 +19,11 @@ from hypr_bridge import lua
 
 def export_lua(path):
     # Read the exact current baseline, instead of relying on a stale migration copy.
+    # host.lua may intentionally contain host-only hl.window_rule calls before
+    # its returned data table.  Stub those declarations while extracting the
+    # table: evaluating it as bare Lua otherwise fails outside Hyprland.
     code=r'''
+hl={window_rule=function(_) end}
 local function json(v)
     local ty=type(v)
     if ty=='nil' then return 'null' end
@@ -39,15 +43,27 @@ print(json(dofile(arg[1])))
     return json.loads(result.stdout)
 
 
+def host_prelude(path):
+    """Keep explicitly host-only Lua declarations ahead of the final table."""
+    text=path.read_text() if path.exists() else ''
+    marker='\nreturn '
+    if marker not in text:
+        return ''
+    return text.rsplit(marker,1)[0].rstrip()+'\n'
+
+
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--apply',action='store_true')
+    parser.add_argument('--only', action='append', metavar='HOST_PATH',
+                        help='deploy only this path below the user home (repeatable)')
     args=parser.parse_args()
     home=Path.home(); config=Path(os.environ.get('XDG_CONFIG_HOME',home/'.config'))
     current=config/'hypr/lua'
     if not (current/'state.lua').exists():raise SystemExit('Use windoesnot-initialize for a new installation')
     baseline=export_lua(current/'reference.lua')
     personal_path=current/'host.lua'
+    prelude=host_prelude(personal_path)
     # On repeat deploy, retain the saved personal baseline unchanged.
     if personal_path.exists():
         personal=export_lua(personal_path)
@@ -69,7 +85,8 @@ def main():
         # User-adjusted application overrides and styles remain personal on the host.
         if relative.parts[0] in ['swaync','snappy-switcher'] or source.name=='replace.qml':continue
         changes.append((config/relative,source.read_bytes(),source.stat().st_mode & 0o777))
-    changes.append((personal_path,('-- Host-only overrides preserved during release portability migration.\nreturn '+lua(personal)+'\n').encode(),0o644))
+    header='-- Host-only overrides preserved during release portability migration.\n'
+    changes.append((personal_path,((prelude if prelude else header)+'return '+lua(personal)+'\n').encode(),0o644))
     changes.append((current/'state.lua',encode(state).encode(),0o644))
     # Helpers are part of the same backed-up deployment as QML/Lua. Include
     # them in dry-run, atomic writes and the recovery manifest as well.
@@ -82,11 +99,16 @@ def main():
     switcher=ROOT/'build/components/bin/snappy-switcher'
     if switcher.is_file():
         changes.append((home/'.local/bin/snappy-switcher',switcher.read_bytes(),0o755))
+    if args.only:
+        selected={str(Path(item)) for item in args.only}
+        changes=[change for change in changes if str(change[0].relative_to(home)) in selected]
+        unknown=selected-{str(change[0].relative_to(home)) for change in changes}
+        if unknown:raise SystemExit('Unknown deploy target(s): '+', '.join(sorted(unknown)))
     changes=[c for c in changes if not c[0].exists() or c[0].read_bytes()!=c[1]]
     with tempfile.TemporaryDirectory(prefix='windoesnot-host-check-') as temporary:
         candidate=Path(temporary)/'.config/hypr'
         shutil.copytree(ROOT/'desktop/config/hypr',candidate)
-        (candidate/'lua/host.lua').write_text('return '+lua(personal)+'\n')
+        (candidate/'lua/host.lua').write_text((prelude if prelude else '')+'return '+lua(personal)+'\n')
         (candidate/'lua/state.lua').write_text(encode(state))
         runtime=Path(temporary)/'run';runtime.mkdir(mode=0o700)
         env={**os.environ,'HOME':temporary,'XDG_CONFIG_HOME':str(Path(temporary)/'.config'),'XDG_RUNTIME_DIR':str(runtime),'BENNI_LUA_VERIFY':'1'}
@@ -96,7 +118,7 @@ def main():
     print(f'{len(changes)} changed/new files; host-specific Lua candidate verified; personal settings and monitor modes retained')
     if not args.apply:return
     for command in ['windoesnot-hyprctl','windoesnot-settings','windoesnot-layout','windoesnot-restart-shell']:
-        if not Path('/usr/local/bin',command).is_file():raise SystemExit('Run sudo tools/install-system.sh before deploying shared commands')
+        if not shutil.which(command):raise SystemExit('Run sudo tools/install-system.sh before deploying shared commands')
     backup=home/'Backups/windoesnot-release'/time.strftime('%Y%m%d-%H%M%S-deploy')
     backup.mkdir(parents=True)
     manifest=[]

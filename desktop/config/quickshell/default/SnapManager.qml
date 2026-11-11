@@ -13,6 +13,7 @@ Item {
 
     signal previewChanged(string zone, rect rect, string screenName, int monX, int monY)
     signal hidePreview()
+    signal layoutPickerRequested(string monitorName)
 
     property rect previewRect: Qt.rect(0, 0, 0, 0)
 
@@ -61,6 +62,20 @@ Item {
     property int unchangedCount: 0
     property int cursorUnchangedCount: 0
     property int zoneStableCount: 0  // Track how long zone has been stable
+    property string pendingNewWindowAddress: ""
+
+    // In floating mode new clients are centred by the rule in Hyprland.  This
+    // second pass is intentionally small and defensive: it corrects apps that
+    // announce an off-screen position or a size larger than the usable screen.
+    Timer {
+        id: newWindowPlacementTimer
+        interval: 180
+        repeat: false
+        onTriggered: {
+            if (snapManager.pendingNewWindowAddress && !newWindowPlacementProc.running)
+                newWindowPlacementProc.running = true
+        }
+    }
 
     // Safety timer: if a drag has been active for >8 s without movestop, force-reset.
     // This prevents isDragging from getting permanently stuck (which makes blockHover
@@ -112,6 +127,13 @@ Item {
             // Only handle events if snapping is enabled (floating mode)
             if (!snapManager.enabled) {
                 return;
+            }
+
+            if (name === "openwindow") {
+                // Hyprland event data starts with the client address.
+                snapManager.pendingNewWindowAddress = data.split(",")[0].replace(/^0x/, "")
+                newWindowPlacementTimer.restart()
+                return
             }
 
             if (name === "hyprdrag-movestart") {
@@ -200,6 +222,146 @@ Item {
                 }
             }
         }
+    }
+
+    function requestKeyboardLayouts() {
+        if (!enabled || keyboardSnapQueryProc.running)
+            return
+        keyboardSnapQueryProc.intent = "picker"
+        keyboardSnapQueryProc.running = true
+    }
+
+    function applyKeyboardLayout(layout) {
+        if (!enabled || keyboardSnapQueryProc.running)
+            return
+        keyboardSnapQueryProc.intent = layout
+        keyboardSnapQueryProc.running = true
+    }
+
+    function monitorForClient(client, monitors) {
+        for (var i = 0; i < monitors.length; ++i) {
+            var m = DisplayGeometry.normalize(monitors[i])
+            if (client.at[0] >= m.x && client.at[0] < m.x + m.width &&
+                    client.at[1] >= m.y && client.at[1] < m.y + m.height)
+                return m
+        }
+        for (var j = 0; j < monitors.length; ++j) {
+            if (monitors[j].id === client.monitor)
+                return DisplayGeometry.normalize(monitors[j])
+        }
+        return monitors.length ? DisplayGeometry.normalize(monitors[0]) : null
+    }
+
+    // The picker and drag snapping share the same safe area.  Keeping this in
+    // one place stops keyboard snapping from covering the taskbar on scaled or
+    // rotated displays.
+    function keyboardUsableArea(monitor) {
+        var bar = settingsMenu && settingsMenu.hyprbarsHeight > 0 ? settingsMenu.hyprbarsHeight : 30
+        return { x: monitor.x + 8, y: monitor.y + bar + 15,
+                 w: Math.max(160, monitor.width - 16),
+                 h: Math.max(120, monitor.height - bar - 15 - 53), gap: 8 }
+    }
+
+    function keyboardLayoutRect(layout, usable) {
+        var halfW = Math.floor((usable.w - usable.gap) / 2)
+        var halfH = Math.floor((usable.h - usable.gap) / 2)
+        var thirdW = Math.floor((usable.w - 2 * usable.gap) / 3)
+        if (layout === "left") return { x: usable.x, y: usable.y, w: halfW, h: usable.h }
+        if (layout === "right") return { x: usable.x + halfW + usable.gap, y: usable.y, w: usable.w - halfW - usable.gap, h: usable.h }
+        if (layout === "third-left") return { x: usable.x, y: usable.y, w: thirdW, h: usable.h }
+        if (layout === "third-right") return { x: usable.x + 2 * (thirdW + usable.gap), y: usable.y, w: usable.w - 2 * (thirdW + usable.gap), h: usable.h }
+        if (layout === "top-left") return { x: usable.x, y: usable.y, w: halfW, h: halfH }
+        if (layout === "top-right") return { x: usable.x + halfW + usable.gap, y: usable.y, w: usable.w - halfW - usable.gap, h: halfH }
+        if (layout === "bottom-left") return { x: usable.x, y: usable.y + halfH + usable.gap, w: halfW, h: usable.h - halfH - usable.gap }
+        return { x: usable.x + halfW + usable.gap, y: usable.y + halfH + usable.gap, w: usable.w - halfW - usable.gap, h: usable.h - halfH - usable.gap }
+    }
+
+    Process {
+        id: keyboardSnapQueryProc
+        property string intent: "picker"
+        command: ["bash", "-c", "windoesnot-hyprctl activewindow -j; echo '---MONSEP---'; windoesnot-hyprctl monitors -j"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var parts = this.text.split("---MONSEP---")
+                    var client = JSON.parse(parts[0].trim())
+                    var monitors = JSON.parse(parts[1].trim())
+                    var monitor = snapManager.monitorForClient(client, monitors)
+                    if (!monitor) return
+                    if (keyboardSnapQueryProc.intent === "picker") {
+                        snapManager.layoutPickerRequested(monitor.name)
+                        return
+                    }
+                    var rect = snapManager.keyboardLayoutRect(keyboardSnapQueryProc.intent, snapManager.keyboardUsableArea(monitor))
+                    keyboardSnapApplyProc.address = client.address
+                    keyboardSnapApplyProc.rect = rect
+                    keyboardSnapApplyProc.wasFloating = client.floating
+                    keyboardSnapApplyProc.running = true
+                } catch (error) { console.log("keyboard snap query failed:", error) }
+            }
+        }
+    }
+
+    Process {
+        id: keyboardSnapApplyProc
+        property string address: ""
+        property var rect: null
+        property bool wasFloating: false
+        command: ["bash", "-c", buildCommand()]
+        function buildCommand() {
+            if (!rect || !address) return "true"
+            var prefix = wasFloating ? "" : "windoesnot-hyprctl dispatch togglefloating address:" + address + " && "
+            return prefix + "windoesnot-hyprctl --batch \"dispatch resizewindowpixel exact " + Math.round(rect.w) + " " + Math.round(rect.h) + ",address:" + address + "; dispatch movewindowpixel exact " + Math.round(rect.x) + " " + Math.round(rect.y) + ",address:" + address + "\""
+        }
+        running: false
+    }
+
+    Process {
+        id: newWindowPlacementProc
+        command: ["bash", "-c", "windoesnot-hyprctl clients -j; echo '---MONSEP---'; windoesnot-hyprctl monitors -j"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var parts = this.text.split("---MONSEP---")
+                    var clients = JSON.parse(parts[0].trim())
+                    var client = clients.find(function(c) { return c.address.replace(/^0x/, "") === snapManager.pendingNewWindowAddress })
+                    var monitors = JSON.parse(parts[1].trim())
+                    snapManager.pendingNewWindowAddress = ""
+                    // Do not reposition shell surfaces, pinned/fullscreen windows or
+                    // clients that stayed tiled despite the global floating rule.
+                    if (!client || !client.floating || client.fullscreen || client.pinned ||
+                            (client.class || "").indexOf("quickshell") >= 0) return
+                    var monitor = snapManager.monitorForClient(client, monitors)
+                    if (!monitor) return
+                    var usable = snapManager.keyboardUsableArea(monitor)
+                    var width = Math.min(client.size[0], usable.w)
+                    var height = Math.min(client.size[1], usable.h)
+                    newWindowPlacementApplyProc.address = client.address
+                    newWindowPlacementApplyProc.x = Math.round(usable.x + (usable.w - width) / 2)
+                    newWindowPlacementApplyProc.y = Math.round(usable.y + (usable.h - height) / 2)
+                    newWindowPlacementApplyProc.w = Math.round(width)
+                    newWindowPlacementApplyProc.h = Math.round(height)
+                    newWindowPlacementApplyProc.resize = width !== client.size[0] || height !== client.size[1]
+                    newWindowPlacementApplyProc.running = true
+                } catch (error) { console.log("new window placement failed:", error) }
+            }
+        }
+    }
+
+    Process {
+        id: newWindowPlacementApplyProc
+        property string address: ""
+        property int x: 0; property int y: 0; property int w: 0; property int h: 0
+        property bool resize: false
+        command: ["bash", "-c", buildCommand()]
+        function buildCommand() {
+            if (resize)
+                return "windoesnot-hyprctl --batch \"dispatch resizewindowpixel exact " + w + " " + h + ",address:" + address + "; dispatch movewindowpixel exact " + x + " " + y + ",address:" + address + "\""
+            return "windoesnot-hyprctl dispatch movewindowpixel 'exact " + x + " " + y + ",address:" + address + "'"
+        }
+        running: false
     }
 
     // Poll mouse position and window state continuously for snap preview

@@ -59,5 +59,6 @@ hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), {["locked"]=t
 hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("playerctl play-pause"), {["locked"]=true}) -- legacy:353
 hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), {["locked"]=true}) -- legacy:354
 hl.bind("SUPER + TAB", hl.dsp.exec_cmd("qs ipc -c overview call overview toggle"), {}) -- legacy:356
+hl.bind("SUPER + Z", hl.dsp.exec_cmd("qs ipc call windoesnot-snap toggle"), {})
 hl.bind("ALT + Tab", hl.dsp.exec_cmd("snappy-switcher next"), {}) -- legacy:358
 hl.bind("ALT + SHIFT + Tab", hl.dsp.exec_cmd("snappy-switcher prev"), {}) -- legacy:359
