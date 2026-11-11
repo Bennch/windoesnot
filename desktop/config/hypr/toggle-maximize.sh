@@ -45,6 +45,8 @@ for m in monitors:
     scale = m['scale']
     mw = int(m['width']  / scale)
     mh = int(m['height'] / scale)
+    if int(m.get('transform', 0)) % 2:
+        mw, mh = mh, mw
     if m['x'] <= wx < m['x'] + mw and m['y'] <= wy < m['y'] + mh:
         mon = m
         break
@@ -81,6 +83,8 @@ else:
 scale = mon['scale']
 mw    = int(mon['width']  / scale)
 mh    = int(mon['height'] / scale)
+if int(mon.get('transform', 0)) % 2:
+    mw, mh = mh, mw
 mx, my = mon['x'], mon['y']
 BAR_H  = 30   # hyprbars title bar added above content
 

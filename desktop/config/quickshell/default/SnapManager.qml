@@ -1050,6 +1050,13 @@ Item {
                             if (ai === bi) continue
                             var cb = floatingClients[bi]
                             var cbAddr = cb.address.replace(/^0x/, "")
+                            var caMonitor = monitorForWindow(ca.at[0], ca.at[1])
+                            var cbMonitor = monitorForWindow(cb.at[0], cb.at[1])
+
+                            // Never construct a pair across a physical monitor
+                            // boundary, even if two window edges happen to meet.
+                            if (!caMonitor || !cbMonitor || caMonitor.name !== cbMonitor.name)
+                                continue
 
                             // ── Horizontal pair (left / right) ────────────────────────────
                             if (Math.abs(caRight - cb.at[0]) <= adjacencyTolerance &&
@@ -1057,7 +1064,7 @@ Item {
                                     Math.abs(caBottom - (cb.at[1] + cb.size[1])) <= alignmentTolerance) {
                                 if (!(members[caAddr] && members[caAddr].zone === "left" &&
                                       members[cbAddr] && members[cbAddr].zone === "right")) {
-                                    var mon = monitorForWindow(ca.at[0], ca.at[1])
+                                    var mon = caMonitor
                                     if (mon) {
                                         var reserved = mon.reserved || [0, 0, 0, 0]
                                         var taskH = reserved[3] || 0
