@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""First-start display helper: list the primary monitor's modes, change resolution and zoom.
+
+Applies through windoesnot-settings, the same entry point as Settings > Monitors, so the
+saved layout and the window rules follow. Only the primary monitor is changed."""
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import sys
+
+SCALES = (1.0, 1.25, 1.5, 1.75, 2.0)
+
+
+def read_monitors():
+    result = subprocess.run(['/usr/bin/hyprctl', 'monitors', '-j'], capture_output=True, text=True, timeout=10, check=True)
+    monitors = json.loads(result.stdout)
+    if not isinstance(monitors, list) or not monitors:
+        raise ValueError('No monitors')
+    return monitors
+
+
+def preferred_primary():
+    """The primary monitor chosen in Settings, if any."""
+    config = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'quickshell/default/settings.txt'
+    try:
+        for line in config.read_text().splitlines():
+            key, separator, value = line.partition('=')
+            if separator and key == 'primaryMonitor':
+                return value.strip()
+    except OSError:
+        pass
+    return ''
+
+
+def pick_primary(monitors):
+    wanted = preferred_primary()
+    return (next((m for m in monitors if m['name'] == wanted), None)
+            or next((m for m in monitors if m.get('focused')), monitors[0]))
+
+
+def mode_list(monitor):
+    """One entry per resolution with its highest refresh rate, largest first."""
+    best = {}
+    for text in monitor.get('availableModes', []):
+        match = re.fullmatch(r'(\d+)x(\d+)@([\d.]+)Hz', str(text))
+        if not match:
+            continue
+        key = (int(match[1]), int(match[2]))
+        best[key] = max(best.get(key, 0.0), float(match[3]))
+    ordered = sorted(best.items(), key=lambda item: (-item[0][0] * item[0][1], -item[0][0]))
+    return [{'width': w, 'height': h, 'refreshRate': rate} for (w, h), rate in ordered]
+
+
+def status(monitors):
+    monitor = pick_primary(monitors)
+    return {'name': monitor['name'], 'width': monitor['width'], 'height': monitor['height'],
+            'refreshRate': monitor['refreshRate'], 'scale': monitor['scale'],
+            'modes': mode_list(monitor), 'scales': list(SCALES)}
+
+
+def build_request(monitors, width, height, scale):
+    primary = pick_primary(monitors)
+    mode = next((m for m in mode_list(primary) if (m['width'], m['height']) == (width, height)), None)
+    if mode is None:
+        raise ValueError('Unsupported resolution')
+    if scale not in SCALES:
+        raise ValueError('Unsupported zoom')
+    specs = []
+    for monitor in monitors:
+        spec = {'name': monitor['name'], 'disabled': False, 'width': monitor['width'], 'height': monitor['height'],
+                'refreshRate': monitor['refreshRate'], 'scale': monitor['scale'], 'x': monitor['x'], 'y': monitor['y'],
+                'transform': monitor.get('transform', 0)}
+        if monitor['name'] == primary['name']:
+            spec.update(width=width, height=height, refreshRate=mode['refreshRate'], scale=scale)
+        specs.append(spec)
+    return {'monitors': {'monitors': specs, 'primary': primary['name']}}
+
+
+def main(argv):
+    if len(argv) >= 2 and argv[1] == 'status' and len(argv) == 2:
+        print(json.dumps(status(read_monitors())))
+        return 0
+    if len(argv) == 5 and argv[1] == 'apply':
+        request = build_request(read_monitors(), int(argv[2]), int(argv[3]), float(argv[4]))
+        tool = shutil.which('windoesnot-settings')
+        if not tool:
+            raise RuntimeError('windoesnot-settings is not installed')
+        subprocess.run([tool, json.dumps(request)], check=True, timeout=30)
+        print(json.dumps({'ok': True}))
+        return 0
+    print('usage: windoesnot-display-setup status | apply WIDTH HEIGHT SCALE', file=sys.stderr)
+    return 2
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(main(sys.argv))
+    except (ValueError, RuntimeError, OSError, subprocess.SubprocessError) as error:
+        print(json.dumps({'error': str(error)}))
+        sys.exit(1)

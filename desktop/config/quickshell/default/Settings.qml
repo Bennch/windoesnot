@@ -1138,6 +1138,13 @@ FloatingWindow {
             settingsMenu.keyboardLayout = layout
             return settingsMenu.keyboardLayout
         }
+        function setMouseSensitivity(value: string): string {
+            // -1.0 (slow) to 1.0 (fast); applied and saved like the slider in Settings > Input.
+            var speed = parseFloat(value)
+            if (isNaN(speed)) return "unsupported"
+            settingsMenu.mouseSensitivity = Math.max(-1, Math.min(1, speed))
+            return String(settingsMenu.mouseSensitivity)
+        }
         function setDarkMode(enabled: bool): string {
             settingsMenu.darkMode = enabled
             return enabled ? "dark" : "light"
