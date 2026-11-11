@@ -277,4 +277,18 @@
     <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
     <annotate key="org.freedesktop.policykit.exec.argv1">avatar-set</annotate>
   </action>
+  <action id="org.windoesnot.system.locale-set">
+    <description>Set up a system language</description>
+    <description xml:lang="de">Systemsprache einrichten</description>
+    <message>Please confirm setting up the selected system language</message>
+    <message xml:lang="de">Bitte bestätige die Einrichtung der gewählten Systemsprache</message>
+    <icon_name>system-lock-screen</icon_name>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">locale-set</annotate>
+  </action>
 </policyconfig>

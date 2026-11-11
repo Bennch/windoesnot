@@ -15,4 +15,5 @@ fi
 helper=/usr/lib/windoesnot/system_tools.py
 if ! pacman -Qo "$helper" >/dev/null 2>&1; then
     install -Dm755 "$project/desktop/lib/windoesnot/system_tools.py" "$helper"
+    install -Dm644 "$project/desktop/share/polkit-1/actions/org.windoesnot.system.policy" /usr/share/polkit-1/actions/org.windoesnot.system.policy
 fi

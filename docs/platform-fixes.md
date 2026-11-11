@@ -210,15 +210,37 @@ Alle lokalen Änderungen bleiben uncommittet; nichts auf GitHub geschrieben.
   der Sprachauswahl aus. Anzeige: „Keine Systemsprache eingerichtet“, kein C als
   auswählbare Sprache und kein irreführender Hinweis auf eine unbekannte Sprache.
 - Deutsch/Englisch werden bei fehlenden Locales mit „einrichten“ angeboten.
-  Auswahl öffnet das bekannte Terminal mit sudo-Abfrage, aktiviert nur die
+  Auswahl verwendet den vorhandenen WinDoesNot-Passwortdialog, aktiviert nur die
   gewählte Locale in locale.gen, führt locale-gen aus und setzt sie per localectl.
   Andere Locale-Einträge und Dateirechte bleiben erhalten. Kein automatisches
   Generieren ohne Auswahl; aktuelle Session-Locale erfordert erneute Anmeldung.
-- Erfolgsprüfung liest locale.conf statt sich auf den Terminal-Exitcode oder
-  eine eventuell vom Agent gesetzte LC_ALL-Umgebung zu verlassen. Vorhandene
+- Der autorisierte Systemhelfer prüft die erzeugten Sprachdaten und den Erfolg
+  von localectl, statt sich auf die LC_ALL-Umgebung des Agenten zu verlassen. Vorhandene
   Locales verwenden weiter den bisherigen localectl-Pfad. Dateimanager werden
   bei Auswahl nicht vorzeitig mit SIGKILL beendet.
 - Tests: echte QML-Spracheinstellungen mit C-Anzeige, Einrichtungspfad, vorhandenen
   Sprachen, Fehlerbehandlung; technische/humane Locale-Fälle; temporäre locale.gen
   (Rechte, Erhalt fremder Einträge, Idempotenz, ungültige Locale). Keine Host-Locale
   und kein Root-Systemzustand während der Tests geändert.
+
+## Gemeinsamer Passwortdialog mit Arbeitsfortschritt (2026-11-11)
+
+- **Beide:** Spracheinrichtung verwendet die vorhandene AuthenticationCard und den
+  registrierten Polkit-Agenten. Keine Console, kein sudo-Prompt und keine zweite
+  Passwortimplementierung. Die Karte hat wiederverwendbare Task-Eigenschaften für
+  Arbeitsstatus, Schritte, indeterminierten Fortschritt, Erfolg, Abbruch und Fehler.
+- Passwortfeld nur während der Polkit-Abfrage; nach Freigabe bleibt dieselbe Karte
+  sichtbar und zeigt die tatsächlichen Backend-Schritte 1–3. Keine erfundenen Prozentwerte.
+- Neue feste Aktion `org.windoesnot.system.locale-set`: nur de_DE.UTF-8/en_US.UTF-8,
+  exakte Argumentprüfung, auth_admin, ausführbarer Pfad auf den root-eigenen Helfer
+  festgelegt. Root-Helfer schreibt Fortschrittsereignisse; Fehler stellen locale.gen
+  wieder her. Andere Locales und Dateirechte bleiben erhalten.
+- Quellinstallationen ohne passenden Systemhelfer können ihn beim ersten Aufruf
+  über denselben grafischen Dialog aktualisieren; feste zwei Ziele mit Root-Backup,
+  dann Spracheinrichtung im autorisierten Prozess. Paketverwaltete Helfer werden
+  dabei nicht überschrieben. Neue Quellinstallationen installieren Helfer/Policy zusammen.
+- Tests: vier Backend-/Allowlist-/Rollback-/Polkit-Aufruffälle, vorhandene Systemtools-
+  und Backup-Dialogtests, Sprachwechsel-UI, neue Dialogkarte mit Passwortlöschung,
+  Übergang zu Fortschritt, Erfolgs-/Fehlerzustand und DE/EN/Hell-/Dunkelmodus.
+- Kein echtes Passwort und keine Host-Locale für Tests verwendet. Autorisierung und
+  tatsächliche Erzeugung starten erst bei einer bewussten Sprachauswahl.

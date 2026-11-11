@@ -21,6 +21,10 @@ import time
 import tomllib
 import uuid
 
+LANGUAGE_SETUP_API = 1
+LOCALE_GEN = Path("/etc/locale.gen")
+LANGUAGE_LOCALES = ("de_DE.UTF-8", "en_US.UTF-8")
+
 ENV = {'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8', 'HOME': '/root'}
 KERNELS = ('linux-cachyos', 'linux-cachyos-lts', 'linux-cachyos-bore',
            'linux-cachyos-rt-bore', 'linux-cachyos-eevdf', 'linux-cachyos-bmq', 'linux-cachyos-server')
@@ -880,6 +884,9 @@ def validate(action, payload):
                   'drivers-configure', 'printer-service-start', 'firmware-apply') + STDIN_ACTIONS:
         if payload:
             raise ValueError('This action takes no arguments')
+    elif action == 'locale-set':
+        if set(payload) != {'locale'} or payload.get('locale') not in LANGUAGE_LOCALES:
+            raise ValueError('Unsupported language locale')
     elif action == 'bootloader-theme-set':
         if set(payload) != {'enabled'} or type(payload['enabled']) is not bool:
             raise ValueError('Invalid bootloader-theme-set payload')
@@ -1076,7 +1083,39 @@ def set_scx(payload):
         raise
 
 
+def locale_progress(stage, step):
+    print(json.dumps({'event': 'progress', 'stage': stage, 'step': step, 'total': 3}), flush=True)
+
+
+def set_language_locale(locale):
+    if locale not in LANGUAGE_LOCALES:
+        raise ValueError('Unsupported language locale')
+    previous = LOCALE_GEN.read_text()
+    mode = stat.S_IMODE(LOCALE_GEN.stat().st_mode)
+    locale_progress('prepare', 1)
+    pattern = r'^\s*#?\s*' + re.escape(locale) + r'\s+UTF-8\s*$'
+    updated, count = re.subn(pattern, locale + ' UTF-8', previous, flags=re.M)
+    if not count:
+        updated = updated.rstrip() + '\n' + locale + ' UTF-8\n'
+    atomic_write(LOCALE_GEN, updated, mode)
+    try:
+        locale_progress('generate', 2)
+        command('/usr/bin/locale-gen', timeout=600)
+        installed = {line.strip().replace('.utf8', '.UTF-8') for line in query('/usr/bin/locale', '-a').splitlines()}
+        if locale not in installed:
+            raise ValueError('Language data could not be generated')
+        locale_progress('apply', 3)
+        command('/usr/bin/localectl', 'set-locale', 'LANG=' + locale,
+                'LC_MESSAGES=' + locale, 'LC_TIME=' + locale)
+    except Exception:
+        atomic_write(LOCALE_GEN, previous, mode)
+        raise
+    return {'locale': locale, 'reboot': False}
+
+
 def apply(action, payload):
+    if action == 'locale-set':
+        return set_language_locale(payload['locale'])
     if action == 'shell-set':
         return set_shell(payload['shell'])
     if action == 'sddm-set-theme':

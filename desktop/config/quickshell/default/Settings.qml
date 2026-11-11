@@ -271,6 +271,11 @@ FloatingWindow {
     property string systemLocale: Quickshell.env("LANG") || "en_US.UTF-8"
 
     property bool localeChangeBusy: false
+    property bool localeDialogOpen: false
+    property string localeTaskStage: "authorize"
+    property int localeTaskStep: 0
+    property int localeTaskTotal: 0
+    property string localeTaskDetail: ""
     property bool localeChangeFailed: false
     property string pendingSystemLocale: ""
     property string previousUiLanguage: ""
@@ -902,6 +907,8 @@ FloatingWindow {
     Process {
         id: localeProc
         running: false
+        stdout: SplitParser { onRead: (line) => settingsMenu.acceptLocaleProgress(line) }
+        stderr: StdioCollector { id: localeErrors }
         onExited: (code) => settingsMenu.finishLanguageChange(code)
     }
 
@@ -2112,6 +2119,11 @@ FloatingWindow {
         if (localeChangeBusy) return
         pendingSystemLocale = locale
         previousUiLanguage = uiLanguage
+        localeDialogOpen = true
+        localeTaskStage = "authorize"
+        localeTaskStep = 0
+        localeTaskTotal = 0
+        localeTaskDetail = ""
         const language = locale.split(/[_ .@-]/)[0]
         uiLanguage = language === "de" ? "de" : "en"
         updateSystemLocale()
@@ -2131,9 +2143,21 @@ FloatingWindow {
         localeProc.running = true
     }
 
+    function acceptLocaleProgress(line) {
+        try {
+            const value = JSON.parse(line)
+            if (value.event === "progress" && ["install", "prepare", "generate", "apply"].indexOf(value.stage) >= 0) {
+                localeTaskStage = value.stage
+                localeTaskStep = Number(value.step) || 0
+                localeTaskTotal = Number(value.total) || 0
+            } else if (value.error) localeTaskDetail = String(value.error)
+        } catch (error) {}
+    }
+
     function finishLanguageChange(code) {
         localeChangeBusy = false
         localeChangeFailed = code !== 0
+        localeTaskStage = code === 0 ? "done" : code === 126 ? "cancelled" : "failed"
         if (code === 0) {
             systemLocale = pendingSystemLocale
             systemLocalesLoader.running = true
@@ -2838,7 +2862,7 @@ FloatingWindow {
         id: backupAuthenticationOverlay
         anchors.fill: parent
         z: 10000
-        visible: settingsMenu.backupAuthenticationActive
+        visible: settingsMenu.backupAuthenticationActive || settingsMenu.localeDialogOpen
         color: "#99000000"
         MouseArea { anchors.fill: parent; onWheel: (wheel) => wheel.accepted = true }
         AuthenticationCard {
@@ -2847,6 +2871,15 @@ FloatingWindow {
             height: implicitHeight
             settingsMenu: settingsMenu
             flow: settingsMenu.backupAuthenticationActive ? settingsMenu.authentication.flow : null
+            taskActive: settingsMenu.localeDialogOpen
+            taskBusy: settingsMenu.localeChangeBusy
+            taskTitle: Lang.get("input.languageTaskTitle", settingsMenu.uiLanguage)
+            taskText: Lang.get("input.languageTask." + settingsMenu.localeTaskStage, settingsMenu.uiLanguage)
+            taskStep: settingsMenu.localeTaskStep
+            taskTotal: settingsMenu.localeTaskTotal
+            taskError: settingsMenu.localeChangeFailed && settingsMenu.localeTaskStage !== "cancelled"
+            taskDetail: settingsMenu.localeTaskDetail
+            onDismissTask: settingsMenu.localeDialogOpen = false
         }
     }
 }
