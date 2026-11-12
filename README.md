@@ -1,6 +1,11 @@
 <div align="center">
 
-# WinDoesNot
+<h1>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="desktop/config/quickshell/default/img/brand/windoesnot-logo-hell.png">
+  <img alt="WinDoesNot" src="desktop/config/quickshell/default/img/brand/windoesnot-logo-dunkel.png" width="420">
+</picture>
+</h1>
 
 **A familiar desktop. A free system.**
 
