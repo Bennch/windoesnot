@@ -1725,7 +1725,9 @@ class MonitorWindow:
 
         # Layer: BACKGROUND (hinter allem, über dem Wallpaper)
         Gtk4LayerShell.init_for_window(self.win)
-        Gtk4LayerShell.set_layer(self.win, Gtk4LayerShell.Layer.BACKGROUND)
+        # BOTTOM, not BACKGROUND: hyprpaper also lives on BACKGROUND and recreates its surface when the
+        # wallpaper changes, which then covered the desktop icons. BOTTOM is always above the wallpaper.
+        Gtk4LayerShell.set_layer(self.win, Gtk4LayerShell.Layer.BOTTOM)
 
         # Namespace setzen für Hyprland-Identifikation
         Gtk4LayerShell.set_namespace(self.win, "hyprdesk-desktop")
@@ -3281,9 +3283,9 @@ class MonitorWindow:
             env.pop("LD_PRELOAD", None)
 
             # Quickshell mit global binding triggern
-            # Verwende "show-settings" statt "toggle-settings" um immer zu öffnen
+            # Öffnet die Einstellungen direkt auf der Hintergrund-Seite
             result = subprocess.run(
-                ["windoesnot-hyprctl", "dispatch", "global", "quickshell:show-settings"],
+                ["windoesnot-hyprctl", "dispatch", "global", "quickshell:show-settings-wallpaper"],
                 capture_output=True,
                 text=True,
                 check=False,

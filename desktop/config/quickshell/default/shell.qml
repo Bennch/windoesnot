@@ -99,6 +99,23 @@ GlobalShortcut {
     }
 }
 
+GlobalShortcut {
+    name: "show-settings-wallpaper"
+    description: "Show Settings on the Background page (desktop context menu)"
+    onPressed: {
+        startMenu.visible = false
+        audioWindow.visible = false
+        bluetoothWindow.visible = false
+        networkWindow.visible = false
+        nearbyWindow.visible = false
+        calendarWindow.visible = false
+        settingsMenu.currentCategory = "background"
+        // WICHTIG: Erst schließen, dann mit Timer wieder öffnen um FocusGrab neu zu triggern
+        settingsMenu.visible = false
+        settingsReopenTimer.start()
+    }
+}
+
 // Snap Preview Manager - Loaded from separate file
 SnapManager {
     id: snapManager
