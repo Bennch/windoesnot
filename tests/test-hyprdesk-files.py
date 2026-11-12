@@ -4,6 +4,9 @@ import importlib.util
 import os
 import sys
 import tempfile
+import json
+from types import SimpleNamespace
+from unittest.mock import patch
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -18,6 +21,32 @@ with tempfile.TemporaryDirectory(prefix='windoesnot-hyprdesk-test-') as temporar
     spec = importlib.util.spec_from_file_location('hyprdesk_under_test', SOURCE)
     hd = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(hd)
+
+    # Monitor identity must survive HiDPI, rotation and different desktop offsets.
+    monitor = SimpleNamespace(get_connector=lambda: 'Unknown-1')
+    assert hd.get_monitor_connector_name(monitor) == 'Unknown-1'
+    for transform in (0, 1, 5):
+        geo = SimpleNamespace(x=9, y=2, width=1512, height=945)
+        mon = {'name':'Unknown-1', 'x':9, 'y':2, 'width':3024,
+               'height':1890, 'scale':2, 'transform':transform}
+        if transform % 2:
+            mon['width'], mon['height'] = mon['height'], mon['width']
+        monitor = SimpleNamespace(get_connector=lambda: None, get_geometry=lambda: geo)
+        with patch.object(hd.subprocess, 'run', return_value=SimpleNamespace(stdout=json.dumps([mon]))):
+            assert hd.get_monitor_connector_name(monitor) == 'Unknown-1'
+
+    # Old logical fallback IDs merge into the connector ID without losing
+    # icons, regardless of the order in which they were saved.
+    mon = {'name':'Unknown-1', 'x':9, 'y':2, 'width':3024, 'height':1890, 'scale':2, 'transform':0}
+    for saved in ({'9_2_1512_945': {'icons':[{'name':'Old'}]}, 'Unknown-1': {'icons':[{'name':'Papierkorb'}]}},
+                  {'Unknown-1': {'icons':[{'name':'Papierkorb'}]}, '9_2_1512_945': {'icons':[{'name':'Old'}]}}):
+        app = SimpleNamespace(global_state={'monitors': saved})
+        with patch.object(hd.subprocess, 'run', return_value=SimpleNamespace(stdout=json.dumps([mon]))), \
+             patch.object(hd, 'save_state', lambda state: None):
+            hd.HyprDeskApp.migrate_old_monitor_ids(app, None, 1)
+        monitors = app.global_state['monitors']
+        assert list(monitors) == ['Unknown-1'], monitors
+        assert sorted(i['name'] for i in monitors['Unknown-1']['icons']) == ['Old', 'Papierkorb']
 
     # --- collision names
     taken = {'a.txt', 'a (2).txt', 'dir', 'dir (2)', 'x.tar.gz', '.bashrc'}
