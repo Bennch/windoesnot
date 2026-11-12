@@ -135,4 +135,8 @@ assert dispatcher.stat().st_mode & 0o777 == 0o755
 subprocess.run(['sh', '-n', str(dispatcher)], check=True)
 unit = (ROOT / 'desktop/share/systemd/system/windoesnot-first-network.service').read_text()
 assert 'ConditionPathExists=!/var/lib/windoesnot/mirrors-ranked' in unit and '[Install]' not in unit
-print('PASS: CPU levels, pacman.conf rewrite, chwd snapshot packages, isolated driver config, setup notice, first-network trigger')
+assert setup.tesla_nvidia('01:00.0 0300: 10de:0a74 (rev a2)')
+assert not setup.tesla_nvidia('01:00.0 0300: 10de:06c0 (rev a1)')  # Fermi GF100
+assert not setup.tesla_nvidia('01:00.0 0300: 10de:1e04 (rev a1)')  # Turing
+assert not setup.tesla_nvidia('00:02.0 0300: 8086:0126 (rev 09)')  # Intel only
+print('PASS: CPU levels, pacman.conf rewrite, chwd snapshot packages, isolated driver config, setup notice, first-network trigger, Tesla detection')
