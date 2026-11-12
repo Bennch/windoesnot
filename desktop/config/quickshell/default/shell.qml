@@ -5771,6 +5771,10 @@ FloatingWindow {
     // to the window height, which is itself derived from the panel.
     Loader {
         id: nearbyLoader
+        // Hyprland can keep the window taller than the panel; pin the panel to the
+        // window's bottom edge so it always sits on the taskbar. Only the bottom is
+        // anchored, so the height still comes from the panel (no binding loop).
+        anchors.bottom: parent.bottom
         source: "widgets/NearbyPanel.qml"
 
         onLoaded: {

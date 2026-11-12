@@ -404,6 +404,10 @@ def get_monitor_connector_name(monitor: Gdk.Monitor) -> str:
 
     Fallback auf Geometrie wenn Hyprctl nicht verfügbar ist.
     """
+    # GDK's connector is stable across scale and monitor-position changes.
+    connector = monitor.get_connector()
+    if connector:
+        return connector
     geo = monitor.get_geometry()
     try:
         import subprocess
@@ -425,8 +429,13 @@ def get_monitor_connector_name(monitor: Gdk.Monitor) -> str:
             transform = mon.get("transform", 0)
 
             # Bei Transform 1 oder 3 vertauschen width/height für GTK-Match
-            if transform in [1, 3]:
+            if transform % 2:
                 hypr_width, hypr_height = hypr_height, hypr_width
+            scale = float(mon.get("scale", 1))
+            if scale <= 0:
+                continue
+            hypr_width = round(hypr_width / scale)
+            hypr_height = round(hypr_height / scale)
 
             if (mon["x"] == geo.x and mon["y"] == geo.y and
                 hypr_width == geo.width and hypr_height == geo.height):
@@ -3807,6 +3816,15 @@ class HyprDeskApp(Gtk.Application):
                 if old_id != new_id:
                     migration_map[old_id] = new_id
                     debug(f"  {old_id} -> {new_id}")
+                # Fallback IDs from get_monitor_connector_name use x_y_width_height
+                # in logical pixels; migrate those as well (HiDPI/rotated outputs).
+                scale = float(mon.get("scale", 1)) or 1
+                w, h = mon["width"], mon["height"]
+                if mon.get("transform", 0) % 2:
+                    w, h = h, w
+                fallback_id = f"{mon['x']}_{mon['y']}_{round(w / scale)}_{round(h / scale)}"
+                if fallback_id != new_id:
+                    migration_map.setdefault(fallback_id, new_id)
         except Exception as e:
             debug(f"  Error getting monitor info: {e}")
             migration_map = {}
@@ -3814,7 +3832,9 @@ class HyprDeskApp(Gtk.Application):
         # Migration durchführen
         if migration_map:
             new_monitors = {}
-            for old_id, config in saved_monitors.items():
+            # Current IDs first; otherwise a later current entry would overwrite
+            # icons already merged into it from an older ID.
+            for old_id, config in sorted(saved_monitors.items(), key=lambda item: item[0] in migration_map):
                 if old_id in migration_map:
                     new_id = migration_map[old_id]
                     debug(f"  Migrating config from {old_id} to {new_id}")
