@@ -2,6 +2,22 @@
 
 Generated from `packaging/changelog.json` (newest first). Releases with downloads: https://github.com/Bennch/windoesnot/releases
 
+## 0.1.0-28 (2026-11-12)
+
+- At first start you set resolution, zoom and pointer speed. A new display setting is reverted after 12 seconds unless you keep it.
+- Snap windows: dragging a title bar shows a preview. The maximize button opens the layout picker.
+- Alt-Tab shows previews of each window.
+- New full-screen task view: all windows at a glance.
+- Window mode: existing windows float when you switch, and you can switch in both directions.
+- Battery and power: the popup shows brightness, power profile and night light and fits its content. The taskbar shows the battery level, and desktop PCs without a battery show a bolt symbol.
+- Brightness also works with several external monitors.
+- If the system language is missing, it is detected. Setup asks for your password and shows progress.
+- File sharing: drag files onto the sharing icon and the window opens with a drop zone. History is its own tab, and a green light shows that receiving is on.
+- If the firewall blocks LocalSend, open the ports with one click.
+- System settings: kernel selection and sections are clearer. The Wi-Fi password dialog closes after a successful connection.
+- Installer and boot: choosing the mirror server no longer causes a boot error.
+- If the desktop shell crashes in its first seconds, it starts again automatically.
+
 ## 0.1.0-27 (2026-11-09)
 
 - Printers are detected automatically. Maintenance shows a printer card with the printer status.
@@ -124,4 +140,3 @@ Generated from `packaging/changelog.json` (newest first). Releases with download
 
 - The WinDoesNot Store has a fixed taskbar button (can be turned off in the settings).
 - Programs installed during a session get their taskbar icon right away.
-
