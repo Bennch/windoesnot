@@ -31,6 +31,11 @@ LEVEL_SECTIONS = {name for _, names in LEVEL_REPOS.values() for name in names}
 # chwd writes these before pacman runs; a failed profile must not leave
 # initramfs MODULES+= lines for drivers that were never installed.
 CHWD_INITRAMFS = ['etc/mkinitcpio.conf.d/10-chwd.conf', 'etc/mkinitcpio.conf.d/10-chwd-kms.conf']
+# NVIDIA Tesla (GeForce 8 to GT 300, about 2006-2010) only works with nouveau: the
+# proprietary branches in the snapshot dropped it and nvidia-open needs Turing or newer.
+# Approximate device-ID range, excluding Fermi GF100 (0x06c0-0x06df). Not tested on hardware.
+TESLA_IDS = range(0x0400, 0x0c00)
+FERMI_IDS = range(0x06c0, 0x06e0)
 
 
 def is_zen4_or_newer(cpuinfo):
@@ -183,24 +188,35 @@ def incomplete_entries(local=Path('/var/lib/pacman/local')):
     return sorted(entry.name for entry in local.iterdir() if entry.is_dir() and not (entry / 'desc').is_file())
 
 
+def lspci_vga():
+    return subprocess.run(['lspci', '-n', '-d', '10de::0300'], capture_output=True, text=True).stdout
+
+
 def installed_profiles(environment):
     listing = subprocess.run(['chwd', '--list-installed'], capture_output=True, text=True, env=environment).stdout
     return sorted(set(re.findall(r'│\s*([a-z0-9][a-z0-9.-]*)\s*┆', listing)))
 
 
+def tesla_nvidia(lspci):
+    """True when an NVIDIA VGA device from the Tesla generation is present (lspci -n output)."""
+    devices = [int(device, 16) for device in re.findall(r'10de:([0-9a-fA-F]{4})', lspci)]
+    return any(device in TESLA_IDS and device not in FERMI_IDS for device in devices)
+
+
 def drivers_stage(root, base=BASE):
-    """Run chwd --autoconfigure against the verified ISO snapshot."""
+    """Run chwd --autoconfigure against the verified ISO snapshot, or nouveau for NVIDIA Tesla."""
     bundle = base / 'offline-apps'
     manifest = verify_bundle(bundle)
     if not manifest.get('chwd_packages'):
         update_record(root, drivers='pending', driver_reason='snapshot has no driver packages')
         return
     environment = dict(os.environ, LANG='C', LC_ALL='C')
+    # Untested: the chwd --install flag is assumed, check it on a Tesla machine.
+    chwd = ['chwd', '--install', 'nouveau'] if tesla_nvidia(lspci_vga()) else ['chwd', '--autoconfigure']
     with tempfile.TemporaryDirectory(prefix='windoesnot-chwd-', dir='/var/tmp') as temporary, snapshot_multilib():
         config = driver_config(bundle, Path(temporary))
         subprocess.run(['pacman', '--config', str(config), '-Sy'], check=True)
-        result = subprocess.run(['chwd', '--autoconfigure', '--pmconfig', str(config),
-                                 '--pmcachedir', str(bundle / 'repository')],
+        result = subprocess.run(chwd + ['--pmconfig', str(config), '--pmcachedir', str(bundle / 'repository')],
                                 capture_output=True, text=True, env=environment)
     print(result.stdout[-4000:])
     print(result.stderr[-4000:], file=sys.stderr)
