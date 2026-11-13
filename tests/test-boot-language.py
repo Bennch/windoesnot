@@ -62,6 +62,19 @@ class BootLanguage(unittest.TestCase):
             with self.assertRaises(ValueError):m.refresh_efi(root)
             self.assertEqual(target.read_bytes(),b'changed externally')
 
+    def test_version_mismatch_keeps_stock_loader_instead_of_failing(self):
+        manifest={'version':'262.1'}
+        self.assertTrue(m.translated_loader_matches('262.1-3',manifest))
+        self.assertTrue(m.translated_loader_matches('1:262.1-3',manifest))
+        self.assertFalse(m.translated_loader_matches('262.2-1',manifest))
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);(root/'var/lib/windoesnot').mkdir(parents=True)
+            (root/'var/lib/windoesnot/installation.json').write_text(json.dumps({'schema_version':1,'bootloader':'systemd-boot'}))
+            native=root/'usr/lib/systemd/boot/efi/systemd-bootx64.efi';native.parent.mkdir(parents=True);native.write_bytes(b'newer stock loader')
+            translated=root/'usr/lib/windoesnot/boot-language/systemd-boot/systemd-bootx64.efi';translated.parent.mkdir(parents=True);translated.write_bytes(b'older translated loader')
+            m.refresh_efi(root) # must not raise and must not touch the stock loader
+            self.assertEqual(native.read_bytes(),b'newer stock loader')
+
     def test_catalogs_preserve_format_arguments_and_c_paths(self):
         for name in ['limine','refind','systemd-boot']:
             data=json.loads((ROOT/f'iso/boot-language/{name}-de.json').read_text())

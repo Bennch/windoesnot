@@ -14,6 +14,7 @@ import re
 import shlex
 import stat
 import subprocess
+import sys
 import tempfile
 
 LOADERS = ('grub', 'systemd-boot', 'refind', 'limine')
@@ -152,6 +153,11 @@ def translated_labels(text, lang, loader):
     return ''.join(lines)
 
 
+def translated_loader_matches(version, manifest):
+    """True when the packaged translated loader was built for this exact upstream version."""
+    return version.rsplit('-', 1)[0].split(':')[-1] == manifest['version']
+
+
 def prepare_binaries(root):
     """Stage native installer inputs from the version-matched packaged build.
 
@@ -170,9 +176,11 @@ def prepare_binaries(root):
     if root != Path('/'):
         raise ValueError('Binary preparation must run inside the installation target')
     version = subprocess.check_output(['/usr/bin/pacman', '-Q', package], text=True).strip().split()[1]
-    upstream = version.rsplit('-', 1)[0].split(':')[-1]
-    if upstream != manifest['version']:
-        raise ValueError(f'{package} {version}: rebuild the boot language package for this upstream version before deployment')
+    if not translated_loader_matches(version, manifest):
+        # Keep the stock (English) loader instead of failing the whole installation or
+        # package transaction; the translated build must be rebuilt for this version.
+        print(f'{package} {version}: translated loader is for {manifest["version"]}; keeping the stock loader', file=sys.stderr)
+        return
     for name, relative in NATIVE[loader].items():
         source = assets / loader / name
         if digest(source) != manifest['sha256'][name]:
@@ -249,7 +257,8 @@ def refresh_efi(root=Path('/')):
     native = owned_path(root, NATIVE[loader][filename])
     # Never downgrade a newer upstream loader to an older translated one.
     if digest(native) != digest(source):
-        raise ValueError('Native loader and translated package differ; rebuild translations before refreshing EFI')
+        print('Native loader and translated package differ; keeping the stock loader until translations are rebuilt', file=sys.stderr)
+        return
     for relative, previous in state['efi_files'].items():
         if relative not in EFI_PATHS[loader]:
             raise ValueError('Unknown registered EFI target')
