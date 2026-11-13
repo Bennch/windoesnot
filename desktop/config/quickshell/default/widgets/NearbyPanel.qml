@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Dialogs
+import Quickshell.Io
 import "../settings" as Tools
 import "../i18n/Lang.js" as Lang
 
@@ -40,6 +41,8 @@ Rectangle {
         if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KiB"
         return (bytes / 1048576).toFixed(1) + " MiB"
     }
+    property string copyText: (panel.viewState.addresses || []).join("\n")
+    Process { id: copyAddresses; command: ["wl-copy", panel.copyText]; running: false }
     component Label: Text {
         width: parent.width; wrapMode: Text.WordWrap; textFormat: Text.PlainText
         color: panel.secondary; font.pixelSize: 13
@@ -73,6 +76,15 @@ Rectangle {
 
             // Header: what this panel is, and whether it accepts files.
             Heading { text: panel.tr("nearby.title"); font.pixelSize: 18 }
+            Column {
+                width: parent.width; spacing: 6
+                Text { text: panel.tr("nearby.localAddresses"); color: panel.foreground; font.bold: true; font.pixelSize: 14 }
+                Row {
+                    width: parent.width; spacing: 8
+                    Label { width: parent.width - copyButton.width - 8; text: (panel.viewState.addresses || []).join(", ") || "—"; color: panel.foreground }
+                    Action { id: copyButton; text: panel.tr("nearby.copyAddresses"); enabled: (panel.viewState.addresses || []).length > 0; onClicked: copyAddresses.running = true }
+                }
+            }
             Row {
                 spacing: 20
                 Repeater {
@@ -142,7 +154,7 @@ Rectangle {
                 delegate: Action {
                     required property var modelData
                     width: parent.width
-                    text: modelData.alias
+                    text: modelData.alias + (modelData.model ? "\n" + modelData.model : "") + "\n" + (modelData.address || "")
                     enabled: panel.viewState.selected.length > 0 && !panel.viewState.outgoing
                     onClicked: panel.act("send", {peer:modelData.id})
                 }

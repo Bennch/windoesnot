@@ -142,7 +142,10 @@ class Nearby(unittest.TestCase):
 
 
     def test_discovery_is_lan_only_and_bounded(self):
-        self.assertEqual(self.adapter.remember(self.peer, '192.168.77.11')['alias'], 'Other computer')
+        remembered = self.adapter.remember({**self.peer, 'deviceModel': 'WinDoesNot Live-System'}, '192.168.77.11')
+        self.assertEqual(remembered['alias'], 'Other computer')
+        self.assertEqual(remembered['address'], '192.168.77.11')
+        self.assertEqual(remembered['model'], 'WinDoesNot Live-System')
         for address in ('8.8.8.8', '224.0.0.167', '0.0.0.0', '::1'):
             with self.subTest(address=address), self.assertRaises(ValueError):
                 self.adapter.remember(self.peer, address)
@@ -151,6 +154,14 @@ class Nearby(unittest.TestCase):
         for index in range(200):
             self.adapter.remember({**self.peer, 'fingerprint': str(index)}, '192.168.77.11')
         self.assertEqual(len(self.adapter.peers), 100)
+
+    def test_json_state_contains_local_and_peer_addresses(self):
+        with patch.object(m, 'local_ipv4_addresses', return_value=['192.168.77.10']):
+            self.adapter.remember({**self.peer, 'deviceModel': 'WinDoesNot Live-System'}, '192.168.77.11')
+            state = self.adapter.snapshot()
+        self.assertEqual(state['addresses'], ['192.168.77.10'])
+        self.assertEqual(state['devices'][0]['address'], '192.168.77.11')
+        self.assertEqual(state['devices'][0]['model'], 'WinDoesNot Live-System')
 
     def test_https_pins_the_discovered_certificate(self):
         peer = {'id': 'a' * 64, 'protocol': 'https', 'address': '192.168.77.11', 'port': 53317}

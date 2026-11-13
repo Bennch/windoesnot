@@ -13,10 +13,11 @@ SOURCE = ROOT / 'desktop/config/quickshell/default'
 shell = (SOURCE / 'shell.qml').read_text()
 subprocess.run(['qmlformat', str(SOURCE / 'shell.qml')], stdout=subprocess.DEVNULL, check=True)
 tray = re.search(r'    function rebuildTrayModel\(\) \{.*?\n    \}', shell, re.S).group()
-ipc = shell[shell.index('IpcHandler {\n    target: "windoesnot-nearby"'):shell.index('PanelWindow {\n    id: nearbyWindow')]
+ipc = shell[shell.index('IpcHandler {\n    target: "windoesnot-nearby"'):shell.index('FloatingWindow {\n    id: nearbyWindow')]
 ipc = ipc.replace('IpcHandler {', 'IpcHandler { id: nearbyIpc', 1)
 fixture = {'receiving': True, 'requestedReceiving': True, 'alias': 'Test PC', 'error': '',
-           'devices': [{'id': 'other', 'alias': 'Other computer', 'protocol': 'https'}],
+           'addresses': ['192.168.77.10', '192.168.77.12'],
+           'devices': [{'id': 'other', 'alias': 'Other computer', 'model': 'WinDoesNot Live-System', 'address': '192.168.77.11', 'protocol': 'https'}],
            'selected': ['space ü.txt'],
            'incoming': {'id': 'request', 'direction': 'receive', 'peer': '<b>Other</b>', 'files': ['hello.txt'],
                         'status': 'waiting', 'bytes': 0, 'total': 1024},
@@ -48,7 +49,7 @@ ShellRoot {
   property int incomingCount: 0
   NearbyService { id:nearbyService; autoStart:false; onIncomingRequest: testWindow.incomingCount++ }
   NearbyPanel { id:panel; anchors.fill:parent; service:nearbyService }
-  QtObject { id:settingsMenu; property string trayOrder:"audio,network,bluetooth"; property bool weatherEnabled:false; property string weatherLocation:"tray"; property bool showDockerTray:false; property bool showOllamaTray:false }
+  QtObject { id:settingsMenu; property string trayOrder:"audio,network,bluetooth"; property bool weatherEnabled:false; property string weatherLocation:"tray"; property bool showDockerTray:false; property bool showOllamaTray:false; property bool showNearbyTray:true }
   ListModel { id:trayIconModel }
   QtObject { id:panelWindow; TRAY }
   INSERT_IPC
@@ -61,6 +62,9 @@ ShellRoot {
     nearbyService.acceptState(FIXTURE)
     testWindow.check(testWindow.incomingCount===1,"progress does not steal focus repeatedly")
     testWindow.check(panel.tr("nearby.title")==="In der Nähe teilen","German")
+    testWindow.check(testWindow.find(panel,o=>o.text==="Eigene IP-Adressen") && testWindow.find(panel,o=>o.text==="192.168.77.10, 192.168.77.12"),"local addresses shown")
+    testWindow.check(testWindow.find(panel,o=>o.text==="Kopieren"),"copy button shown")
+    testWindow.check(testWindow.find(panel,o=>o.text==="Other computer\\nWinDoesNot Live-System\\n192.168.77.11"),"peer alias, model and IP shown")
     const accept=testWindow.find(panel,o=>o.text==="Annehmen")
     testWindow.check(accept && accept.visible,"explicit approval offered")
     testWindow.check(testWindow.find(panel,o=>o.text==="Anfrage von <b>Other</b>").textFormat===Text.PlainText,"peer text is plain")
@@ -68,13 +72,14 @@ ShellRoot {
     testWindow.check(nearbyService.pendingCommands[0].action==="reject","reject command routed")
     panel.uiLanguage="en"; panel.darkMode=false
     testWindow.check(panel.tr("nearby.title")==="Nearby sharing","English")
+    testWindow.check(testWindow.find(panel,o=>o.text==="Your IP addresses") && testWindow.find(panel,o=>o.text==="Copy"),"English IP labels")
     testWindow.check(accept.text==="Accept","buttons follow language")
     panelWindow.rebuildTrayModel()
     let count=0; for(let i=0;i<trayIconModel.count;i++) if(trayIconModel.get(i).iconType==="nearby")count++
     testWindow.check(count===1 && settingsMenu.trayOrder==="audio,network,bluetooth","legacy tray order gets one icon without overwriting preferences")
     testWindow.check(nearbyIpc.share(JSON.stringify(["/tmp/space ü.txt"]))==="opened" && desktopShell.opened===1,"Nautilus IPC opens panel")
     testWindow.check(nearbyService.pendingCommands[1].files[0]==="/tmp/space ü.txt","file path passes as JSON")
-    testWindow.check(nearbyIpc.share("{}")==="invalid" && nearbyIpc.share("[]")==="invalid","invalid IPC rejected")
+    testWindow.check(nearbyIpc.share("[")==="invalid" && nearbyIpc.share("[]")==="invalid","invalid IPC rejected")
     console.log("NEARBY_UI_PASS")
    } catch(e) {console.error("NEARBY_UI_FAIL",e)}
    Qt.quit()

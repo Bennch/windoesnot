@@ -7,6 +7,7 @@ This adapter implements the public protocol instead of driving its GUI.
 Control and state use newline-delimited JSON on the owning shell's pipes.
 """
 import hashlib
+import fcntl
 import http.client
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import ipaddress
@@ -19,6 +20,7 @@ import select
 import signal
 import shutil
 import socket
+import struct
 import ssl
 import stat
 import subprocess
@@ -132,6 +134,26 @@ def downloads_directory():
     except (OSError, subprocess.TimeoutExpired):
         pass
     return Path.home() / 'Downloads'
+
+
+def local_ipv4_addresses():
+    """Read configured interface addresses from the kernel; this sends no packets."""
+    result = set()
+    probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        for _, name in socket.if_nameindex():
+            request = struct.pack('256s', name.encode()[:15])
+            try:
+                raw = fcntl.ioctl(probe.fileno(), 0x8915, request)  # SIOCGIFADDR
+                address = socket.inet_ntoa(raw[20:24])
+                parsed = ipaddress.IPv4Address(address)
+                if not parsed.is_loopback and not parsed.is_unspecified and not parsed.is_multicast:
+                    result.add(address)
+            except OSError:
+                continue
+    finally:
+        probe.close()
+    return sorted(result, key=lambda value: (int(ipaddress.IPv4Address(value))))
 
 
 class Transfer:
@@ -293,7 +315,10 @@ class Adapter:
         alias = info.get('alias', 'LocalSend')
         if not isinstance(alias, str) or not alias or len(alias) > 100:
             raise ValueError('network')
-        peer = {'id': key, 'alias': alias, 'address': lan_address(address), 'port': port,
+        model = info.get('deviceModel', '')
+        if not isinstance(model, str):
+            model = ''
+        peer = {'id': key, 'alias': alias, 'model': model[:100], 'address': lan_address(address), 'port': port,
                 'protocol': info['protocol'], 'lastSeen': time.monotonic()}
         with self.lock:
             peer['replied'] = self.peers.get(key, {}).get('replied', 0)
@@ -559,7 +584,7 @@ class Adapter:
     def snapshot(self):
         with self.lock:
             return {'receiving': self.receiving and self.server is not None, 'requestedReceiving': self.receiving,
-                    'alias': self.alias, 'error': self.error, 'portsOpen': ports_open(),
+                    'alias': self.alias, 'addresses': local_ipv4_addresses(), 'error': self.error, 'portsOpen': ports_open(),
                     'devices': [p for p in self.peers.values() if time.monotonic() - p['lastSeen'] < 45],
                     'selected': [p.name for p in self.selected],
                     'incoming': self.incoming.public() if self.incoming else None,

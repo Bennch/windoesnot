@@ -203,6 +203,8 @@ var strings = {
     "nearby.refresh": "Neu suchen",
     "nearby.clearSelection": "Auswahl leeren",
     "nearby.devices": "Geräte in der Nähe",
+    "nearby.localAddresses": "Eigene IP-Adressen",
+    "nearby.copyAddresses": "Kopieren",
     "nearby.noDevices": "Noch kein Gerät gefunden. Öffne LocalSend auf dem anderen Gerät und suche erneut. Nach der Dateiauswahl kannst du ein Gerät zum Senden anklicken.",
     "nearby.unencrypted": "Dieses Gerät empfängt ohne Verschlüsselung. Sende nur, wenn du dem Netzwerk vertraust.",
     "nearby.from": "Anfrage von",
