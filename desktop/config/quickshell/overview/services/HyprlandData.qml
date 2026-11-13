@@ -44,7 +44,7 @@ Singleton {
         var firstSpace = command.indexOf(" ")
         var name = firstSpace < 0 ? command : command.substring(0, firstSpace)
         var args = firstSpace < 0 ? "" : command.substring(firstSpace + 1)
-        var proc = actionProcess.createObject(root, { command: ["windoesnot-hyprctl", "dispatch", name, args] })
+        var proc = actionProcess.createObject(root, { command: ["windoesnot-bounded", "8", "windoesnot-hyprctl", "dispatch", name, args] })
         proc.running = true
     }
 
@@ -183,7 +183,7 @@ Singleton {
 
     Process {
         id: getClients
-        command: ["hyprctl", "-j", "clients"]
+        command: ["windoesnot-bounded", "8", "hyprctl", "-j", "clients"]
         stdout: StdioCollector {
             id: clientsCollector
             onStreamFinished: {
@@ -209,7 +209,7 @@ Singleton {
 
     Process {
         id: getMonitors
-        command: ["hyprctl", "-j", "monitors"]
+        command: ["windoesnot-bounded", "8", "hyprctl", "-j", "monitors"]
         stdout: StdioCollector {
             id: monitorsCollector
             onStreamFinished: {
@@ -224,7 +224,7 @@ Singleton {
 
     Process {
         id: getLayers
-        command: ["windoesnot-hyprctl", "layers", "-j"]
+        command: ["windoesnot-bounded", "8", "windoesnot-hyprctl", "layers", "-j"]
         stdout: StdioCollector {
             id: layersCollector
             onStreamFinished: {
@@ -239,7 +239,7 @@ Singleton {
 
     Process {
         id: getWorkspaces
-        command: ["hyprctl", "-j", "workspaces"]
+        command: ["windoesnot-bounded", "8", "hyprctl", "-j", "workspaces"]
         stdout: StdioCollector {
             id: workspacesCollector
             onStreamFinished: {
@@ -271,7 +271,7 @@ Singleton {
 
     Process {
         id: getActiveWorkspace
-        command: ["hyprctl", "-j", "activeworkspace"]
+        command: ["windoesnot-bounded", "8", "hyprctl", "-j", "activeworkspace"]
         stdout: StdioCollector {
             id: activeWorkspaceCollector
             onStreamFinished: {

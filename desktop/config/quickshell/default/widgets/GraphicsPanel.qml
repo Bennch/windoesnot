@@ -82,7 +82,7 @@ Item {
     // (e.g. a development host) a per-user daemon is started or stopped.
     function toggleDaemon() {
         if (daemonUnit)
-            daemonProc.command = ["pkexec", "systemctl", daemonRunning ? "stop" : "start", "lactd.service"]
+            daemonProc.command = ["windoesnot-bounded", "8", "pkexec", "systemctl", daemonRunning ? "stop" : "start", "lactd.service"]
         else if (daemonRunning)
             daemonProc.command = ["pkill", "-f", "lact daemon"]
         else

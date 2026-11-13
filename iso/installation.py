@@ -234,23 +234,23 @@ def configure_snapshots(bootloader, root):
     config['root']['userdata'] = json.dumps(userdata)
     config['root'].setdefault('important_packages', json.dumps(['linux-cachyos', 'linux-cachyos-lts', 'linux-cachyos-bore', 'linux-cachyos-rt-bore', 'linux-cachyos-eevdf', 'linux-cachyos-bmq', 'linux-cachyos-server', 'pacman', 'systemd']))
     stream = io.StringIO(); config.write(stream); config_path.write_text(stream.getvalue())
-    subprocess.run(['systemctl', 'enable', 'snapper-timeline.timer', 'snapper-cleanup.timer'], check=True)
+    subprocess.run(['systemctl', 'enable', 'snapper-timeline.timer', 'snapper-cleanup.timer'], check=True, timeout=30)
     if bootloader == 'grub':
         configure_grub_overlay(root)
         config = root / 'etc/default/grub-btrfs/config'
         set_shell_value(config, 'GRUB_BTRFS_SUBMENUNAME', 'WinDoesNot restore points')
         set_shell_value(config, 'GRUB_BTRFS_SNAPSHOT_KERNEL_PARAMETERS', 'ro')
-        subprocess.run(['systemctl', 'enable', 'grub-btrfsd.service'], check=True)
+        subprocess.run(['systemctl', 'enable', 'grub-btrfsd.service'], check=True, timeout=30)
         subprocess.run(['mkinitcpio', '-P'], check=True)
     elif bootloader == 'limine':
         set_shell_value(root / 'etc/limine-snapper-sync.conf', 'TARGET_OS_NAME', 'WinDoesNot')
         set_shell_value(root / 'etc/limine-snapper-sync.conf', 'MAX_SNAPSHOT_ENTRIES', '3')
         enable_snapshot_hook(root, 'sd-btrfs-overlayfs')
-        subprocess.run(['systemctl', 'enable', 'limine-snapper-sync.service'], check=True)
+        subprocess.run(['systemctl', 'enable', 'limine-snapper-sync.service'], check=True, timeout=30)
         subprocess.run(['mkinitcpio', '-P'], check=True)
     elif bootloader == 'refind':
         configure_refind_snapshots(root)
-        subprocess.run(['systemctl', 'enable', 'refind-btrfs.service'], check=True)
+        subprocess.run(['systemctl', 'enable', 'refind-btrfs.service'], check=True, timeout=30)
 
 
 
@@ -366,7 +366,7 @@ def finish(bootloader, firmware, mode, root=Path('/'), selected_locale=None):
     if bootloader == 'limine':
         subprocess.run(['limine-update'], check=True)
     subprocess.run(['/usr/lib/windoesnot/boot_language.py', 'finish'], check=True)
-    subprocess.run(['systemctl', 'enable', 'windoesnot-boot-language.path'], check=True)
+    subprocess.run(['systemctl', 'enable', 'windoesnot-boot-language.path'], check=True, timeout=30)
     (root / 'var/lib/pacman/sync/windoesnot-apps.db').unlink(missing_ok=True)
 
 

@@ -48,10 +48,10 @@ hl.bind("SUPER + mouse_down", hl.dsp.focus({["workspace"]="e+1"}), {}) -- legacy
 hl.bind("SUPER + mouse_up", hl.dsp.focus({["workspace"]="e-1"}), {}) -- legacy:336
 hl.bind("SUPER + mouse:272", hl.dsp.window.drag(), {["mouse"]=true}) -- legacy:339
 hl.bind("SUPER + mouse:273", hl.dsp.window.resize(), {["mouse"]=true}) -- legacy:340
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 && wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), {["repeating"]=true,["locked"]=true}) -- legacy:343
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 && wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), {["repeating"]=true,["locked"]=true}) -- legacy:344
-hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), {["repeating"]=true,["locked"]=true}) -- legacy:345
-hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), {["repeating"]=true,["locked"]=true}) -- legacy:346
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("timeout --kill-after=1 5 wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 && timeout --kill-after=1 5 wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), {["repeating"]=true,["locked"]=true}) -- legacy:343
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("timeout --kill-after=1 5 wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 && timeout --kill-after=1 5 wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), {["repeating"]=true,["locked"]=true}) -- legacy:344
+hl.bind("XF86AudioMute", hl.dsp.exec_cmd("timeout --kill-after=1 5 wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), {["repeating"]=true,["locked"]=true}) -- legacy:345
+hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("timeout --kill-after=1 5 wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), {["repeating"]=true,["locked"]=true}) -- legacy:346
 hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"), {["repeating"]=true,["locked"]=true}) -- legacy:347
 hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"), {["repeating"]=true,["locked"]=true}) -- legacy:348
 hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"), {["locked"]=true}) -- legacy:351

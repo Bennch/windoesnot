@@ -18,7 +18,7 @@ Column {
     }
 
     function restartFileManager() {
-        filemanagerRestart.command = ["/usr/bin/killall", "-9", "nautilus", "dolphin", "nemo", "thunar"]
+        filemanagerRestart.command = ["windoesnot-bounded", "8", "/usr/bin/killall", "-9", "nautilus", "dolphin", "nemo", "thunar"]
         filemanagerRestart.running = true
     }
 

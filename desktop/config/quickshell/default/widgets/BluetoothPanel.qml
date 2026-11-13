@@ -36,13 +36,13 @@ Item {
     function updateBluetoothState() {
         if (!windowVisible)
             return
-        getBluetoothPowerProc.running = true
+        if (!getBluetoothPowerProc.running) getBluetoothPowerProc.running = true
     }
 
     // Get Bluetooth power status
     Process {
         id: getBluetoothPowerProc
-        command: ["bluetoothctl", "show"]
+        command: ["windoesnot-bounded", "6", "bash", "-c", "test -d /sys/class/bluetooth && bluetoothctl show"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -51,12 +51,26 @@ Item {
                     && !/No default controller available/i.test(output)
                 bluetoothPanel.bluetoothControllerAvailable = available
                 bluetoothPanel.bluetoothEnabled = available && /^\s*Powered:\s+yes\s*$/m.test(output)
-                if (available)
+                if (available && !getAllDevicesProc.running)
                     getAllDevicesProc.running = true
                 else
                     bluetoothPanel.allDevices = []
             }
         }
+    }
+
+    Timer {
+        interval: 7000
+        repeat: false
+        running: getBluetoothPowerProc.running
+        onTriggered: getBluetoothPowerProc.running = false
+    }
+
+    Timer {
+        interval: 13000
+        repeat: false
+        running: getAllDevicesProc.running
+        onTriggered: getAllDevicesProc.running = false
     }
 
     // Toggle Bluetooth power
@@ -76,7 +90,7 @@ Item {
     // Get all devices (paired and discovered) with connection status
     Process {
         id: getAllDevicesProc
-        command: ["bash", "-c", "bluetoothctl devices | while read -r line; do mac=$(echo \"$line\" | awk '{print $2}'); name=$(echo \"$line\" | cut -d' ' -f3-); [ -z \"$mac\" ] && continue; info=$(bluetoothctl info \"$mac\" 2>/dev/null); paired=$(echo \"$info\" | grep 'Paired:' | awk '{print $2}'); connected=$(echo \"$info\" | grep 'Connected:' | awk '{print $2}'); battery_line=$(echo \"$info\" | grep 'Battery Percentage:'); battery=''; if [ -n \"$battery_line\" ]; then battery=$(echo \"$battery_line\" | grep -oP '\\(\\K\\d+(?=\\))'); fi; icon=$(echo \"$info\" | grep 'Icon:' | awk '{print $2}'); class=$(echo \"$info\" | grep 'Class:' | awk '{print $2}'); echo \"$mac|$name|$paired|$connected|$battery|$icon|$class\"; done"]
+        command: ["windoesnot-bounded", "12", "bash", "-c", "test -d /sys/class/bluetooth || exit 0; bluetoothctl devices | while read -r line; do mac=$(echo \"$line\" | awk '{print $2}'); name=$(echo \"$line\" | cut -d' ' -f3-); [ -z \"$mac\" ] && continue; info=$(bluetoothctl info \"$mac\" 2>/dev/null); paired=$(echo \"$info\" | grep 'Paired:' | awk '{print $2}'); connected=$(echo \"$info\" | grep 'Connected:' | awk '{print $2}'); battery_line=$(echo \"$info\" | grep 'Battery Percentage:'); battery=''; if [ -n \"$battery_line\" ]; then battery=$(echo \"$battery_line\" | grep -oP '\\(\\K\\d+(?=\\))'); fi; icon=$(echo \"$info\" | grep 'Icon:' | awk '{print $2}'); class=$(echo \"$info\" | grep 'Class:' | awk '{print $2}'); echo \"$mac|$name|$paired|$connected|$battery|$icon|$class\"; done"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -198,7 +212,7 @@ Item {
         onRunningChanged: {
             if (!running) {
                 Qt.callLater(function() {
-                    getAllDevicesProc.running = true
+                    if (!getAllDevicesProc.running) getAllDevicesProc.running = true
                 })
                 // Start timer to auto-close blueman notifications
                 closeBluemanTimer.restart()
@@ -220,14 +234,14 @@ Item {
     // Close blueman notification windows
     Process {
         id: closeBluemanProc
-        command: ["bash", "-c", "hyprctl -j clients | jq -r '.[] | select(.class==\"blueman-applet\" or .class==\"blueman-manager\" or .class==\"Blueman-manager\") | .address' | while read addr; do windoesnot-hyprctl dispatch closewindow address:$addr; done"]
+        command: ["windoesnot-bounded", "8", "bash", "-c", "hyprctl -j clients | jq -r '.[] | select(.class==\"blueman-applet\" or .class==\"blueman-manager\" or .class==\"Blueman-manager\") | .address' | while read addr; do windoesnot-hyprctl dispatch closewindow address:$addr; done"]
         running: false
     }
 
     // Start Python scan script that properly handles bluetoothctl
     Process {
         id: startScanProc
-        command: ["python3", Qt.resolvedUrl("../bt_scan.py").toString().replace("file://", "")]
+        command: ["windoesnot-bounded", "35", "python3", Qt.resolvedUrl("../bt_scan.py").toString().replace("file://", "")]
         running: false
 
         stdout: StdioCollector {
@@ -308,7 +322,7 @@ Item {
         onRunningChanged: {
             if (!running) {
                 Qt.callLater(function() {
-                    getAllDevicesProc.running = true
+                    if (!getAllDevicesProc.running) getAllDevicesProc.running = true
                 })
                 // Start timer to auto-close blueman notifications
                 closeBluemanTimer.restart()
@@ -319,7 +333,7 @@ Item {
     // Stop scan process
     Process {
         id: stopScanProc
-        command: ["bash", "-c", "pkill -f 'python3.*bt_scan.py'; bluetoothctl scan off"]
+        command: ["windoesnot-bounded", "8", "bash", "-c", "pkill -f 'python3.*bt_scan.py'; bluetoothctl scan off"]
         running: false
         onRunningChanged: {
             if (!running) {
@@ -347,7 +361,7 @@ Item {
 
     function pairDevice(mac) {
         console.log("Pairing with device:", mac)
-        pairDeviceProc.command = ["bash", "-c", "bluetoothctl pair " + mac + " && bluetoothctl trust " + mac + " && bluetoothctl connect " + mac]
+        pairDeviceProc.command = ["windoesnot-bounded", "8", "bash", "-c", "bluetoothctl pair " + mac + " && bluetoothctl trust " + mac + " && bluetoothctl connect " + mac]
         pairDeviceProc.running = true
     }
 
@@ -428,7 +442,7 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             var newState = !bluetoothPanel.bluetoothEnabled
-                            toggleBluetoothProc.command = ["bash", "-c", "bluetoothctl power " + (newState ? "on" : "off")]
+                            toggleBluetoothProc.command = ["windoesnot-bounded", "8", "bash", "-c", "bluetoothctl power " + (newState ? "on" : "off")]
                             toggleBluetoothProc.running = true
                             console.log("Toggle Bluetooth:", newState)
                         }
@@ -570,7 +584,7 @@ Item {
                                                 cursorShape: Qt.PointingHandCursor
                                                 onClicked: {
                                                     console.log("Disconnect device:", modelData.mac)
-                                                    toggleDeviceConnectionProc.command = ["bash", "-c", "bluetoothctl disconnect " + modelData.mac]
+                                                    toggleDeviceConnectionProc.command = ["windoesnot-bounded", "8", "bash", "-c", "bluetoothctl disconnect " + modelData.mac]
                                                     toggleDeviceConnectionProc.running = true
                                                     mouse.accepted = true
                                                 }
@@ -601,7 +615,7 @@ Item {
                                                 cursorShape: Qt.PointingHandCursor
                                                 onClicked: {
                                                     console.log("Connect device:", modelData.mac)
-                                                    toggleDeviceConnectionProc.command = ["bash", "-c", "bluetoothctl connect " + modelData.mac]
+                                                    toggleDeviceConnectionProc.command = ["windoesnot-bounded", "8", "bash", "-c", "bluetoothctl connect " + modelData.mac]
                                                     toggleDeviceConnectionProc.running = true
                                                     mouse.accepted = true
                                                 }

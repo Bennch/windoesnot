@@ -24,11 +24,13 @@ FIREFOX_LOCKS = ('parent.lock', '.parentlock', 'lock')
 
 
 def command(argv, **kwargs):
+    # Device enumeration can block on a broken storage stack or disappearing USB disk.
+    kwargs.setdefault('timeout', 20)
     return subprocess.run(argv, text=True, capture_output=True, **kwargs)
 
 
 def partitions():
-    data = json.loads(subprocess.check_output(['lsblk', '--json', '-b', '-o', 'PATH,TYPE,FSTYPE,LABEL,SIZE,MOUNTPOINTS'], text=True))
+    data = json.loads(subprocess.check_output(['lsblk', '--json', '-b', '-o', 'PATH,TYPE,FSTYPE,LABEL,SIZE,MOUNTPOINTS'], text=True, timeout=20))
     result = []
     def visit(node):
         fs = (node.get('fstype') or '').lower()

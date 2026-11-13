@@ -140,7 +140,7 @@ FloatingWindow {
                     } else {
                         Qt.createQmlObject(
                             'import Quickshell.Io; Process { ' +
-                            'command: ["bash", "-c", "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+"]; ' +
+                            'command: ["windoesnot-bounded", "8", "bash", "-c", "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+"]; ' +
                             'running: true }',
                             volumeScrollArea
                         )
@@ -152,7 +152,7 @@ FloatingWindow {
                     } else {
                         Qt.createQmlObject(
                             'import Quickshell.Io; Process { ' +
-                            'command: ["bash", "-c", "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"]; ' +
+                            'command: ["windoesnot-bounded", "8", "bash", "-c", "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"]; ' +
                             'running: true }',
                             volumeScrollArea
                         )
@@ -163,7 +163,7 @@ FloatingWindow {
                 var changeCmd = delta > 0 ? "5%+" : "5%-"
                 Qt.createQmlObject(
                     'import Quickshell.Io; Process { ' +
-                    'command: ["bash", "-c", "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ ' + changeCmd + '"]; ' +
+                    'command: ["windoesnot-bounded", "8", "bash", "-c", "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ ' + changeCmd + '"]; ' +
                     'running: true }',
                     volumeScrollArea
                 )

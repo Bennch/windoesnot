@@ -37,7 +37,7 @@ Item {
 
     function setProfile(name) {
         if (page.busy || profileWorker.running) return
-        profileWorker.command = ["/usr/bin/powerprofilesctl", "set", name]
+        profileWorker.command = ["windoesnot-bounded", "8", "/usr/bin/powerprofilesctl", "set", name]
         profileWorker.running = true
     }
 

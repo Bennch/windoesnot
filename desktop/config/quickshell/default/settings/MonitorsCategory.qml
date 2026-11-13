@@ -32,7 +32,7 @@ Column {
     // ─── Load monitors from windoesnot-hyprctl ───────────────────────────────────────────
     Process {
         id: loadProc
-        command: ["bash", "-c", "windoesnot-hyprctl monitors -j all"]
+        command: ["windoesnot-bounded", "8", "bash", "-c", "windoesnot-hyprctl monitors -j all"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {

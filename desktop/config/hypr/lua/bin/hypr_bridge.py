@@ -151,7 +151,7 @@ def keyword(args):
 
 
 def checked_run(args):
-    result = subprocess.run(['/usr/bin/hyprctl', *args], text=True, capture_output=True)
+    result = subprocess.run(['/usr/bin/hyprctl', *args], text=True, capture_output=True, timeout=5)
     return result
 
 

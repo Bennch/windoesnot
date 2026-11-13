@@ -161,7 +161,7 @@ def update_swaync_language(lang):
         wc.setdefault("inhibitors", {}).update({"text": s["inhibitors"], "button-text": s["inhibitors_clear"]})
         with open(SWAYNC_CONFIG_JSON, "w") as f:
             json.dump(cfg, f, indent=2, ensure_ascii=False)
-        subprocess.run(["swaync-client", "--reload-config"], capture_output=True)
+        subprocess.run(["swaync-client", "--reload-config"], capture_output=True, timeout=5)
         debug(f"swaync language updated: {lang}")
     except Exception as e:
         print(f"swaync language update error: {e}", file=sys.stderr)
@@ -320,7 +320,7 @@ def update_swaync_css(accent_color, border_radius, dark_mode):
     try:
         css = _build_swaync_css(accent_color, border_radius, dark_mode)
         SWAYNC_STYLE.write_text(css)
-        subprocess.run(["swaync-client", "--reload-css"], capture_output=True)
+        subprocess.run(["swaync-client", "--reload-css"], capture_output=True, timeout=5)
         debug(f"swaync css updated: dark={dark_mode} accent={accent_color} radius={border_radius}")
     except Exception as e:
         print(f"swaync css update error: {e}", file=sys.stderr)
@@ -415,7 +415,8 @@ def get_monitor_connector_name(monitor: Gdk.Monitor) -> str:
             ["windoesnot-hyprctl", "monitors", "-j"],
             capture_output=True,
             text=True,
-            check=True
+            check=True,
+            timeout=5
         )
         monitors_data = json.loads(result.stdout)
 
@@ -3297,7 +3298,8 @@ class MonitorWindow:
                 capture_output=True,
                 text=True,
                 check=False,
-                env=env
+                env=env,
+                timeout=5
             )
             if result.returncode == 0:
                 debug(f"opened quickshell settings")
@@ -3804,7 +3806,8 @@ class HyprDeskApp(Gtk.Application):
                 ["windoesnot-hyprctl", "monitors", "-j"],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
+                timeout=5
             )
             monitors_data = json.loads(result.stdout)
 

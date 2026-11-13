@@ -86,8 +86,8 @@ def main():
     settings_ipc(base, account, 'setLanguage', language)
     Path('/etc/locale.conf').write_text('LANG=' + locale + '\n')
     # Standard folders (Documents, Pictures, ...) follow the live language; never fatal.
-    subprocess.run([*base, 'windoesnot-user-dirs', '--locale', locale], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
-    subprocess.run([*base, 'DBUS_SESSION_BUS_ADDRESS=unix:path=' + runtime + '/bus', 'systemctl', '--user', 'set-environment', 'LANG=' + locale, 'LANGUAGE=' + language], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+    subprocess.run([*base, 'windoesnot-user-dirs', '--locale', locale], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False, timeout=15)
+    subprocess.run([*base, 'DBUS_SESSION_BUS_ADDRESS=unix:path=' + runtime + '/bus', 'systemctl', '--user', 'set-environment', 'LANG=' + locale, 'LANGUAGE=' + language], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False, timeout=10)
 
 
 if __name__ == '__main__':

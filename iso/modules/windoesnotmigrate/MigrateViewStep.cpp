@@ -182,7 +182,7 @@ public:
                 layout->addStretch();
                 auto* restartBtn = new QPushButton(german ? QStringLiteral("Jetzt neu starten") : QStringLiteral("Restart now"), m_widget);
                 restartBtn->setStyleSheet(QStringLiteral("QPushButton{background:#fe6f2d;color:#ffffff;border:none;border-radius:6px;padding:10px 24px;font-size:14px;font-weight:600;}QPushButton:hover{background:#ff8040;}QPushButton:pressed{background:#e05a1a;}"));
-                QObject::connect(restartBtn, &QPushButton::clicked, [](){ QProcess::startDetached(QStringLiteral("systemctl"), {QStringLiteral("-i"), QStringLiteral("reboot")}); });
+                QObject::connect(restartBtn, &QPushButton::clicked, [](){ QProcess::startDetached(QStringLiteral("timeout"), {QStringLiteral("10"), QStringLiteral("systemctl"), QStringLiteral("-i"), QStringLiteral("reboot")}); });
                 layout->addWidget(restartBtn, 0, Qt::AlignRight);
                 m_widget->setStyleSheet(QStringLiteral("background:#202020;"));
                 return m_widget;

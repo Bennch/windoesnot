@@ -279,7 +279,7 @@ Item {
     Process {
         id: keyboardSnapQueryProc
         property string intent: "picker"
-        command: ["bash", "-c", "hyprctl -j activewindow; echo '---MONSEP---'; hyprctl -j monitors; echo '---CURSEP---'; hyprctl -j cursorpos"]
+        command: ["windoesnot-bounded", "8", "bash", "-c", "hyprctl -j activewindow; echo '---MONSEP---'; hyprctl -j monitors; echo '---CURSEP---'; hyprctl -j cursorpos"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -312,7 +312,7 @@ Item {
         property string address: ""
         property var rect: null
         property bool wasFloating: false
-        command: ["bash", "-c", buildCommand()]
+        command: ["windoesnot-bounded", "8", "bash", "-c", buildCommand()]
         function buildCommand() {
             if (!rect || !address) return "true"
             var prefix = wasFloating ? "" : "windoesnot-hyprctl dispatch togglefloating address:" + address + " && "
@@ -323,7 +323,7 @@ Item {
 
     Process {
         id: newWindowPlacementProc
-        command: ["bash", "-c", "hyprctl -j clients; echo '---MONSEP---'; hyprctl -j monitors"]
+        command: ["windoesnot-bounded", "8", "bash", "-c", "hyprctl -j clients; echo '---MONSEP---'; hyprctl -j monitors"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -359,7 +359,7 @@ Item {
         property string address: ""
         property int x: 0; property int y: 0; property int w: 0; property int h: 0
         property bool resize: false
-        command: ["bash", "-c", buildCommand()]
+        command: ["windoesnot-bounded", "8", "bash", "-c", buildCommand()]
         function buildCommand() {
             if (resize)
                 return "windoesnot-hyprctl --batch \"dispatch resizewindowpixel exact " + w + " " + h + ",address:" + address + "; dispatch movewindowpixel exact " + x + " " + y + ",address:" + address + "\""
@@ -397,12 +397,12 @@ Item {
 
     // Update snap preview based on cursor position
     function updateSnapPreview() {
-        activeWindowProc.running = true
+        if (!activeWindowProc.running) activeWindowProc.running = true
     }
 
     Process {
         id: activeWindowProc
-        command: ["bash", "-c", "hyprctl -j activewindow; echo '---SEPARATOR---'; hyprctl -j cursorpos"]
+        command: ["windoesnot-bounded", "8", "bash", "-c", "hyprctl -j activewindow; echo '---SEPARATOR---'; hyprctl -j cursorpos"]
         running: false
 
         stdout: StdioCollector {
@@ -607,7 +607,7 @@ Item {
 
     Process {
         id: monitorQueryProc
-        command: ["bash", "-c", "hyprctl -j monitors"]
+        command: ["windoesnot-bounded", "8", "bash", "-c", "hyprctl -j monitors"]
         running: false
 
         stdout: StdioCollector {
@@ -1014,7 +1014,7 @@ Item {
 
     Process {
         id: snapGroupQueryProc
-        command: ["bash", "-c", "hyprctl -j clients; echo '---MONSEP---'; hyprctl -j monitors"]
+        command: ["windoesnot-bounded", "8", "bash", "-c", "hyprctl -j clients; echo '---MONSEP---'; hyprctl -j monitors"]
         running: false
 
         stdout: StdioCollector {
@@ -1198,7 +1198,7 @@ Item {
     Process {
         id: snapGroupAdjustProc
         property var adjustData: []
-        command: ["bash", "-c", buildAdjustCmd()]
+        command: ["windoesnot-bounded", "8", "bash", "-c", buildAdjustCmd()]
         running: false
 
         function buildAdjustCmd() {

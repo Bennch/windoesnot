@@ -91,7 +91,7 @@ Item {
     readonly property var selectedPacnew: pacnewFiles.find(item => item.path === selectedPacnewPath) || null
     Process {
         id: desktopStateProc
-        command: ["sh", "-c", "command -v windoesnot-hyprctl >/dev/null || exit 127; printf '%s\\n' '---CONFIG---'; windoesnot-hyprctl configerrors 2>&1 || true; printf '%s\\n' '---PLUGINS---'; windoesnot-hyprctl plugin list 2>&1 || true"]
+        command: ["windoesnot-bounded", "8", "sh", "-c", "command -v windoesnot-hyprctl >/dev/null || exit 127; printf '%s\\n' '---CONFIG---'; windoesnot-hyprctl configerrors 2>&1 || true; printf '%s\\n' '---PLUGINS---'; windoesnot-hyprctl plugin list 2>&1 || true"]
         stdout: StdioCollector { id: desktopStateOutput }
         onExited: (code) => {
             const parts = desktopStateOutput.text.split("---PLUGINS---")

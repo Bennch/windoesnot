@@ -971,26 +971,26 @@ FloatingWindow {
         // Update the existing named rule so the size also applies on future maps.
         var startmenuSizeRuleProc = Qt.createQmlObject(
             'import Quickshell.Io; Process { ' +
-            'command: ["windoesnot-hyprctl", "keyword", "windowrule[startmenu-config]:size", "' + startmenuW + ' ' + startmenuH + '"]; ' +
+            'command: ["windoesnot-bounded", "8", "windoesnot-hyprctl", "keyword", "windowrule[startmenu-config]:size", "' + startmenuW + ' ' + startmenuH + '"]; ' +
             'running: true; }',
             settingsMenu
         )
         // Also directly resize the existing window in case it's already mapped
         var startmenuResizeProc = Qt.createQmlObject(
             'import Quickshell.Io; Process { ' +
-            'command: ["windoesnot-hyprctl", "dispatch", "resizewindowpixel", "exact ' + startmenuW + ' ' + startmenuH + ',title:quickshell-startmenu"]; ' +
+            'command: ["windoesnot-bounded", "8", "windoesnot-hyprctl", "dispatch", "resizewindowpixel", "exact ' + startmenuW + ' ' + startmenuH + ',title:quickshell-startmenu"]; ' +
             'running: true; }',
             settingsMenu
         )
         var startmenuMoveProc = Qt.createQmlObject(
             'import Quickshell.Io; Process { ' +
-            'command: ["windoesnot-hyprctl", "keyword", "windowrule[startmenu-config]:move", "' + startmenuX + ' ' + startmenuY + '"]; ' +
+            'command: ["windoesnot-bounded", "8", "windoesnot-hyprctl", "keyword", "windowrule[startmenu-config]:move", "' + startmenuX + ' ' + startmenuY + '"]; ' +
             'running: true; }',
             settingsMenu
         )
         var settingsRuleProc = Qt.createQmlObject(
             'import Quickshell.Io; Process { ' +
-            'command: ["windoesnot-hyprctl", "keyword", "windowrule[settings-config]:move", "' + settingsX + ' ' + settingsY + '"]; ' +
+            'command: ["windoesnot-bounded", "8", "windoesnot-hyprctl", "keyword", "windowrule[settings-config]:move", "' + settingsX + ' ' + settingsY + '"]; ' +
             'running: true; }',
             settingsMenu
         )
@@ -1536,7 +1536,7 @@ FloatingWindow {
 
         var proc = Qt.createQmlObject(
             'import Quickshell.Io; Process { ' +
-            'command: ["bash", "-c", "mkdir -p ~/.config/gtk-4.0 ~/.config/gtk-3.0 && printf \'%b\' \'' + css.replace(/'/g, "'\\''") + '\' > ~/.config/gtk-3.0/gtk.css && printf \'%b\' \'' + gtk4Css.replace(/'/g, "'\\''") + '\' > ~/.config/gtk-4.0/gtk.css; nautilus -q 2>/dev/null; true"]; ' +
+            'command: ["windoesnot-bounded", "8", "bash", "-c", "mkdir -p ~/.config/gtk-4.0 ~/.config/gtk-3.0 && printf \'%b\' \'' + css.replace(/'/g, "'\\''") + '\' > ~/.config/gtk-3.0/gtk.css && printf \'%b\' \'' + gtk4Css.replace(/'/g, "'\\''") + '\' > ~/.config/gtk-4.0/gtk.css; nautilus -q 2>/dev/null; true"]; ' +
             'running: true; }',
             settingsMenu
         )
@@ -1567,7 +1567,7 @@ FloatingWindow {
         if (batteryTraySeen) return
         var proc = Qt.createQmlObject(
             'import Quickshell.Io; Process { ' +
-            'command: ["bash", "-c", "upower -e 2>/dev/null | grep -q /battery_ && echo yes || echo no"]; ' +
+            'command: ["windoesnot-bounded", "8", "bash", "-c", "upower -e 2>/dev/null | grep -q /battery_ && echo yes || echo no"]; ' +
             'running: true; ' +
             'stdout: StdioCollector { onStreamFinished: { ' +
             'settingsMenu.batteryTraySeen = true; ' +
@@ -1596,7 +1596,7 @@ FloatingWindow {
 
     function updateSwayncStyle() {
         var styleFile = darkMode ? "style-dark.css" : "style-light.css"
-        var cmd = "ln -sf ~/.config/swaync/" + styleFile + " ~/.config/swaync/style.css && swaync-client --reload-css"
+        var cmd = "ln -sf ~/.config/swaync/" + styleFile + " ~/.config/swaync/style.css && timeout --kill-after=1 5 swaync-client --reload-css"
 
         console.log("Switching swaync to:", styleFile)
 
@@ -1683,7 +1683,7 @@ FloatingWindow {
             // Reload needed to apply button order change
             Qt.callLater(function() {
                 var reloadProc = Qt.createQmlObject(
-                    'import Quickshell.Io; Process { command: ["windoesnot-hyprctl", "reload"]; running: true; }',
+                    'import Quickshell.Io; Process { command: ["windoesnot-bounded", "8", "windoesnot-hyprctl", "reload"]; running: true; }',
                     settingsMenu
                 )
             })

@@ -1287,7 +1287,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
     Process {
         id: focusProc
         running: false
-        command: ["windoesnot-hyprctl", "dispatch", "focuswindow", "title:quickshell-agent-terminal"]
+        command: ["windoesnot-bounded", "8", "windoesnot-hyprctl", "dispatch", "focuswindow", "title:quickshell-agent-terminal"]
     }
 
     // Lists past Claude sessions

@@ -13,7 +13,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <signal.h>
 #include <sys/mman.h>
+#include <time.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -25,7 +27,9 @@
 
 static Config *cfg = NULL;
 #define MAX_PREVIEW_JOBS 24
-typedef struct { pid_t pid; } PreviewJob;
+#define MAX_CAPTURE_JOBS 1
+#define PREVIEW_TIMEOUT_SECONDS 8
+typedef struct { pid_t pid; struct timespec started; } PreviewJob;
 typedef struct { char path[160]; cairo_surface_t *surface; } PreviewCache;
 static PreviewJob preview_jobs[MAX_PREVIEW_JOBS];
 static int preview_job_count = 0;
@@ -62,7 +66,7 @@ void render_capture_windows(const AppState *state) {
   if (!state || preview_job_count > 0)
     return;
   clear_preview_cache();
-  for (int i = 0; i < state->count && preview_job_count < MAX_PREVIEW_JOBS; i++) {
+  for (int i = 0; i < state->count && preview_job_count < MAX_CAPTURE_JOBS; i++) {
     const WindowInfo *win = &state->windows[i];
     if (win->width < 2 || win->height < 2)
       continue;
@@ -73,11 +77,17 @@ void render_capture_windows(const AppState *state) {
     unlink(path);
     pid_t child = fork();
     if (child == 0) {
-      execlp("grim", "grim", "-s", "1", "-g", geometry, path, (char *)NULL);
+      setpgid(0, 0);
+      execlp("timeout", "timeout", "--kill-after=1", "8", "grim", "-s", "1",
+             "-g", geometry, path, (char *)NULL);
       _exit(127);
     }
-    if (child > 0)
-      preview_jobs[preview_job_count++].pid = child;
+    if (child > 0) {
+      setpgid(child, child);
+      PreviewJob *job = &preview_jobs[preview_job_count++];
+      job->pid = child;
+      clock_gettime(CLOCK_MONOTONIC, &job->started);
+    }
   }
 }
 
@@ -85,7 +95,14 @@ bool render_poll_desktop_capture(void) {
   bool ready = false;
   for (int i = 0; i < preview_job_count;) {
     int status = 0;
-    pid_t result = waitpid(preview_jobs[i].pid, &status, WNOHANG);
+    PreviewJob *job = &preview_jobs[i];
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    double elapsed = (now.tv_sec - job->started.tv_sec) +
+                     (now.tv_nsec - job->started.tv_nsec) / 1000000000.0;
+    if (elapsed >= PREVIEW_TIMEOUT_SECONDS)
+      kill(-job->pid, SIGKILL);
+    pid_t result = waitpid(job->pid, &status, WNOHANG);
     if (result == 0) { i++; continue; }
     if (result > 0 && WIFEXITED(status) && WEXITSTATUS(status) == 0)
       ready = true;

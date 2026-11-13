@@ -243,7 +243,7 @@ PanelWindow {
         id: hyprlandWindowRefreshTimer
         interval: 100
         repeat: false
-        onTriggered: hyprlandWindowProc.running = true
+        onTriggered: if (!hyprlandWindowProc.running) hyprlandWindowProc.running = true
     }
 
     Connections {
@@ -260,7 +260,7 @@ PanelWindow {
 
     Process {
         id: hyprlandWindowProc
-        command: ["hyprctl", "-j", "clients"]
+        command: ["windoesnot-bounded", "8", "hyprctl", "-j", "clients"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -522,6 +522,8 @@ PanelWindow {
         }
     }
 
+    Timer { interval: 9000; repeat: false; running: hyprlandWindowProc.running; onTriggered: hyprlandWindowProc.running = false }
+
     function isAppOpen(appName) {
         return panelWindow.openWindows.hasOwnProperty(appName) &&
                panelWindow.openWindows[appName].length > 0
@@ -673,7 +675,7 @@ PanelWindow {
         var taskbarH = panelWindow.implicitHeight || 45
         var py = monH - taskbarH - popupH + 1
         var posProc = Qt.createQmlObject('import Quickshell.Io; Process {}', panelWindow)
-        posProc.command = ["windoesnot-hyprctl", "keyword", "windowrule[weather-popup-config]:move", px + " " + py]
+        posProc.command = ["windoesnot-bounded", "8", "windoesnot-hyprctl", "keyword", "windowrule[weather-popup-config]:move", px + " " + py]
         posProc.running = true
         return posProc
     }
@@ -754,7 +756,7 @@ PanelWindow {
         if (iconItem && isPinned) {
             // Pinned mode - set position BEFORE showing so Hyprland uses it at map time
             var posProc = Qt.createQmlObject('import Quickshell.Io; Process {}', panelWindow)
-            posProc.command = ["windoesnot-hyprctl", "keyword", "windowrule[copilot-config-pinned]:move", px + " " + py]
+            posProc.command = ["windoesnot-bounded", "8", "windoesnot-hyprctl", "keyword", "windowrule[copilot-config-pinned]:move", px + " " + py]
             posProc.exited.connect(function() {
                 console.log("[Copilot] posProc exited, setting visible=true")
                 panelWindow._copilotJustOpened = true
@@ -791,7 +793,7 @@ PanelWindow {
                   "&hourly=temperature_2m,weather_code,precipitation_probability,wind_speed_10m,is_day" +
                   "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max" +
                   "&timezone=auto&forecast_days=7"
-        weatherFetchProc.command = ["bash", "-c", "curl -s --max-time 10 '" + url + "'"]
+        weatherFetchProc.command = ["windoesnot-bounded", "8", "bash", "-c", "curl -s --max-time 10 '" + url + "'"]
         weatherFetchProc.running = true
     }
 
@@ -1910,7 +1912,7 @@ PanelWindow {
                                     var changeCmd = delta > 0 ? "5%+" : "5%-"
                                     Qt.createQmlObject(
                                         'import Quickshell.Io; Process { ' +
-                                        'command: ["bash", "-c", "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ ' + changeCmd + '"]; ' +
+                                        'command: ["windoesnot-bounded", "8", "bash", "-c", "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ ' + changeCmd + '"]; ' +
                                         'running: true }',
                                         trayIconDelegate
                                     )
@@ -2210,7 +2212,7 @@ PanelWindow {
                             var pmX = Math.max(0, Math.min(monW - pmW, Math.round(sbPos.x + startButton.width / 2 - pmW / 2)))
                             var pmY = monH - 45 - powerMenu.implicitHeight
                             var pmPosProc = Qt.createQmlObject('import Quickshell.Io; Process { }', panelWindow)
-                            pmPosProc.command = ["windoesnot-hyprctl", "keyword", "windowrule[powermenu-config]:move", pmX + " " + pmY]
+                            pmPosProc.command = ["windoesnot-bounded", "8", "windoesnot-hyprctl", "keyword", "windowrule[powermenu-config]:move", pmX + " " + pmY]
                             powerMenu.menuX = pmX; powerMenu.menuY = pmY
                             pmPosProc.exited.connect(function() { powerMenu.visible = true })
                             pmPosProc.running = true
@@ -2896,7 +2898,7 @@ PanelWindow {
                                                 for (var j = 0; j < visibleWindows.length; j++) {
                                                     minimizeCommands.push("windoesnot-hyprctl dispatch movetoworkspacesilent special:minimized,address:" + visibleWindows[j].address)
                                                 }
-                                                clickProc.command = ["bash", "-c", minimizeCommands.join(" && ")]
+                                                clickProc.command = ["windoesnot-bounded", "8", "bash", "-c", minimizeCommands.join(" && ")]
                                                 clickProc.running = true
                                             } else if (hiddenWindows.length > 0) {
                                                 // Tiling mode: restore ALL hidden windows and focus the first one
@@ -3007,7 +3009,7 @@ PanelWindow {
             var menuW = taskbarBgMenu.implicitWidth
             var mx = Math.min(mouse.x, monW - menuW - 4)
             var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', panelWindow)
-            proc.command = ["bash", "-c",
+            proc.command = ["windoesnot-bounded", "8", "bash", "-c",
                 "windoesnot-hyprctl keyword 'windowrule[tbgmenu]:size " + menuW + " " + menuH + "' ; " +
                 "windoesnot-hyprctl keyword 'windowrule[tbgmenu]:move " + Math.round(mx) + " " + (monH - 45 - menuH) + "'"]
             proc.exited.connect(function() {
@@ -3089,7 +3091,7 @@ FloatingWindow {
         var menuH = implicitHeight
         var mx = Math.max(4, Math.min(iconPos.x + iconItem.width / 2 - menuW / 2, monW - menuW - 4))
         var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', panelWindow)
-        proc.command = ["bash", "-c",
+        proc.command = ["windoesnot-bounded", "8", "bash", "-c",
             "windoesnot-hyprctl keyword 'windowrule[tbgmenu]:size " + menuW + " " + menuH + "' ; " +
             "windoesnot-hyprctl keyword 'windowrule[tbgmenu]:move " + Math.round(mx) + " " + (monH - 45 - menuH) + "'"]
         proc.exited.connect(function() {
@@ -3101,14 +3103,14 @@ FloatingWindow {
 
     function run(command) {
         var proc = Qt.createQmlObject('import Quickshell.Io; Process { }', quickSettingsContextMenu)
-        proc.command = ["bash", "-c", command]
+        proc.command = ["windoesnot-bounded", "8", "bash", "-c", command]
         proc.running = true
         visible = false
     }
 
     function activate(kind) {
         if (kind === "toggleBluetooth") {
-            run("state=$(bluetoothctl show 2>/dev/null | awk '/Powered:/ {print $2}'); bluetoothctl power $([ \"$state\" = yes ] && echo off || echo on)")
+            run("test -d /sys/class/bluetooth || exit 0; state=$(bluetoothctl show 2>/dev/null | awk '/Powered:/ {print $2}'); bluetoothctl power $([ \"$state\" = yes ] && echo off || echo on)")
         } else if (kind === "toggleWifi") {
             run("state=$(nmcli radio wifi); nmcli radio wifi $([ \"$state\" = enabled ] && echo off || echo on)")
         } else if (kind === "openBluetooth") {
@@ -5035,7 +5037,7 @@ FloatingWindow {
 
                             Process {
                                 id: rebootProc
-                                command: ["bash", "-c", "systemctl reboot"]
+                                command: ["windoesnot-bounded", "8", "bash", "-c", "systemctl reboot"]
                                 running: false
                             }
 
@@ -5069,7 +5071,7 @@ FloatingWindow {
 
                             Process {
                                 id: poweroffProc
-                                command: ["bash", "-c", "systemctl poweroff"]
+                                command: ["windoesnot-bounded", "8", "bash", "-c", "systemctl poweroff"]
                                 running: false
                             }
 
@@ -5602,7 +5604,7 @@ FloatingWindow {
     // Content height arrives after the window is shown (power data loads): move the live window.
     Process { id: placeProc; running: false }
     onImplicitHeightChanged: if (visible) {
-        placeProc.command = ["hyprctl", "dispatch", "hl.dsp.window.move({x=" + Math.round(bottomRightX()) + ",y=" + Math.round(bottomRightY()) + ",relative=false,window=\"title:^(quickshell-battery)$\"})"]
+        placeProc.command = ["windoesnot-bounded", "8", "hyprctl", "dispatch", "hl.dsp.window.move({x=" + Math.round(bottomRightX()) + ",y=" + Math.round(bottomRightY()) + ",relative=false,window=\"title:^(quickshell-battery)$\"})"]
         placeProc.running = true
     }
 
@@ -5769,7 +5771,7 @@ FloatingWindow {
     }
     // Moves the mapped window to its final position once the panel has its real height.
     function placeLive() {
-        nearbyPlaceProc.command = ["hyprctl", "dispatch", "hl.dsp.window.move({x=" + Math.round(bottomRightX()) + ",y=" + Math.round(bottomRightY()) + ",relative=false,window=\"title:^(quickshell-nearby)$\"})"]
+        nearbyPlaceProc.command = ["windoesnot-bounded", "8", "hyprctl", "dispatch", "hl.dsp.window.move({x=" + Math.round(bottomRightX()) + ",y=" + Math.round(bottomRightY()) + ",relative=false,window=\"title:^(quickshell-nearby)$\"})"]
         nearbyPlaceProc.running = true
     }
     Timer { id: nearbyPlaceTimer; interval: 150; repeat: false; onTriggered: nearbyWindow.placeLive() }
@@ -5861,13 +5863,13 @@ FloatingWindow {
         running: true
         repeat: true
         onTriggered: {
-            volumeCheckProc.running = true
+            if (!volumeCheckProc.running) volumeCheckProc.running = true
         }
     }
 
     Process {
         id: volumeCheckProc
-        command: ["bash", "-c", "wpctl get-volume @DEFAULT_AUDIO_SINK@"]
+        command: ["windoesnot-bounded", "8", "bash", "-c", "wpctl get-volume @DEFAULT_AUDIO_SINK@"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -5895,6 +5897,8 @@ FloatingWindow {
             }
         }
     }
+
+    Timer { interval: 9000; repeat: false; running: volumeCheckProc.running; onTriggered: volumeCheckProc.running = false }
 
     Rectangle {
         anchors.centerIn: parent
@@ -6375,7 +6379,7 @@ FloatingWindow {
                         if (subX + 220 > monW) subX = powerMenu.menuX - 220
                         var subY = monH - 45 - 156
                         var subProc = Qt.createQmlObject('import Quickshell.Io; Process { }', powerMenu)
-                        subProc.command = ["windoesnot-hyprctl", "keyword", "windowrule[powersubmenu-config]:move", subX + " " + subY]
+                        subProc.command = ["windoesnot-bounded", "8", "windoesnot-hyprctl", "keyword", "windowrule[powersubmenu-config]:move", subX + " " + subY]
                         subProc.exited.connect(function() { powerSubMenu.visible = true })
                         subProc.running = true
                     }
@@ -6478,7 +6482,7 @@ FloatingWindow {
                     onEntered: parent.hovered = true; onExited: parent.hovered = false
                     onClicked: {
                         powerMenu.visible = false; powerSubMenu.visible = false
-                        Qt.createQmlObject('import Quickshell.Io; Process { command: ["systemctl", "suspend"]; running: true }', powerSubMenu)
+                        Qt.createQmlObject('import Quickshell.Io; Process { command: ["windoesnot-bounded", "8", "systemctl", "suspend"]; running: true }', powerSubMenu)
                     }
                 }
             }
@@ -6499,7 +6503,7 @@ FloatingWindow {
                     onEntered: parent.hovered = true; onExited: parent.hovered = false
                     onClicked: {
                         powerMenu.visible = false; powerSubMenu.visible = false
-                        Qt.createQmlObject('import Quickshell.Io; Process { command: ["systemctl", "poweroff"]; running: true }', powerSubMenu)
+                        Qt.createQmlObject('import Quickshell.Io; Process { command: ["windoesnot-bounded", "8", "systemctl", "poweroff"]; running: true }', powerSubMenu)
                     }
                 }
             }
@@ -6520,7 +6524,7 @@ FloatingWindow {
                     onEntered: parent.hovered = true; onExited: parent.hovered = false
                     onClicked: {
                         powerMenu.visible = false; powerSubMenu.visible = false
-                        Qt.createQmlObject('import Quickshell.Io; Process { command: ["systemctl", "reboot"]; running: true }', powerSubMenu)
+                        Qt.createQmlObject('import Quickshell.Io; Process { command: ["windoesnot-bounded", "8", "systemctl", "reboot"]; running: true }', powerSubMenu)
                     }
                 }
             }
@@ -6563,7 +6567,7 @@ FloatingWindow {
         var menuH = implicitHeight
         var mx = Math.max(4, Math.min(iconPos.x + iconItem.width / 2 - menuW / 2, monW - menuW - 4))
         var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', panelWindow)
-        proc.command = ["bash", "-c",
+        proc.command = ["windoesnot-bounded", "8", "bash", "-c",
             "windoesnot-hyprctl keyword 'windowrule[tbgmenu]:size " + menuW + " " + menuH + "' ; " +
             "windoesnot-hyprctl keyword 'windowrule[tbgmenu]:move " + Math.round(mx) + " " + (monH - 45 - menuH) + "'"]
         proc.exited.connect(function() {
@@ -6696,7 +6700,7 @@ FloatingWindow {
                             var cmds = []
                             for (var j = 0; j < visibleWins.length; j++)
                                 cmds.push("windoesnot-hyprctl dispatch movetoworkspacesilent special:minimized,address:" + visibleWins[j].address)
-                            proc.command = ["bash", "-c", cmds.join(" && ")]
+                            proc.command = ["windoesnot-bounded", "8", "bash", "-c", cmds.join(" && ")]
                         } else if (hiddenWins.length > 0) {
                             var cmds = []
                             for (var k = 0; k < hiddenWins.length; k++) {
@@ -6709,7 +6713,7 @@ FloatingWindow {
                             cmds.push("windoesnot-hyprctl dispatch focuswindow address:" + hiddenWins[0].address)
                             cmds.push("windoesnot-hyprctl dispatch resizeactive 1 0")
                             cmds.push("windoesnot-hyprctl dispatch resizeactive -1 0")
-                            proc.command = ["bash", "-c", cmds.join(" && ")]
+                            proc.command = ["windoesnot-bounded", "8", "bash", "-c", cmds.join(" && ")]
                         }
                         proc.running = true
                         appContextMenu.visible = false
@@ -6887,7 +6891,7 @@ FloatingWindow {
                             proc.command = ["bash", "-c", cmds.join(" && ")]
                         } else {
                             // Minimize all non-quickshell windows
-                            proc.command = ["python3", "-c",
+                            proc.command = ["windoesnot-bounded", "8", "python3", "-c",
                                 "import subprocess,json\n" +
                                 "cs=json.loads(subprocess.check_output(['windoesnot-hyprctl','clients','-j']))\n" +
                                 "[subprocess.run(['windoesnot-hyprctl','dispatch','movetoworkspacesilent','special:minimized,address:'+c['address']]) for c in cs if 'quickshell' not in c['class'].lower() and 'special' not in (c['workspace']['name'] or '')]"]
@@ -7021,7 +7025,7 @@ FloatingWindow {
                             var cmd = target > 0
                                 ? "windoesnot-hyprctl dispatch movetoworkspace " + target + ",address:" + addr
                                 : "windoesnot-hyprctl dispatch movetoworkspace e+0,address:" + addr
-                            proc.command = ["bash", "-c", cmd + " && windoesnot-hyprctl dispatch focuswindow address:" + addr]
+                            proc.command = ["windoesnot-bounded", "8", "bash", "-c", cmd + " && windoesnot-hyprctl dispatch focuswindow address:" + addr]
                             proc.running = true
                         }
                     }

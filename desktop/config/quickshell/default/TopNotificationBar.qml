@@ -102,7 +102,7 @@ PanelWindow {
     Component.onCompleted: {
         topNotificationBar.hovered = false
         updateSwayncCssProc.running = true
-        checkSwayncVisibilityProc.running = true
+        if (!checkSwayncVisibilityProc.running) checkSwayncVisibilityProc.running = true
     }
 
     onAccentColorChanged: updateSwayncCssProc.running = true
@@ -110,7 +110,7 @@ PanelWindow {
 
     Process {
         id: updateSwayncCssProc
-        command: ["bash", "-c",
+        command: ["windoesnot-bounded", "8", "bash", "-c",
             "sed -i 's/border-radius: [0-9]*px;/border-radius: " + topNotificationBar.borderRadius + "px;/g' \"$HOME/.config/swaync/style.css\" && " +
             "sed -i 's/border-bottom-left-radius: [0-9]*px;/border-bottom-left-radius: " + topNotificationBar.borderRadius + "px;/g' \"$HOME/.config/swaync/style.css\" && " +
             "sed -i 's/border-bottom-right-radius: [0-9]*px;/border-bottom-right-radius: " + topNotificationBar.borderRadius + "px;/g' \"$HOME/.config/swaync/style.css\" && " +
@@ -142,7 +142,7 @@ PanelWindow {
         running: true
         repeat: true
         onTriggered: {
-            checkNotificationsProc.running = true
+            if (!checkNotificationsProc.running) checkNotificationsProc.running = true
         }
     }
 
@@ -150,14 +150,14 @@ PanelWindow {
         target: Hyprland
         function onRawEvent(ev) {
             var eventName = "" + ev.name
-            if (eventName === "openwindow" || eventName === "closewindow")
+            if ((eventName === "openwindow" || eventName === "closewindow") && !checkSwayncVisibilityProc.running)
                 checkSwayncVisibilityProc.running = true
         }
     }
 
     Process {
         id: checkNotificationsProc
-        command: ["swaync-client", "-c"]
+        command: ["windoesnot-bounded", "8", "swaync-client", "-c"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -169,7 +169,7 @@ PanelWindow {
 
     Process {
         id: checkSwayncVisibilityProc
-        command: ["hyprctl", "-j", "clients"]
+        command: ["windoesnot-bounded", "8", "hyprctl", "-j", "clients"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -190,6 +190,9 @@ PanelWindow {
             }
         }
     }
+
+    Timer { interval: 9000; repeat: false; running: checkNotificationsProc.running; onTriggered: checkNotificationsProc.running = false }
+    Timer { interval: 9000; repeat: false; running: checkSwayncVisibilityProc.running; onTriggered: checkSwayncVisibilityProc.running = false }
 
     // Container verschiebt sich - Fenster bleibt bei y=0
     Item {
@@ -293,7 +296,7 @@ PanelWindow {
                                     } else {
                                         Qt.createQmlObject(
                                             'import Quickshell.Io; Process { ' +
-                                            'command: ["bash", "-c", "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+"]; ' +
+                                            'command: ["windoesnot-bounded", "8", "bash", "-c", "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+"]; ' +
                                             'running: true }',
                                             notifMouseArea
                                         )
@@ -305,7 +308,7 @@ PanelWindow {
                                     } else {
                                         Qt.createQmlObject(
                                             'import Quickshell.Io; Process { ' +
-                                            'command: ["bash", "-c", "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"]; ' +
+                                            'command: ["windoesnot-bounded", "8", "bash", "-c", "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"]; ' +
                                             'running: true }',
                                             notifMouseArea
                                         )
@@ -316,7 +319,7 @@ PanelWindow {
                                 var changeCmd = delta > 0 ? "5%+" : "5%-"
                                 Qt.createQmlObject(
                                     'import Quickshell.Io; Process { ' +
-                                    'command: ["bash", "-c", "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ ' + changeCmd + '"]; ' +
+                                    'command: ["windoesnot-bounded", "8", "bash", "-c", "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ ' + changeCmd + '"]; ' +
                                     'running: true }',
                                     notifMouseArea
                                 )
@@ -395,7 +398,7 @@ PanelWindow {
 
                     Process {
                         id: toggleSwayncProc
-                        command: ["bash", "-c", "swaync-client -t -sw"]
+                        command: ["windoesnot-bounded", "8", "bash", "-c", "swaync-client -t -sw"]
                         running: false
                     }
                 }
@@ -455,7 +458,7 @@ PanelWindow {
                                         // Player schon bei 100%, erhöhe System
                                         Qt.createQmlObject(
                                             'import Quickshell.Io; Process { ' +
-                                            'command: ["bash", "-c", "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+"]; ' +
+                                            'command: ["windoesnot-bounded", "8", "bash", "-c", "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+"]; ' +
                                             'running: true }',
                                             mediaMouseArea
                                         )
@@ -469,7 +472,7 @@ PanelWindow {
                                         // Player schon bei 0%, verringere System
                                         Qt.createQmlObject(
                                             'import Quickshell.Io; Process { ' +
-                                            'command: ["bash", "-c", "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"]; ' +
+                                            'command: ["windoesnot-bounded", "8", "bash", "-c", "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"]; ' +
                                             'running: true }',
                                             mediaMouseArea
                                         )
@@ -480,7 +483,7 @@ PanelWindow {
                                 var changeCmd = delta > 0 ? "5%+" : "5%-"
                                 Qt.createQmlObject(
                                     'import Quickshell.Io; Process { ' +
-                                    'command: ["bash", "-c", "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ ' + changeCmd + '"]; ' +
+                                    'command: ["windoesnot-bounded", "8", "bash", "-c", "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ ' + changeCmd + '"]; ' +
                                     'running: true }',
                                     mediaMouseArea
                                 )

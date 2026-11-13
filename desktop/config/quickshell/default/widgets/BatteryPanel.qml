@@ -57,10 +57,11 @@ Item {
     // Brightness is read only when the popup opens: each DDC/CI read takes ~0.5 s per
     // monitor and blocks the I2C bus that the slider writes need.
     function refresh(withBrightness) {
-        statusProc.running = true
-        nightLightStatusProc.running = true
+        if (!statusProc.running) statusProc.running = true
+        if (!nightLightStatusProc.running) nightLightStatusProc.running = true
         if (!withBrightness) return
-        if (usesDdc) { ddcGetProc.running = true } else { brightnessProc.running = true }
+        if (usesDdc) { if (!ddcGetProc.running) ddcGetProc.running = true }
+        else if (!brightnessProc.running) brightnessProc.running = true
     }
 
     Component.onCompleted: refresh(true)
@@ -75,7 +76,7 @@ Item {
 
     Process {
         id: statusProc
-        command: ["/usr/bin/python3", "-I", "/usr/lib/windoesnot/system_tools.py", "power-status", "{}"]
+        command: ["windoesnot-bounded", "16", "/usr/bin/python3", "-I", "/usr/lib/windoesnot/system_tools.py", "power-status", "{}"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -96,6 +97,11 @@ Item {
         }
     }
 
+    Timer { interval: 17000; repeat: false; running: statusProc.running; onTriggered: statusProc.running = false }
+    Timer { interval: 6000; repeat: false; running: brightnessProc.running; onTriggered: brightnessProc.running = false }
+    Timer { interval: 12000; repeat: false; running: ddcDetectProc.running; onTriggered: ddcDetectProc.running = false }
+    Timer { interval: 12000; repeat: false; running: ddcGetProc.running; onTriggered: ddcGetProc.running = false }
+
     Process {
         id: profileProc
         running: false
@@ -107,14 +113,14 @@ Item {
     function setProfile(name) {
         if (profileBusy) return
         profileBusy = true
-        profileProc.command = ["/usr/bin/powerprofilesctl", "set", name]
+        profileProc.command = ["windoesnot-bounded", "8", "/usr/bin/powerprofilesctl", "set", name]
         profileProc.running = true
         profileBusy = false
     }
 
     Process {
         id: brightnessProc
-        command: ["bash", "-c", "brightnessctl -c backlight -m 2>/dev/null"]
+        command: ["windoesnot-bounded", "8", "bash", "-c", "brightnessctl -c backlight -m 2>/dev/null"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -138,7 +144,7 @@ Item {
     // refresh -- ddcutil is slow (seconds, not milliseconds).
     Process {
         id: ddcDetectProc
-        command: ["bash", "-c", "command -v ddcutil >/dev/null 2>&1 && ddcutil detect 2>/dev/null | awk '/I2C bus/ { match($0, /i2c-[0-9]+/); print substr($0, RSTART + 4, RLENGTH - 4) }'"]
+        command: ["windoesnot-bounded", "8", "bash", "-c", "command -v ddcutil >/dev/null 2>&1 && ddcutil detect 2>/dev/null | awk '/I2C bus/ { match($0, /i2c-[0-9]+/); print substr($0, RSTART + 4, RLENGTH - 4) }'"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -148,7 +154,7 @@ Item {
                     batteryPanel.usesDdc = true
                     batteryPanel.ddcBuses = buses
                     batteryPanel.ddcBus = bus
-                    ddcGetProc.command = ["bash", "-c", "ddcutil --noconfig --skip-ddc-checks --bus " + bus + " getvcp 10 2>/dev/null"]
+                    ddcGetProc.command = ["windoesnot-bounded", "8", "bash", "-c", "ddcutil --noconfig --skip-ddc-checks --bus " + bus + " getvcp 10 2>/dev/null"]
                     ddcGetProc.running = true
                 } else {
                     batteryPanel.hasBrightness = false
@@ -203,7 +209,7 @@ Item {
             pendingDdcValue = brightness
             writeDdc()
         } else {
-            setBrightnessProc.command = ["bash", "-c", "brightnessctl -c backlight set " + brightness + "%"]
+            setBrightnessProc.command = ["windoesnot-bounded", "8", "bash", "-c", "brightnessctl -c backlight set " + brightness + "%"]
             setBrightnessProc.running = true
         }
     }
