@@ -31,6 +31,7 @@ esac
     logger.write_text('#!/bin/sh\nexit 0\n'); logger.chmod(0o755)
     ids = root / 'nouveau.ids'; ids.write_text('0a74 0a20 05e2 06c0 0dc4\n')
     old = root / 'nvidia-utils.conf'
+    lite_flag = root / 'windoesnot/lite-mode'
     old.write_text('blacklist nouveau\n')
     gpu0300, gpu0302 = root / '0300', root / '0302'
 
@@ -39,16 +40,18 @@ esac
         env = dict(os.environ, PATH=str(bindir) + os.pathsep + os.environ['PATH'],
                    GPU_0300=str(gpu0300), GPU_0302=str(gpu0302),
                    MODPROBE_LOG=str(modprobe_log), WINDOESNOT_NOUVEAU_IDS=str(ids),
-                   WINDOESNOT_MODPROBE_OVERRIDE=str(old))
+                   WINDOESNOT_MODPROBE_OVERRIDE=str(old), WINDOESNOT_LITE_FLAG=str(lite_flag))
         subprocess.run([str(SCRIPT)], env=env, check=True)
 
     run('01:00.0 0300: 10de:0a74 (rev a2)\n')
     assert old.read_text() == ''
+    assert lite_flag.is_file()
     assert modprobe_log.read_text() == 'nouveau\n'
 
     old.write_text('blacklist nouveau\n'); modprobe_log.unlink()
     run('02:00.0 0300: 10de:1e04 (rev a1)\n')
     assert old.read_text() == 'blacklist nouveau\n' and not modprobe_log.exists()
+    assert lite_flag.is_file()  # unmatched hardware does not erase a user/live choice
     run('', '03:00.0 0302: 8086:1234 (rev 01)\n')
     assert old.read_text() == 'blacklist nouveau\n' and not modprobe_log.exists()
 

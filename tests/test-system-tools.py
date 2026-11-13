@@ -14,6 +14,23 @@ spec = importlib.util.spec_from_file_location('system_tools', ROOT/'desktop/lib/
 m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 
 class SystemTools(unittest.TestCase):
+    def test_lite_mode_flag_is_fixed_path_and_toggled(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            flag = Path(tmp) / 'etc/windoesnot/lite-mode'
+            previous = m.LITE_MODE_FLAG
+            try:
+                m.LITE_MODE_FLAG = flag
+                m.validate('lite-mode-set', {'enabled': True})
+                self.assertTrue(m.apply('lite-mode-set', {'enabled': True})['reboot'])
+                self.assertTrue(flag.is_file())
+                m.validate('lite-mode-set', {'enabled': False})
+                m.apply('lite-mode-set', {'enabled': False})
+                self.assertFalse(flag.exists())
+                with self.assertRaises(ValueError):
+                    m.validate('lite-mode-set', {'enabled': 1})
+            finally:
+                m.LITE_MODE_FLAG = previous
+
     def test_shell_allowlist_and_calling_account(self):
         m.validate('shell-set', {'shell': 'fish'})
         for value in ['/bin/sh', 'bash;id', '', 'root']:

@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <policyconfig>
   <vendor>WinDoesNot</vendor>
+  <action id="org.windoesnot.system.lite-mode-set">
+    <description>Change Lite Mode</description><description xml:lang="de">Leichtmodus ändern</description>
+    <message>Please confirm: Change Lite Mode</message><message xml:lang="de">Bitte bestätigen: Leichtmodus ändern</message>
+    <icon_name>system-lock-screen</icon_name><defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin_keep</allow_active></defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">lite-mode-set</annotate>
+  </action>
   <action id="org.windoesnot.system.kernel-install">
     <description>Install a kernel and update the system</description>
     <description xml:lang="de">Kernel installieren und System aktualisieren</description>

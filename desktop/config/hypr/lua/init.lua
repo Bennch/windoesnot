@@ -11,6 +11,8 @@ if geometryFile then geometryFile:close(); geometry = dofile(root .. "geometry.l
 local primary = geometry.primary_monitor or state.primary_monitor
 local verify = os.getenv("BENNI_LUA_VERIFY") == "1"
 local isolated = os.getenv("BENNI_LUA_ISOLATED") == "1"
+local liteMode = not isolated and io.open("/etc/windoesnot/lite-mode", "r")
+if liteMode then liteMode:close() end
 local pluginRoot = os.getenv("BENNI_LUA_PLUGIN_DIR") or (os.getenv("HOME") .. "/.config/hypr/plugins")
 
 -- First parse queues the plugins. Hyprland loads them and reparses; plugin
@@ -29,6 +31,15 @@ for key, value in pairs(state.options) do
 end
 for key, value in pairs(personal.options or {}) do
     if state.options[key] == nil and (not key:match("^plugin%.") or hasBars) then options[key] = value end
+end
+-- Keep legacy GPUs on predictable software client rendering and a cheap compositor path.
+-- This final overlay intentionally wins over saved/reference performance effects.
+if liteMode then
+    options["animations.enabled"] = false
+    options["decoration.blur.enabled"] = false
+    options["decoration.shadow.enabled"] = false
+    options["decoration.rounding"] = 0
+    options["misc.vrr"] = 0
 end
 -- Hyprland 0.57's KMS-only dmabuf format list makes Qt/GTK surfaces render
 -- black or crash on virtio-gpu. Keep the default on physical GPUs, and allow
@@ -98,11 +109,19 @@ if not verify and not isolated then
     -- (aquamarine #360, Hyprland #16175). Mesa software rendering is the
     -- workaround reported to work (Omarchy #8113). Only with VMware's vendor ID.
     if gpuVendors["0x15ad"] then hl.env("LIBGL_ALWAYS_SOFTWARE", "1") end
+    if liteMode then
+        hl.env("QT_QUICK_BACKEND", "software")
+        hl.env("GSK_RENDERER", "cairo")
+    end
     for _, env in ipairs(reference.env) do hl.env(env[1], env[2]) end
     for _, env in ipairs(personal.env or {}) do hl.env(env[1], env[2]) end
     for _, permission in ipairs(reference.permissions) do hl.permission(table.unpack(permission)) end
     hl.on("hyprland.start", function()
-        for _, command in ipairs(reference.autostart) do hl.exec_cmd(command) end
+        for _, command in ipairs(reference.autostart) do
+            if not liteMode or not command:match("^swaync$") and not command:match("^snappy%-switcher %-%-daemon$") then
+                hl.exec_cmd(command)
+            end
+        end
         for _, command in ipairs(personal.autostart or {}) do hl.exec_cmd(command) end
     end)
 end
