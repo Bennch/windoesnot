@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+"""Run a selected local file as root after the normal polkit authentication."""
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+GUI_KEYS = ('WAYLAND_DISPLAY', 'XDG_RUNTIME_DIR', 'DISPLAY', 'XAUTHORITY', 'DBUS_SESSION_BUS_ADDRESS')
+SCRIPT_INTERPRETERS = {'.sh': '/usr/bin/bash', '.py': '/usr/bin/python3'}
+
+
+def command_for(path):
+    """Return a safely tokenized root command, or None for unsupported files."""
+    path = Path(path)
+    try:
+        if not path.is_file():
+            return None
+    except OSError:
+        return None
+    interpreter = SCRIPT_INTERPRETERS.get(path.suffix.lower())
+    if interpreter:
+        if not Path(interpreter).is_file():
+            return None
+        return [interpreter, str(path)]
+    if os.access(path, os.X_OK):
+        return [str(path)]
+    return None
+
+
+def environment_for_root(source=None):
+    source = os.environ if source is None else source
+    return {key: source[key] for key in GUI_KEYS if source.get(key)}
+
+
+def terminal_command(script, target):
+    """Launch a persistent Ghostty (or xterm fallback) around this CLI."""
+    ghostty = shutil.which('ghostty')
+    if ghostty:
+        return [ghostty, '--gtk-single-instance=false', '-e', sys.executable, str(script), '--terminal-child', str(target)]
+    xterm = shutil.which('xterm')
+    if xterm:
+        return [xterm, '-e', sys.executable, str(script), '--terminal-child', str(target)]
+    raise RuntimeError('Ghostty or xterm is required to show the result.')
+
+
+def run_root(path, gui_env):
+    command = command_for(path)
+    if command is None:
+        print('Unsupported file; select an executable, .sh or .py file.', file=sys.stderr)
+        return 2
+    if os.geteuid() == 0:
+        return subprocess.run(command, env={**os.environ, **gui_env}).returncode
+    # Every piece remains a distinct argv element; no shell parses the filename.
+    pkexec = shutil.which('pkexec') or '/usr/bin/pkexec'
+    invocation = [pkexec, sys.executable, '-I', str(Path(__file__).resolve()), '--root', json.dumps(gui_env), '--', *command]
+    return subprocess.run(invocation).returncode
+
+
+def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if len(argv) >= 4 and argv[0] == '--root' and argv[2] == '--':
+        try:
+            gui_env = json.loads(argv[1])
+            if not isinstance(gui_env, dict) or any(k not in GUI_KEYS or not isinstance(v, str) for k, v in gui_env.items()):
+                raise ValueError
+        except (ValueError, TypeError):
+            return 2
+        if os.geteuid() != 0:
+            return 2
+        command = argv[3:]
+        if not command:
+            return 2
+        return subprocess.run(command, env={**os.environ, **gui_env}).returncode
+    if len(argv) == 2 and argv[0] == '--terminal-child':
+        target = Path(argv[1]).expanduser().absolute()
+        german = os.environ.get('LANG', '').lower().startswith('de')
+        downloads = (Path.home() / 'Downloads').resolve()
+        is_download = target == downloads or downloads in target.parents
+        if is_download and target.suffix.lower() in SCRIPT_INTERPRETERS:
+            prompt = 'Skript aus Downloads als root ausführen? [j/N] ' if german else 'Run this Downloads script as root? [y/N] '
+            if input(prompt).strip().lower() not in (('j', 'ja') if german else ('y', 'yes')):
+                return 1
+        print(('Starte als Administrator:' if german else 'Running as administrator:'), target)
+        result = run_root(target, environment_for_root())
+        print(('\nBeendet mit Exit-Code' if german else '\nFinished with exit code'), result)
+        try:
+            input('Enter zum Schließen …' if german else 'Press Enter to close …')
+        except EOFError:
+            pass
+        return result
+    if len(argv) != 1:
+        print('Usage: windoesnot-run-as-admin FILE', file=sys.stderr)
+        return 2
+    target = Path(argv[0]).expanduser().absolute()
+    if command_for(target) is None:
+        print('Unsupported file; select an executable, .sh or .py file.', file=sys.stderr)
+        return 2
+    try:
+        subprocess.Popen(terminal_command(Path(__file__).resolve(), target), start_new_session=True)
+    except (OSError, RuntimeError) as error:
+        print(error, file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
