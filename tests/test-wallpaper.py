@@ -39,8 +39,12 @@ class WallpaperLauncherTests(unittest.TestCase):
                     self.pid = 4100 + len(calls)
                     calls.append((command, kwargs))
 
+                def poll(self):
+                    return None
+
             calls = []
-            with (patch.object(wallpaper, "CONFIG", config),
+            with (patch.dict(wallpaper.os.environ, {"XDG_CACHE_HOME": str(temp / "cache"), "WINDOESNOT_WALLPAPER_CHECK_DELAY": "0"}),
+                  patch.object(wallpaper, "CONFIG", config),
                   patch.object(wallpaper, "PIDFILE", pidfile),
                   patch.object(wallpaper, "shutil_which", return_value="/usr/bin/swaybg"),
                   patch.object(wallpaper.subprocess, "Popen", Proc)):
@@ -53,6 +57,34 @@ class WallpaperLauncherTests(unittest.TestCase):
             self.assertTrue(all(item[1]["start_new_session"] for item in calls))
             self.assertEqual(pidfile.read_text(), "4100\n4101\n")
             self.assertEqual(config.read_text(), original)
+
+    def test_swaybg_that_exits_at_once_is_restarted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            temp = Path(directory)
+            image = temp / "one.png"
+            image.touch()
+            config = temp / "hyprpaper.conf"
+            config.write_text("wallpaper {\n monitor = DP-1\n path = " + str(image) + "\n}\n")
+            pidfile = temp / "runtime/pids"
+            calls = []
+
+            class Proc:
+                def __init__(self, command, **kwargs):
+                    self.pid = 5000 + len(calls)
+                    self.first = not calls
+                    calls.append(command)
+
+                def poll(self):
+                    return 1 if self.first else None
+
+            with (patch.dict(wallpaper.os.environ, {"XDG_CACHE_HOME": str(temp / "cache"), "WINDOESNOT_WALLPAPER_CHECK_DELAY": "0"}),
+                  patch.object(wallpaper, "CONFIG", config),
+                  patch.object(wallpaper, "PIDFILE", pidfile),
+                  patch.object(wallpaper, "shutil_which", return_value="/usr/bin/swaybg"),
+                  patch.object(wallpaper.subprocess, "Popen", Proc)):
+                self.assertEqual(wallpaper.main(), 0)
+            self.assertEqual(len(calls), 2, "a swaybg that exits right away must be started again")
+            self.assertEqual(pidfile.read_text(), "5001\n")
 
     def test_missing_images_are_skipped_without_destroying_config(self):
         with tempfile.TemporaryDirectory() as directory:

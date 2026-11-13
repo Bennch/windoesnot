@@ -24,7 +24,7 @@ for device_id in $(printf '%s\n' "$devices" | sed -nE 's/.*10de:([[:xdigit:]]{4}
             mkdir -p "${lite_flag%/*}"
             : > "$lite_flag"
             logger -t windoesnot-old-gpu "nouveau device $device_id found in chwd IDs; cleared nvidia-utils blacklist"
-            modprobe nouveau
+            modprobe nouveau || logger -t windoesnot-old-gpu "modprobe nouveau failed; software rendering stays active via Lite Mode"
             exit 0
             ;;
     esac

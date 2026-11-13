@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Route every Ghostty launch through Foot on systems that opted into Lite Mode.
 set -euo pipefail
-if [[ -e /etc/windoesnot/lite-mode ]]; then
+if [[ -e /etc/windoesnot/lite-mode && -x /usr/bin/foot ]]; then
     exec /usr/bin/foot "$@"
 fi
 for vendor in /sys/class/drm/card*/device/vendor; do
