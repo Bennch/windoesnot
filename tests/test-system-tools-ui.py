@@ -83,6 +83,14 @@ ShellRoot {
     maintenance.acceptStatus({live:false, setup:{drivers:"pending"}, tools:{paccache:true,chwd:true,"pacman-key":true,"cachyos-rate-mirrors":true,curl:true},
         cacheBytes:104857600,lockExists:true,processesVisible:true,packageProcesses:[],mirrorsRanked:false,orphans:["example","second"],failedServices:[],firewall:{enabled:true}})
     testWindow.check(maintenance.ready, "maintenance status")
+    maintenance.pacnewFiles=[{path:"/etc/test.conf.pacnew",kind:"pacnew",date:"2026-11-13T12:00:00+01:00",size:18,package:"test",locally_modified:null,diff_status:"ok",diff:"--- original\n+++ new\n-local\n+default\n"}]
+    maintenance.selectedPacnewPath="/etc/test.conf.pacnew"
+    preferences.uiLanguage="de"
+    testWindow.check(!!testWindow.find(maintenance,o => o.objectName === "pacnewCard"), "configuration file card exists")
+    testWindow.check(maintenance.tr("pacnew.title") === "Neue Konfigurationsdateien" && maintenance.selectedPacnew && maintenance.selectedPacnew.diff.indexOf("+default") >= 0, "pacnew DE and diff data: " + maintenance.tr("pacnew.title") + " / " + JSON.stringify(maintenance.selectedPacnew))
+    preferences.uiLanguage="en"
+    testWindow.check(maintenance.tr("pacnew.title") === "New configuration files" && maintenance.tr("pacnew.hint").indexOf("Nothing is changed automatically") >= 0, "pacnew EN and read-only hint")
+    preferences.uiLanguage="de"
     testWindow.check(maintenance.sizeText(104857600) === "100.0 MiB", "cache size")
     maintenanceLoader.visible=true
     maintenance.selectedGroup="security"
