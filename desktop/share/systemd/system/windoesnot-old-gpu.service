@@ -1,0 +1,12 @@
+[Unit]
+Description=Enable nouveau for legacy NVIDIA devices supported by chwd
+ConditionPathExists=/etc/windoesnot-image-build
+After=local-fs.target systemd-modules-load.service
+Before=display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/windoesnot/old-gpu-setup
+
+[Install]
+WantedBy=multi-user.target

@@ -95,11 +95,13 @@ package_windoesnot-tools() {
     done
     install -Dm644 desktop/lib/windoesnot/migrate.py "$pkgdir/usr/lib/windoesnot/migrate.py"
     install -Dm755 desktop/lib/windoesnot/system_tools.py "$pkgdir/usr/lib/windoesnot/system_tools.py"
+    install -Dm755 desktop/lib/windoesnot/old-gpu-setup "$pkgdir/usr/lib/windoesnot/old-gpu-setup"
     install -Dm644 desktop/share/polkit-1/actions/org.windoesnot.system.policy "$pkgdir/usr/share/polkit-1/actions/org.windoesnot.system.policy"
     install -Dm755 desktop/lib/windoesnot/snapshots.py "$pkgdir/usr/lib/windoesnot/snapshots.py"
     install -Dm644 desktop/share/polkit-1/actions/org.windoesnot.snapshots.policy "$pkgdir/usr/share/polkit-1/actions/org.windoesnot.snapshots.policy"
     install -Dm644 desktop/share/systemd/system/windoesnot-super-tap@.service "$pkgdir/usr/lib/systemd/system/windoesnot-super-tap@.service"
     install -Dm644 desktop/share/systemd/system/windoesnot-first-network.service "$pkgdir/usr/lib/systemd/system/windoesnot-first-network.service"
+    install -Dm644 desktop/share/systemd/system/windoesnot-old-gpu.service "$pkgdir/usr/lib/systemd/system/windoesnot-old-gpu.service"
     install -Dm644 desktop/share/libalpm/hooks/90-windoesnot-plugins.hook "$pkgdir/usr/share/libalpm/hooks/90-windoesnot-plugins.hook"
     install -Dm755 desktop/share/NetworkManager/dispatcher.d/90-windoesnot-first-network "$pkgdir/usr/lib/NetworkManager/dispatcher.d/90-windoesnot-first-network"
     # Public verification material for future images; repository setup is explicit.

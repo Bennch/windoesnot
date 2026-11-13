@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path[:0] = [str(ROOT / 'iso'), str(ROOT / 'iso/software')]
@@ -127,6 +128,26 @@ fi
     setup.update_record(record, drivers='configured', driver_profiles=['intel', 'nvidia-open-dkms.prime'], driver_reason=None)
     data = json.loads((record / setup.RECORD).read_text())
     assert data == {'schema_version': 1, 'cpu_level': 'v3', 'drivers': 'configured', 'driver_profiles': ['intel', 'nvidia-open-dkms.prime']}
+
+    # The target override is written only after successful chwd confirmation.
+    assert not setup.enable_nouveau(record, ['intel'])
+    assert setup.enable_nouveau(record, ['nouveau'])
+    override = record / setup.NOUVEAU_OVERRIDE
+    assert override.is_file() and override.read_text() == ''
+
+    # A failed chwd transaction with no installed nouveau profile leaves an
+    # existing target override exactly as it was.
+    override.write_text('pre-existing target state\n')
+    with mock.patch.object(setup, 'verify_bundle', return_value={'chwd_packages': ['mesa']}), \
+         mock.patch.object(setup, 'driver_config', return_value=record / 'pacman.conf'), \
+         mock.patch.object(setup, 'snapshot_multilib', return_value=mock.MagicMock(__enter__=mock.Mock(return_value=None), __exit__=mock.Mock(return_value=False))), \
+         mock.patch.object(setup.tempfile, 'TemporaryDirectory', return_value=mock.MagicMock(__enter__=mock.Mock(return_value=str(root)), __exit__=mock.Mock(return_value=False))), \
+         mock.patch.object(setup.subprocess, 'run', side_effect=[mock.Mock(returncode=0), mock.Mock(returncode=1, stdout='', stderr='chwd error')]), \
+         mock.patch.object(setup, 'installed_profiles', return_value=[]), \
+         mock.patch.object(setup, 'incomplete_entries', return_value=[]):
+        setup.drivers_stage(record, root)
+    assert override.read_text() == 'pre-existing target state\n'
+    assert json.loads((record / setup.RECORD).read_text())['drivers'] == 'pending'
 
 loader = importlib.machinery.SourceFileLoader('notice', str(ROOT / 'desktop/bin/windoesnot-setup-notice'))
 spec = importlib.util.spec_from_loader('notice', loader)

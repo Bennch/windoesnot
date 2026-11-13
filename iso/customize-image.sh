@@ -49,6 +49,8 @@ sed -i 's/--gtk-single-instance=true/--gtk-single-instance=false/' /usr/share/ap
 # menu, the power menu's hardcoded "ghostty" fallback) goes through the
 # virtio check, not just one call site. See iso/ghostty-wrapper.sh.
 install -Dm755 "$project/iso/ghostty-wrapper.sh" /usr/local/bin/ghostty
+install -Dm755 "$project/desktop/lib/windoesnot/old-gpu-setup" /usr/lib/windoesnot/old-gpu-setup
+install -Dm644 "$project/desktop/share/systemd/system/windoesnot-old-gpu.service" /usr/lib/systemd/system/windoesnot-old-gpu.service
 # Version-matched signed optional apps; no online access needed during installation.
 python3 "$project/iso/software/prepare.py"
 # Bootstrap both skel and the live account using the exact shared code/defaults.
@@ -68,6 +70,7 @@ systemctl disable systemd-networkd.service systemd-networkd.socket systemd-netwo
 systemctl disable systemd-time-wait-sync.service 2>/dev/null || true
 systemctl enable getty@tty1.service
 systemctl enable windoesnot-live-language.service
+systemctl enable windoesnot-old-gpu.service
 ln -sfn /usr/lib/systemd/system/getty@.service /etc/systemd/system/autovt@.service
 systemctl enable windoesnot-super-tap@liveuser.service
 systemctl enable windoesnot-flathub-appstream.timer

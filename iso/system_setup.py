@@ -31,6 +31,17 @@ LEVEL_SECTIONS = {name for _, names in LEVEL_REPOS.values() for name in names}
 # chwd writes these before pacman runs; a failed profile must not leave
 # initramfs MODULES+= lines for drivers that were never installed.
 CHWD_INITRAMFS = ['etc/mkinitcpio.conf.d/10-chwd.conf', 'etc/mkinitcpio.conf.d/10-chwd-kms.conf']
+NOUVEAU_OVERRIDE = Path('etc/modprobe.d/nvidia-utils.conf')
+
+
+def enable_nouveau(root, profiles):
+    """Clear nvidia-utils' blacklist when chwd successfully installed nouveau."""
+    if 'nouveau' not in profiles:
+        return False
+    path = root / NOUVEAU_OVERRIDE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text('')
+    return True
 
 
 def is_zen4_or_newer(cpuinfo):
@@ -213,7 +224,9 @@ def drivers_stage(root, base=BASE):
     if broken:
         raise RuntimeError('Incomplete package database after chwd: ' + ', '.join(broken))
     if result.returncode == 0:
-        update_record(root, drivers='configured', driver_profiles=profiles, driver_reason=None)
+        nouveau_override = enable_nouveau(root, profiles)
+        update_record(root, drivers='configured', driver_profiles=profiles,
+                      nouveau_blacklist_override=nouveau_override or None, driver_reason=None)
         return
     # chwd runs pre_remove after a failed pacman call; keep this as a safety net.
     if 'nvidia' not in ' '.join(profiles):
