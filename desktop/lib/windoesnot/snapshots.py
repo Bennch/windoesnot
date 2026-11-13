@@ -26,6 +26,15 @@ def run(*args):
                           check=True, timeout=120).stdout
 
 
+def unit_state(action, unit):
+    """systemd queries are local IPC and should never stall the settings UI."""
+    try:
+        return subprocess.run(['/usr/bin/systemctl', action, '--quiet', unit],
+                              env=ENV, capture_output=True, timeout=5).returncode == 0
+    except subprocess.TimeoutExpired:
+        return False
+
+
 def config_values():
     values = {}
     for line in CONFIG.read_text().splitlines():
@@ -91,8 +100,7 @@ def snapshot_boot_mode():
 
 
 def enabled(unit):
-    return subprocess.run(['/usr/bin/systemctl', 'is-enabled', '--quiet', unit],
-                          env=ENV, capture_output=True).returncode == 0
+    return unit_state('is-enabled', unit)
 
 
 def boot_status():
@@ -137,8 +145,7 @@ def status():
             'snapshots': parse_snapshots(run('/usr/bin/snapper', '--no-dbus', '--jsonout',
                 '--iso', '-c', 'root', 'list', '--columns', 'number,type,pre-number,date,description,cleanup,userdata,used-space')),
             'schedule': schedule, 'timeline': values.get('TIMELINE_CREATE') == 'yes',
-            'timerActive': subprocess.run(['/usr/bin/systemctl', 'is-active', '--quiet',
-                'snapper-timeline.timer'], env=ENV).returncode == 0}
+            'timerActive': unit_state('is-active', 'snapper-timeline.timer')}
 
 
 def validate(action, payload):
@@ -161,8 +168,7 @@ def validate(action, payload):
 def apply_schedule(payload):
     old_config = CONFIG.read_bytes()
     old_override = OVERRIDE.read_bytes() if OVERRIDE.exists() else None
-    timer_was_active = subprocess.run(['/usr/bin/systemctl', 'is-active', '--quiet',
-        'snapper-timeline.timer'], env=ENV).returncode == 0
+    timer_was_active = unit_state('is-active', 'snapper-timeline.timer')
     enabled = any(payload.values())
     try:
         run('/usr/bin/snapper', '--no-dbus', '-c', 'root', 'set-config',
@@ -258,7 +264,7 @@ def _restore(number):
         switched = False
         points_moved = False
         active_timers = [unit for unit in ('snapper-timeline.timer', 'snapper-cleanup.timer')
-            if subprocess.run(['/usr/bin/systemctl', 'is-active', '--quiet', unit], env=ENV, capture_output=True).returncode == 0]
+                         if unit_state('is-active', unit)]
         try:
             run('/usr/bin/mount', '-t', 'btrfs', '-o', 'subvolid=5,nosuid,nodev', 'UUID=' + fields[2], str(top))
             mounted = True

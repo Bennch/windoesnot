@@ -287,7 +287,7 @@ def main():
         if args.action == 'refresh':
             refresh_efi()
             if not Path('/etc/windoesnot-image-build').exists() and installation(Path('/')) and Path('/run/systemd/system').is_dir():
-                subprocess.run(['/usr/bin/systemctl', 'enable', '--now', 'windoesnot-boot-language.path'], check=True)
+                subprocess.run(['/usr/bin/systemctl', 'enable', '--now', 'windoesnot-boot-language.path'], check=True, timeout=30)
 
 if __name__ == '__main__':
     main()

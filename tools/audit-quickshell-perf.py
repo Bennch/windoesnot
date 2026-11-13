@@ -22,11 +22,19 @@ class Finding:
     reason: str
 
 
-SOURCE_SUFFIXES = {".qml", ".js", ".py", ".sh", ".lua", ".conf"}
+SOURCE_SUFFIXES = {".qml", ".js", ".py", ".sh", ".lua", ".conf", ".c"}
 SKIP_PARTS = {".git", "img", "images", "icons", "__pycache__"}
 PROCESS_TOOLS = re.compile(
     r"(?:bash\s+-c|hyprctl|windoesnot-hyprctl|jq|grep|date|upower|nmcli|"
-    r"bluetoothctl|pactl|wpctl|awk|sed|cut|head|python3?|systemctl)\b",
+    r"bluetoothctl|pactl|wpctl|awk|sed|cut|head|python3?|systemctl|"
+    r"powerprofilesctl|brightnessctl|ddcutil|playerctl|swaync-client|grim|"
+    r"nautilus|udisks(?:ctl)?|curl|wget|lspci|lsblk)\b",
+    re.I,
+)
+HANGING_TOOLS = re.compile(
+    r"\b(?:bluetoothctl|nmcli|upower|powerprofilesctl|brightnessctl|ddcutil|"
+    r"wpctl|pactl|playerctl|systemctl|hyprctl|windoesnot-hyprctl|"
+    r"swaync-client|grim|nautilus|udisks(?:ctl)?|curl|wget|lspci|lsblk)\b",
     re.I,
 )
 TIMER_START = re.compile(r"\bTimer\s*\{")
@@ -138,6 +146,12 @@ def analyze_file(path: Path, root: Path) -> list[Finding]:
             if pattern.search(line):
                 severity, reason = _severity(category, line)
                 findings.append(Finding(rel, lineno, category, severity, reason))
+        # Report relevant external Process launches that have no explicit deadline.
+        # This is a review aid; tests/test-desktop-polling.py is the regression gate.
+        if re.search(r"\b(?:command|\.command)\s*(?:=|:)", line) and HANGING_TOOLS.search(line):
+            if not re.search(r"windoesnot-bounded|\btimeout\b|--max-time", line):
+                findings.append(Finding(rel, lineno, "unbounded-external-command", "hoch",
+                    "QML Process command names an external tool without a visible deadline on this line; inspect a surrounding service/device guard."))
         if re.search(r"\bImage\s*\{", line):
             block = "\n".join(lines[lineno - 1:_block_end(lines, lineno - 1)])
             if re.search(r"source\s*:\s*[^\n]+\.(?:png|jpe?g|webp)", block, re.I) and not re.search(r"sourceSize(?:\s*\.|\s*:)", block):

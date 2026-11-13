@@ -59,7 +59,7 @@ elif len(parts) >= 4: gt, gr, gb, gl = parts[0], parts[1], parts[2], parts[3]
 else:                 gt = gr = gb = gl = 8
 
 # ── Reserved area from layer-shell panels ────────────────────────────────────
-# windoesnot-hyprctl monitors -j returns reserved as [left, right, top, bottom]
+# timeout --kill-after=1 5 windoesnot-timeout --kill-after=1 5 hyprctl monitors -j returns reserved as [left, right, top, bottom]
 res = mon.get('reserved', [0, 0, 0, 0])
 if isinstance(res, list) and len(res) >= 4:
     rl, rr, rt, rb = res[0], res[1], res[2], res[3]

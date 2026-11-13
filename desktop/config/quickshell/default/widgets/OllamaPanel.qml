@@ -701,9 +701,9 @@ Item {
                                 id: btnLoad; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: {
                                     var ka = modelData.loaded ? "0" : "-1"
-                                    actionProc.command = ["bash", "-c",
-                                        "curl -s -X POST " + ollamaPanel.apiUrl + "/api/generate " +
-                                        "-d '{\"model\":\"" + modelData.name + "\",\"keep_alive\":" + ka + "}' > /dev/null &"]
+                                    actionProc.command = ["windoesnot-bounded", "610", "bash", "-c",
+                                        "curl -s --max-time 600 -X POST " + ollamaPanel.apiUrl + "/api/generate " +
+                                        "-d '{\"model\":\"" + modelData.name + "\",\"keep_alive\":" + ka + "}' > /dev/null"]
                                     actionProc.running = true
                                 }
                             }
@@ -739,8 +739,8 @@ Item {
                             MouseArea {
                                 id: btnDelete; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    actionProc.command = ["bash", "-c",
-                                        "curl -s -X DELETE " + ollamaPanel.apiUrl + "/api/delete " +
+                                    actionProc.command = ["windoesnot-bounded", "20", "bash", "-c",
+                                        "curl -s --max-time 15 -X DELETE " + ollamaPanel.apiUrl + "/api/delete " +
                                         "-d '{\"model\":\"" + modelData.name + "\"}' > /dev/null"]
                                     actionProc.running = true
                                 }
@@ -1001,8 +1001,8 @@ Item {
                                     writeCtxProc.command = ["bash", "-c",
                                         "mkdir -p ~/.config/systemd/user/ollama.service.d && " +
                                         "echo -e '[Service]\\nEnvironment=\"OLLAMA_NUM_CTX=" + val + "\"' > ~/.config/systemd/user/ollama.service.d/override.conf && " +
-                                        "systemctl --user daemon-reload && " +
-                                        "systemctl --user restart ollama.service"
+                                        "timeout --kill-after=1 20 systemctl --user daemon-reload && " +
+                                        "timeout --kill-after=1 20 systemctl --user restart ollama.service"
                                     ]
                                 }
                                 writeCtxProc.running = true

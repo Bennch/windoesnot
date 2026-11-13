@@ -15,6 +15,29 @@ FloatingWindow {
     property bool appCustomIcon: false
     property int captureSession: 0
     property var previewPaths: ({})
+    property var captureQueue: []
+    property bool captureBusy: false
+
+    function captureNext() {
+        if (captureBusy || captureQueue.length === 0) return
+        var item = captureQueue.shift()
+        captureQueue = captureQueue
+        if (item.session !== captureSession) { captureNext(); return }
+        captureBusy = true
+        var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', taskbarPreview)
+        proc.command = ["windoesnot-bounded", "8", "grim", "-s", "1", "-g", item.geometry, item.path]
+        proc.exited.connect(function(code) {
+            if (item.session === taskbarPreview.captureSession && code === 0) {
+                var paths = Object.assign({}, taskbarPreview.previewPaths)
+                paths[item.address] = item.path
+                taskbarPreview.previewPaths = paths
+            }
+            taskbarPreview.captureBusy = false
+            proc.destroy()
+            taskbarPreview.captureNext()
+        })
+        proc.running = true
+    }
 
     // Set by the triggering icon in shell.qml
     property bool iconHovering: false
@@ -73,7 +96,7 @@ FloatingWindow {
             var w = self.implicitWidth
             var h = self.implicitHeight
             var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', taskbarPreview)
-            proc.command = ["bash", "-c",
+            proc.command = ["windoesnot-bounded", "8", "bash", "-c",
                 "windoesnot-hyprctl keyword 'windowrule[taskpreview-config]:size " + w + " " + h + "' ; " +
                 "windoesnot-hyprctl keyword 'windowrule[taskpreview-config]:move " + self._pendingX + " " + self._pendingY + "'"]
             proc.exited.connect(function() {
@@ -110,6 +133,7 @@ FloatingWindow {
         self.appCustomIcon = customIcon || false
         self.captureSession = self.captureSession + 1
         self.previewPaths   = {}
+        self.captureQueue   = []
         self._lastIconCenterX = iconCenterX
         self._lastMonW        = monW
         self._lastMonH        = monH
@@ -120,19 +144,10 @@ FloatingWindow {
             if (!win.hidden && win.size && win.size[0] > 0 && win.size[1] > 0) {
                 var outFile = "/tmp/qs-preview-" + win.address + "-" + session + ".png"
                 var geom = win.at[0] + "," + win.at[1] + " " + win.size[0] + "x" + win.size[1]
-                var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', taskbarPreview)
-                proc.command = ["grim", "-s", "1", "-g", geom, outFile]
-                ;(function(addr, path, sess) {
-                    proc.exited.connect(function(code) {
-                        if (self.captureSession !== sess || code !== 0) return
-                        var paths = Object.assign({}, self.previewPaths)
-                        paths[addr] = path
-                        self.previewPaths = paths
-                    })
-                })(win.address, outFile, session)
-                proc.running = true
+                self.captureQueue.push({address: win.address, path: outFile, geometry: geom, session: session})
             }
         }
+        self.captureNext()
 
         var w = self.pad * 2 + wins.length * self.cardW + Math.max(0, wins.length - 1) * self.cardGap
         var h = self.pad * 2 + self.cardH
@@ -183,7 +198,7 @@ FloatingWindow {
             function minimizeCard(addr) {
                 taskbarPreview.visible = false
                 var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', cardRow)
-                proc.command = ["windoesnot-hyprctl", "dispatch", "movetoworkspacesilent",
+                proc.command = ["windoesnot-bounded", "8", "windoesnot-hyprctl", "dispatch", "movetoworkspacesilent",
                     "special:minimized,address:" + addr]
                 proc.running = true
             }
@@ -196,7 +211,7 @@ FloatingWindow {
                 }
                 // Close the window
                 var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', cardRow)
-                proc.command = ["windoesnot-hyprctl", "dispatch", "closewindow", "address:" + addr]
+                proc.command = ["windoesnot-bounded", "8", "windoesnot-hyprctl", "dispatch", "closewindow", "address:" + addr]
                 proc.running = true
                 // Update model and hide — re-hover will show correct size
                 taskbarPreview.appWindows = newWins
@@ -215,7 +230,7 @@ FloatingWindow {
                     var floatingRestore = taskbarPreview.settingsMenu &&
                                          taskbarPreview.settingsMenu.windowMode === "floating"
                     var suffix = floatingRestore ? " && windoesnot-hyprctl dispatch bringactivetotop" : ""
-                    proc.command = ["bash", "-c",
+                    proc.command = ["windoesnot-bounded", "8", "bash", "-c",
                         moveCmd + " && windoesnot-hyprctl dispatch focuswindow address:" + addr + suffix]
                 } else {
                     var floating = taskbarPreview.settingsMenu &&
@@ -224,11 +239,11 @@ FloatingWindow {
                         // Floating mode: focus and raise to front.
                         // Windows maximized via toggle-maximize.sh are regular floating windows
                         // (no fullscreen state), so bringactivetotop works correctly.
-                        proc.command = ["bash", "-c",
+                        proc.command = ["windoesnot-bounded", "8", "bash", "-c",
                             "windoesnot-hyprctl dispatch focuswindow address:" + addr +
                             " && windoesnot-hyprctl dispatch bringactivetotop"]
                     } else {
-                        proc.command = ["windoesnot-hyprctl", "dispatch", "focuswindow", "address:" + addr]
+                        proc.command = ["windoesnot-bounded", "8", "windoesnot-hyprctl", "dispatch", "focuswindow", "address:" + addr]
                     }
                 }
                 proc.running = true

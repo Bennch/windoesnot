@@ -6,17 +6,17 @@ install_user=${1:?Missing target username}
 getent passwd "$install_user" >/dev/null
 # These are live-only; never carry autologin, live services or temporary keys over.
 rm -f /etc/systemd/system/getty@tty1.service.d/autologin.conf
-systemctl disable windoesnot-live-language.service 2>/dev/null || true
-systemctl disable windoesnot-old-gpu.service 2>/dev/null || true
+timeout --kill-after=2 30 systemctl disable windoesnot-live-language.service 2>/dev/null || true
+timeout --kill-after=2 30 systemctl disable windoesnot-old-gpu.service 2>/dev/null || true
 rm -f /etc/polkit-1/rules.d/49-nopasswd_global.rules
 rm -f /etc/systemd/system/etc-pacman.d-gnupg.mount
-systemctl disable pacman-init.service windoesnot-super-tap@liveuser.service serial-getty@ttyS0.service 2>/dev/null || true
-systemctl disable systemd-networkd.service systemd-networkd.socket systemd-networkd-wait-online.service 2>/dev/null || true
+timeout --kill-after=2 30 systemctl disable pacman-init.service windoesnot-super-tap@liveuser.service serial-getty@ttyS0.service 2>/dev/null || true
+timeout --kill-after=2 30 systemctl disable systemd-networkd.service systemd-networkd.socket systemd-networkd-wait-online.service 2>/dev/null || true
 # The live image waits for network time before refreshing package keys. An
 # installed/offline desktop must not wait for NTP before permitting login.
-systemctl disable systemd-time-wait-sync.service 2>/dev/null || true
-systemctl enable sddm.service NetworkManager.service bluetooth.service getty@tty1.service
-systemctl enable "windoesnot-super-tap@$install_user.service"
+timeout --kill-after=2 30 systemctl disable systemd-time-wait-sync.service 2>/dev/null || true
+timeout --kill-after=2 30 systemctl enable sddm.service NetworkManager.service bluetooth.service getty@tty1.service
+timeout --kill-after=2 30 systemctl enable "windoesnot-super-tap@$install_user.service"
 # sddm writes /etc/sddm.conf itself on its first run, with a stray, broken
 # [Autologin] Session=hyprland (no matching session, no User=, so autologin
 # never actually triggers) that only causes a spurious "Autologin failed"
@@ -50,8 +50,8 @@ if [[ -f /etc/ufw/ufw.conf ]]; then
     ufw allow "$rule" >/dev/null 2>&1 || echo "Firewall rule $rule was not written" >&2
   done
   sed -i 's/^ENABLED=.*/ENABLED=yes/' /etc/ufw/ufw.conf
-  systemctl enable ufw.service 2>/dev/null || echo 'ufw.service could not be enabled' >&2
+  timeout --kill-after=2 30 systemctl enable ufw.service 2>/dev/null || echo 'ufw.service could not be enabled' >&2
 fi
 # Network printer discovery (cups dnssd backend, nss-mdns) needs avahi. cups stays on demand.
-systemctl enable avahi-daemon.service 2>/dev/null || echo 'avahi-daemon.service could not be enabled' >&2
-systemctl set-default graphical.target
+timeout --kill-after=2 30 systemctl enable avahi-daemon.service 2>/dev/null || echo 'avahi-daemon.service could not be enabled' >&2
+timeout --kill-after=2 30 systemctl set-default graphical.target

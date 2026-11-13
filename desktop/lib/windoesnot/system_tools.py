@@ -387,14 +387,14 @@ def firmware_status():
 
 def battery_info():
     try:
-        devices = query('/usr/bin/upower', '-e').splitlines()
+        devices = query('/usr/bin/upower', '-e', timeout=5).splitlines()
     except (RuntimeError, FileNotFoundError):
         return None
     path = next((d for d in devices if '/battery_' in d), None)
     if not path:
         return None
     fields = {}
-    for line in query('/usr/bin/upower', '-i', path).splitlines():
+    for line in query('/usr/bin/upower', '-i', path, timeout=5).splitlines():
         key, sep, value = line.strip().partition(':')
         if sep:
             fields[key.strip()] = value.strip()
@@ -407,7 +407,7 @@ def battery_info():
 
 def power_profiles():
     try:
-        raw = query('/usr/bin/powerprofilesctl', 'list')
+        raw = query('/usr/bin/powerprofilesctl', 'list', timeout=5)
     except (RuntimeError, FileNotFoundError):
         return [], ''
     profiles, current = [], ''

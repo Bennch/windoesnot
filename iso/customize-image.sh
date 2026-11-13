@@ -62,23 +62,23 @@ printf '\ncommand -v windoesnot-greeting >/dev/null && windoesnot-greeting\n' >>
 printf '\n[[ $- == *i* ]] && command -v windoesnot-greeting >/dev/null && windoesnot-greeting\n' >> /etc/skel/.bashrc
 cp -a /etc/skel/. /home/liveuser/
 chown -R liveuser:liveuser /home/liveuser
-systemctl disable sddm.service 2>/dev/null || true
-systemctl disable systemd-networkd.service systemd-networkd.socket systemd-networkd-wait-online.service 2>/dev/null || true
+timeout --kill-after=2 30 systemctl disable sddm.service 2>/dev/null || true
+timeout --kill-after=2 30 systemctl disable systemd-networkd.service systemd-networkd.socket systemd-networkd-wait-online.service 2>/dev/null || true
 # Boot must never wait for or fail on NTP (offline, emulated VMs).
-systemctl disable systemd-time-wait-sync.service 2>/dev/null || true
-systemctl enable getty@tty1.service
-systemctl enable windoesnot-live-language.service
-systemctl enable windoesnot-old-gpu.service
+timeout --kill-after=2 30 systemctl disable systemd-time-wait-sync.service 2>/dev/null || true
+timeout --kill-after=2 30 systemctl enable getty@tty1.service
+timeout --kill-after=2 30 systemctl enable windoesnot-live-language.service
+timeout --kill-after=2 30 systemctl enable windoesnot-old-gpu.service
 ln -sfn /usr/lib/systemd/system/getty@.service /etc/systemd/system/autovt@.service
-systemctl enable windoesnot-super-tap@liveuser.service
-systemctl enable windoesnot-flathub-appstream.timer
+timeout --kill-after=2 30 systemctl enable windoesnot-super-tap@liveuser.service
+timeout --kill-after=2 30 systemctl enable windoesnot-flathub-appstream.timer
 # VMware guest services for host<->guest clipboard (spice-vdagentd is started by udev). Gated by
 # ConditionVirtualization, so they stay inert on real hardware.
-systemctl enable vmtoolsd.service vmware-vmblock-fuse.service 2>/dev/null || true
+timeout --kill-after=2 30 systemctl enable vmtoolsd.service vmware-vmblock-fuse.service 2>/dev/null || true
 # A serial console makes VM boot failures inspectable without a working GPU.
-systemctl enable serial-getty@ttyS0.service
+timeout --kill-after=2 30 systemctl enable serial-getty@ttyS0.service
 # The firewall stays off in the live session. finalize-install.sh turns it on for installed systems.
-systemctl disable ufw.service 2>/dev/null || true
+timeout --kill-after=2 30 systemctl disable ufw.service 2>/dev/null || true
 sed -i 's/^ENABLED=.*/ENABLED=no/' /etc/ufw/ufw.conf 2>/dev/null || true
 # nss-mdns: resolve *.local names (network printers) before DNS. Matches the avahi documentation.
 if [[ -f /etc/nsswitch.conf ]] && grep -q '^hosts:' /etc/nsswitch.conf; then

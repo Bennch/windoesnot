@@ -3,20 +3,30 @@ import subprocess
 import sys
 import time
 import select
+import os
+
+def bounded_run(args, timeout=4):
+    """Best effort one-shot command; absence of BlueZ must return quickly."""
+    try:
+        return subprocess.run(args, capture_output=True, timeout=timeout, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
 
 def scan_bluetooth_devices():
     """Scan for Bluetooth devices and print them"""
     # First, turn on power if not already
-    subprocess.run(['bluetoothctl', 'power', 'on'], capture_output=True)
+    if not os.path.isdir('/sys/class/bluetooth'):
+        print('SCAN_FINISHED|0', flush=True)
+        return
+    bounded_run(['bluetoothctl', 'power', 'on'])
 
-    process = subprocess.Popen(
-        ['bluetoothctl'],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1
-    )
+    try:
+        process = subprocess.Popen(
+            ['bluetoothctl'], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, text=True, bufsize=1, start_new_session=True)
+    except OSError:
+        print('SCAN_FINISHED|0', flush=True)
+        return
 
     # Start scan
     process.stdin.write('scan on\n')

@@ -22,7 +22,7 @@ wait_for_hyprland() {
       [ -S "$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock" ]; then
 
       # Try to get monitors - confirms compositor is responsive
-      if hyprctl monitors &>/dev/null; then
+      if timeout --kill-after=1 3 hyprctl monitors &>/dev/null; then
         # Additional delay to ensure outputs are configured
         sleep 1
         echo "[snappy-wrapper] Hyprland is ready"

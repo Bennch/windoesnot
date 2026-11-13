@@ -8,14 +8,14 @@ tmp_png="${XDG_RUNTIME_DIR:-/tmp}/hyprlock-bg.png"
 output=""
 
 if command -v windoesnot-hyprctl >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
-    output="$(windoesnot-hyprctl -j monitors | jq -r '.[] | select(.focused) | .name' | head -n1 || true)"
+    output="$(timeout --kill-after=1 5 windoesnot-hyprctl -j monitors | jq -r '.[] | select(.focused) | .name' | head -n1 || true)"
 fi
 
 if command -v grim >/dev/null 2>&1; then
     if [ -n "$output" ]; then
-        grim -o "$output" "$tmp_png"
+        timeout --kill-after=1 8 grim -o "$output" "$tmp_png"
     else
-        grim "$tmp_png"
+        timeout --kill-after=1 8 grim "$tmp_png"
     fi
 else
     echo "grim is required to take the lock-screen screenshot." >&2

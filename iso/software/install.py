@@ -30,7 +30,7 @@ def install_selection(selected, language, base=BASE, record=Path('/var/lib/windo
     bundle = base / 'offline-apps'
     install_packages(packages, mode, base)
     for service in services:
-        subprocess.run(['systemctl', 'enable', service], check=True)
+        subprocess.run(['systemctl', 'enable', service], check=True, timeout=30)
     record.parent.mkdir(parents=True, exist_ok=True)
     # Apps that are not in the offline vault are installed after the first boot (see windoesnot-pending-apps).
     wishlist = pending_for(catalog, selected)

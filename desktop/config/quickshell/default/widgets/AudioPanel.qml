@@ -72,11 +72,11 @@ Item {
     }
 
     function updateAudioState() {
-        getVolumeProc.running = true
-        getMuteStatusProc.running = true
-        getDefaultSinkProc.running = true
-        getOutputDevicesProc.running = true
-        getAppStreamsProc.running = true
+        if (!getVolumeProc.running) getVolumeProc.running = true
+        if (!getMuteStatusProc.running) getMuteStatusProc.running = true
+        if (!getDefaultSinkProc.running) getDefaultSinkProc.running = true
+        if (!getOutputDevicesProc.running) getOutputDevicesProc.running = true
+        if (!getAppStreamsProc.running) getAppStreamsProc.running = true
     }
 
     Timer {
@@ -88,7 +88,7 @@ Item {
 
     Process {
         id: getDefaultSinkProc
-        command: ["bash", "-c", "pactl info | grep 'Default Sink' | awk '{print $3}'"]
+        command: ["windoesnot-bounded", "8", "bash", "-c", "pactl info | grep 'Default Sink' | awk '{print $3}'"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -98,9 +98,15 @@ Item {
         }
     }
 
+    Timer { interval: 9000; repeat: false; running: getDefaultSinkProc.running; onTriggered: getDefaultSinkProc.running = false }
+    Timer { interval: 9000; repeat: false; running: getVolumeProc.running; onTriggered: getVolumeProc.running = false }
+    Timer { interval: 9000; repeat: false; running: getMuteStatusProc.running; onTriggered: getMuteStatusProc.running = false }
+    Timer { interval: 9000; repeat: false; running: getOutputDevicesProc.running; onTriggered: getOutputDevicesProc.running = false }
+    Timer { interval: 9000; repeat: false; running: getAppStreamsProc.running; onTriggered: getAppStreamsProc.running = false }
+
     Process {
         id: getVolumeProc
-        command: ["bash", "-c", "pactl get-sink-volume @DEFAULT_SINK@ | grep -oP '\\d+%' | head -1 | tr -d '%'"]
+        command: ["windoesnot-bounded", "8", "bash", "-c", "pactl get-sink-volume @DEFAULT_SINK@ | grep -oP '\\d+%' | head -1 | tr -d '%'"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -112,7 +118,7 @@ Item {
 
     Process {
         id: getMuteStatusProc
-        command: ["bash", "-c", "pactl get-sink-mute @DEFAULT_SINK@ | grep -oP 'yes|no'"]
+        command: ["windoesnot-bounded", "8", "bash", "-c", "pactl get-sink-mute @DEFAULT_SINK@ | grep -oP 'yes|no'"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -148,19 +154,19 @@ Item {
     function setAppVolume(streamId, percent) {
         var value = Math.max(0, Math.min(100, Math.round(percent)))
         for (var j = 0; j < appModel.count; j++) if (appModel.get(j).streamId === streamId) appModel.setProperty(j, "appVolume", value)
-        setAppVolumeProc.command = ["pactl", "set-sink-input-volume", String(streamId), value + "%"]
+        setAppVolumeProc.command = ["windoesnot-bounded", "8", "pactl", "set-sink-input-volume", String(streamId), value + "%"]
         setAppVolumeProc.running = false
         setAppVolumeProc.running = true
     }
 
     function toggleAppMute(streamId) {
-        toggleAppMuteProc.command = ["pactl", "set-sink-input-mute", String(streamId), "toggle"]
+        toggleAppMuteProc.command = ["windoesnot-bounded", "8", "pactl", "set-sink-input-mute", String(streamId), "toggle"]
         toggleAppMuteProc.running = true
     }
 
     Process {
         id: getAppStreamsProc
-        command: ["pactl", "-f", "json", "list", "sink-inputs"]
+        command: ["windoesnot-bounded", "8", "pactl", "-f", "json", "list", "sink-inputs"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -194,13 +200,13 @@ Item {
 
     Process {
         id: setVolumeProc
-        command: ["bash", "-c", "pactl set-sink-volume @DEFAULT_SINK@ " + audioPanel.volume + "%"]
+        command: ["windoesnot-bounded", "8", "bash", "-c", "pactl set-sink-volume @DEFAULT_SINK@ " + audioPanel.volume + "%"]
         running: false
     }
 
     Process {
         id: toggleMuteProc
-        command: ["bash", "-c", "pactl set-sink-mute @DEFAULT_SINK@ toggle"]
+        command: ["windoesnot-bounded", "8", "bash", "-c", "pactl set-sink-mute @DEFAULT_SINK@ toggle"]
         running: false
         onRunningChanged: {
             if (!running) updateAudioState()
@@ -209,7 +215,7 @@ Item {
 
     Process {
         id: getOutputDevicesProc
-        command: ["bash", "-c", "pactl list sinks | awk 'BEGIN {id=\"\"; name=\"\"; desc=\"\"} /^Sink #/ {if (id != \"\" && name != \"\" && desc != \"\") print id \"|\" name \"|\" desc; id=$2; name=\"\"; desc=\"\"} /^\\tName:/ {name=$2} /device.description =/ {gsub(/.*device.description = \"/, \"\"); gsub(/\".*/, \"\"); desc=$0} END {if (id != \"\" && name != \"\" && desc != \"\") print id \"|\" name \"|\" desc}'"]
+        command: ["windoesnot-bounded", "8", "bash", "-c", "pactl list sinks | awk 'BEGIN {id=\"\"; name=\"\"; desc=\"\"} /^Sink #/ {if (id != \"\" && name != \"\" && desc != \"\") print id \"|\" name \"|\" desc; id=$2; name=\"\"; desc=\"\"} /^\\tName:/ {name=$2} /device.description =/ {gsub(/.*device.description = \"/, \"\"); gsub(/\".*/, \"\"); desc=$0} END {if (id != \"\" && name != \"\" && desc != \"\") print id \"|\" name \"|\" desc}'"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -648,7 +654,7 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 console.log("Setting default sink to:", modelData.name)
-                                setDefaultSinkProc.command = ["bash", "-c", "pactl set-default-sink " + modelData.name]
+                                setDefaultSinkProc.command = ["windoesnot-bounded", "8", "bash", "-c", "pactl set-default-sink " + modelData.name]
                                 setDefaultSinkProc.running = true
                                 // Sofort aktualisieren
                                 Qt.callLater(function() {

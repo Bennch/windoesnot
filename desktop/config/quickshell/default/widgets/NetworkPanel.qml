@@ -33,7 +33,7 @@ Item {
         // Load initial data once at startup
         updateNetworkState()
         // Also scan for WiFi networks immediately
-        getAvailableNetworksProc.running = true
+        if (!getAvailableNetworksProc.running) getAvailableNetworksProc.running = true
         initialized = true
     }
 
@@ -52,11 +52,11 @@ Item {
     }
 
     function updateNetworkState() {
-        getWifiStatusProc.running = true
-        getCurrentConnectionProc.running = true
-        getActiveWifiProc.running = true
+        if (!getWifiStatusProc.running) getWifiStatusProc.running = true
+        if (!getCurrentConnectionProc.running) getCurrentConnectionProc.running = true
+        if (!getActiveWifiProc.running) getActiveWifiProc.running = true
         if (wifiEnabled) {
-            getAvailableNetworksProc.running = true
+            if (!getAvailableNetworksProc.running) getAvailableNetworksProc.running = true
         } else {
             // Clear network list when WiFi is disabled
             networkPanel.availableNetworks = []
@@ -67,7 +67,7 @@ Item {
     // Check if WiFi is enabled
     Process {
         id: getWifiStatusProc
-        command: ["bash", "-c", "nmcli radio wifi"]
+        command: ["windoesnot-bounded", "6", "bash", "-c", "systemctl is-active --quiet NetworkManager.service && nmcli radio wifi"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -76,6 +76,11 @@ Item {
             }
         }
     }
+
+    Timer { interval: 7000; repeat: false; running: getWifiStatusProc.running; onTriggered: getWifiStatusProc.running = false }
+    Timer { interval: 7000; repeat: false; running: getCurrentConnectionProc.running; onTriggered: getCurrentConnectionProc.running = false }
+    Timer { interval: 7000; repeat: false; running: getActiveWifiProc.running; onTriggered: getActiveWifiProc.running = false }
+    Timer { interval: 16000; repeat: false; running: getAvailableNetworksProc.running; onTriggered: getAvailableNetworksProc.running = false }
 
     // Toggle WiFi
     Process {
@@ -94,7 +99,7 @@ Item {
     // Get current connection
     Process {
         id: getCurrentConnectionProc
-        command: ["bash", "-c", "nmcli -t -f NAME,TYPE,DEVICE connection show --active | head -1"]
+        command: ["windoesnot-bounded", "6", "bash", "-c", "systemctl is-active --quiet NetworkManager.service && nmcli -t -f NAME,TYPE,DEVICE connection show --active | head -1"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -126,7 +131,7 @@ Item {
 
     Process {
         id: getActiveWifiProc
-        command: ["bash", "-c", "nmcli -t -f NAME,TYPE connection show --active | grep '802-11-wireless' | head -1 | cut -d: -f1"]
+        command: ["windoesnot-bounded", "6", "bash", "-c", "systemctl is-active --quiet NetworkManager.service && nmcli -t -f NAME,TYPE connection show --active | grep '802-11-wireless' | head -1 | cut -d: -f1"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -139,7 +144,7 @@ Item {
     // Get available WiFi networks (scans for nearby networks)
     Process {
         id: getAvailableNetworksProc
-        command: ["bash", "-c", "nmcli -t -f SSID,SIGNAL,SECURITY device wifi list | grep -v '^$'"]
+        command: ["windoesnot-bounded", "15", "bash", "-c", "systemctl is-active --quiet NetworkManager.service && nmcli -t -f SSID,SIGNAL,SECURITY device wifi list | grep -v '^$'"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -302,7 +307,7 @@ Item {
             networkPanel.showPasswordDialog = true
         } else {
             // Connect directly (open network)
-            connectToNetworkProc.command = ["bash", "-c", "nmcli device wifi connect \"" + ssid + "\""]
+            connectToNetworkProc.command = ["windoesnot-bounded", "8", "bash", "-c", "nmcli device wifi connect \"" + ssid + "\""]
             connectToNetworkProc.running = true
         }
     }
@@ -326,7 +331,7 @@ Item {
     function disconnectFromWifi(ssid) {
         if (ssid) {
             var escapedSsid = ssid.replace(/'/g, "'\\''")
-            disconnectNetworkProc.command = ["bash", "-c", "nmcli connection down '" + escapedSsid + "'"]
+            disconnectNetworkProc.command = ["windoesnot-bounded", "8", "bash", "-c", "nmcli connection down '" + escapedSsid + "'"]
             disconnectNetworkProc.running = true
         }
     }
@@ -446,7 +451,7 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             var newState = !networkPanel.wifiEnabled
-                            toggleWifiProc.command = ["bash", "-c", "nmcli radio wifi " + (newState ? "on" : "off")]
+                            toggleWifiProc.command = ["windoesnot-bounded", "8", "bash", "-c", "nmcli radio wifi " + (newState ? "on" : "off")]
                             toggleWifiProc.running = true
                             console.log("Toggle WiFi:", newState)
                         }

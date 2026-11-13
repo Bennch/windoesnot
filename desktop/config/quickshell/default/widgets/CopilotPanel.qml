@@ -1615,7 +1615,7 @@ Item {
             "tf = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)\n" +
             "json.dump(body, tf); tf.close()\n" +
             "hdr_args = [a for h in hdrs for a in ['-H', h[0]+': '+h[1]]]\n" +
-            "cmd = ['curl','-sS','-N','-X','POST',url]+hdr_args+['--data-binary','@'+tf.name]\n" +
+            "cmd = ['curl','-sS','-N','--max-time','1800','-X','POST',url]+hdr_args+['--data-binary','@'+tf.name]\n" +
             "print('DEBUG: provider='+provider+' model='+model+' url='+url, file=sys.stderr, flush=True)\n" +
             "err_file = tempfile.NamedTemporaryFile(mode='w+', suffix='.err', delete=False)\n" +
             "err_path = err_file.name; err_file.close()\n" +
@@ -2659,7 +2659,7 @@ Item {
                     "windoesnot-hyprctl dispatch setprop address:$addr stay_focused 0; " +
                     "echo \"Done: pinned popup mode (position set by posProc or kept from previous state)\""
 
-                applyPinStateProc.command = ["bash", "-c", baseCmd + cmd]
+                applyPinStateProc.command = ["windoesnot-bounded", "8", "bash", "-c", baseCmd + cmd]
             } else {
                 // Unpinned mode: show hyprbars + make tiled
                 var cmd = "echo \"Applying UNPINNED mode\"; " +

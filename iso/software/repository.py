@@ -39,7 +39,7 @@ def download(url, destination):
         subprocess.run(['curl', '--fail', '--location', '--silent', '--show-error',
                         '--proto', '=https', '--proto-redir', '=https',
                         '--connect-timeout', '15', '--max-time', '600', '--retry', '2',
-                        '--output', str(temporary), url], check=True)
+                        '--output', str(temporary), url], check=True, timeout=620)
         temporary.replace(destination)
     finally:
         temporary.unlink(missing_ok=True)
