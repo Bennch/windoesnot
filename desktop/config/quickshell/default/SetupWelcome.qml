@@ -34,6 +34,7 @@ ShellRoot {
                 Image {
                     source: welcome.darkMode ? "img/brand/windoesnot-logo-hell.png" : "img/brand/windoesnot-logo-dunkel.png"
                     width: 158; height: 32; fillMode: Image.PreserveAspectFit
+                    sourceSize.width: 316; sourceSize.height: 64
                     horizontalAlignment: Image.AlignLeft
                 }
                 Text {

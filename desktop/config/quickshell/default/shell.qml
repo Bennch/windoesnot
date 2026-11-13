@@ -5856,20 +5856,32 @@ FloatingWindow {
         }
     }
 
-    // Poll volume changes every 100ms
+    // Initial state plus event driven updates from PipeWire/PulseAudio.
+    Component.onCompleted: volumeCheckProc.running = true
+
     Timer {
-        id: volumePollTimer
-        interval: 100
+        id: volumeEventDebounce
+        interval: 120
+        running: false
+        repeat: false
+        onTriggered: volumeCheckProc.running = true
+    }
+
+    Process {
+        id: volumeSubscriptionProc
+        command: ["pactl", "subscribe"]
         running: true
-        repeat: true
-        onTriggered: {
-            if (!volumeCheckProc.running) volumeCheckProc.running = true
+        stdout: SplitParser {
+            onRead: line => {
+                if (/ on (sink|server) /.test(line)) volumeEventDebounce.restart()
+            }
+
         }
     }
 
     Process {
         id: volumeCheckProc
-        command: ["windoesnot-bounded", "8", "bash", "-c", "wpctl get-volume @DEFAULT_AUDIO_SINK@"]
+        command: ["windoesnot-bounded", "8", "wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {

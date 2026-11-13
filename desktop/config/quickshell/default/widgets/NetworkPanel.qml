@@ -29,40 +29,47 @@ Item {
 
     property bool initialized: false
 
-    Component.onCompleted: {
-        // Load initial data once at startup
-        updateNetworkState()
-        // Also scan for WiFi networks immediately
-        if (!getAvailableNetworksProc.running) getAvailableNetworksProc.running = true
-        initialized = true
-    }
+    Component.onCompleted: initialized = true
 
-    // Update when panel becomes visible
-    onVisibleChanged: {
-        if (visible) {
-            updateNetworkState()
-        }
-    }
+    // The parent binds this after the lazy loader creates the panel.
+    onWindowVisibleChanged: if (windowVisible) updateNetworkState(true)
 
     Timer {
-        interval: 3000
-        running: networkPanel.windowVisible  // Only run when panel is visible
-        repeat: true
-        onTriggered: updateNetworkState()
+        id: networkEventDebounce
+        interval: 300
+        running: false
+        repeat: false
+        onTriggered: networkPanel.updateNetworkState(false)
+
     }
 
-    function updateNetworkState() {
-        if (!getWifiStatusProc.running) getWifiStatusProc.running = true
-        if (!getCurrentConnectionProc.running) getCurrentConnectionProc.running = true
-        if (!getActiveWifiProc.running) getActiveWifiProc.running = true
-        if (wifiEnabled) {
-            if (!getAvailableNetworksProc.running) getAvailableNetworksProc.running = true
-        } else {
-            // Clear network list when WiFi is disabled
-            networkPanel.availableNetworks = []
-            networkPanel.activeWifiSSID = ""
+    Process {
+        id: networkMonitorProc
+        command: ["nmcli", "monitor"]
+        running: networkPanel.windowVisible
+        stdout: SplitParser {
+            onRead: line => networkEventDebounce.restart()
         }
     }
+
+    // nmcli monitor reports connection/device changes, but it does not request
+    // fresh access-point scans. Refresh only that list while the panel is open.
+    Timer {
+        interval: 5000
+        running: networkPanel.windowVisible && networkPanel.wifiEnabled
+        repeat: true
+        onTriggered: if (!getAvailableNetworksProc.running) getAvailableNetworksProc.running = true
+    }
+
+    function updateNetworkState(scanWifi) {
+        networkPanel.scanWifiAfterStatus = !!scanWifi
+        getWifiStatusProc.running = true
+        getCurrentConnectionProc.running = true
+        getActiveWifiProc.running = true
+
+    }
+
+    property bool scanWifiAfterStatus: false
 
     // Check if WiFi is enabled
     Process {
@@ -73,6 +80,13 @@ Item {
             onStreamFinished: {
                 var status = this.text.trim()
                 networkPanel.wifiEnabled = (status === "enabled")
+                if (networkPanel.wifiEnabled && networkPanel.scanWifiAfterStatus)
+                    getAvailableNetworksProc.running = true
+                else if (!networkPanel.wifiEnabled) {
+                    networkPanel.availableNetworks = []
+                    networkPanel.activeWifiSSID = ""
+                }
+                networkPanel.scanWifiAfterStatus = false
             }
         }
     }
@@ -90,7 +104,7 @@ Item {
         onRunningChanged: {
             if (!running) {
                 Qt.callLater(function() {
-                    updateNetworkState()
+                    updateNetworkState(true)
                 })
             }
         }
@@ -275,7 +289,7 @@ Item {
             } else {
                 Qt.callLater(function() {
                     // Wait a bit for connection to establish, then update
-                    updateNetworkState()
+                    updateNetworkState(true)
                 })
             }
         }
@@ -344,7 +358,7 @@ Item {
         onRunningChanged: {
             if (!running) {
                 Qt.callLater(function() {
-                    updateNetworkState()
+                    updateNetworkState(true)
                 })
             }
         }

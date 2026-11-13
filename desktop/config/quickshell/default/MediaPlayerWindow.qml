@@ -18,6 +18,7 @@ FloatingWindow {
     property string accentColor: "#FE6F2D"
     property bool darkMode: true
     property var cavaData: []
+    property string latestCavaLine: ""
     property string primaryMonitorName: ""
 
     screen: {
@@ -62,41 +63,30 @@ FloatingWindow {
     Process {
         id: cavaProcess
         running: false
-        command: ["bash", "-c", "cava -p ~/.config/cava/config_mediaplayer 2>/dev/null | while IFS= read -r line; do echo \"$line\" > /tmp/cava_output_qs; done"]
+        command: ["bash", "-c", "cava -p ~/.config/cava/config_mediaplayer 2>/dev/null"]
+        stdout: SplitParser {
+            onRead: line => mediaPlayerWindow.latestCavaLine = line
+        }
     }
 
-    // Timer um Cava-Output aus Datei zu lesen
+    // Cava streams at up to 60 Hz. Keep the old 20 Hz visual refresh cadence
+    // without spawning `cat` on every tick.
     Timer {
-        id: cavaUpdateTimer
         interval: 50
         running: mediaPlayerWindow.visible
         repeat: true
-        onTriggered: {
-            cavaReadProc.running = true
-        }
+        onTriggered: if (mediaPlayerWindow.latestCavaLine.length > 0)
+            mediaPlayerWindow.updateCavaData(mediaPlayerWindow.latestCavaLine)
     }
 
-    Process {
-        id: cavaReadProc
-        running: false
-        command: ["cat", "/tmp/cava_output_qs"]
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var line = this.text.trim()
-                if (line.length > 0) {
-                    var values = line.split(";")
-                    var bars = []
-                    for (var j = 0; j < Math.min(32, values.length); j++) {
-                        var val = parseInt(values[j]) || 0
-                        bars.push(Math.min(100, val))
-                    }
-                    if (bars.length > 0) {
-                        mediaPlayerWindow.cavaData = bars
-                    }
-                }
-            }
+    function updateCavaData(line) {
+        var values = line.trim().split(";")
+        var bars = []
+        for (var j = 0; j < Math.min(32, values.length); j++) {
+            var val = parseInt(values[j]) || 0
+            bars.push(Math.min(100, val))
         }
+        if (bars.length > 0) mediaPlayerWindow.cavaData = bars
     }
 
     // Timer für Position-Update
