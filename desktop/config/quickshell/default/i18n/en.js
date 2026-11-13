@@ -87,6 +87,13 @@ var strings = {
     "power.profile.balanced": "Balanced",
     "power.profile.power-saver": "Power saver",
     "maintenance.intro": "These tools help with downloads, updates and drivers. Read the explanation and run the step you need.",
+
+    "desktopState.title": "Desktop status",
+    "desktopState.noErrors": "No errors",
+    "desktopState.unavailable": "Desktop status could not be queried.",
+    "desktopState.plugins": "Plugins",
+    "desktopState.loaded": "loaded",
+    "desktopState.missing": "missing",
     "maintenance.groupDownloads": "Downloads & cache",
     "maintenance.groupRepair": "System repair",
     "maintenance.groupSecurity": "Security",

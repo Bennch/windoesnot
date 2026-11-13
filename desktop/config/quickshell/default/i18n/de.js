@@ -87,6 +87,13 @@ var strings = {
     "power.profile.balanced": "Ausgeglichen",
     "power.profile.power-saver": "Energiesparen",
     "maintenance.intro": "Diese Werkzeuge helfen bei Problemen mit Downloads, Updates und Treibern. Lies die Erklärung und führe nur den Schritt aus, den du brauchst.",
+
+    "desktopState.title": "Desktop-Zustand",
+    "desktopState.noErrors": "Keine Fehler",
+    "desktopState.unavailable": "Desktop-Zustand konnte nicht abgefragt werden.",
+    "desktopState.plugins": "Plugins",
+    "desktopState.loaded": "geladen",
+    "desktopState.missing": "fehlt",
     "maintenance.groupDownloads": "Downloads & Cache",
     "maintenance.groupRepair": "System reparieren",
     "maintenance.groupSecurity": "Sicherheit",

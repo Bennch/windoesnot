@@ -29,6 +29,9 @@ Item {
     property string pendingAction: ""
     property var pendingArgs: ({})
     property string pendingDescription: ""
+    property string desktopErrors: ""
+    property var desktopPlugins: ({})
+    property bool desktopStateReady: false
     width: parent ? parent.width : 650
     height: content.height
 
@@ -58,7 +61,26 @@ Item {
             .concat(["/usr/lib/windoesnot/system_tools.py", action, JSON.stringify(args)])
         worker.running = true
     }
-    Component.onCompleted: if (autoLoad) runAction("maintenance-status", {})
+    Component.onCompleted: {
+        if (autoLoad) runAction("maintenance-status", {})
+        desktopStateProc.running = true
+    }
+    Process {
+        id: desktopStateProc
+        command: ["sh", "-c", "command -v windoesnot-hyprctl >/dev/null || exit 127; printf '%s\\n' '---CONFIG---'; windoesnot-hyprctl configerrors 2>&1 || true; printf '%s\\n' '---PLUGINS---'; windoesnot-hyprctl plugin list 2>&1 || true"]
+        stdout: StdioCollector { id: desktopStateOutput }
+        onExited: (code) => {
+            const parts = desktopStateOutput.text.split("---PLUGINS---")
+            const configPart = parts[0].replace("---CONFIG---", "").trim()
+            const pluginPart = parts.length > 1 ? parts.slice(1).join("---PLUGINS---") : ""
+            page.desktopErrors = configPart
+            page.desktopPlugins = ({
+                hyprbars: /hyprbars/i.test(pluginPart),
+                hyprdrag: /hyprdrag/i.test(pluginPart)
+            })
+            page.desktopStateReady = code === 0
+        }
+    }
     Process {
         id: worker
         property string operation: ""
@@ -99,6 +121,27 @@ Item {
         id: content
         width: parent.width; spacing: 20
         Note { text: page.tr("maintenance.intro") }
+        Rectangle {
+            width: parent.width; height: desktopStateColumn.implicitHeight + 32
+            radius: settingsMenu ? settingsMenu.borderRadius : 10
+            color: page.dark ? "#141414" : "#f5f5f5"
+            border.width: 1; border.color: page.lineColor
+            Column {
+                id: desktopStateColumn; x: 16; y: 16; width: parent.width - 32; spacing: 8
+                Text { text: page.tr("desktopState.title"); color: page.foreground; font.bold: true; font.pixelSize: 15 }
+                Note {
+                    text: !page.desktopStateReady ? page.tr("desktopState.unavailable")
+                        : (page.desktopErrors.length ? page.desktopErrors : page.tr("desktopState.noErrors"))
+                    color: page.desktopErrors.length ? "#e8a020" : page.secondary
+                }
+                Note {
+                    visible: page.desktopStateReady
+                    text: page.tr("desktopState.plugins") + " — hyprbars: " + (page.desktopPlugins.hyprbars ? page.tr("desktopState.loaded") : page.tr("desktopState.missing"))
+                        + ", hyprdrag: " + (page.desktopPlugins.hyprdrag ? page.tr("desktopState.loaded") : page.tr("desktopState.missing"))
+                    color: page.desktopPlugins.hyprbars && page.desktopPlugins.hyprdrag ? page.secondary : "#e8a020"
+                }
+            }
+        }
         Row {
             width: parent.width; spacing: 8
             Repeater {
