@@ -193,7 +193,6 @@ PanelWindow {
         }
     }
 
-    Timer { interval: 9000; repeat: false; running: checkNotificationsProc.running; onTriggered: checkNotificationsProc.running = false }
     Timer { interval: 9000; repeat: false; running: checkSwayncVisibilityProc.running; onTriggered: checkSwayncVisibilityProc.running = false }
 
     // Container verschiebt sich - Fenster bleibt bei y=0

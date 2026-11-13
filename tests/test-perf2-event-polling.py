@@ -76,7 +76,7 @@ class Perf2EventPollingTests(unittest.TestCase):
         shell = (QS / "shell.qml").read_text()
         self.assertIn('["pactl", "subscribe"]', shell)
         self.assertIn("volumeEventDebounce.restart()", shell)
-        self.assertIn('["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"]', shell)
+        self.assertIn('["windoesnot-bounded", "8", "wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"]', shell)
         volume_section = shell.split("// Volume Overlay", 1)[1]
         self.assertNotIn("volumePollTimer", volume_section)
         self.assertFalse(any("interval: 100\n        running: true" in block for block in timer_blocks(volume_section)))

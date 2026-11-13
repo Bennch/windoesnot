@@ -96,7 +96,8 @@ class DesktopPollingTests(unittest.TestCase):
         bar = (DESKTOP / "config/quickshell/default/TopNotificationBar.qml").read_text()
         self.assertIn('if ((eventName === "openwindow" || eventName === "closewindow") && !checkSwayncVisibilityProc.running)', bar)
         bar_timers = list(timer_blocks(bar))
-        self.assertTrue(any("checkNotificationsProc.running = false" in body for _, body in bar_timers))
+        self.assertIn('["swaync-client", "--subscribe-waybar"]', bar)  # one long-lived subscription replaces the 500 ms poll
+        self.assertNotIn("checkNotificationsProc", bar)
         self.assertIn('["windoesnot-bounded", "8", "hyprctl", "-j", "clients"]', bar)
         shell = (DESKTOP / "config/quickshell/default/shell.qml").read_text()
         self.assertIn('["windoesnot-bounded", "8", "hyprctl", "-j", "clients"]', shell)
@@ -121,7 +122,9 @@ class DesktopPollingTests(unittest.TestCase):
                 context = " ".join(lines[index:min(index + 6, len(lines))])
                 if audited.search(context) and re.search(r"\b(?:command|\.command)\s*(?:=|:)", line):
                     launches += 1
-                    if "windoesnot-bounded" not in context and "--max-time" not in context and "timeout " not in context:
+                    # Long-lived event subscriptions (one process, no polling) are bounded by design.
+                    long_lived = re.search(r'subscribe|"nmcli",\s*"monitor"|nmcli monitor', context)
+                    if "windoesnot-bounded" not in context and "--max-time" not in context and "timeout " not in context and not long_lived:
                         unbounded.append(f"{path.relative_to(ROOT)}:{index + 1}: {line.strip()}")
         self.assertEqual(unbounded, [], "Audited QML Process commands need a deadline or an explicit transport timeout")
         self.assertGreater(launches, 30)
@@ -131,7 +134,7 @@ class DesktopPollingTests(unittest.TestCase):
             "BluetoothPanel.qml": ("getBluetoothPowerProc", "getAllDevicesProc"),
             "NetworkPanel.qml": ("getWifiStatusProc", "getCurrentConnectionProc", "getActiveWifiProc", "getAvailableNetworksProc"),
             "AudioPanel.qml": ("getDefaultSinkProc", "getVolumeProc", "getMuteStatusProc", "getOutputDevicesProc", "getAppStreamsProc"),
-            "TopNotificationBar.qml": ("checkNotificationsProc", "checkSwayncVisibilityProc"),
+            "TopNotificationBar.qml": ("checkSwayncVisibilityProc",),
             "SnapManager.qml": ("activeWindowProc", "snapGroupQueryProc"),
             "shell.qml": ("hyprlandWindowProc", "volumeCheckProc"),
         }

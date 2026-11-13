@@ -63,9 +63,9 @@ Item {
 
     function updateNetworkState(scanWifi) {
         networkPanel.scanWifiAfterStatus = !!scanWifi
-        getWifiStatusProc.running = true
-        getCurrentConnectionProc.running = true
-        getActiveWifiProc.running = true
+        if (!getWifiStatusProc.running) getWifiStatusProc.running = true
+        if (!getCurrentConnectionProc.running) getCurrentConnectionProc.running = true
+        if (!getActiveWifiProc.running) getActiveWifiProc.running = true
 
     }
 

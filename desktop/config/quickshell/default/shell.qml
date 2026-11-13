@@ -5840,7 +5840,7 @@ FloatingWindow {
 
     // Function to manually show overlay
     function showOverlay() {
-        volumeCheckProc.running = true
+        if (!volumeCheckProc.running) volumeCheckProc.running = true
         visible = true
         hideTimer.restart()
     }
@@ -5864,7 +5864,7 @@ FloatingWindow {
         interval: 120
         running: false
         repeat: false
-        onTriggered: volumeCheckProc.running = true
+        onTriggered: if (!volumeCheckProc.running) volumeCheckProc.running = true
     }
 
     Process {
