@@ -15,6 +15,7 @@ with tempfile.TemporaryDirectory(prefix='windoesnot-upgrade-test-') as temp:
     (code/'shell.qml').write_text('version one\n')
     (code/'old.qml').write_text('retired\n')
     (code/'custom.qml').write_text('upstream original\n')
+    (code/'technical-apps-hidden.txt').write_text('# defaults\ncmake-gui.desktop\n')
     env = {**os.environ, 'HOME':str(home), 'XDG_CONFIG_HOME':str(home/'.config'), 'XDG_STATE_HOME':str(home/'.local/state')}
     def sync(*args, success=True):
         p=subprocess.run(['python3',str(tool),'--source',str(source),'--native',str(root/'empty-native'),*args],env=env,text=True,capture_output=True)
@@ -26,6 +27,8 @@ with tempfile.TemporaryDirectory(prefix='windoesnot-upgrade-test-') as temp:
     private={'settings.txt':'darkMode=false\nprivate=value\n','calendar_notes.json':'{"private":"note"}','pins.txt':'user pins\n'}
     private['IconMap.js']='// Generated for this user\nvar MAP = {"userapp":"user-icon"};\n'
     for name,text in private.items(): (config/name).write_text(text)
+    technical=config/'technical-apps-hidden.txt'
+    technical.write_text('# user choice\nqtcreator.desktop\n')
     (config/'custom.qml').write_text('my local code\n')
     (source/'VERSION').write_text('0.1.0-2\n')
     (code/'shell.qml').write_text('version two\n')
@@ -39,6 +42,7 @@ with tempfile.TemporaryDirectory(prefix='windoesnot-upgrade-test-') as temp:
     assert (config/'custom.qml').read_text()=='my local code\n'
     assert report['conflicts']==['quickshell/default/custom.qml']
     assert all((config/name).read_text()==text for name,text in private.items())
+    assert technical.read_text()=='# user choice\nqtcreator.desktop\n'
     # An older package accidentally tracked this generated cache as code.
     ledger=home/'.local/state/windoesnot/desktop-files.json'
     old_record=json.loads(ledger.read_text())

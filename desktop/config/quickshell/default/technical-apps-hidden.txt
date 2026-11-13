@@ -1,0 +1,34 @@
+# Desktop file IDs hidden from the default Start menu app grid.
+# Search still finds these entries. Add one ID per line to extend the list.
+assistant.desktop
+blueman-adapters.desktop
+calamares.desktop
+cmake-gui.desktop
+designer.desktop
+gnome-system-monitor-kde.desktop
+gparted.desktop
+io.calamares.calamares.desktop
+ktelnetservice6.desktop
+kxkb2locale1.desktop
+lftp.desktop
+linguist.desktop
+lstopo.desktop
+micro.desktop
+nautilus-autorun-software.desktop
+nm-applet.desktop
+nm-connection-editor.desktop
+occt.desktop
+org.freedesktop.Xwayland.desktop
+org.gnome.SystemMonitor.desktop
+org.gnupg.pinentry-qt.desktop
+org.kde.kiod6.desktop
+org.kde.ksecretd.desktop
+org.kde.kwalletd.desktop
+org.quickshell.desktop
+polkit-gnome-authentication-agent-1.desktop
+qdbusviewer.desktop
+qv4l2.desktop
+qvidcap.desktop
+vim.desktop
+windoesnot-installer.desktop
+xdg-desktop-portal-gtk.desktop

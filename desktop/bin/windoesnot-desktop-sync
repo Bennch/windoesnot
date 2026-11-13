@@ -76,7 +76,8 @@ def sources():
             yield 'hypr/plugins/' + source.name, source
 
 def personal_or_generated(name):
-    return Path(name).parts[0] in ('snappy-switcher', 'swaync') or name == 'quickshell/default/IconMap.js'
+    return (Path(name).parts[0] in ('snappy-switcher', 'swaync')
+            or name in ('quickshell/default/IconMap.js', 'quickshell/default/technical-apps-hidden.txt'))
 
 def main():
     previous = json.loads(manifest_path.read_text()) if manifest_path.exists() else {'schema': 1, 'files': {}}

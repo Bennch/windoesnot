@@ -866,6 +866,7 @@ var strings = {
     "shell.pinned": "Pinned",
     "shell.allApps": "All Apps",
     "shell.searchResults": "Search results",
+    "shell.showTechnicalApps": "Show technical apps",
     "shell.colorPicker": "Color Picker",
     "shell.close": "Close",
     "shell.volume": "Volume",

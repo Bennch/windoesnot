@@ -8,7 +8,7 @@ import re
 import sys
 
 
-def launchers(directories, language, structured=False):
+def launchers(directories, language, structured=False, technical_ids=()):
     language = language.split('.')[0].replace('-', '_')
     keys = ['Name[' + language + ']', 'Name[' + language.split('_')[0] + ']', 'Name']
     seen = set()
@@ -40,7 +40,10 @@ def launchers(directories, language, structured=False):
                         continue
                     seen_commands.add(command)
                     names = sorted({value for key, value in entry.items() if key == 'Name' or key.startswith('Name[')})
-                    result.append({'id': identity, 'desktopPath': str(path), 'name': name, 'cmd': command, 'icon': row[2], 'names': names} if structured else '|'.join(row))
+                    user_data = Path.home() / '.local/share'
+                    user_flatpak = Path.home() / '.var/app'
+                    is_user_launcher = path.is_relative_to(user_data) or path.is_relative_to(user_flatpak)
+                    result.append({'id': identity, 'desktopPath': str(path), 'name': name, 'cmd': command, 'icon': row[2], 'names': names, 'technical': identity in technical_ids and not is_user_launcher} if structured else '|'.join(row))
             except (OSError, UnicodeError, configparser.Error, KeyError):
                 continue
     if structured:
@@ -56,9 +59,19 @@ def main():
     directories += [home / '.local/share/flatpak/exports/share/applications', Path('/var/lib/flatpak/exports/share/applications')]
     directories += list((home / '.var/app').glob('*/share/applications'))
     directories += list(Path('/snap').glob('*/current/meta/gui'))
-    structured = '--json' in sys.argv[1:]
-    arguments = [value for value in sys.argv[1:] if value != '--json']
-    rows = launchers(directories, arguments[0] if arguments else os.environ.get('LANG', 'en'), structured)
+    arguments = sys.argv[1:]
+    structured = '--json' in arguments
+    technical_path = None
+    if '--technical-list' in arguments:
+        index = arguments.index('--technical-list')
+        technical_path = Path(arguments[index + 1]) if index + 1 < len(arguments) else None
+        del arguments[index:index + 2]
+    arguments = [value for value in arguments if value != '--json']
+    technical_ids = set()
+    if technical_path and technical_path.is_file():
+        technical_ids = {line.strip() for line in technical_path.read_text().splitlines()
+                         if line.strip() and not line.lstrip().startswith('#')}
+    rows = launchers(directories, arguments[0] if arguments else os.environ.get('LANG', 'en'), structured, technical_ids)
     print(json.dumps(rows, ensure_ascii=False) if structured else '\n'.join(rows))
 
 
