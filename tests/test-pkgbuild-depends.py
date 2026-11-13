@@ -9,4 +9,7 @@ for m in re.finditer(r'^ *depends=\((.*)$', text, re.M):
     tokens = re.findall(r'"[^"]*"|[^\s")]+', line.rstrip()[:-1])
     dupes = {t for t in tokens if tokens.count(t) > 1}
     assert not dupes, 'duplicate dependencies: ' + ', '.join(sorted(dupes))
-print('PASS: PKGBUILD depends arrays are well formed')
+loop = text[text.index('for command in desktop/bin/*'):]
+loop = loop[:loop.index('done')]
+assert 'ghostty' in loop and 'continue' in loop, 'desktop/bin/ghostty must not be installed to /usr/bin (conflicts with the ghostty package)'
+print('PASS: PKGBUILD depends arrays are well formed and the ghostty wrapper stays out of /usr/bin')

@@ -93,6 +93,8 @@ package_windoesnot-tools() {
     cd "$srcdir/windoesnot-$pkgver"
     install -d "$pkgdir/usr/bin"
     for command in desktop/bin/*; do
+        # The Ghostty/Foot wrapper shadows /usr/bin/ghostty from /usr/local/bin (below); /usr/bin belongs to the ghostty package.
+        [ "$(basename "$command")" = ghostty ] && continue
         install -m755 "$command" "$pkgdir/usr/bin/$(basename "$command")"
     done
     install -Dm644 desktop/lib/windoesnot/migrate.py "$pkgdir/usr/lib/windoesnot/migrate.py"
