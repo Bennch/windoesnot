@@ -2,6 +2,22 @@
   "comment": "WinDoesNot changes per desktop package release, newest first. Shown in Settings > Updates; entries marked unreleased are never offered as an update.",
   "releases": [
     {
+      "version": "0.1.0-29",
+      "date": "2026-11-13",
+      "de": [
+        "Installation mit dem Startmenü systemd-boot bricht nicht mehr ab. Passt die deutsche Übersetzung nicht zur Version, bleibt das englische Standardmenü.",
+        "Alte NVIDIA-Grafikkarten (etwa 2006 bis 2011): Der Open-Source-Treiber nouveau wird erkannt und nicht mehr blockiert, im Live-System und nach der Installation.",
+        "Die Warnung von pacman zu DownloadUser in der Konfiguration ist weg.",
+        "Einstellungen, Wartung: Neue Karte Desktop-Zustand zeigt Konfigurationsfehler der Oberfläche und ob die Fenster-Erweiterungen geladen sind."
+      ],
+      "en": [
+        "Installation with the systemd-boot menu no longer aborts. If the German translation does not match the version, the standard English menu stays.",
+        "Old NVIDIA graphics cards (about 2006 to 2011): the open-source nouveau driver is detected and no longer blocked, in the live system and after installation.",
+        "The pacman warning about DownloadUser in the configuration is gone.",
+        "Settings, Maintenance: a new Desktop state card shows configuration errors of the desktop and whether the window extensions are loaded."
+      ]
+    },
+    {
       "version": "0.1.0-28",
       "date": "2026-11-12",
       "de": [
