@@ -32,6 +32,9 @@ Item {
     property string desktopErrors: ""
     property var desktopPlugins: ({})
     property bool desktopStateReady: false
+    property var pacnewFiles: []
+    property string selectedPacnewPath: ""
+    property string pacnewError: ""
     width: parent ? parent.width : 650
     height: content.height
 
@@ -64,7 +67,28 @@ Item {
     Component.onCompleted: {
         if (autoLoad) runAction("maintenance-status", {})
         desktopStateProc.running = true
+        if (autoLoad) { busyPacnew = true; pacnewProc.running = true }
     }
+    Process {
+        id: pacnewProc
+        command: ["/usr/bin/python3", "-I", "/usr/lib/windoesnot/pacnew.py"]
+        stdout: StdioCollector { id: pacnewOutput }
+        stderr: StdioCollector { id: pacnewErrors }
+        onExited: (code) => {
+            page.busyPacnew = false
+            if (code !== 0) { page.pacnewError = pacnewErrors.text.trim(); return }
+            try {
+                const data = JSON.parse(pacnewOutput.text)
+                page.pacnewFiles = data.files || []
+                if (!page.pacnewFiles.some(item => item.path === page.selectedPacnewPath))
+                    page.selectedPacnewPath = page.pacnewFiles.length ? page.pacnewFiles[0].path : ""
+                page.pacnewError = ""
+            } catch (error) { page.pacnewError = String(error) }
+        }
+    }
+    property bool busyPacnew: false
+    function refreshPacnew() { if (busyPacnew) return; busyPacnew = true; pacnewProc.running = true }
+    readonly property var selectedPacnew: pacnewFiles.find(item => item.path === selectedPacnewPath) || null
     Process {
         id: desktopStateProc
         command: ["sh", "-c", "command -v windoesnot-hyprctl >/dev/null || exit 127; printf '%s\\n' '---CONFIG---'; windoesnot-hyprctl configerrors 2>&1 || true; printf '%s\\n' '---PLUGINS---'; windoesnot-hyprctl plugin list 2>&1 || true"]
@@ -121,6 +145,54 @@ Item {
         id: content
         width: parent.width; spacing: 20
         Note { text: page.tr("maintenance.intro") }
+        Rectangle {
+            objectName: "pacnewCard"
+            width: parent.width; height: pacnewContent.implicitHeight + 32
+            radius: settingsMenu ? settingsMenu.borderRadius : 10
+            color: page.dark ? "#141414" : "#f5f5f5"
+            border.width: 1; border.color: page.lineColor
+            Column {
+                id: pacnewContent; x: 16; y: 16; width: parent.width - 32; spacing: 10
+                Text { text: page.tr("pacnew.title"); color: page.foreground; font.pixelSize: 15; font.bold: true }
+                Note { text: page.tr("pacnew.hint") }
+                Row {
+                    width: parent.width; spacing: 10
+                    Tools.SystemToolsButton { settingsMenu: page.settingsMenu; text: page.tr("pacnew.refresh"); enabled: !page.busyPacnew; onClicked: page.refreshPacnew() }
+                    BusyIndicator { width: 28; height: 28; running: page.busyPacnew; visible: running; palette.highlight: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
+                }
+                Note { visible: page.pacnewError.length > 0; text: page.tr("pacnew.failed") + " " + page.pacnewError }
+                Note { visible: !page.busyPacnew && !page.pacnewFiles.length && !page.pacnewError; text: page.tr("pacnew.empty") }
+                Repeater {
+                    model: page.pacnewFiles
+                    delegate: Tools.SystemToolsButton {
+                        required property var modelData
+                        width: pacnewContent.width
+                        settingsMenu: page.settingsMenu
+                        primary: page.selectedPacnewPath === modelData.path
+                        text: modelData.path + "  ·  " + modelData.kind + "  ·  " + modelData.package
+                        onClicked: page.selectedPacnewPath = modelData.path
+                    }
+                }
+                Note {
+                    visible: page.selectedPacnew !== null
+                    text: page.selectedPacnew ? page.tr("pacnew.metadata").replace("%1", page.selectedPacnew.date).replace("%2", page.selectedPacnew.size).replace("%3", page.selectedPacnew.package || page.tr("pacnew.unknown")).replace("%4", page.tr(page.selectedPacnew.locally_modified === true ? "pacnew.modifiedYes" : page.selectedPacnew.locally_modified === false ? "pacnew.modifiedNo" : "pacnew.modifiedUnknown")) : ""
+                }
+                Note {
+                    visible: page.selectedPacnew !== null
+                    text: page.selectedPacnew ? page.tr("pacnew.diff." + page.selectedPacnew.diff_status) : ""
+                }
+                ScrollView {
+                    visible: page.selectedPacnew && page.selectedPacnew.diff_status === "ok"
+                    width: pacnewContent.width; height: 260; clip: true
+                    TextArea {
+                        readOnly: true; selectByMouse: true; wrapMode: TextEdit.NoWrap
+                        text: page.selectedPacnew ? page.selectedPacnew.diff : ""
+                        color: page.foreground; font.family: "monospace"; font.pixelSize: 12
+                        background: Rectangle { color: page.dark ? "#101010" : "#ffffff"; border.color: page.lineColor; radius: 6 }
+                    }
+                }
+            }
+        }
         Rectangle {
             width: parent.width; height: desktopStateColumn.implicitHeight + 32
             radius: settingsMenu ? settingsMenu.borderRadius : 10
