@@ -87,7 +87,11 @@ def configure_pacman(text, level):
             while lines and not lines[-1].strip():
                 lines.pop()
             # pacman's default for an installed system; the live image disables it.
-            lines += ['DownloadUser = alpm', '']
+            # Insert before the first Include: an included file may open its own
+            # section, which would otherwise swallow this option.
+            at = next((i for i, l in enumerate(lines) if re.match(r'\s*Include\s*=', l)), len(lines))
+            lines[at:at] = ['DownloadUser = alpm']
+            lines.append('')
         if name in MIRRORLISTS:
             body = [l for l in lines[1:] if not re.match(r'\s*(Server|Include)\s*=', l)]
             lines = [lines[0], f'Include = /etc/pacman.d/{MIRRORLISTS[name]}', *body]

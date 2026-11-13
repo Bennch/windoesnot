@@ -53,6 +53,11 @@ assert sections == ['[options]', '[cachyos-v3]', '[cachyos-core-v3]', '[cachyos-
 assert 'Server =' not in conf and 'DisableSandbox' not in conf and 'DownloadUser = alpm' in conf
 assert 'Include = /etc/pacman.d/cachyos-v3-mirrorlist' in conf and 'Include = /etc/pacman.d/mirrorlist' in conf
 assert setup.configure_pacman(conf, 'v3') == conf, 'not idempotent'
+# DownloadUser must stay in [options] even when an Include (own [windoesnot] section) follows.
+with_include = IMAGE_CONF.replace('SigLevel    = Required DatabaseOptional\n', 'SigLevel    = Required DatabaseOptional\nInclude = /etc/pacman.d/windoesnot.conf\n')
+result = setup.configure_pacman(with_include, 'v3').splitlines()
+assert result.index('DownloadUser = alpm') < result.index('Include = /etc/pacman.d/windoesnot.conf'), result
+assert setup.configure_pacman('\n'.join(result) + '\n', 'v3').splitlines() == result, 'not idempotent with Include'
 assert '-v3' not in setup.configure_pacman(conf, None)
 assert 'cachyos-extra-znver4' in setup.configure_pacman(conf, 'znver4')
 assert setup.configure_pacman(IMAGE_CONF, 'v4').count('cachyos-v4-mirrorlist') == 3
