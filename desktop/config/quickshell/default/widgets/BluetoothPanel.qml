@@ -16,44 +16,45 @@ Item {
     property bool darkMode: true  // Wird von shell.qml gesetzt
     property string uiLanguage: "de"  // Bound from shell.qml
     property bool bluetoothEnabled: false
+    property bool bluetoothControllerAvailable: false
     property var allDevices: []  // Combined list of paired and available devices
     property bool isScanning: false
 
-    property bool initialized: false
-
-    Component.onCompleted: {
-        // Load initial data once at startup
-        updateBluetoothState()
-        initialized = true
-    }
-
-    // Update when panel becomes visible
-    onVisibleChanged: {
-        if (visible) {
+    // Don't query Bluetooth until the panel is actually open.
+    onWindowVisibleChanged: {
+        if (windowVisible)
             updateBluetoothState()
-        }
     }
 
     Timer {
-        interval: 3000
-        running: bluetoothPanel.windowVisible  // Only run when panel is visible
+        interval: 10000
+        running: bluetoothPanel.windowVisible && bluetoothPanel.bluetoothControllerAvailable
         repeat: true
         onTriggered: updateBluetoothState()
     }
 
     function updateBluetoothState() {
+        if (!windowVisible)
+            return
         getBluetoothPowerProc.running = true
-        getAllDevicesProc.running = true
     }
 
     // Get Bluetooth power status
     Process {
         id: getBluetoothPowerProc
-        command: ["bash", "-c", "bluetoothctl show | grep 'Powered:' | awk '{print $2}'"]
+        command: ["bluetoothctl", "show"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
-                bluetoothPanel.bluetoothEnabled = (this.text.trim() === "yes")
+                var output = this.text
+                var available = /Controller\s+[0-9A-Fa-f:]+/.test(output)
+                    && !/No default controller available/i.test(output)
+                bluetoothPanel.bluetoothControllerAvailable = available
+                bluetoothPanel.bluetoothEnabled = available && /^\s*Powered:\s+yes\s*$/m.test(output)
+                if (available)
+                    getAllDevicesProc.running = true
+                else
+                    bluetoothPanel.allDevices = []
             }
         }
     }
@@ -219,7 +220,7 @@ Item {
     // Close blueman notification windows
     Process {
         id: closeBluemanProc
-        command: ["bash", "-c", "windoesnot-hyprctl clients -j | jq -r '.[] | select(.class==\"blueman-applet\" or .class==\"blueman-manager\" or .class==\"Blueman-manager\") | .address' | while read addr; do windoesnot-hyprctl dispatch closewindow address:$addr; done"]
+        command: ["bash", "-c", "hyprctl -j clients | jq -r '.[] | select(.class==\"blueman-applet\" or .class==\"blueman-manager\" or .class==\"Blueman-manager\") | .address' | while read addr; do windoesnot-hyprctl dispatch closewindow address:$addr; done"]
         running: false
     }
 
@@ -288,8 +289,8 @@ Item {
     // Timer to periodically refresh device list during scan
     Timer {
         id: scanTimer
-        interval: 5000
-        running: bluetoothPanel.isScanning
+        interval: 10000
+        running: bluetoothPanel.windowVisible && bluetoothPanel.bluetoothControllerAvailable && bluetoothPanel.isScanning
         repeat: true
         onTriggered: {
             console.log("Refreshing device list during scan...")
@@ -329,6 +330,8 @@ Item {
     }
 
     function startScan() {
+        if (!bluetoothPanel.windowVisible || !bluetoothPanel.bluetoothControllerAvailable || !bluetoothPanel.bluetoothEnabled)
+            return
         if (!bluetoothPanel.isScanning) {
             console.log("Starting scan...")
             startScanProc.running = true

@@ -102,6 +102,7 @@ PanelWindow {
     Component.onCompleted: {
         topNotificationBar.hovered = false
         updateSwayncCssProc.running = true
+        checkSwayncVisibilityProc.running = true
     }
 
     onAccentColorChanged: updateSwayncCssProc.running = true
@@ -134,14 +135,23 @@ PanelWindow {
         }
     }
 
-    // Prüfe ob Notifications vorhanden sind und ob swaync offen ist
+    // Notification count remains cheap; the control-center window state is
+    // refreshed from Hyprland's event stream below.
     Timer {
         interval: 500  // Schnelleres Polling für besseres Feedback
         running: true
         repeat: true
         onTriggered: {
             checkNotificationsProc.running = true
-            checkSwayncVisibilityProc.running = true
+        }
+    }
+
+    Connections {
+        target: Hyprland
+        function onRawEvent(ev) {
+            var eventName = "" + ev.name
+            if (eventName === "openwindow" || eventName === "closewindow")
+                checkSwayncVisibilityProc.running = true
         }
     }
 
@@ -159,12 +169,19 @@ PanelWindow {
 
     Process {
         id: checkSwayncVisibilityProc
-        command: ["bash", "-c", "windoesnot-hyprctl clients -j | grep -q 'swaync-control-center' && echo 'open' || echo 'closed'"]
+        command: ["hyprctl", "-j", "clients"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
-                var status = this.text.trim()
-                var newStatus = (status === "open")
+                var clients = []
+                try {
+                    clients = JSON.parse(this.text)
+                } catch (error) {
+                    console.warn("Could not read Hyprland clients for swaync state:", error)
+                }
+                var newStatus = clients.some(function(client) {
+                    return (client.class || "").toLowerCase() === "swaync-control-center"
+                })
 
                 if (newStatus !== topNotificationBar.lastSwayncOpen) {
                     topNotificationBar.lastSwayncOpen = newStatus

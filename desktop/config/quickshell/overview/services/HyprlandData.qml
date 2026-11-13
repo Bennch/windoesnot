@@ -183,7 +183,7 @@ Singleton {
 
     Process {
         id: getClients
-        command: ["windoesnot-hyprctl", "clients", "-j"]
+        command: ["hyprctl", "-j", "clients"]
         stdout: StdioCollector {
             id: clientsCollector
             onStreamFinished: {
@@ -209,7 +209,7 @@ Singleton {
 
     Process {
         id: getMonitors
-        command: ["windoesnot-hyprctl", "monitors", "-j"]
+        command: ["hyprctl", "-j", "monitors"]
         stdout: StdioCollector {
             id: monitorsCollector
             onStreamFinished: {
@@ -239,7 +239,7 @@ Singleton {
 
     Process {
         id: getWorkspaces
-        command: ["windoesnot-hyprctl", "workspaces", "-j"]
+        command: ["hyprctl", "-j", "workspaces"]
         stdout: StdioCollector {
             id: workspacesCollector
             onStreamFinished: {
@@ -271,7 +271,7 @@ Singleton {
 
     Process {
         id: getActiveWorkspace
-        command: ["windoesnot-hyprctl", "activeworkspace", "-j"]
+        command: ["hyprctl", "-j", "activeworkspace"]
         stdout: StdioCollector {
             id: activeWorkspaceCollector
             onStreamFinished: {

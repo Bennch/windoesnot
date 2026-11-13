@@ -238,19 +238,29 @@ PanelWindow {
     ListModel { id: taskbarAppsModel }
     ListModel { id: trayIconModel }
 
-    // Poll Hyprland for open windows
+    // Refresh the taskbar after relevant Hyprland events instead of polling it.
     Timer {
-        interval: 1000  // Update every second
-        running: true
-        repeat: true
-        onTriggered: {
-            hyprlandWindowProc.running = true
+        id: hyprlandWindowRefreshTimer
+        interval: 100
+        repeat: false
+        onTriggered: hyprlandWindowProc.running = true
+    }
+
+    Connections {
+        target: Hyprland
+        function onRawEvent(ev) {
+            var eventName = "" + ev.name
+            if (eventName === "openwindow" || eventName === "closewindow" || eventName === "movewindow" ||
+                    eventName === "movewindowv2" || eventName === "windowtitle" || eventName === "workspace" ||
+                    eventName === "workspacev2" || eventName === "activewindow" || eventName === "activewindowv2" ||
+                    eventName === "focusedmon" || eventName === "focusedmonv2")
+                hyprlandWindowRefreshTimer.restart()
         }
     }
 
     Process {
         id: hyprlandWindowProc
-        command: ["bash", "-c", "windoesnot-hyprctl clients -j"]
+        command: ["hyprctl", "-j", "clients"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -932,6 +942,7 @@ PanelWindow {
     Component.onCompleted: {
         loadTaskbarApps()
         Qt.callLater(rebuildTrayModel)
+        hyprlandWindowProc.running = true
     }
 
     function applyTaskbarOverrides(apps) {

@@ -279,7 +279,7 @@ Item {
     Process {
         id: keyboardSnapQueryProc
         property string intent: "picker"
-        command: ["bash", "-c", "windoesnot-hyprctl activewindow -j; echo '---MONSEP---'; windoesnot-hyprctl monitors -j; echo '---CURSEP---'; windoesnot-hyprctl cursorpos -j"]
+        command: ["bash", "-c", "hyprctl -j activewindow; echo '---MONSEP---'; hyprctl -j monitors; echo '---CURSEP---'; hyprctl -j cursorpos"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -323,7 +323,7 @@ Item {
 
     Process {
         id: newWindowPlacementProc
-        command: ["bash", "-c", "windoesnot-hyprctl clients -j; echo '---MONSEP---'; windoesnot-hyprctl monitors -j"]
+        command: ["bash", "-c", "hyprctl -j clients; echo '---MONSEP---'; hyprctl -j monitors"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -402,7 +402,7 @@ Item {
 
     Process {
         id: activeWindowProc
-        command: ["bash", "-c", "windoesnot-hyprctl activewindow -j; echo '---SEPARATOR---'; windoesnot-hyprctl cursorpos -j"]
+        command: ["bash", "-c", "hyprctl -j activewindow; echo '---SEPARATOR---'; hyprctl -j cursorpos"]
         running: false
 
         stdout: StdioCollector {
@@ -607,7 +607,7 @@ Item {
 
     Process {
         id: monitorQueryProc
-        command: ["bash", "-c", "windoesnot-hyprctl monitors -j"]
+        command: ["bash", "-c", "hyprctl -j monitors"]
         running: false
 
         stdout: StdioCollector {
@@ -1014,7 +1014,7 @@ Item {
 
     Process {
         id: snapGroupQueryProc
-        command: ["bash", "-c", "windoesnot-hyprctl clients -j; echo '---MONSEP---'; windoesnot-hyprctl monitors -j"]
+        command: ["bash", "-c", "hyprctl -j clients; echo '---MONSEP---'; hyprctl -j monitors"]
         running: false
 
         stdout: StdioCollector {
