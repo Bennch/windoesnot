@@ -50,7 +50,7 @@ ShellRoot {
      testWindow.check(response.placeholderText === "Passwort eingeben", "German password")
      const instructions = testWindow.find(page,"snapshotBootInstructions")
      page.bootInfo={loader:"grub",configured:true}; page.packageSnapshots=true; page.numberLimit="20"; page.importantLimit="5"
-     testWindow.check(instructions.text.indexOf("WinDoesNot snapshots") >= 0, "GRUB guidance")
+     testWindow.check(instructions.text.indexOf("WinDoesNot-Wiederherstellungspunkte") >= 0, "German GRUB guidance")
      page.bootInfo={loader:"systemd-boot",configured:false}
      testWindow.check(instructions.text.indexOf("nicht direkt") >= 0, "honest systemd-boot limit")
      page.bootInfo={loader:"refind",configured:true}
