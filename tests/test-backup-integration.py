@@ -96,7 +96,7 @@ class Boundaries(unittest.TestCase):
     def test_read_policy_is_scoped_to_exact_executable_and_argument(self):
         root = ET.parse(ROOT / 'desktop/share/polkit-1/actions/org.windoesnot.snapshots.policy')
         actions = root.findall('action')
-        self.assertEqual(len(actions), 4)
+        self.assertEqual(len(actions), 5)
         for action in actions:
             self.assertEqual(action.findtext('defaults/allow_any'), 'no')
             self.assertEqual(action.findtext('defaults/allow_inactive'), 'no')
@@ -104,6 +104,17 @@ class Boundaries(unittest.TestCase):
             self.assertEqual(annotations['org.freedesktop.policykit.exec.path'], '/usr/lib/windoesnot/snapshots.py')
             self.assertEqual(annotations['org.freedesktop.policykit.exec.argv1'], action.attrib['id'].rsplit('.', 1)[1])
             self.assertEqual(action.findtext('defaults/allow_active'), 'yes' if action.attrib['id'].endswith('.status') else 'auth_admin')
+
+    def test_lite_mode_policy_is_scoped_to_the_system_tools_action(self):
+        root = ET.parse(ROOT / 'desktop/share/polkit-1/actions/org.windoesnot.system.policy')
+        action = root.find("action[@id='org.windoesnot.system.lite-mode-set']")
+        self.assertIsNotNone(action)
+        self.assertEqual(action.findtext('defaults/allow_any'), 'no')
+        self.assertEqual(action.findtext('defaults/allow_inactive'), 'no')
+        self.assertEqual(action.findtext('defaults/allow_active'), 'auth_admin_keep')
+        annotations = {item.attrib['key']: item.text for item in action.findall('annotate')}
+        self.assertEqual(annotations['org.freedesktop.policykit.exec.path'], '/usr/lib/windoesnot/system_tools.py')
+        self.assertEqual(annotations['org.freedesktop.policykit.exec.argv1'], 'lite-mode-set')
 
 
 if __name__ == '__main__':

@@ -163,6 +163,27 @@ class Nearby(unittest.TestCase):
         self.assertEqual(state['devices'][0]['address'], '192.168.77.11')
         self.assertEqual(state['devices'][0]['model'], 'WinDoesNot Live-System')
 
+    def test_local_ipv4_addresses_uses_kernel_addresses_and_filters_nonlocal(self):
+        probe = types.SimpleNamespace(fileno=lambda: 7, close=lambda: None)
+        addresses = {
+            'eth0': '192.168.77.10',
+            'wlan0': '10.0.0.2',
+            'lo': '127.0.0.1',
+            'down0': None,
+        }
+
+        def ioctl(_fd, _request, packed_name):
+            name = packed_name.split(b'\0', 1)[0].decode()
+            address = addresses[name]
+            if address is None:
+                raise OSError('interface has no IPv4 address')
+            return b'\0' * 20 + m.socket.inet_aton(address)
+
+        with (patch.object(m.socket, 'if_nameindex', return_value=[(1, name) for name in addresses]),
+              patch.object(m.socket, 'socket', return_value=probe),
+              patch.object(m.fcntl, 'ioctl', side_effect=ioctl)):
+            self.assertEqual(m.local_ipv4_addresses(), ['10.0.0.2', '192.168.77.10'])
+
     def test_https_pins_the_discovered_certificate(self):
         peer = {'id': 'a' * 64, 'protocol': 'https', 'address': '192.168.77.11', 'port': 53317}
         with patch.object(m.http.client, 'HTTPSConnection') as connection:
