@@ -1,35 +1,122 @@
-#!/bin/sh
-# Start hyprpaper (wallpaper from ~/.config/hypr/hyprpaper.conf, unchanged).
-# hyprpaper crashes without 3D acceleration (upstream bug, e.g. VMs without
-# GL) and the desktop would stay black. If it exits within a few seconds, try
-# once more, then fall back to a solid brand-colour background (Hyprland's
-# own misc.background_color). At most two starts, no loop afterwards.
-WATCH=6       # seconds hyprpaper has to stay alive to count as started
-BG='rgba(141414ff)'
+#!/usr/bin/env python3
+"""Start swaybg from the existing per-monitor hyprpaper.conf settings."""
 
-fallback() {
-    windoesnot-hyprctl keyword misc:background_color "$BG" >/dev/null 2>&1
-    exit 0
-}
+import os
+from pathlib import Path
+import signal
+import subprocess
+import sys
+import time
 
-command -v hyprpaper >/dev/null 2>&1 || fallback
 
-attempt=0
-while [ "$attempt" -lt 2 ]; do
-    attempt=$((attempt + 1))
-    hyprpaper &
-    pid=$!
-    waited=0
-    while [ "$waited" -lt "$WATCH" ]; do
-        sleep 1
-        waited=$((waited + 1))
-        kill -0 "$pid" 2>/dev/null || break
-    done
-    # Still alive after the watch window: normal start, nothing more to do.
-    kill -0 "$pid" 2>/dev/null && exit 0
-    wait "$pid" 2>/dev/null
-    # A clean exit 0 (e.g. user stopped it) is not a crash: leave it alone.
-    [ "$?" -eq 0 ] && exit 0
-    sleep 1
-done
-fallback
+PIDFILE = Path(os.environ.get("XDG_RUNTIME_DIR", f"/tmp/windoesnot-{os.getuid()}")) / "windoesnot-wallpaper.pids"
+CONFIG = Path.home() / ".config/hypr/hyprpaper.conf"
+
+
+def read_wallpapers():
+    """Read existing hyprpaper wallpaper blocks without changing user data."""
+    wallpapers = []
+    monitor = ""
+    image = ""
+    in_block = False
+    try:
+        lines = CONFIG.read_text().splitlines()
+    except OSError:
+        return wallpapers
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line == "wallpaper {":
+            monitor = image = ""
+            in_block = True
+        elif line == "}" and in_block:
+            if image:
+                wallpapers.append((monitor, os.path.expanduser(image)))
+            in_block = False
+        elif in_block and "=" in line:
+            key, value = (part.strip() for part in line.split("=", 1))
+            if key == "monitor":
+                monitor = value
+            elif key == "path":
+                image = value
+    return wallpapers
+
+
+def stop_previous():
+    try:
+        pids = [int(pid) for pid in PIDFILE.read_text().split()]
+    except (OSError, ValueError):
+        pids = []
+    for pid in pids:
+        if not is_our_swaybg(pid):
+            continue
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+    deadline = time.monotonic() + 2
+    while time.monotonic() < deadline:
+        living = []
+        for pid in pids:
+            if not is_our_swaybg(pid):
+                continue
+            try:
+                os.kill(pid, 0)
+                living.append(pid)
+            except ProcessLookupError:
+                pass
+        if not living:
+            break
+        time.sleep(0.05)
+    for pid in pids:
+        if not is_our_swaybg(pid):
+            continue
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    PIDFILE.unlink(missing_ok=True)
+
+
+def is_our_swaybg(pid):
+    """Avoid signaling an unrelated process if a stale PID was reused."""
+    try:
+        command = Path(f"/proc/{pid}/cmdline").read_bytes().split(b"\0", 1)[0]
+    except OSError:
+        return False
+    return Path(os.fsdecode(command)).name == "swaybg"
+
+
+def main():
+    if len(sys.argv) > 1 and sys.argv[1] != "--restart":
+        print("usage: windoesnot-wallpaper [--restart]", file=sys.stderr)
+        return 2
+    stop_previous()
+    if not shutil_which("swaybg"):
+        print("windoesnot-wallpaper: swaybg is not installed", file=sys.stderr)
+        return 1
+    processes = []
+    for monitor, image in read_wallpapers():
+        if not Path(image).is_file():
+            continue
+        command = ["swaybg", "-i", image, "-m", "fill"]
+        if monitor:
+            command += ["-o", monitor]
+        processes.append(subprocess.Popen(command, start_new_session=True,
+                                           stdin=subprocess.DEVNULL,
+                                           stdout=subprocess.DEVNULL,
+                                           stderr=subprocess.DEVNULL))
+    if processes:
+        PIDFILE.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        PIDFILE.write_text("\n".join(str(proc.pid) for proc in processes) + "\n")
+    return 0
+
+
+def shutil_which(command):
+    from shutil import which
+    return which(command)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
