@@ -83,6 +83,7 @@ ShellRoot {
     maintenance.acceptStatus({live:false, setup:{drivers:"pending"}, tools:{paccache:true,chwd:true,"pacman-key":true,"cachyos-rate-mirrors":true,curl:true},
         cacheBytes:104857600,lockExists:true,processesVisible:true,packageProcesses:[],mirrorsRanked:false,orphans:["example","second"],failedServices:[],firewall:{enabled:true}})
     testWindow.check(maintenance.ready, "maintenance status")
+    maintenance.hwReport={cpu:{model:"Pentium T4500",cores:2,missing_instruction_sets:["sse4_1"]},memory_bytes:2147483648,swap_bytes:1073741824,gpus:[{name:"NVIDIA GT218M",driver:"nouveau"}],renderer:"",disks:[],battery:false,controllers:{wifi:true,bluetooth:false},recommendations:[{id:"lite_mode",reasons:["no_sse4_1"]}]}
     maintenance.pacnewFiles=[{path:"/etc/test.conf.pacnew",kind:"pacnew",date:"2026-11-13T12:00:00+01:00",size:18,package:"test",locally_modified:null,diff_status:"ok",diff:"--- original\n+++ new\n-local\n+default\n"}]
     maintenance.selectedPacnewPath="/etc/test.conf.pacnew"
     preferences.uiLanguage="de"
@@ -93,6 +94,14 @@ ShellRoot {
     preferences.uiLanguage="de"
     testWindow.check(maintenance.sizeText(104857600) === "100.0 MiB", "cache size")
     maintenanceLoader.visible=true
+    let hwButton=testWindow.find(maintenance,o=>o.objectName==="hwLiteEnableButton")
+    testWindow.check(!!testWindow.find(maintenance,o=>o.objectName==="hardwareCard") && hwButton && hwButton.visible && hwButton.enabled, "hardware card and optional lite recommendation")
+    testWindow.check(!!testWindow.find(maintenance,o=>o.objectName==="hwReportCopyButton") && maintenance.tr("hwcheck.title")==="Dein Gerät", "hardware report copy action and DE text")
+    preferences.uiLanguage="en"
+    testWindow.check(maintenance.tr("hwcheck.title")==="Your device" && maintenance.tr("hwcheck.reason.no_sse4_1").indexOf("SSE4.1")>=0, "hardware card EN reason")
+    const liteState=JSON.parse(JSON.stringify(maintenance.state)); liteState.liteMode=true; maintenance.acceptStatus(liteState)
+    testWindow.check(!hwButton.visible, "recommendation action hidden when lite mode already active")
+    liteState.liteMode=false; maintenance.acceptStatus(liteState); preferences.uiLanguage="de"
     maintenance.selectedGroup="security"
     const firewallCard = testWindow.find(maintenance, o => o.objectName === "firewallCard")
     const firewallToggle = testWindow.find(maintenance, o => o.objectName === "firewallToggle")

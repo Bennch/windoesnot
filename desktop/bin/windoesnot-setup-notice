@@ -47,7 +47,7 @@ def mouse_speed(preferences):
         return 0.0
 
 
-def welcome_payload(data, preferences):
+def welcome_payload(data, preferences, hwcheck=None):
     german = preferences.get('uiLanguage', os.environ.get('LANG', '')[:2]) == 'de'
     apps = [
         ('WinDoesNot Store', 'Programme entdecken und aktualisieren', 'Discover and update apps', 'img/scalable/system-software-install.svg', ['windoesnot-store']),
@@ -88,8 +88,25 @@ def welcome_payload(data, preferences):
         'lines': summary(data, german),
         'hint': ('Du findest diese Informationen auch in den Einstellungen unter „Kernel und Leistung“ und „Wartung“.'
                  if german else 'You can also find this information in Settings under “Kernel and performance” and “Maintenance”.'),
+        'hwcheckHint': ('Für dieses Gerät wird der Leichtmodus empfohlen. Du kannst ihn in Einstellungen unter Wartung einschalten.'
+                        if german else 'Lite mode is recommended for this device. You can enable it under Settings → Maintenance.') if hwcheck else '',
         'close': 'Los geht’s' if german else 'Get started',
     }
+
+
+def hardware_recommendation(state_dir, helper=Path('/usr/lib/windoesnot/hwcheck.py'),
+                            lite_flag=Path('/etc/windoesnot/lite-mode')):
+    if lite_flag.exists() or (state_dir / 'hwcheck-notice-shown').exists():
+        return None
+    if not helper.is_file():
+        return None
+    try:
+        result = subprocess.run(['/usr/bin/python3', '-I', str(helper)], stdin=subprocess.DEVNULL,
+                                capture_output=True, text=True, timeout=4, check=False)
+        report = json.loads(result.stdout) if result.returncode == 0 else {}
+        return report if any(item.get('id') == 'lite_mode' for item in report.get('recommendations', [])) else None
+    except (OSError, subprocess.TimeoutExpired, ValueError, TypeError):
+        return None
 
 
 def main():
@@ -114,10 +131,13 @@ def main():
                 preferences[key] = value
     except OSError:
         pass
-    env = {**os.environ, 'WINDOESNOT_WELCOME': json.dumps(welcome_payload(data, preferences))}
+    prompt = hardware_recommendation(state.parent)
+    env = {**os.environ, 'WINDOESNOT_WELCOME': json.dumps(welcome_payload(data, preferences, prompt))}
     if subprocess.run(['quickshell', '--path', str(window)], env=env).returncode == 0:
         state.parent.mkdir(parents=True, exist_ok=True)
         state.touch()
+        if prompt:
+            (state.parent / 'hwcheck-notice-shown').touch()
 
 
 if __name__ == '__main__':

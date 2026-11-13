@@ -44,6 +44,11 @@ ShellRoot {
                     width: parent.width; text: welcome.payload.intro || ""; color: welcome.secondary
                     font.pixelSize: 14; wrapMode: Text.WordWrap; textFormat: Text.PlainText
                 }
+                Text {
+                    visible: !!welcome.payload.hwcheckHint
+                    width: parent.width; text: welcome.payload.hwcheckHint || ""; color: welcome.secondary
+                    font.pixelSize: 14; wrapMode: Text.WordWrap; textFormat: Text.PlainText
+                }
                 // Display and mouse: set at the first start, so the desktop is usable right away.
                 Rectangle {
                     id: displayCard

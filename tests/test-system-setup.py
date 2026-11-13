@@ -156,6 +156,18 @@ notice = importlib.util.module_from_spec(spec); loader.exec_module(notice)
 lines = notice.summary({'cpu_level': 'v3', 'drivers': 'configured', 'driver_profiles': ['intel', 'nvidia-open-dkms.prime'], 'mirrors_ranked': False}, True)
 assert lines == ['Optimierte Pakete für x86-64-v3', 'Treiber: Intel, NVIDIA mit Hybridgrafik', 'Download-Server werden bei der ersten Internetverbindung gewählt'], lines
 assert notice.summary({'cpu_level': 'x86-64', 'drivers': 'pending'}, False)[:2] == ['Standard packages (x86-64)', 'Graphics driver follows with the first update']
+with tempfile.TemporaryDirectory() as temporary:
+    state = Path(temporary) / 'state'; state.mkdir()
+    helper = Path(temporary) / 'hwcheck.py'; helper.touch()
+    flag = Path(temporary) / 'lite-mode'
+    suggested = {'recommendations': [{'id': 'lite_mode', 'reasons': ['low_ram']}]}
+    with mock.patch.object(notice.subprocess, 'run', return_value=mock.Mock(returncode=0, stdout=json.dumps(suggested))):
+        assert notice.hardware_recommendation(state, helper, flag) == suggested
+        (state / 'hwcheck-notice-shown').touch()
+        assert notice.hardware_recommendation(state, helper, flag) is None
+        (state / 'hwcheck-notice-shown').unlink()
+        flag.touch()
+        assert notice.hardware_recommendation(state, helper, flag) is None
 
 dispatcher = ROOT / 'desktop/share/NetworkManager/dispatcher.d/90-windoesnot-first-network'
 assert dispatcher.stat().st_mode & 0o777 == 0o755

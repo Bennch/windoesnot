@@ -289,7 +289,7 @@ def maintenance_status():
     except ValueError:
         processes = []; visibility = False
     failed = query('/usr/bin/systemctl', '--failed', '--no-legend', '--plain', '--no-pager')
-    return {'live': Path('/etc/windoesnot-image-build').exists(), 'setup': read_setup(),
+    return {'live': Path('/etc/windoesnot-image-build').exists(), 'liteMode': LITE_MODE_FLAG.exists(), 'setup': read_setup(),
             'mirrorsRanked': MIRRORS_MARKER.exists(), 'cacheBytes': cache,
             'lockExists': DB_LOCK.exists(), 'packageProcesses': processes,
             'processesVisible': visibility, 'orphans': orphan_packages(),
