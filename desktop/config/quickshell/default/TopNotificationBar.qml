@@ -135,14 +135,26 @@ PanelWindow {
         }
     }
 
-    // Notification count remains cheap; the control-center window state is
-    // refreshed from Hyprland's event stream below.
-    Timer {
-        interval: 500  // Schnelleres Polling für besseres Feedback
+    // swaync sends an update for each notification add/close event. Keep one
+    // lightweight subscription instead of starting a client twice per second.
+    function updateNotificationCount(line) {
+        try {
+            var update = JSON.parse(line)
+            var count = parseInt(update.text !== undefined ? update.text : update.count, 10)
+            if (isNaN(count)) return
+            topNotificationBar.notificationCount = count
+            topNotificationBar.hasNotifications = count > 0
+        } catch (error) {
+            console.warn("Could not parse swaync notification update:", error)
+        }
+    }
+
+    Process {
+        id: notificationSubscriptionProc
+        command: ["swaync-client", "--subscribe-waybar"]
         running: true
-        repeat: true
-        onTriggered: {
-            checkNotificationsProc.running = true
+        stdout: SplitParser {
+            onRead: line => topNotificationBar.updateNotificationCount(line)
         }
     }
 
@@ -152,18 +164,6 @@ PanelWindow {
             var eventName = "" + ev.name
             if (eventName === "openwindow" || eventName === "closewindow")
                 checkSwayncVisibilityProc.running = true
-        }
-    }
-
-    Process {
-        id: checkNotificationsProc
-        command: ["swaync-client", "-c"]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                topNotificationBar.notificationCount = parseInt(this.text.trim()) || 0
-                topNotificationBar.hasNotifications = topNotificationBar.notificationCount > 0
-            }
         }
     }
 

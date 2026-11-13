@@ -175,6 +175,7 @@ Pane {
                 Layout.preferredHeight: root.font.pointSize * 3.2
                 Layout.preferredWidth: root.font.pointSize * 3.2 * 5.33
                 source: "../img/windoesnot-logo.png"
+                sourceSize.width: Math.ceil(Layout.preferredWidth * Screen.devicePixelRatio)
                 fillMode: Image.PreserveAspectFit
                 smooth: true
                 mipmap: true
