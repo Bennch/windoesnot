@@ -236,7 +236,7 @@ def main():
     stage_boot_splash(a, ROOT/'iso/boot-splash', ROOT/'desktop/config/quickshell/default/img/brand/windoesnot-logo-hell.png')
     live_hooks=a/'etc/mkinitcpio.conf.d/archiso.conf'
     live_hooks.write_text(add_hook(live_hooks.read_text().replace('modconf memdisk','modconf kms memdisk')))
-    cal = payload / 'iso/calamares'; cal.mkdir(parents=True)
+    cal = payload / 'iso/calamares'; cal.mkdir(parents=True, exist_ok=True)
     (cal/'qml').symlink_to('/usr/share/calamares/qml',target_is_directory=True)
     modules = args.sources_root / 'cachyos-calamares/src/modules'
     settings = yaml.safe_load((args.sources_root / 'cachyos-calamares/settings_offline.conf').read_text())
