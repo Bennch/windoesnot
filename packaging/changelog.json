@@ -6,15 +6,29 @@
       "date": "2026-11-13",
       "de": [
         "Installation mit dem Startmenü systemd-boot bricht nicht mehr ab. Passt die deutsche Übersetzung nicht zur Version, bleibt das englische Standardmenü.",
-        "Alte NVIDIA-Grafikkarten (etwa 2006 bis 2011): Der Open-Source-Treiber nouveau wird erkannt und nicht mehr blockiert, im Live-System und nach der Installation.",
-        "Die Warnung von pacman zu DownloadUser in der Konfiguration ist weg.",
-        "Einstellungen, Wartung: Neue Karte Desktop-Zustand zeigt Konfigurationsfehler der Oberfläche und ob die Fenster-Erweiterungen geladen sind."
+        "Alte Rechner: Wird eine alte NVIDIA-Karte erkannt, wird der Treiber nouveau nicht mehr blockiert, und der Desktop startet im Leicht-Modus mit Software-Zeichnen, weniger Effekten und einem leichten Terminal. Einstellungen, Wartung: Der Leicht-Modus lässt sich ein- und ausschalten.",
+        "Weniger Last im Hintergrund: Bluetooth und die Benachrichtigungsleiste fragen nicht mehr ständig ab. Das hilft vor allem auf schwachen PCs.",
+        "Hintergrundbild: Ein neuer Renderer ersetzt hyprpaper und läuft auch ohne 3D-Beschleunigung, zum Beispiel in virtuellen Maschinen.",
+        "Dateimanager: Rechtsklick auf Skripte und Programme, Als Administrator ausführen.",
+        "Einstellungen, Wartung: Neue Konfigurationsdateien (.pacnew) werden mit Vergleich angezeigt. Nichts wird automatisch geändert. Außerdem zeigt die Karte Desktop-Zustand Konfigurationsfehler und geladene Fenster-Erweiterungen.",
+        "Teilen: Das Fenster zeigt die eigene IP-Adresse und die Adressen gefundener Geräte.",
+        "Startmenü: Technische Programme sind ausgeblendet und lassen sich mit einem Schalter einblenden.",
+        "Installer: Deutsche Texte sind einheitlich mit Du geschrieben, Größe statt Grösse.",
+        "Die Desktop-Symbole starten bei einem Startfehler automatisch neu.",
+        "Die Warnung von pacman zu DownloadUser ist weg."
       ],
       "en": [
         "Installation with the systemd-boot menu no longer aborts. If the German translation does not match the version, the standard English menu stays.",
-        "Old NVIDIA graphics cards (about 2006 to 2011): the open-source nouveau driver is detected and no longer blocked, in the live system and after installation.",
-        "The pacman warning about DownloadUser in the configuration is gone.",
-        "Settings, Maintenance: a new Desktop state card shows configuration errors of the desktop and whether the window extensions are loaded."
+        "Old computers: if an old NVIDIA card is detected, the nouveau driver is no longer blocked and the desktop starts in Lite Mode with software drawing, fewer effects and a light terminal. Settings, Maintenance: Lite Mode can be switched on and off.",
+        "Less background load: Bluetooth and the notification bar no longer poll constantly. This helps most on weak PCs.",
+        "Wallpaper: a new renderer replaces hyprpaper and also works without 3D acceleration, for example in virtual machines.",
+        "File manager: right-click scripts and programs, Run as administrator.",
+        "Settings, Maintenance: new configuration files (.pacnew) are shown with a comparison. Nothing is changed automatically. The Desktop state card shows configuration errors and loaded window extensions.",
+        "Sharing: the window shows your own IP address and the addresses of devices found.",
+        "Start menu: technical programs are hidden and can be shown with a switch.",
+        "Installer: German texts consistently use the informal du, and Größe instead of Grösse.",
+        "The desktop icons restart automatically after a start error.",
+        "The pacman warning about DownloadUser is gone."
       ]
     },
     {
