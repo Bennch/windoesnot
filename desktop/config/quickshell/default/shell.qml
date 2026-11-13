@@ -5595,19 +5595,14 @@ FloatingWindow {
     function bottomRightY() { return screen ? screen.y + screen.height - 45 - implicitHeight : 0 }
 
     function openBattery() {
-        var posProc = Qt.createQmlObject('import Quickshell.Io; Process {}', batteryWindow)
-        // Window rules take monitor-relative coordinates; clamped otherwise (see nearby).
-        posProc.command = ["windoesnot-hyprctl", "keyword", "windowrule[battery-config]:move",
-            Math.round(bottomRightX() - screen.x) + " " + Math.round(bottomRightY() - screen.y)]
-        posProc.exited.connect(function() { batteryWindow.visible = true })
-        posProc.running = true
+        // Position comes from the static battery-config rule (size independent expression).
+        batteryWindow.visible = true
     }
 
     // Content height arrives after the window is shown (power data loads): move the live window.
     Process { id: placeProc; running: false }
     onImplicitHeightChanged: if (visible) {
-        placeProc.command = ["windoesnot-hyprctl", "dispatch", "movewindowpixel",
-            "exact " + Math.round(bottomRightX()) + " " + Math.round(bottomRightY()) + ",title:^(quickshell-battery)$"]
+        placeProc.command = ["hyprctl", "dispatch", "hl.dsp.window.move({x=" + Math.round(bottomRightX()) + ",y=" + Math.round(bottomRightY()) + ",relative=false,window=\"title:^(quickshell-battery)$\"})"]
         placeProc.running = true
     }
 
@@ -5768,17 +5763,13 @@ FloatingWindow {
     function bottomRightY() { return screen ? screen.y + screen.height - 45 - height : 0 }
     function openAt() {
         if (visible) return
-        var posProc = Qt.createQmlObject('import Quickshell.Io; Process {}', nearbyWindow)
-        // Window rules take coordinates relative to the monitor; dispatch takes global ones.
-        posProc.command = ["windoesnot-hyprctl", "keyword", "windowrule[nearby-config]:move",
-            Math.round(bottomRightX() - screen.x) + " " + Math.round(bottomRightY() - screen.y)]
-        posProc.exited.connect(function() { nearbyWindow.visible = true; nearbyPlaceTimer.restart() })
-        posProc.running = true
+        // Position comes from the static nearby-config rule; placeLive() corrects it once the height is known.
+        nearbyWindow.visible = true
+        nearbyPlaceTimer.restart()
     }
     // Moves the mapped window to its final position once the panel has its real height.
     function placeLive() {
-        nearbyPlaceProc.command = ["windoesnot-hyprctl", "dispatch", "movewindowpixel",
-            "exact " + Math.round(bottomRightX()) + " " + Math.round(bottomRightY()) + ",title:^(quickshell-nearby)$"]
+        nearbyPlaceProc.command = ["hyprctl", "dispatch", "hl.dsp.window.move({x=" + Math.round(bottomRightX()) + ",y=" + Math.round(bottomRightY()) + ",relative=false,window=\"title:^(quickshell-nearby)$\"})"]
         nearbyPlaceProc.running = true
     }
     Timer { id: nearbyPlaceTimer; interval: 150; repeat: false; onTriggered: nearbyWindow.placeLive() }
