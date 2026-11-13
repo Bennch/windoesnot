@@ -5551,6 +5551,7 @@ FloatingWindow {
     }
 
     Loader {
+        active: bluetoothWindow.visible || item !== null
         anchors.fill: parent
         source: "widgets/BluetoothPanel.qml"
 
@@ -5616,6 +5617,9 @@ FloatingWindow {
     // height, while the window height follows the panel (a loop that froze the size).
     Loader {
         id: batteryLoader
+        // Hardware status and DDC probes are only needed after the popup is first opened.
+        // Keep the loaded component alive afterwards so repeat opens stay immediate.
+        active: batteryWindow.visible || item !== null
         source: "widgets/BatteryPanel.qml"
 
         onLoaded: {
@@ -5652,6 +5656,7 @@ FloatingWindow {
     onVisibleChanged: panelWindow.syncFocusGrab(graphicsFocusGrab, visible)
 
     Loader {
+        active: graphicsWindow.visible || item !== null
         anchors.fill: parent
         source: "widgets/GraphicsPanel.qml"
 
@@ -5700,6 +5705,7 @@ FloatingWindow {
 
     Loader {
         id: networkLoader
+        active: networkWindow.visible || item !== null
         anchors.fill: parent
         source: "widgets/NetworkPanel.qml"
 
