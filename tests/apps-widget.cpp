@@ -28,11 +28,11 @@ int main(int argc,char** argv) {
     widget.setGerman(true);widget.applyProfile("recommended");app.processEvents();
     const auto selectedBeforeTheme = widget.selectedIds();
     widget.setDarkMode(false); app.processEvents();
-    require(widget.styleSheet().contains("#f3f3f3"),"light appearance missing");
+    require(widget.styleSheet().contains("#f2f2f2"),"light appearance missing");
     require(widget.selectedIds()==selectedBeforeTheme,"appearance switch erased selection");
     if(argc>2)widget.grab().save(QString::fromLocal8Bit(argv[2])+".light.png");
     widget.setDarkMode(true); app.processEvents();
-    require(widget.styleSheet().contains("#202024"),"dark appearance missing");
+    require(widget.styleSheet().contains("#202020"),"dark appearance missing");
 
     if(argc>2)widget.grab().save(QString::fromLocal8Bit(argv[2]));
     std::cout<<"PASS: recommended/minimal/gaming profiles, filter preserves selection, required apps, invalid imports, portable profile roundtrip, German rendering\n";

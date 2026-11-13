@@ -374,14 +374,8 @@ def cleanup(_pins, _offline):
     return results
 
 
-CHECKS = [('python3', 'tools/validate-desktop.py'),
-          ('python3', 'tests/test-icon-map-startup.py'),
-          ('python3', 'tests/test-lua-placement.py'),
+CHECKS = [('python3', 'tools/run-offline-tests.py'),
           ('python3', 'tools/sync-branding.py', '--check'),
-          ('python3', 'tests/test-branding.py'),
-          ('python3', 'tests/test-appearance-loader.py'),
-          ('python3', 'tests/test-software.py'),
-          ('python3', 'tests/test-install-modes.py'),
           ('./build-and-run.sh', '--dry-run')]
 
 
@@ -389,7 +383,8 @@ def standard(_pins, _offline):
     results = []
     for args in CHECKS:
         try:
-            run = command(*args, timeout=120, check=False)
+            timeout = 600 if args[:2] == ('python3', 'tools/run-offline-tests.py') else 120
+            run = command(*args, timeout=timeout, check=False)
             output = (run.stderr + '\n' + run.stdout).lower()
             if run.returncode == 0:
                 status = 'PASS'
