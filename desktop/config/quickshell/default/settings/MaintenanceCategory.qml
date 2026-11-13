@@ -122,6 +122,23 @@ Item {
         width: parent.width; spacing: 20
         Note { text: page.tr("maintenance.intro") }
         Rectangle {
+            width: parent.width; height: liteColumn.implicitHeight + 32
+            radius: settingsMenu ? settingsMenu.borderRadius : 10
+            color: page.dark ? "#141414" : "#f5f5f5"
+            border.width: 1; border.color: page.lineColor
+            Column {
+                id: liteColumn; x: 16; y: 16; width: parent.width - 32; spacing: 8
+                Text { text: page.tr("maintenance.liteMode"); color: page.foreground; font.bold: true; font.pixelSize: 15 }
+                Note { text: page.tr("maintenance.liteModeHint") }
+                Tools.SystemToolsButton {
+                    settingsMenu: page.settingsMenu
+                    enabled: page.ready && !page.busy && !page.state.live
+                    text: page.tr(page.state.liteMode ? "maintenance.liteModeDisable" : "maintenance.liteModeEnable")
+                    onClicked: page.requestAction("lite-mode-set", {enabled: !page.state.liteMode}, page.tr("maintenance.confirmLiteMode"))
+                }
+            }
+        }
+        Rectangle {
             width: parent.width; height: desktopStateColumn.implicitHeight + 32
             radius: settingsMenu ? settingsMenu.borderRadius : 10
             color: page.dark ? "#141414" : "#f5f5f5"

@@ -4,6 +4,7 @@ set -eu
 
 id_file=${WINDOESNOT_NOUVEAU_IDS:-/var/lib/chwd/ids/nouveau.ids}
 override=${WINDOESNOT_MODPROBE_OVERRIDE:-/etc/modprobe.d/nvidia-utils.conf}
+lite_flag=${WINDOESNOT_LITE_FLAG:-/etc/windoesnot/lite-mode}
 
 [ -r "$id_file" ] || exit 0
 
@@ -20,6 +21,8 @@ for device_id in $(printf '%s\n' "$devices" | sed -nE 's/.*10de:([[:xdigit:]]{4}
         *" $device_id "*)
             mkdir -p "${override%/*}"
             : > "$override"
+            mkdir -p "${lite_flag%/*}"
+            : > "$lite_flag"
             logger -t windoesnot-old-gpu "nouveau device $device_id found in chwd IDs; cleared nvidia-utils blacklist"
             modprobe nouveau
             exit 0

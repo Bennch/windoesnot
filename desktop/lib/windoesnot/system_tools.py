@@ -40,6 +40,7 @@ LOG = None
 SHELLS = ('bash', 'fish', 'zsh')
 DB_LOCK = Path('/var/lib/pacman/db.lck')
 MIRRORS_MARKER = Path('/var/lib/windoesnot/mirrors-ranked')
+LITE_MODE_FLAG = Path('/etc/windoesnot/lite-mode')
 REFIND_CONF = Path('/boot/EFI/refind/refind.conf')
 SDDM_THEMES_DIR = Path('/usr/share/sddm/themes')
 SDDM_CONF = Path('/etc/sddm.conf.d/windoesnot.conf')
@@ -227,7 +228,7 @@ def kernel_status():
                      'running': name == running,
                      'removable': bool(running and name in installed and name != running and len(bases) > 1 and name in KERNELS),
                      'selectable': name in KERNELS})
-    return {'live': Path('/etc/windoesnot-image-build').exists(), 'setup': read_setup(),
+    return {'live': Path('/etc/windoesnot-image-build').exists(), 'liteMode': LITE_MODE_FLAG.exists(), 'setup': read_setup(),
             'cpuLevel': cpu_level(), 'repositories': optimized, 'drivers': drivers,
             'catalogAvailable': bool(repo),
             'nvidia': nvidia, 'release': release, 'running': running,
@@ -502,6 +503,9 @@ def maintenance_apply(action, payload):
         command('/usr/bin/chwd', '--autoconfigure', timeout=1800)
         raw = query('/usr/bin/chwd', '--list-installed', allowed=(0, 1))
         profiles = sorted(set(re.findall(r'│\s*([a-z0-9][a-z0-9.-]*)\s*┆', raw)))
+        if 'nouveau' in profiles:
+            LITE_MODE_FLAG.parent.mkdir(parents=True, exist_ok=True)
+            LITE_MODE_FLAG.touch()
         update_setup(drivers='configured', driver_profiles=profiles)
         return {'reboot': True}
     else:
@@ -919,6 +923,9 @@ def validate(action, payload):
     elif action == 'firewall-set':
         if set(payload) != {'enabled'} or type(payload['enabled']) is not bool:
             raise ValueError('Invalid firewall setting')
+    elif action == 'lite-mode-set':
+        if set(payload) != {'enabled'} or type(payload['enabled']) is not bool:
+            raise ValueError('Invalid lite mode setting')
     elif action == 'nearby-ports-set':
         if set(payload) != {'open'} or type(payload['open']) is not bool:
             raise ValueError('Invalid LocalSend port setting')
@@ -1118,6 +1125,13 @@ def set_language_locale(locale):
 
 
 def apply(action, payload):
+    if action == 'lite-mode-set':
+        if payload['enabled']:
+            LITE_MODE_FLAG.parent.mkdir(parents=True, exist_ok=True)
+            LITE_MODE_FLAG.touch()
+        else:
+            LITE_MODE_FLAG.unlink(missing_ok=True)
+        return {'reboot': True}
     if action == 'locale-set':
         return set_language_locale(payload['locale'])
     if action == 'shell-set':

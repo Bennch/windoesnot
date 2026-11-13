@@ -87,6 +87,11 @@ var strings = {
     "power.profile.balanced": "Ausgeglichen",
     "power.profile.power-saver": "Energiesparen",
     "maintenance.intro": "Diese Werkzeuge helfen bei Problemen mit Downloads, Updates und Treibern. Lies die Erklärung und führe nur den Schritt aus, den du brauchst.",
+    "maintenance.liteMode": "Leichtmodus",
+    "maintenance.liteModeHint": "Verwendet Software-Rendering für Qt und Cairo für GTK und schaltet aufwendige Desktop-Effekte ab. Die Änderung gilt nach einer erneuten Anmeldung.",
+    "maintenance.liteModeEnable": "Leichtmodus einschalten",
+    "maintenance.liteModeDisable": "Leichtmodus ausschalten",
+    "maintenance.confirmLiteMode": "Leichtmodus ändern? Speichere deine Arbeit und melde dich erneut an, damit die Änderung gilt.",
 
     "desktopState.title": "Desktop-Zustand",
     "desktopState.noErrors": "Keine Fehler",

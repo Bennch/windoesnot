@@ -87,6 +87,11 @@ var strings = {
     "power.profile.balanced": "Balanced",
     "power.profile.power-saver": "Power saver",
     "maintenance.intro": "These tools help with downloads, updates and drivers. Read the explanation and run the step you need.",
+    "maintenance.liteMode": "Lite Mode",
+    "maintenance.liteModeHint": "Uses software rendering for Qt and Cairo for GTK, and disables costly desktop effects. Changes take effect after signing in again.",
+    "maintenance.liteModeEnable": "Enable Lite Mode",
+    "maintenance.liteModeDisable": "Disable Lite Mode",
+    "maintenance.confirmLiteMode": "Change Lite Mode? Save your work and sign in again for the change to take effect.",
 
     "desktopState.title": "Desktop status",
     "desktopState.noErrors": "No errors",

@@ -32,6 +32,7 @@ LEVEL_SECTIONS = {name for _, names in LEVEL_REPOS.values() for name in names}
 # initramfs MODULES+= lines for drivers that were never installed.
 CHWD_INITRAMFS = ['etc/mkinitcpio.conf.d/10-chwd.conf', 'etc/mkinitcpio.conf.d/10-chwd-kms.conf']
 NOUVEAU_OVERRIDE = Path('etc/modprobe.d/nvidia-utils.conf')
+LITE_MODE_FLAG = Path('etc/windoesnot/lite-mode')
 
 
 def enable_nouveau(root, profiles):
@@ -41,6 +42,9 @@ def enable_nouveau(root, profiles):
     path = root / NOUVEAU_OVERRIDE
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text('')
+    flag = root / LITE_MODE_FLAG
+    flag.parent.mkdir(parents=True, exist_ok=True)
+    flag.touch()
     return True
 
 

@@ -3633,6 +3633,7 @@ class HyprDeskApp(Gtk.Application):
         self.primary_monitor_id = None
         self.drag_session = DragSession()  # App-weite Drag-Session (ersetzt lmb_held/transfer_in_progress)
         self.curtain_windows = []
+        self._startup_monitor_retries = 0
         self.settings_monitor = None
         # Default settings (werden beim Start überschrieben)
         self.current_icon_size = 64
@@ -3879,6 +3880,9 @@ class HyprDeskApp(Gtk.Application):
         n = monitors.get_n_items()
         if n == 0:
             debug("no monitors found", file=sys.stderr)
+            if self._startup_monitor_retries < 4:
+                self._startup_monitor_retries += 1
+                GLib.timeout_add(750, self._retry_monitor_startup)
             return
         debug("initializing Gtk4LayerShell...")
 
@@ -3927,6 +3931,18 @@ class HyprDeskApp(Gtk.Application):
         # Initiales swaync CSS + Sprache setzen
         update_swaync_css(settings["accentColor"], settings["borderRadius"], settings["darkMode"])
         update_swaync_language(settings["uiLanguage"])
+
+    def _retry_monitor_startup(self):
+        """GDK can publish its first monitor shortly after application activation."""
+        monitors = Gdk.Display.get_default().get_monitors()
+        if monitors.get_n_items() > 0:
+            self.do_activate()
+            return False
+        if self._startup_monitor_retries < 4:
+            self._startup_monitor_retries += 1
+            return True
+        debug("no monitors appeared during startup retries", file=sys.stderr)
+        return False
 
 def main():
     signal.signal(signal.SIGINT, signal.SIG_DFL)

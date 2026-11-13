@@ -12,6 +12,7 @@ upower
 power-profiles-daemon
 hyprshot
 ghostty
+foot
 bash
 fish
 zsh
