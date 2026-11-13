@@ -81,6 +81,7 @@ def main():
     for source in (ROOT/'desktop/config').rglob('*'):
         if not source.is_file() or any(x.startswith('.') or x=='__pycache__' for x in source.relative_to(ROOT/'desktop/config').parts):continue
         relative=source.relative_to(ROOT/'desktop/config')
+        if relative.as_posix()=='quickshell/default/technical-apps-hidden.txt' and (config/relative).exists():continue
         if str(relative)=='hypr/scripts/start-quickshell.sh' and (config/relative).is_symlink():continue
         # User-adjusted application overrides and styles remain personal on the host.
         if relative.parts[0] in ['swaync','snappy-switcher'] or source.name=='replace.qml':continue

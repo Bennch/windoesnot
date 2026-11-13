@@ -3241,6 +3241,7 @@ FloatingWindow {
     property bool keyboardNavigation: true
     property var pinnedAppNames: []  // Liste der gepinnten App-Namen
     property bool pinnedAppsLoaded: false
+    property bool showTechnicalApps: false
     property string currentSection: "allApps"  // "allApps" | "personalized"
 
     function loadPinnedApps() {
@@ -3417,7 +3418,7 @@ FloatingWindow {
             }
             for (var l = 0; l < allAppsModel.count; l++) {
                 var app4 = allAppsModel.get(l)
-                if (!app4.pinned) {
+                if (!app4.pinned && (showTechnicalApps || !app4.technical)) {
                     filteredApps.push(l)
                 }
             }
@@ -3452,7 +3453,7 @@ FloatingWindow {
         if (searchText.length > 0) {
             for (var i = 0; i < selectedAppIndex; i++) {
                 var a = allAppsModel.get(i)
-                if (a && a.name.toLowerCase().includes(searchText.toLowerCase())) {
+                if (a && (searchText.length > 0 || showTechnicalApps || !a.technical || a.pinned) && a.name.toLowerCase().includes(searchText.toLowerCase())) {
                     visualIndex++
                 }
             }
@@ -3543,6 +3544,7 @@ FloatingWindow {
     }
 
     onSearchTextChanged: updateFilteredApps()
+    onShowTechnicalAppsChanged: updateFilteredApps()
 
     Item {
         id: keyHandler
@@ -3563,7 +3565,7 @@ FloatingWindow {
             var visibleIndices = []
             for (var i = 0; i < allAppsModel.count; i++) {
                 var app = allAppsModel.get(i)
-                if (startMenu.searchText.length === 0 || app.name.toLowerCase().includes(startMenu.searchText.toLowerCase())) {
+                if ((startMenu.searchText.length > 0 || startMenu.showTechnicalApps || !app.technical || app.pinned) && (startMenu.searchText.length === 0 || app.name.toLowerCase().includes(startMenu.searchText.toLowerCase()))) {
                     visibleIndices.push(i)
                 }
             }
@@ -3646,7 +3648,7 @@ FloatingWindow {
 
     Process {
         id: desktopFilesProc
-        command: ["windoesnot-list-apps", settingsMenu.uiLanguage, "--json"]
+        command: ["windoesnot-list-apps", settingsMenu.uiLanguage, "--json", "--technical-list", Qt.resolvedUrl("technical-apps-hidden.txt").toString().replace("file://", "")]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -3726,6 +3728,7 @@ FloatingWindow {
                             cmd: entry.cmd,
                             icon: entry.icon,
                             pinned: isPinned,
+                            technical: entry.technical === true,
                             customIcon: false
                         }
 
@@ -4016,6 +4019,19 @@ FloatingWindow {
                 color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
 
                 Text {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.leftMargin: 10
+                    text: Lang.get("shell.showTechnicalApps", settingsMenu.uiLanguage) + (startMenu.showTechnicalApps ? " ✓" : "")
+                    color: settingsMenu.darkMode ? "#bbb" : "#555"
+                    font.pixelSize: 10
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: startMenu.showTechnicalApps = !startMenu.showTechnicalApps
+                    }
+                }
+
+                Text {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.rightMargin: 10
@@ -4023,7 +4039,7 @@ FloatingWindow {
                         var visible = 0
                         for (var i = 0; i < allAppsModel.count; i++) {
                             var app = allAppsModel.get(i)
-                            if (startMenu.searchText.length === 0 || app.name.toLowerCase().includes(startMenu.searchText.toLowerCase())) {
+                            if ((startMenu.searchText.length > 0 || startMenu.showTechnicalApps || !app.technical || app.pinned) && (startMenu.searchText.length === 0 || app.name.toLowerCase().includes(startMenu.searchText.toLowerCase()))) {
                                 visible++
                             }
                         }
@@ -4126,7 +4142,7 @@ FloatingWindow {
                                 var visibleIndices = []
                                 for (var i = 0; i < allAppsModel.count; i++) {
                                     var app = allAppsModel.get(i)
-                                    if (startMenu.searchText.length === 0 || app.name.toLowerCase().includes(startMenu.searchText.toLowerCase())) {
+                                    if ((startMenu.searchText.length > 0 || startMenu.showTechnicalApps || !app.technical || app.pinned) && (startMenu.searchText.length === 0 || app.name.toLowerCase().includes(startMenu.searchText.toLowerCase()))) {
                                         visibleIndices.push(i)
                                     }
                                 }
@@ -4514,7 +4530,7 @@ FloatingWindow {
                                         if (startMenu.searchText.length > 0) {
                                             return name.toLowerCase().includes(startMenu.searchText.toLowerCase())
                                         }
-                                        return !pinned
+                                        return !pinned && (startMenu.showTechnicalApps || !technical)
                                     }
 
                                     Rectangle {

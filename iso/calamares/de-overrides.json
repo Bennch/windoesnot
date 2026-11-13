@@ -1,0 +1,35 @@
+{
+  "Page_UserSetup": {
+    "What is your name?": "Wie lautet dein Vor- und Nachname?",
+    "Your Full Name": "Dein vollständiger Name",
+    "What name do you want to use to log in?": "Welchen Namen möchtest du zum Anmelden verwenden?",
+    "What is the name of this computer?": "Wie soll dieser Computer heißen?",
+    "<small>This name will be used if you make the computer visible to others on a network.</small>": "<small>Dieser Name wird verwendet, wenn du den Computer im Netzwerk für andere sichtbar machst.</small>",
+    "Choose a password to keep your account safe.": "Wähle ein Passwort, um dein Konto zu schützen.",
+    "<small>Enter the same password twice, so that it can be checked for typing errors. A good password will contain a mixture of letters, numbers and punctuation, should be at least eight characters long, and should be changed at regular intervals.</small>": "<small>Gib dasselbe Passwort zweimal ein, damit Tippfehler erkannt werden. Ein gutes Passwort enthält Buchstaben, Zahlen und Sonderzeichen, ist mindestens acht Zeichen lang und sollte regelmäßig geändert werden.</small>",
+    "When this box is checked, password-strength checking is done and you will not be able to use a weak password.": "Wenn dieses Kästchen aktiviert ist, wird die Passwortstärke geprüft und du kannst kein schwaches Passwort verwenden.",
+    "Use the same password for the administrator account.": "Verwende dasselbe Passwort auch für das Administratorkonto.",
+    "Choose a password for the administrator account.": "Wähle ein Passwort für das Administratorkonto.",
+    "<small>Enter the same password twice, so that it can be checked for typing errors.</small>": "<small>Gib dasselbe Passwort zweimal ein, damit Tippfehler erkannt werden.</small>",
+    "Use Active Directory": "Active Directory verwenden",
+    "Require strong passwords.": "Sichere Passwörter verlangen.",
+    "IP Address (optional):": "IP-Adresse (optional):"
+  },
+  "ChoicePage": {
+    "<strong>Manual partitioning</strong><br/>You can create or resize partitions yourself.": "<strong>Manuelle Partitionierung</strong><br/>Du kannst Partitionen selbst erstellen oder ihre Größe ändern."
+  },
+  "ResizePartitionJob": {
+    "The installer failed to resize partition %1 on disk '%2'.": "Das Installationsprogramm konnte Partition %1 auf Datenträger '%2' nicht in der Größe ändern."
+  },
+  "EditExistingPartitionDialog": {
+    "Partition %1 could not be decrypted with the given passphrase.<br/><br/>Edit the partition again and give the correct passphrase or delete and create a new encrypted partition.": "Partition %1 konnte mit diesem Passwort nicht entschlüsselt werden.<br/><br/>Bearbeite die Partition erneut und gib das richtige Passwort ein oder lösche sie und erstelle eine neue verschlüsselte Partition."
+  },
+  "PartitionViewStep": {
+    "An EFI system partition is necessary to start %1.<br/><br/>To configure an EFI system partition, go back and select or create a suitable filesystem.": "Eine EFI-Systempartition ist erforderlich, um %1 zu starten.<br/><br/>Gehe zurück und wähle ein passendes Dateisystem aus oder erstelle eines, um eine EFI-Systempartition einzurichten.",
+    "A GPT partition table is the best option for all systems. This installer supports such a setup for BIOS systems too.<br/><br/>To configure a GPT partition table on BIOS, (if not done so already) go back and set the partition table to GPT, next create a 8 MB unformatted partition with the <strong>%2</strong> flag enabled.<br/><br/>An unformatted 8 MB partition is necessary to start %1 on a BIOS system with GPT.": "Eine GPT-Partitionstabelle ist für alle Systeme die beste Wahl. Dieses Installationsprogramm unterstützt sie auch auf BIOS-Systemen.<br/><br/>Gehe zurück und stelle die Partitionstabelle auf GPT. Erstelle anschließend eine unformatierte Partition mit 8 MB und aktiviere das Kennzeichen <strong>%2</strong>.<br/><br/>Eine unformatierte Partition mit 8 MB ist erforderlich, um %1 auf einem BIOS-System mit GPT zu starten.",
+    "A separate boot partition was set up together with an encrypted root partition, but the boot partition is not encrypted.<br/><br/>There are security concerns with this kind of setup, because important system files are kept on an unencrypted partition.<br/>You may continue if you wish, but filesystem unlocking will happen later during system startup.<br/>To encrypt the boot partition, go back and recreate it, selecting <strong>Encrypt</strong> in the partition creation window.": "Zusammen mit einer verschlüsselten Root-Partition wurde eine separate Boot-Partition eingerichtet, die selbst nicht verschlüsselt ist.<br/><br/>Das ist aus Sicherheitsgründen bedenklich, weil wichtige Systemdateien auf einer unverschlüsselten Partition liegen.<br/>Du kannst trotzdem fortfahren; das Dateisystem wird dann erst während des Systemstarts entsperrt.<br/>Um die Boot-Partition zu verschlüsseln, gehe zurück und erstelle sie neu. Wähle dazu im Fenster zum Erstellen der Partition <strong>Verschlüsseln</strong> aus."
+  },
+  "FillGlobalStorageJob": {
+    "Set up <strong>new</strong> %2 partition with mount point <strong>%1</strong>%3": "Erstelle <strong>neue</strong> %2-Partition mit Einhängepunkt <strong>%1</strong>%3"
+  }
+}

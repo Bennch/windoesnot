@@ -873,6 +873,7 @@ var strings = {
     "shell.pinned": "Angeheftet",
     "shell.allApps": "Alle Apps",
     "shell.searchResults": "Suchergebnisse",
+    "shell.showTechnicalApps": "Technische Programme anzeigen",
     "shell.colorPicker": "Farbauswahl",
     "shell.close": "Schließen",
     "shell.volume": "Volume",

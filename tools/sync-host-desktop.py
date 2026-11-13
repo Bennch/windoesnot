@@ -67,6 +67,8 @@ def changes(terminal_build):
             continue
         if str(relative).startswith(TERMINAL + '/'):
             continue  # replaced by the build against the host's Qt below
+        if relative.name == 'technical-apps-hidden.txt' and (HOST / relative).exists():
+            continue  # editable default list; preserve the user's classification edits
         result.append((HOST / relative, source.read_bytes(), source.stat().st_mode & 0o777))
     for library in sorted((terminal_build / TERMINAL).iterdir()):
         result.append((HOST / TERMINAL / library.name, library.read_bytes(), library.stat().st_mode & 0o777))
