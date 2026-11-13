@@ -35,6 +35,9 @@ Item {
     property var pacnewFiles: []
     property string selectedPacnewPath: ""
     property string pacnewError: ""
+    property var hwReport: null
+    property bool hwBusy: false
+    property string hwCopyResult: ""
     width: parent ? parent.width : 650
     height: content.height
 
@@ -67,8 +70,21 @@ Item {
     Component.onCompleted: {
         if (autoLoad) runAction("maintenance-status", {})
         desktopStateProc.running = true
+        hwProc.running = true
         if (autoLoad) { busyPacnew = true; pacnewProc.running = true }
     }
+    Process {
+        id: hwProc
+        command: ["/usr/bin/python3", "-I", "/usr/lib/windoesnot/hwcheck.py"]
+        stdout: StdioCollector { id: hwOutput }
+        onExited: (code) => {
+            page.hwBusy = false
+            if (code !== 0) { page.hwReport = null; return }
+            try { page.hwReport = JSON.parse(hwOutput.text) } catch (error) { page.hwReport = null }
+        }
+        Component.onCompleted: page.hwBusy = true
+    }
+    Process { id: hwCopyProc; onExited: (code) => page.hwCopyResult = code === 0 ? "maintenance.hwCopied" : "maintenance.hwCopyFailed" }
     Process {
         id: pacnewProc
         command: ["/usr/bin/python3", "-I", "/usr/lib/windoesnot/pacnew.py"]
@@ -145,6 +161,51 @@ Item {
         id: content
         width: parent.width; spacing: 20
         Note { text: page.tr("maintenance.intro") }
+        Rectangle {
+            objectName: "hardwareCard"
+            width: parent.width; height: hardwareColumn.implicitHeight + 32
+            radius: settingsMenu ? settingsMenu.borderRadius : 10
+            color: page.dark ? "#141414" : "#f5f5f5"
+            border.width: 1; border.color: page.lineColor
+            Column {
+                id: hardwareColumn; x: 16; y: 16; width: parent.width - 32; spacing: 8
+                Text { text: page.tr("hwcheck.title"); color: page.foreground; font.bold: true; font.pixelSize: 15 }
+                Note { visible: page.hwReport === null; text: page.hwBusy ? page.tr("systemTools.loading") : page.tr("systemTools.unavailable") }
+                Note {
+                    visible: page.hwReport !== null
+                    text: page.hwReport ? page.tr("hwcheck.cpu") + ": " + page.hwReport.cpu.model + " (" + page.hwReport.cpu.cores + ")\n"
+                        + page.tr("hwcheck.missingInstructions") + ": " + (page.hwReport.cpu.missing_instruction_sets.length ? page.hwReport.cpu.missing_instruction_sets.join(", ") : page.tr("hwcheck.noneMissing")) + "\n"
+                        + page.tr("hwcheck.memory") + ": " + page.sizeText(page.hwReport.memory_bytes) + " · " + page.tr("hwcheck.swap") + ": " + page.sizeText(page.hwReport.swap_bytes) + "\n"
+                        + page.tr("hwcheck.graphics") + ": " + (page.hwReport.gpus.length ? page.hwReport.gpus.map(g => g.name + (g.driver ? " — " + g.driver : "")).join(", ") : page.tr("hwcheck.unknown")) + "\n"
+                        + page.tr("hwcheck.renderer") + ": " + (page.hwReport.renderer || page.tr("hwcheck.hardwareRenderer")) + "\n"
+                        + page.tr("hwcheck.disks") + ": " + (page.hwReport.disks.map(d => page.tr("hwcheck." + d.kind)).join(", ") || page.tr("hwcheck.unknown")) + "\n"
+                        + page.tr("hwcheck.devices") + ": " + page.tr("hwcheck.battery") + " " + (page.hwReport.battery ? page.tr("hwcheck.present") : page.tr("hwcheck.absent")) + ", Wi-Fi " + (page.hwReport.controllers.wifi ? page.tr("hwcheck.present") : page.tr("hwcheck.absent")) + ", Bluetooth " + (page.hwReport.controllers.bluetooth ? page.tr("hwcheck.present") : page.tr("hwcheck.absent")) + "\n"
+                        + page.tr("hwcheck.recommendations") + ": " + (page.hwReport.recommendations.map(r => page.tr("hwcheck.recommendation." + r.id) + " — " + r.reasons.map(reason => page.tr("hwcheck.reason." + reason)).join(", ")).join("; ") || page.tr("hwcheck.none")) : ""
+                }
+                Tools.SystemToolsButton {
+                    objectName: "hwLiteEnableButton"
+                    visible: page.hwReport !== null && page.hwReport.recommendations.some(r => r.id === "lite_mode") && !page.state.liteMode
+                    settingsMenu: page.settingsMenu; text: page.tr("maintenance.liteModeEnable")
+                    enabled: page.ready && !page.busy && !page.state.live
+                    onClicked: page.requestAction("lite-mode-set", {enabled: true}, page.tr("maintenance.confirmLiteMode"))
+                }
+                Row {
+                    spacing: 8
+                    Tools.SystemToolsButton {
+                        objectName: "hwReportCopyButton"
+                        visible: page.hwReport !== null; settingsMenu: page.settingsMenu
+                        text: page.tr("hwcheck.copy"); enabled: !hwCopyProc.running
+                        onClicked: {
+                            page.hwCopyResult = ""
+                            const safe = JSON.stringify(page.hwReport, null, 2)
+                            hwCopyProc.command = ["bash", "-c", "printf '%s' \"$1\" | wl-copy", "--", safe]
+                            hwCopyProc.running = true
+                        }
+                    }
+                    Note { visible: page.hwCopyResult.length > 0; text: page.tr(page.hwCopyResult) }
+                }
+            }
+        }
         Rectangle {
             width: parent.width; height: liteColumn.implicitHeight + 32
             radius: settingsMenu ? settingsMenu.borderRadius : 10

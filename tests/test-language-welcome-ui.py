@@ -142,6 +142,11 @@ METHODS
             icon.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(SOURCE / app['icon'], icon)
         assert len(payload['lines']) == 3 and payload['dark'] == (dark == 'true')
+        prompt = notice.welcome_payload({'cpu_level': 'v3', 'drivers': 'configured', 'driver_profiles': ['qemu']},
+                                        {'uiLanguage': language}, {'recommendations': [{'id': 'lite_mode'}]})
+        no_prompt = notice.welcome_payload({'cpu_level': 'v3', 'drivers': 'configured', 'driver_profiles': ['qemu']},
+                                           {'uiLanguage': language})
+        assert prompt['hwcheckHint'] and not no_prompt['hwcheckHint']
         assert len(payload['apps']) == 6
         assert all(isinstance(app['command'], list) and isinstance(app['available'], bool) for app in payload['apps'])
         extra = {'WINDOESNOT_WELCOME': json.dumps(payload)}

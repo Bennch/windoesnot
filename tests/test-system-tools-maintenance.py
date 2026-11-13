@@ -13,6 +13,15 @@ spec=importlib.util.spec_from_file_location('system_tools',ROOT/'desktop/lib/win
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 
 class Maintenance(unittest.TestCase):
+    def test_status_reports_existing_lite_mode_flag(self):
+        with tempfile.TemporaryDirectory() as temp, patch.object(m,'LITE_MODE_FLAG',Path(temp)/'lite-mode'), \
+                patch.object(m,'cache_bytes',return_value=0), patch.object(m,'package_processes',return_value=[]), \
+                patch.object(m,'orphan_packages',return_value=[]), patch.object(m,'printers_status',return_value={}), \
+                patch.object(m,'firewall_status',return_value={}), patch.object(m,'query',return_value=''):
+            self.assertFalse(m.maintenance_status()['liteMode'])
+            m.LITE_MODE_FLAG.touch()
+            self.assertTrue(m.maintenance_status()['liteMode'])
+
     def test_strict_payloads(self):
         for action in ('maintenance-status','mirrors-rank','cache-clean','keyring-repair','lock-remove','drivers-configure'):
             m.validate(action,{})

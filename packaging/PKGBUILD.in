@@ -99,6 +99,7 @@ package_windoesnot-tools() {
     done
     install -Dm644 desktop/lib/windoesnot/migrate.py "$pkgdir/usr/lib/windoesnot/migrate.py"
     install -Dm755 desktop/lib/windoesnot/system_tools.py "$pkgdir/usr/lib/windoesnot/system_tools.py"
+    install -Dm755 desktop/lib/windoesnot/hwcheck.py "$pkgdir/usr/lib/windoesnot/hwcheck.py"
     install -Dm755 desktop/lib/windoesnot/pacnew.py "$pkgdir/usr/lib/windoesnot/pacnew.py"
     install -Dm755 desktop/lib/windoesnot/old-gpu-setup "$pkgdir/usr/lib/windoesnot/old-gpu-setup"
     install -Dm644 desktop/share/polkit-1/actions/org.windoesnot.system.policy "$pkgdir/usr/share/polkit-1/actions/org.windoesnot.system.policy"
