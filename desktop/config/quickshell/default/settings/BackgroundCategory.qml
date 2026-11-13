@@ -404,15 +404,9 @@ Item {
         }
     }
 
-    // Apply wallpaper to monitor using hyprpaper IPC
+    // Save and restart swaybg from the compatible hyprpaper.conf format.
     function setWallpaper(monitorName, wallpaperPath) {
         console.log("Setting wallpaper for", monitorName, "to", wallpaperPath)
-
-        // New hyprpaper syntax: windoesnot-hyprctl hyprpaper wallpaper [mon],[path],[fit_mode]
-        setWallpaperProc.command = [
-            "bash", "-c",
-            "windoesnot-hyprctl hyprpaper wallpaper '" + monitorName + "," + wallpaperPath + ",cover'"
-        ]
         setWallpaperProc.tag = monitorName + "|" + wallpaperPath
         setWallpaperProc.running = true
     }
@@ -461,7 +455,7 @@ Item {
         running: false
     }
 
-    // Save wallpaper configuration to hyprpaper.conf
+    // Keep the established config path and syntax for existing user settings.
     function saveWallpaperConfig() {
         var content = "# Wallpaper configuration - managed by Quickshell\n\n"
         content += "# Disable splash screen\n"
@@ -491,8 +485,15 @@ Item {
         onRunningChanged: {
             if (!running) {
                 console.log("Wallpaper config saved")
+                wallpaperRestartProc.running = true
             }
         }
+    }
+
+    Process {
+        id: wallpaperRestartProc
+        command: ["windoesnot-wallpaper", "--restart"]
+        running: false
     }
 
     // Open file dialog for custom wallpaper selection

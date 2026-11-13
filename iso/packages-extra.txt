@@ -1,7 +1,7 @@
 hyprland
 curl
 quickshell
-hyprpaper
+swaybg
 hyprpicker
 hyprlock
 hypridle
