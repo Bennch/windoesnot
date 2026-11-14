@@ -32,7 +32,7 @@ def write(path, text, executable=False):
 def insert_post_user_jobs(execution):
     """Run optional app and migration work only after Calamares creates the user."""
     anchor = max(execution.index('shellprocess'), execution.index('users')) + 1
-    execution[anchor:anchor] = ['windoesnotapps_install', 'windoesnotmigrate_install', 'windoesnotfinish', 'windoesnotbootreuse@finish']
+    execution[anchor:anchor] = ['windoesnotapps_install', 'windoesnotlivedata', 'windoesnotmigrate_install', 'windoesnotfinish', 'windoesnotbootreuse@finish']
 
 def stage_store(pin, target, package='windoesnot-store', version_file='Cargo.toml'):
     """Stage a native Rust application from its exact pinned commit.
@@ -305,7 +305,7 @@ def main():
     cfg('windoesnotapps.conf', {'catalog':'/usr/share/windoesnot/iso/software/catalog.json', 'mode':'offline'})
     cfg('windoesnotmigrate.conf', {'mode':'offline'})
     cfg('windoesnotmigrate-result.conf', {'mode':'result'})
-    for job in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotmigrate_guard','windoesnotmigrate_install','windoesnotfinish']:
+    for job in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotlivedata','windoesnotmigrate_guard','windoesnotmigrate_install','windoesnotfinish']:
         cfg(job + '.conf', {'mode':'offline'})
     locale=yaml.safe_load((modules/'locale/locale.conf').read_text())
     locale['geoip']={'style':'none'}
@@ -343,7 +343,7 @@ def main():
     (online / 'branding').symlink_to('../branding',target_is_directory=True)
     shutil.copytree(cal / 'modules', online / 'modules')
     write(online / 'settings.conf',yaml.safe_dump(settings,sort_keys=False))
-    for job in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotmigrate_guard','windoesnotmigrate_install','windoesnotfinish','windoesnotapps','windoesnotmigrate']:
+    for job in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotlivedata','windoesnotmigrate_guard','windoesnotmigrate_install','windoesnotfinish','windoesnotapps','windoesnotmigrate']:
         config=yaml.safe_load((online / 'modules' / (job+'.conf')).read_text())
         config['mode']='online'
         write(online / 'modules' / (job+'.conf'),yaml.safe_dump(config,sort_keys=False))

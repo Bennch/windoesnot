@@ -56,7 +56,7 @@ for name,data in boot_manifest['loaders'].items():
         assert hashlib.sha256((boot_language/name/filename).read_bytes()).hexdigest()==checksum,'Boot language artifact mismatch'
 assert (root/'usr/lib/os-probes/55windoesnot-btrfs').read_bytes()==(base/'iso/os-prober-btrfs').read_bytes(),'Missing Btrfs os-prober extension'
 assert (root/'usr/lib/os-probes/55windoesnot-btrfs').stat().st_mode & 0o111
-for name in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotmigrate_guard','windoesnotmigrate_install','windoesnotfinish','windoesnotbootreuse']:
+for name in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotlivedata','windoesnotmigrate_guard','windoesnotmigrate_install','windoesnotfinish','windoesnotbootreuse']:
     for filename in ['main.py','module.desc']:
         source=base/'iso/modules'/name/filename
         installed=root/'usr/lib/calamares/modules'/name/filename
@@ -77,7 +77,7 @@ for mode,directory in [('offline',root/'etc/windoesnot-calamares'),('online',roo
     assert execution.index('windoesnotbootreuse@guard') < execution.index('unpackfs')
     assert execution.index('windoesnotbootreuse@finish') < execution.index('umount')
     assert yaml.safe_load((directory/'modules/bootloader.conf').read_text())['efiBootLoaderVar']=='windoesnotBootInstall'
-    for name in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotmigrate_guard','windoesnotmigrate_install','windoesnotfinish','windoesnotapps','windoesnotmigrate']:
+    for name in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotlivedata','windoesnotmigrate_guard','windoesnotmigrate_install','windoesnotfinish','windoesnotapps','windoesnotmigrate']:
         assert yaml.safe_load((directory/'modules'/(name+'.conf')).read_text())['mode']==mode
 for name in ['windoesnot-installer','calamares-online.sh']:
     assert (root/'usr/local/bin'/name).read_bytes()==(base/'iso/windoesnot-installer').read_bytes(),name
