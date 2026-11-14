@@ -5,6 +5,21 @@
 
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/default"
 mkdir -p -- "$CONFIG_DIR" || exit 1
+
+# The live image's application tree is read-only and can be slow to walk from
+# USB. Reuse the last complete map when the desktop-file inventory is intact.
+# Paths, mtimes and sizes catch installs/removals and ordinary package updates
+# without reading every desktop file's contents on each session start.
+INPUT_FINGERPRINT=$(for dir in /usr/share/applications /var/lib/flatpak/exports/share/applications "$HOME/.local/share/applications"; do
+    [ -d "$dir" ] && find "$dir" -maxdepth 1 -type f -name '*.desktop' -printf '%p\0%T@\0%s\0' 2>/dev/null
+done | sort -z | sha256sum | cut -d' ' -f1) || exit 1
+CACHE_FILE="$CONFIG_DIR/.icon-map-inputs.sha256"
+if [ -s "$CONFIG_DIR/IconMap.js" ] && [ -s "$CONFIG_DIR/icon-map.json" ] \
+    && [ -r "$CACHE_FILE" ] && [ "$(cat "$CACHE_FILE")" = "$INPUT_FINGERPRINT" ]; then
+    echo "Icon mapping unchanged; using cached files"
+    exit 0
+fi
+
 WORK_DIR=$(mktemp -d -- "$CONFIG_DIR/.icon-map.XXXXXXXX") || exit 1
 trap 'rm -rf -- "$WORK_DIR"' EXIT
 OUTPUT_FILE="$WORK_DIR/icon-map.json"
@@ -16,7 +31,7 @@ echo "Scanning desktop files for icon mappings..."
 declare -A mappings
 
 # Search directories for .desktop files
-for dir in /usr/share/applications /var/lib/flatpak/exports/share/applications ~/.local/share/applications; do
+for dir in /usr/share/applications /var/lib/flatpak/exports/share/applications "$HOME/.local/share/applications"; do
     if [ ! -d "$dir" ]; then
         continue
     fi
@@ -182,5 +197,7 @@ fi
 chmod 600 "$OUTPUT_FILE" "$JS_OUTPUT_FILE" || exit 1
 mv -f -- "$OUTPUT_FILE" "$CONFIG_DIR/icon-map.json" || exit 1
 mv -f -- "$JS_OUTPUT_FILE" "$CONFIG_DIR/IconMap.js" || exit 1
+printf '%s\n' "$INPUT_FINGERPRINT" > "$WORK_DIR/input-fingerprint" || exit 1
+mv -f -- "$WORK_DIR/input-fingerprint" "$CACHE_FILE" || exit 1
 
 echo "JavaScript library published at: $CONFIG_DIR/IconMap.js"
