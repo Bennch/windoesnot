@@ -1,0 +1,93 @@
+#!/bin/bash
+# Temporary root agent for a WinDoesNot live-system LAN test.
+set -u
+SERVER_URL=@@SERVER_URL@@
+TOKEN=@@TOKEN@@
+MARKER=@@MARKER@@
+RUN_SECONDS=@@RUN_SECONDS@@
+SRV="$SERVER_URL/$TOKEN"
+END=$((SECONDS + RUN_SECONDS))
+LIVE_UID=$(timeout 3 id -u liveuser 2>/dev/null || echo 1000)
+
+G() {
+  local uid runtime signature
+  uid=$(timeout 3 id -u liveuser 2>/dev/null) || return 1
+  runtime="/run/user/$uid"
+  signature=$(timeout 3 sh -c 'ls -1 "$1/hypr" 2>/dev/null | head -n 1' sh "$runtime")
+  timeout 20 runuser -u liveuser -- env \
+    XDG_RUNTIME_DIR="$runtime" WAYLAND_DISPLAY=wayland-1 \
+    HYPRLAND_INSTANCE_SIGNATURE="$signature" \
+    DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime/bus" "$@"
+}
+
+upload_file() {
+  local file="$1" name
+  name=${file##*/}
+  [[ "$name" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$ ]] || return 2
+  timeout 20 curl --fail --silent --show-error --max-time 15 \
+    -X POST --data-binary "@$file" "$SRV/up/$name" >/dev/null
+}
+
+cat > /tmp/wdn-env.sh <<'WDN_ENV'
+G() {
+  local uid runtime signature
+  uid=$(timeout 3 id -u liveuser 2>/dev/null) || return 1
+  runtime="/run/user/$uid"
+  signature=$(timeout 3 sh -c 'ls -1 "$1/hypr" 2>/dev/null | head -n 1' sh "$runtime")
+  timeout 20 runuser -u liveuser -- env \
+    XDG_RUNTIME_DIR="$runtime" WAYLAND_DISPLAY=wayland-1 \
+    HYPRLAND_INSTANCE_SIGNATURE="$signature" \
+    DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime/bus" "$@"
+}
+WDN_ENV
+
+cleanup() {
+  for auth in /root/.ssh/authorized_keys /home/liveuser/.ssh/authorized_keys; do
+    if [ -f "$auth" ]; then
+      timeout 5 sh -c 'grep -vF "$1" "$2" > "$2.tmp" || :; cat "$2.tmp" > "$2"; rm -f "$2.tmp"' sh "$MARKER" "$auth"
+    fi
+  done
+  if [ "${STOP_SSHD:-0}" = 1 ]; then timeout 10 systemctl stop sshd.service >/dev/null 2>&1 || :; fi
+}
+trap cleanup EXIT
+trap 'exit 0' TERM INT
+
+{
+  echo '== system'; timeout 8 id; timeout 8 uptime
+  echo '== cpu'; timeout 10 sh -c 'lscpu | grep -E "Model name|Flags|Thread|Core"'
+  echo '== load'; timeout 8 cat /proc/loadavg
+  echo '== memory'; timeout 8 free -m
+  echo '== pci'; timeout 12 lspci -nnk
+  echo '== modules'; timeout 10 sh -c 'lsmod | grep -iE "nouveau|drm|i915|amdgpu|nvidia"'
+  echo '== dmesg'; timeout 12 sh -c 'dmesg | grep -iE "nouveau|drm|firmware|fail|error|warn" | tail -100'
+  echo '== failed units'; timeout 12 systemctl --failed --no-legend
+  echo '== journal warnings'; timeout 15 journalctl -b -p warning --no-pager -n 120
+  echo '== processes'; timeout 10 sh -c 'ps -eo pcpu,pmem,etime,comm --sort=-pcpu | head -20'
+  echo '== hyprland'; G hyprctl monitors; G hyprctl layers; G hyprctl configerrors
+  echo '== hyprland log'; timeout 10 sh -c 'for f in "/run/user/$1"/hypr/*/hyprland.log; do [ -f "$f" ] && tail -80 "$f"; done' sh "$LIVE_UID"
+  echo '== quickshell'; if command -v qs >/dev/null 2>&1; then G qs log; else echo 'qs unavailable'; fi
+  echo '== bluetooth'; if command -v bluetoothctl >/dev/null 2>&1; then timeout 8 bluetoothctl show; else echo 'bluetoothctl unavailable'; fi
+  echo '== WinDoesNot packages'; timeout 12 sh -c 'pacman -Q 2>/dev/null | grep -i windoesnot'
+  echo '== network'; timeout 8 ip -4 -br address
+  if command -v nmcli >/dev/null 2>&1; then echo '== nmcli'; timeout 10 nmcli -t -f DEVICE,TYPE,STATE device status; fi
+} > /tmp/wdn-debug-diag.txt 2>&1
+head -c 400000 /tmp/wdn-debug-diag.txt > /tmp/wdn-debug-diag.cut
+upload_file /tmp/wdn-debug-diag.cut || :
+
+while [ ! -e /tmp/stop-agent ] && [ "$SECONDS" -lt "$END" ]; do
+  response=$(timeout 10 curl --fail --silent --show-error --max-time 8 "$SRV/cmd" 2>/dev/null || :)
+  if [ -n "$response" ]; then
+    command_id=${response%%$'\n'*}
+    command_text=${response#*$'\n'}
+    if [[ "$command_id" =~ ^[a-f0-9]{32}$ ]]; then
+      printf '%s\n' "$command_text" | timeout --signal=TERM --kill-after=3 180 bash -c 'cat > /tmp/wdn-command.sh; . /tmp/wdn-env.sh; . /tmp/wdn-command.sh' > /tmp/wdn-command.out 2>&1
+      status=$?
+      { printf 'exit status: %s\n' "$status"; cat /tmp/wdn-command.out; } | head -c 400000 > /tmp/wdn-command.cut
+      timeout 20 curl --fail --silent --show-error --max-time 15 -X POST \
+        --data-binary @/tmp/wdn-command.cut "$SRV/out/$command_id" >/dev/null || :
+    fi
+  else
+    sleep 2
+  fi
+done
+exit 0
