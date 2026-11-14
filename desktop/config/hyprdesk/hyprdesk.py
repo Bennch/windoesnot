@@ -129,7 +129,7 @@ def update_snappy_config(accent_color, border_radius):
 
 _SWAYNC_STRINGS = {
     "de": {
-        "title":           "Benachrichtigungen",
+        "title":           "Meldungen",
         "clear_all":       "Alle löschen",
         "dnd":             "Nicht stören",
         "inhibitors":      "Aktive Sperren",
@@ -170,7 +170,7 @@ def update_swaync_language(lang):
 def _build_swaync_css(accent, r, dark):
     """Generiert swaync CSS direkt aus Python-Templates (kein externer File nötig)."""
     if dark:
-        bg       = "rgba(32, 32, 32, 0.85)"
+        bg       = "rgba(32, 32, 32, 0.96)"
         border   = "rgba(58, 58, 63, 1)"
         switch_bg= "rgba(58, 58, 58, 1)"
         txt      = "#ffffff"
@@ -184,7 +184,7 @@ def _build_swaync_css(accent, r, dark):
         close_bg = "rgba(255, 255, 255, 0.1)"
         close_hov= "rgba(255, 255, 255, 0.2)"
     else:
-        bg       = "rgba(242, 242, 242, 0.90)"
+        bg       = "rgba(242, 242, 242, 0.98)"
         border   = "rgba(192, 192, 192, 1)"
         switch_bg= "rgba(200, 200, 200, 1)"
         txt      = "#000000"
@@ -221,7 +221,7 @@ def _build_swaync_css(accent, r, dark):
   background: {bg};
   border: 1px solid {border};
   border-radius: {r}px;
-  padding: 15px;
+  padding: 12px;
   margin: 8px;
 }}
 .notification.critical {{ border: 1px solid {accent}; }}
@@ -242,14 +242,14 @@ def _build_swaync_css(accent, r, dark):
 .close-button:hover {{ background: {close_hov}; }}
 .notification-action {{
   background: {btn_bg};
-  color: {subtxt};
+  color: {txt};
   border: 1px solid {border};
   border-radius: {r}px;
   padding: 6px 12px;
   margin: 4px;
 }}
 .notification-action:hover {{ background: {btn_hov}; }}
-.notification-action:active {{ background: {accent}; color: #ffffff; }}
+.notification-action:active {{ background: {btn_hov}; color: {txt}; }}
 .control-center .widget-title {{
   color: {txt};
   font-size: 16px;
@@ -258,7 +258,7 @@ def _build_swaync_css(accent, r, dark):
 }}
 .control-center .widget-title button {{
   background: {btn_bg};
-  color: {subtxt};
+  color: {txt};
   border: 1px solid {border};
   border-radius: {r}px;
   padding: 6px 12px;
@@ -295,7 +295,7 @@ def _build_swaync_css(accent, r, dark):
 }}
 .control-center .widget-inhibitors button {{
   background: {btn_bg};
-  color: {subtxt};
+  color: {txt};
   border: 1px solid {border};
   border-radius: {r}px;
   padding: 6px 12px;

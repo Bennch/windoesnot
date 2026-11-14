@@ -26,7 +26,7 @@ with tempfile.TemporaryDirectory() as directory:
     tool('wl-copy', f'echo "wl-copy $*" >> {log}\ncat > /dev/null')
     tool('notify-send', f'echo "notify-send $*" >> {log}\necho default')
     tool('xdg-open', f'echo "xdg-open $*" >> {log}')
-    env = {**os.environ, 'PATH': f'{bindir}:{os.environ["PATH"]}', 'LANG': 'de_DE.UTF-8', 'HOME': str(temp)}
+    env = {**os.environ, 'PATH': f'{bindir}:{os.environ["PATH"]}', 'LANG': 'de_DE.UTF-8', 'LC_ALL': 'de_DE.UTF-8', 'HOME': str(temp)}
     result = subprocess.run([str(SCRIPT), 'region'], env=env, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     for _ in range(50):

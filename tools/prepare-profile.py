@@ -400,7 +400,7 @@ def main():
     boot_cfg.write_text(grub_modes(boot_cfg.read_text(), args.language).replace('set gfxmode="auto"', 'set gfxmode="1280x800,1024x768,800x600,auto"').replace('    terminal_output gfxterm', '    terminal_output gfxterm\n    insmod png\n    insmod gfxmenu\n    if [ -f "(${root})/boot/grub/themes/windoesnot/theme.txt" ]; then\n        set theme="(${root})/boot/grub/themes/windoesnot/theme.txt"\n    fi'))
     # Upstream's grubcfg defaults are absent from the offline sequence: keep stable before LTS
     # and detect Windows via os-prober. GRUB 2.16 BootNext would list PXE/HTTP/shell entries.
-    write(a / 'etc/default/grub.d/90-windoesnot.cfg', 'GRUB_THEME="/boot/grub/themes/windoesnot/theme.txt"\nGRUB_TOP_LEVEL="/boot/vmlinuz-linux-cachyos"\nGRUB_DISABLE_OS_PROBER=false\nGRUB_DISABLE_BOOTNEXT=true\n')
+    write(a / 'etc/default/grub.d/90-windoesnot.cfg', 'GRUB_DISTRIBUTOR="WinDoesNot"\nGRUB_THEME="/boot/grub/themes/windoesnot/theme.txt"\nGRUB_TOP_LEVEL="/boot/vmlinuz-linux-cachyos"\nGRUB_DISABLE_OS_PROBER=false\nGRUB_DISABLE_BOOTNEXT=true\n')
     # BIOS vesamenu needs a flattened 640x480 background. Render the supplied
     # PNG through an SVG layout; never stretch the wordmark with the screen.
     import base64

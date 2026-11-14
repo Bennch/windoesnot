@@ -830,7 +830,7 @@ var strings = {
     "help.pinWindow": "Ein Fenster statisch machen",
     "help.fullscreen": "Vollbild umschalten",
     "help.showDesktop": "Desktop anzeigen / alle Fenster ausblenden",
-    "help.notifications": "Benachrichtigungszentrum öffnen",
+    "help.notifications": "Meldungszentrum öffnen",
     "help.colorPicker": "Farbpicker starten",
     "help.screenshot": "Bildschirmbereich aufnehmen",
     "help.gamescopeFix": "Mausfokus in Spielen wiederherstellen (Gamescope-Fix)",
@@ -861,9 +861,9 @@ var strings = {
 
     // === Notification Bar ===
     "notificationBar.noTitle": "Kein Titel",
-    "notificationBar.notifications": "Nachrichten",
-    "notificationBar.oneMessage": "1 Nachricht",
-    "notificationBar.messages": "Nachrichten",
+    "notificationBar.notifications": "Meldungen",
+    "notificationBar.oneMessage": "1 Meldung",
+    "notificationBar.messages": "Meldungen",
 
     // === Audio Panel ===
     "audio.title": "Audio",

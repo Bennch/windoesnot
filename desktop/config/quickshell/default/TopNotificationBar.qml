@@ -92,9 +92,9 @@ PanelWindow {
     property var activePlayer: Mpris.players.values.filter(p => p.playbackState === MprisPlaybackState.Playing)[0] ||
                                 Mpris.players.values.filter(p => p.playbackState === MprisPlaybackState.Paused)[0] ||
                                 Mpris.players.values[0] || null
-    property string mediaTitle: activePlayer?.trackTitle || Lang.get("notificationBar.noTitle", uiLanguage)
-    property string mediaArtist: activePlayer?.trackArtists || ""  // trackArtists ist ein String, kein Array!
-    property bool isPlaying: activePlayer?.playbackState === MprisPlaybackState.Playing
+    property string mediaTitle: (activePlayer && activePlayer.trackTitle) || Lang.get("notificationBar.noTitle", uiLanguage)
+    property string mediaArtist: (activePlayer && activePlayer.trackArtists) || ""  // trackArtists ist ein String, kein Array!
+    property bool isPlaying: (activePlayer && activePlayer.playbackState) === MprisPlaybackState.Playing
     property bool hasActivePlayer: activePlayer !== null
 
     // Signal zum Öffnen des Media Players
@@ -249,7 +249,7 @@ PanelWindow {
                 Rectangle {
                     width: parent.width / 2
                     height: parent.height
-                    color: notifMouseArea.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
+                    color: notifMouseArea.containsMouse ? (topNotificationBar.darkMode ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.07)) : "transparent"
                     radius: 0
                     bottomLeftRadius: topNotificationBar.borderRadius
 
@@ -372,8 +372,8 @@ PanelWindow {
                                 width: Math.max(16, countText.width + 8)  // etwas mehr Padding für zentrierte Zahl
                                 height: 16
                                 radius: 8
-                                color: "#ff4444"
-                                border.color: "#ffffff"
+                                color: topNotificationBar.darkMode ? "#3a3a3f" : "#333333"
+                                border.color: topNotificationBar.accentColor
                                 border.width: 1
 
                                 Text {

@@ -1,6 +1,7 @@
 {
   "$schema": "/etc/xdg/swaync/configSchema.json",
-  "positionX": "center",
+  "positionX": "right",
+  "control-center-positionX": "center",
   "positionY": "top",
   "layer": "overlay",
   "control-center-layer": "overlay",
@@ -49,7 +50,7 @@
       "clear-all-button": true
     },
     "title": {
-      "text": "Benachrichtigungen",
+      "text": "Meldungen",
       "clear-all-button": true,
       "button-text": "Alle löschen"
     },
