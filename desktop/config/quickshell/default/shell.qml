@@ -5579,7 +5579,6 @@ FloatingWindow {
     implicitWidth: 320
     // Follows BatteryPanel's real content height: compact on desktops, taller on laptops.
     implicitHeight: batteryLoader.height
-    height: batteryLoader.height
     color: "transparent"
     title: "quickshell-battery"
     screen: {

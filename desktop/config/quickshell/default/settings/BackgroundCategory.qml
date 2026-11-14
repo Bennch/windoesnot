@@ -1037,7 +1037,7 @@ Item {
                         spacing: 10
 
                         Image {
-                            source: "img/Win11-dark/actions/symbolic/folder-new-symbolic.svg"
+                            source: Qt.resolvedUrl("../img/Win11-dark/places/24/folder-new.svg")
                             width: 48
                             height: 48
                             sourceSize.width: 48

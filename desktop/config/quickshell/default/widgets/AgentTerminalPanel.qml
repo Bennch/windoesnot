@@ -1611,7 +1611,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                 border.color: Qt.rgba(terminalPanel.accentColor.r, terminalPanel.accentColor.g, terminalPanel.accentColor.b, 0.3)
                 Image {
                     anchors.centerIn: parent
-                    source: Qt.resolvedUrl("../img/Win11-dark/actions/24/reload.svg")
+                    source: Qt.resolvedUrl("../img/Win11-dark/actions/24/view-refresh.svg")
                     width: 18; height: 18
                     sourceSize.width: 36; sourceSize.height: 36
                     smooth: true; mipmap: true

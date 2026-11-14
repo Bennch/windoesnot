@@ -16,8 +16,10 @@ PanelWindow {
     anchors.top: true
     anchors.left: true
     anchors.right: true
-    margins.left: (screen ? (screen.width - implicitWidth) / 2 : 0)
-    margins.right: margins.left
+    // One shared value: margins.right bound to margins.left caused a binding loop.
+    readonly property real sideMargin: (screen ? (screen.width - implicitWidth) / 2 : 0)
+    margins.left: sideMargin
+    margins.right: sideMargin
     exclusionMode: ExclusionMode.Ignore  // Keine exclusive zone reservieren
     exclusiveZone: 0                     // Hyprland soll keinen Platz freihalten
 
