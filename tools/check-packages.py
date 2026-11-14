@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 import subprocess
 import tarfile
+import tempfile
 
 def abi_range(metadata,name):
     """Require name>=V-R and name<V-(R+1): CPU-level .N rebuilds pass, real rebuilds do not."""
@@ -48,6 +49,22 @@ for package in sorted(args.directory.glob('*.pkg.tar.zst')):
             if info.isfile():
                 assert info.mode & 0o444==0o444,(info.name,oct(info.mode))
                 assert not info.mode & 0o022,(info.name,oct(info.mode))
+                # GNU ld emits this property only when the ELF declares an
+                # ISA requirement. Absence is inconclusive; a v2/v3/v4 note
+                # is a definite incompatibility with our x86-64-v1 target.
+                stream = archive.extractfile(info)
+                if stream:
+                    head = stream.read(4)
+                    if head == b'\x7fELF':
+                        with tempfile.NamedTemporaryFile() as elf:
+                            elf.write(head)
+                            while chunk := stream.read(1024 * 1024):
+                                elf.write(chunk)
+                            elf.flush()
+                            note = subprocess.run(['readelf', '-n', elf.name], capture_output=True, text=True)
+                        if note.returncode == 0:
+                            required = re.findall(r'x86 ISA needed:\s*(x86-64-v[234])', note.stdout)
+                            assert not required, (info.name, required)
             assert not info.mode & 0o6000,(info.name,oct(info.mode))
             assert not any(p in ('home','root','.ssh','.aws','.codex','import-manifest.json') for p in path.parts),info.name
             if path.as_posix().startswith('usr/share/windoesnot/desktop/config/'):
