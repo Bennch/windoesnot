@@ -32,3 +32,5 @@ qvidcap.desktop
 vim.desktop
 windoesnot-installer.desktop
 xdg-desktop-portal-gtk.desktop
+foot-server.desktop
+footclient.desktop

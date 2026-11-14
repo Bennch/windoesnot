@@ -3381,6 +3381,7 @@ FloatingWindow {
                 customIcon: pinnedData[j].customIcon,
                 desktopPath: pinnedData[j].desktopPath || "",
                 pinAliases: pinnedData[j].pinAliases || "[]",
+                technical: pinnedData[j].technical === true,
                 pinned: true
             })
         }
@@ -3694,6 +3695,7 @@ FloatingWindow {
                         pinned: isCustomPinned,
                         customIcon: true,
                         desktopPath: "",
+                        technical: false,
                         pinAliases: JSON.stringify(customApp.pinNames)
                     }
 
@@ -4021,9 +4023,11 @@ FloatingWindow {
                 color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
 
                 Text {
-                    anchors.left: parent.left
+                    // Right of the search field, next to the app count (the left side is the search input).
+                    anchors.right: appCountLabel.left
                     anchors.verticalCenter: parent.verticalCenter
-                    anchors.leftMargin: 10
+                    anchors.rightMargin: 14
+                    z: 2
                     text: Lang.get("shell.showTechnicalApps", settingsMenu.uiLanguage) + (startMenu.showTechnicalApps ? " ✓" : "")
                     color: settingsMenu.darkMode ? "#bbb" : "#555"
                     font.pixelSize: 10
@@ -4034,6 +4038,7 @@ FloatingWindow {
                 }
 
                 Text {
+                    id: appCountLabel
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.rightMargin: 10
@@ -4532,7 +4537,7 @@ FloatingWindow {
                                         if (startMenu.searchText.length > 0) {
                                             return name.toLowerCase().includes(startMenu.searchText.toLowerCase())
                                         }
-                                        return !pinned && (startMenu.showTechnicalApps || !technical)
+                                        return !pinned && (startMenu.showTechnicalApps || model.technical !== true)
                                     }
 
                                     Rectangle {

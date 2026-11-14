@@ -57,7 +57,8 @@ QtObject {
             icon: appData.icon,
             pinned: appData.pinned !== undefined ? appData.pinned : false,
             temporary: appData.temporary !== undefined ? appData.temporary : false,
-            customIcon: appData.customIcon
+            customIcon: appData.customIcon,
+            technical: appData.technical === true
         }
 
         // Explizite Overrides anwenden
