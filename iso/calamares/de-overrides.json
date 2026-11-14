@@ -16,7 +16,8 @@
     "IP Address (optional):": "IP-Adresse (optional):"
   },
   "ChoicePage": {
-    "<strong>Manual partitioning</strong><br/>You can create or resize partitions yourself.": "<strong>Manuelle Partitionierung</strong><br/>Du kannst Partitionen selbst erstellen oder ihre Größe ändern."
+    "<strong>Manual partitioning</strong><br/>You can create or resize partitions yourself.": "<strong>Manuelle Partitionierung</strong><br/>Du kannst Partitionen selbst erstellen oder ihre Größe ändern.",
+    "<strong>Select a partition to shrink, then drag the bottom bar to resize</strong>": "<strong>Klicke oben auf die Partition, die verkleinert werden soll, und ziehe dann den Regler, um die Größe festzulegen</strong>"
   },
   "ResizePartitionJob": {
     "The installer failed to resize partition %1 on disk '%2'.": "Das Installationsprogramm konnte Partition %1 auf Datenträger '%2' nicht in der Größe ändern."

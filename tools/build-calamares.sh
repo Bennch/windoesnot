@@ -6,6 +6,7 @@ project=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 source="$project/vendor/calamares"
 [[ -f "$source/CMakeLists.txt" ]] || { echo 'Pinned Calamares sources missing.' >&2; exit 1; }
 python3 "$project/tools/patch-calamares-language.py" "$source"
+python3 "$project/tools/patch-calamares-partition.py" "$source"
 work=$(mktemp -d /tmp/windoesnot-calamares.XXXXXXXX)
 trap 'rm -rf -- "$work"' EXIT
 cmake -S "$source" -B "$work/build" -G Ninja \
