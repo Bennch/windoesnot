@@ -1,0 +1,28 @@
+#!/bin/sh
+# Run from the text console as liveuser on a disposable WinDoesNot live system.
+set -eu
+SERVER_URL=@@SERVER_URL@@
+TOKEN=@@TOKEN@@
+PUBLIC_KEY=@@PUBLIC_KEY@@
+MARKER=@@MARKER@@
+SRV="$SERVER_URL/$TOKEN"
+
+was_active=0
+if sudo systemctl is-active --quiet sshd.service; then was_active=1; fi
+sudo systemctl start sshd.service
+
+for home in /root /home/liveuser; do
+  sudo install -d -m 700 "$home/.ssh"
+  if ! sudo grep -Fq "$MARKER" "$home/.ssh/authorized_keys" 2>/dev/null; then
+    printf '%s %s\n' "$PUBLIC_KEY" "$MARKER" | sudo tee -a "$home/.ssh/authorized_keys" >/dev/null
+  fi
+  sudo chmod 600 "$home/.ssh/authorized_keys"
+done
+sudo chown -R liveuser:liveuser /home/liveuser/.ssh
+
+curl --fail --silent --show-error --max-time 20 "$SRV/agent.sh" -o /tmp/wdn-agent.sh
+sudo rm -f /tmp/stop-agent
+sudo env SRV="$SRV" STOP_SSHD="$((1 - was_active))" nohup setsid bash /tmp/wdn-agent.sh \
+  >/tmp/wdn-agent.log 2>&1 </dev/null &
+echo 'Debug-Kanal läuft. Lokale IPv4-Adressen:'
+ip -4 -br address
