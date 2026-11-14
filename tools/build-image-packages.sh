@@ -15,9 +15,14 @@ cleanup() {
 }
 trap cleanup EXIT
 python3 "$project/tools/prepare-packages.py" --output "$work/source"
+# Image packages must run on every x86-64 CPU. The CachyOS makepkg.conf uses
+# -march=native, which bakes the build machine's instructions into C objects
+# (SIGILL on older CPUs). Build with a generic x86-64 configuration instead.
+sed -e 's/-march=native/-march=x86-64 -mtune=generic/g' -e 's/-O3/-O2/g' /etc/makepkg.conf > "$work/makepkg-generic.conf"
+chmod 755 "$work"; chmod 644 "$work/makepkg-generic.conf"
 mkdir "$work/home"
 chown -R nobody:nobody "$work"
-runuser -u nobody -- env HOME="$work/home" bash -c 'cd -- "$1"; makepkg --cleanbuild --noconfirm --nocolor' bash "$work/source" 2>&1 | tee "$project/PACKAGE-BUILD.log"
+runuser -u nobody -- env WDN_MAKEPKG_CONF="$work/makepkg-generic.conf" HOME="$work/home" bash -c 'cd -- "$1"; makepkg --config "$WDN_MAKEPKG_CONF" --cleanbuild --noconfirm --nocolor' bash "$work/source" 2>&1 | tee "$project/PACKAGE-BUILD.log"
 python3 "$project/tools/check-packages.py" "$work/source"
 mkdir -p /var/cache/pacman/pkg
 cp "$work/source/"*.pkg.tar.zst /var/cache/pacman/pkg/
@@ -39,8 +44,8 @@ if [[ -f $project/store/PKGBUILD ]]; then
     mkdir "$work/store" "$work/cargo"
     cp -a "$project/store/." "$work/store/"
     chown -R nobody:nobody "$work/store" "$work/cargo"
-    runuser -u nobody -- env HOME="$work/home" CARGO_HOME="$work/cargo" CARGO_NET_OFFLINE=true \
-        bash -c 'cd -- "$1"; makepkg --cleanbuild --noconfirm --nocolor' bash "$work/store" 2>&1 | tee "$project/STORE-BUILD.log"
+    runuser -u nobody -- env WDN_MAKEPKG_CONF="$work/makepkg-generic.conf" HOME="$work/home" CARGO_HOME="$work/cargo" CARGO_NET_OFFLINE=true \
+        bash -c 'cd -- "$1"; makepkg --config "$WDN_MAKEPKG_CONF" --cleanbuild --noconfirm --nocolor' bash "$work/store" 2>&1 | tee "$project/STORE-BUILD.log"
     python3 "$project/tools/check-packages.py" --store "$work/store"
     cp "$work/store/"*.pkg.tar.zst /var/cache/pacman/pkg/
     pacman --config "$work/local-install.conf" -U --noconfirm "$work/store/"*.pkg.tar.zst
