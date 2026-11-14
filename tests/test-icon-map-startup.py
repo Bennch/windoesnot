@@ -50,18 +50,29 @@ with tempfile.TemporaryDirectory(prefix='windoesnot-icons-test-') as temporary:
     check.write_text('\n'.join(line for line in final.decode().splitlines() if not line.startswith('.pragma ')))
     subprocess.run(['node', '--check', check], check=True)
 
+    # An unchanged desktop-file inventory skips regeneration; changing the
+    # inventory invalidates the cache and attempts a refresh.
+    cached = subprocess.run(['bash', GENERATOR], env=env, capture_output=True, text=True, check=True)
+    assert 'using cached files' in cached.stdout
+    appdir = home / '.local/share/applications'
+    appdir.mkdir(parents=True)
+    (appdir / 'cache-probe.desktop').write_text('[Desktop Entry]\nIcon=cache-probe-icon\n')
+
     # A failed validator must not replace either previously usable file.
-    before = {p.name: p.read_bytes() for p in (js, mapping)}
+    cache = config / '.icon-map-inputs.sha256'
+    before = {p.name: p.read_bytes() for p in (js, mapping, cache)}
     mock = home / 'mock'
     mock.mkdir()
     executable(mock / 'python3', '#!/bin/sh\nexit 42\n')
     result = subprocess.run(['bash', GENERATOR], env={**env, 'PATH': str(mock) + ':' + env['PATH']}, capture_output=True)
     assert result.returncode != 0
-    assert all(p.read_bytes() == before[p.name] for p in (js, mapping))
+    assert all(p.read_bytes() == before[p.name] for p in (js, mapping, cache))
     assert not list(config.glob('.icon-map.*'))
+    (mock / 'python3').unlink()
+    subprocess.run(['bash', GENERATOR], env=env, capture_output=True, check=True)
+    assert 'cache-probe-icon' in js.read_text()
 
     # Exercise the real launcher with stub compositor/Quickshell commands.
-    (mock / 'python3').unlink()
     executable(config / 'generate-icon-map.sh', '#!/bin/bash\nbash ' + str(GENERATOR) + ' || exit 1\ntouch "$HOME/icons-ready"\n')
     executable(mock / 'windoesnot-hyprctl', '''#!/bin/sh
 case "$1" in
