@@ -34,6 +34,7 @@ esac
     old = root / 'nvidia-utils.conf'
     lite_flag = root / 'windoesnot/lite-mode'
     lite_marker = root / 'state/old-gpu-lite-decided'
+    blacklist = root / 'legacy-nvidia.conf'
     old.write_text('blacklist nouveau\n')
     gpu0300, gpu0302 = root / '0300', root / '0302'
 
@@ -42,13 +43,14 @@ esac
         env = dict(os.environ, PATH=str(bindir) + os.pathsep + os.environ['PATH'],
                    GPU_0300=str(gpu0300), GPU_0302=str(gpu0302),
                    MODPROBE_LOG=str(modprobe_log), WINDOESNOT_NOUVEAU_IDS=str(ids),
-                   WINDOESNOT_MODPROBE_OVERRIDE=str(old), WINDOESNOT_LITE_FLAG=str(lite_flag), WINDOESNOT_LITE_MARKER=str(lite_marker))
+                   WINDOESNOT_MODPROBE_OVERRIDE=str(old), WINDOESNOT_LITE_FLAG=str(lite_flag), WINDOESNOT_LITE_MARKER=str(lite_marker), WINDOESNOT_NVIDIA_BLACKLIST=str(blacklist))
         subprocess.run([str(SCRIPT)], env=env, check=True)
 
     run('01:00.0 0300: 10de:0a74 (rev a2)\n')
     assert old.read_text() == ''
     assert lite_flag.is_file()
     assert modprobe_log.read_text() == 'nouveau\n'
+    assert 'blacklist nvidia_drm' in blacklist.read_text() and 'blacklist nvidia\n' in blacklist.read_text()
 
     old.write_text('blacklist nouveau\n'); modprobe_log.unlink()
     run('02:00.0 0300: 10de:1e04 (rev a1)\n')

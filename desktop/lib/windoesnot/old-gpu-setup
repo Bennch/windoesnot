@@ -6,6 +6,7 @@ id_file=${WINDOESNOT_NOUVEAU_IDS:-/var/lib/chwd/ids/nouveau.ids}
 override=${WINDOESNOT_MODPROBE_OVERRIDE:-/etc/modprobe.d/nvidia-utils.conf}
 lite_flag=${WINDOESNOT_LITE_FLAG:-/etc/windoesnot/lite-mode}
 lite_marker=${WINDOESNOT_LITE_MARKER:-/var/lib/windoesnot/old-gpu-lite-decided}
+nvidia_blacklist=${WINDOESNOT_NVIDIA_BLACKLIST:-/etc/modprobe.d/windoesnot-legacy-nvidia.conf}
 
 [ -r "$id_file" ] || exit 0
 
@@ -22,6 +23,10 @@ for device_id in $(printf '%s\n' "$devices" | sed -nE 's/.*10de:([[:xdigit:]]{4}
         *" $device_id "*)
             mkdir -p "${override%/*}"
             : > "$override"
+            # cachyos-drm-awaiter waits for nvidia_drm while the nvidia module is loadable: with the
+            # module blacklisted for this legacy card it waits for nouveau instead.
+            printf '%s\n' '# WinDoesNot: this GPU is driven by nouveau; the NVIDIA modules cannot drive it.' \
+                'blacklist nvidia' 'blacklist nvidia_drm' 'blacklist nvidia_modeset' 'blacklist nvidia_uvm' > "$nvidia_blacklist"
             # Lite mode is switched on once, at the first detection. Later boots must not undo the
             # user's choice when lite mode was switched off in Settings.
             if [ ! -e "$lite_marker" ]; then

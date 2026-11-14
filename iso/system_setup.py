@@ -33,6 +33,11 @@ LEVEL_SECTIONS = {name for _, names in LEVEL_REPOS.values() for name in names}
 CHWD_INITRAMFS = ['etc/mkinitcpio.conf.d/10-chwd.conf', 'etc/mkinitcpio.conf.d/10-chwd-kms.conf']
 NOUVEAU_OVERRIDE = Path('etc/modprobe.d/nvidia-utils.conf')
 LITE_MODE_FLAG = Path('etc/windoesnot/lite-mode')
+# cachyos-drm-awaiter waits for nvidia_drm whenever the nvidia module is loadable, even for a legacy card that
+# only nouveau can drive: 60 s later it shows the blue 'Failed to load your GPU driver(s)' screen.
+NVIDIA_BLACKLIST = Path('etc/modprobe.d/windoesnot-legacy-nvidia.conf')
+NVIDIA_BLACKLIST_TEXT = ('# WinDoesNot: this GPU is driven by nouveau; the NVIDIA modules cannot drive it and made the DRM\n'
+                         '# awaiter wait for nvidia_drm.\nblacklist nvidia\nblacklist nvidia_drm\nblacklist nvidia_modeset\nblacklist nvidia_uvm\n')
 
 
 def enable_nouveau(root, profiles):
@@ -42,6 +47,9 @@ def enable_nouveau(root, profiles):
     path = root / NOUVEAU_OVERRIDE
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text('')
+    blacklist = root / NVIDIA_BLACKLIST
+    blacklist.parent.mkdir(parents=True, exist_ok=True)
+    blacklist.write_text(NVIDIA_BLACKLIST_TEXT)
     flag = root / LITE_MODE_FLAG
     flag.parent.mkdir(parents=True, exist_ok=True)
     flag.touch()

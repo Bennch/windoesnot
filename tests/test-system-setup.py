@@ -135,6 +135,7 @@ fi
     override = record / setup.NOUVEAU_OVERRIDE
     assert override.is_file() and override.read_text() == ''
     assert (record / setup.LITE_MODE_FLAG).is_file()
+    assert 'blacklist nvidia_drm' in (record / setup.NVIDIA_BLACKLIST).read_text(), 'the DRM awaiter must not wait for nvidia_drm'
 
     # A failed chwd transaction with no installed nouveau profile leaves an
     # existing target override exactly as it was.
