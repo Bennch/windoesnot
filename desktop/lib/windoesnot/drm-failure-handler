@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# WinDoesNot's version of cachyos-drm-awaiter's failure handler: same bug report log, but the message on the
+# blue screen is ours (language of the system, concrete steps, our help page instead of the CachyOS wiki).
+set -u
+logs_directory=${WINDOESNOT_DRM_LOGS:-/var/log/drm-awaiter}
+[[ -d $logs_directory ]] || mkdir -m700 -p "$logs_directory"
+export LOG_FILENAME="$logs_directory/cachyos-bugreport-$(date +%y%m%d-%H-%M).log"
+echo N | cachyos-bugreport.sh &>/dev/null || true
+
+language=${LANG:-}
+[[ -r ${WINDOESNOT_LOCALE_CONF:-/etc/locale.conf} ]] && language=$(sed -n 's/^LANG=//p' "${WINDOESNOT_LOCALE_CONF:-/etc/locale.conf}" | head -n 1)
+if [[ $language == de* ]]; then
+    message="
+Der Grafiktreiber konnte nicht geladen werden.
+
+Der Desktop kann jetzt nicht starten. Drücke Enter und gib das Passwort ein, um in die Konsole zu kommen.
+
+Das hilft meist:
+  1. Neu starten und im Startmenü die Taste e drücken, an die Zeile mit linux das Wort nomodeset hängen, mit Strg+X starten.
+  2. Auf älteren Rechnern den Leichtmodus einschalten:  sudo touch /etc/windoesnot/lite-mode
+  3. Hilfe und bekannte Fälle: https://windoesnot.me/hilfe/
+
+Ein Protokoll zur Fehlersuche liegt in ${LOG_FILENAME}"
+else
+    message="
+The graphics driver could not be loaded.
+
+The desktop cannot start right now. Press Enter and type the password to get a command shell.
+
+This usually helps:
+  1. Restart, press e in the boot menu, append nomodeset to the line starting with linux, boot with Ctrl+X.
+  2. On older computers switch on lite mode:  sudo touch /etc/windoesnot/lite-mode
+  3. Help and known cases: https://windoesnot.me/en/help/
+
+A log for troubleshooting was saved in ${LOG_FILENAME}"
+fi
+logger -p emerg "$message"
+exit 0
