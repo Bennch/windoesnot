@@ -160,25 +160,50 @@ IpcHandler {
 // Opens or closes any taskbar panel from the command line (placement checks, screenshots).
 IpcHandler {
     target: "windoesnot-panels"
-    function windowFor(name: string): var {
-        var map = {calendar: calendarWindow, audio: audioWindow, bluetooth: bluetoothWindow,
-                   graphics: graphicsWindow, network: networkWindow, docker: dockerWindow,
-                   ollama: ollamaWindow, start: startMenu, power: powerMenu,
-                   settings: settingsMenu, search: searchWindow}
-        return map[name] || null
-    }
     function toggle(name: string): string {
-        if (name === "battery") { if (batteryWindow.visible) batteryWindow.visible = false; else batteryWindow.openBattery(); return (batteryWindow.visible || batteryWindow.batteryPreload) ? "open" : "closed" }
-        if (name === "nearby") { if (nearbyWindow.visible) nearbyWindow.visible = false; else nearbyWindow.openAt(); return nearbyWindow.visible ? "open" : "closed" }
-        if (name === "weather") { if (weatherPopup.visible) weatherPopup.visible = false; else panelWindow.openWeatherPopup(panelWindow.visibleWeatherSlot()); return weatherPopup.visible ? "open" : "closed" }
-        var w = windowFor(name)
-        if (!w) return "unknown"
+        if (name === "battery") {
+            if (batteryWindow.visible) batteryWindow.visible = false
+            else batteryWindow.openBattery()
+            return (batteryWindow.visible || batteryWindow.batteryPreload) ? "open" : "closed"
+        }
+        if (name === "nearby") {
+            if (nearbyWindow.visible) nearbyWindow.visible = false
+            else nearbyWindow.openAt()
+            return nearbyWindow.visible ? "open" : "closed"
+        }
+        if (name === "weather") {
+            if (weatherPopup.visible) weatherPopup.visible = false
+            else panelWindow.openWeatherPopup(panelWindow.visibleWeatherSlot())
+            return weatherPopup.visible ? "open" : "closed"
+        }
+        var w = null
+        if (name === "calendar") w = calendarWindow
+        else if (name === "audio") w = audioWindow
+        else if (name === "bluetooth") w = bluetoothWindow
+        else if (name === "graphics") w = graphicsWindow
+        else if (name === "network") w = networkWindow
+        else if (name === "docker") w = dockerWindow
+        else if (name === "ollama") w = ollamaWindow
+        else if (name === "start") w = startMenu
+        else if (name === "power") w = powerMenu
+        else if (name === "settings") w = settingsMenu
+        else if (name === "search") w = searchWindow
+        if (w === null) return "unknown"
         w.visible = !w.visible
         return w.visible ? "open" : "closed"
     }
-    function closeAll(): void {
-        var names = ["calendar", "audio", "bluetooth", "graphics", "network", "docker", "ollama", "start", "power", "settings", "search"]
-        for (var i = 0; i < names.length; i++) { var w = windowFor(names[i]); if (w) w.visible = false }
+    function closeAll() {
+        calendarWindow.visible = false
+        audioWindow.visible = false
+        bluetoothWindow.visible = false
+        graphicsWindow.visible = false
+        networkWindow.visible = false
+        dockerWindow.visible = false
+        ollamaWindow.visible = false
+        startMenu.visible = false
+        powerMenu.visible = false
+        settingsMenu.visible = false
+        searchWindow.visible = false
         batteryWindow.visible = false
         nearbyWindow.visible = false
         weatherPopup.visible = false
