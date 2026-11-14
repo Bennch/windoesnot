@@ -5718,7 +5718,8 @@ FloatingWindow {
         onTriggered: {
             var h = batteryLoader.item ? Math.round(batteryLoader.height) : 0
             batteryWindow.batteryTries++
-            if ((h > 0 && h === batteryWindow.batteryLastHeight) || batteryWindow.batteryTries >= 12) {
+            var ready = batteryLoader.item && batteryLoader.item.settled
+            if ((ready && h > 0 && h === batteryWindow.batteryLastHeight) || batteryWindow.batteryTries >= 40) {
                 batteryWindow.visible = true
             } else {
                 batteryWindow.batteryLastHeight = h

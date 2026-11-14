@@ -16,6 +16,10 @@ Item {
     property color accentColor: "#FE6F2D"
     property int borderRadius: 12
     property bool windowVisible: false
+    // True once every hardware probe has answered: the rows (and so the height) are final.
+    readonly property bool settled: windowVisible && !statusProc.running && !profileProc.running
+        && !brightnessProc.running && !ddcDetectProc.running && !ddcGetProc.running
+        && !nightLightStatusProc.running
     property bool darkMode: true
     property string uiLanguage: "de"
 
