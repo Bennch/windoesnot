@@ -72,6 +72,7 @@ assert (a/'usr/lib/os-probes/55windoesnot-btrfs').read_bytes()==(a/'usr/share/wi
 assert (a/'usr/lib/os-probes/55windoesnot-btrfs').stat().st_mode & 0o111
 assert (a/'usr/share/windoesnot/vendor/calamares/src/modules/windoesnotbootreuse/module.desc').is_file()
 partition=yaml.safe_load((cal/'modules/partition.conf').read_text())
+assert 'compress=zstd:1' in (cal/'modules/mount.conf').read_text() and 'hddOptions: [ compress=zstd ]' not in (cal/'modules/mount.conf').read_text(), 'btrfs compression must be zstd level 1 for weak CPUs'
 assert partition['efiSystemPartition']=='/boot' and partition['efiSystemPartitionSize']=='1024M'
 assert '${USER}' in yaml.safe_load((cal/'modules/shellprocess.conf').read_text())['script'][0]['command']
 assert '@@USER@@' not in (cal/'modules/shellprocess.conf').read_text()

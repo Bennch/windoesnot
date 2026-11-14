@@ -295,6 +295,13 @@ def main():
     partition.update(efiSystemPartition='/boot',efiSystemPartitionSize='1024M',availableFileSystemTypes=['btrfs','xfs','ext4','f2fs'])
     partition.pop('bootloaderOverrides',None)
     cfg('partition.conf',partition)
+    # Btrfs compression runs on the installing machine's CPU for every copied file. zstd level 3 (the
+    # default for HDD/SSD) made a 2010 dual core copy at about 8 MB/s; level 1 is what NVMe already uses.
+    mount_conf = cal / 'modules' / 'mount.conf'
+    mount_text = mount_conf.read_text()
+    light = mount_text.replace('hddOptions: [ compress=zstd ]', 'hddOptions: [ compress=zstd:1 ]').replace('ssdOptions: [ compress=zstd ]', 'ssdOptions: [ compress=zstd:1 ]')
+    assert light != mount_text, 'mount.conf no longer has the zstd defaults to lighten'
+    mount_conf.write_text(light)
     users=yaml.safe_load((modules/'users/users.conf').read_text())
     # Upstream suggests "cachyos-${cpu}"; derive a branded name from the user's first name.
     users['hostname']['template']='${first}-windoesnot'
