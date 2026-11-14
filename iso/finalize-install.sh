@@ -7,7 +7,8 @@ getent passwd "$install_user" >/dev/null
 # These are live-only; never carry autologin, live services or temporary keys over.
 rm -f /etc/systemd/system/getty@tty1.service.d/autologin.conf
 timeout --kill-after=2 30 systemctl disable windoesnot-live-language.service 2>/dev/null || true
-timeout --kill-after=2 30 systemctl disable windoesnot-old-gpu.service 2>/dev/null || true
+# windoesnot-old-gpu.service stays enabled in the installed system: it frees nouveau for legacy NVIDIA
+# cards at every boot. Relying on chwd alone left a 2010 laptop without a GPU driver (2026-11-14).
 rm -f /etc/polkit-1/rules.d/49-nopasswd_global.rules
 rm -f /etc/systemd/system/etc-pacman.d-gnupg.mount
 timeout --kill-after=2 30 systemctl disable pacman-init.service windoesnot-super-tap@liveuser.service serial-getty@ttyS0.service 2>/dev/null || true

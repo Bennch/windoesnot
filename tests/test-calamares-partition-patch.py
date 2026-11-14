@@ -25,6 +25,7 @@ with tempfile.TemporaryDirectory() as directory:
     assert target.read_text() == patched
     assert module.MARKER in patched and '#include <functional>' in patched
     assert 'canBeResized( candidate, Logger::Once() )' in patched and 'candidates == 1' in patched
+    assert 'QTimer::singleShot( 0,' in patched and '#include <QTimer>' in patched and 'm_isEfi && !m_efiLabel' in patched, 'the preselect must be deferred'
     assert 'ebrGapSectors' in patched and 'MiBtoBytes( 2ULL ) / dev->logicalSize()' in patched and 'roles().has( PartitionRole::Logical )' in patched, 'logical partitions need an EBR gap'
     assert 'newPartitionStart,' in patched and 'newLastSector + 2,\n' not in patched
     original = SOURCE.read_text()

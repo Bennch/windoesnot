@@ -5,6 +5,7 @@ set -eu
 id_file=${WINDOESNOT_NOUVEAU_IDS:-/var/lib/chwd/ids/nouveau.ids}
 override=${WINDOESNOT_MODPROBE_OVERRIDE:-/etc/modprobe.d/nvidia-utils.conf}
 lite_flag=${WINDOESNOT_LITE_FLAG:-/etc/windoesnot/lite-mode}
+lite_marker=${WINDOESNOT_LITE_MARKER:-/var/lib/windoesnot/old-gpu-lite-decided}
 
 [ -r "$id_file" ] || exit 0
 
@@ -21,8 +22,13 @@ for device_id in $(printf '%s\n' "$devices" | sed -nE 's/.*10de:([[:xdigit:]]{4}
         *" $device_id "*)
             mkdir -p "${override%/*}"
             : > "$override"
-            mkdir -p "${lite_flag%/*}"
-            : > "$lite_flag"
+            # Lite mode is switched on once, at the first detection. Later boots must not undo the
+            # user's choice when lite mode was switched off in Settings.
+            if [ ! -e "$lite_marker" ]; then
+                mkdir -p "${lite_flag%/*}" "${lite_marker%/*}"
+                : > "$lite_flag"
+                : > "$lite_marker"
+            fi
             logger -t windoesnot-old-gpu "nouveau device $device_id found in chwd IDs; cleared nvidia-utils blacklist"
             modprobe nouveau || logger -t windoesnot-old-gpu "modprobe nouveau failed; software rendering stays active via Lite Mode"
             exit 0

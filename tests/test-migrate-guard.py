@@ -19,12 +19,20 @@ with patch.dict(sys.modules, {'libcalamares': fake}):
     assert guard.run() is None
     values['windoesnotMigrateManifest'] = json.dumps({'profiles': [{'items': [{'selected': False}]}], 'handoff': None})
     assert guard.run() is None
-    for choice in ('alongside', 'erase', 'manual', 'replace', None):
+    for choice in ('erase', 'manual', 'replace', None):
         values['partitionChoices'] = {'install': choice}
         values['windoesnotMigrateManifest'] = json.dumps({'profiles': [{'items': [{'selected': True}]}], 'handoff': None})
         assert 'vor der Partitionierung' in guard.run()[1]
         values['windoesnotMigrateManifest'] = json.dumps({'profiles': [], 'handoff': {'wlan_selected': True}})
         assert 'vor der Partitionierung' in guard.run()[1]
+    # Installing alongside keeps Windows on the disk: the import may run.
+    values['partitionChoices'] = {'install': 'alongside'}
+    values['windoesnotMigrateManifest'] = json.dumps({'profiles': [{'items': [{'selected': True}]}], 'handoff': None})
+    assert guard.run() is None
+    values['windoesnotMigrateManifest'] = json.dumps({'profiles': [], 'handoff': {'wlan_selected': True}})
+    assert guard.run() is None
+    values['partitionChoices'] = {}
+    values['partitionChoices'] = {'install': 'alongside'}
     for malformed in ('{', '{}', '[]', '{"profiles": null}', '{"profiles": [{"items": [{"selected": "false"}]}]}'):
         values['windoesnotMigrateManifest'] = malformed
         assert guard.run() is not None

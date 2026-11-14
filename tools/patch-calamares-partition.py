@@ -50,7 +50,7 @@ CORE_INSERT = '''    // WinDoesNot: publish the exact device dirty state when th
 '''
 
 INCLUDE_OLD = '#include <QBoxLayout>\n'
-INCLUDE_NEW = '#include <functional>\n\n#include <QBoxLayout>\n'
+INCLUDE_NEW = '#include <functional>\n\n#include <QBoxLayout>\n#include <QTimer>\n'
 
 LABEL_OLD = '''        m_selectLabel->setText( tr( "<strong>Select a partition to shrink, "
                                     "then drag the bottom bar to resize</strong>" ) );
@@ -96,8 +96,27 @@ FILTER_NEW = '''        m_beforePartitionBarsView->setSelectionFilter( filter );
                 scan( QModelIndex() );
                 if ( candidates == 1 )
                 {
-                    m_beforePartitionBarsView->selectionModel()->setCurrentIndex(
-                        onlyCandidate, QItemSelectionModel::ClearAndSelect );
+                    // Deferred until this function has finished: on UEFI the splitter setup touches the
+                    // EFI selector widgets, which are only created further down (selecting right here
+                    // crashed Calamares with a null pointer).
+                    QPersistentModelIndex chosen( onlyCandidate );
+                    QTimer::singleShot( 0,
+                                        this,
+                                        [ this, chosen ]()
+                                        {
+                                            if ( m_config->installChoice() != InstallChoice::Alongside
+                                                 || !chosen.isValid() || !m_beforePartitionBarsView
+                                                 || !m_afterPartitionSplitterWidget || ( m_isEfi && !m_efiLabel ) )
+                                            {
+                                                return;
+                                            }
+                                            if ( m_beforePartitionBarsView->selectionModel()->currentIndex().isValid() )
+                                            {
+                                                return;
+                                            }
+                                            m_beforePartitionBarsView->selectionModel()->setCurrentIndex(
+                                                chosen, QItemSelectionModel::ClearAndSelect );
+                                        } );
                 }
             }
         }

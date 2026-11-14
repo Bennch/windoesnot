@@ -35,20 +35,25 @@ def run():
     raw = storage.value('windoesnotMigrateManifest')
     if not raw:
         return None
+    invalid = False
     try:
         if not has_selection(raw):
             return None
     except (ValueError, TypeError):
+        # A plan that cannot be read is never trusted, whatever the install choice is.
         libcalamares.utils.warning('windoesnotmigrate guard: invalid migration plan')
-    # The source is currently read only after the partition job. Calamares
-    # does not expose its final partition operations before that job executes;
-    # even an "alongside" choice is not sufficient proof of source identity.
+        invalid = True
+    # The import reads the Windows partition after partitioning. "Alongside" only shrinks an existing
+    # partition and never deletes or formats one, so the source survives. Erase, replace and manual
+    # partitioning can destroy it before it is read: stop before anything is written.
+    choices = storage.value('partitionChoices') or {}
+    if not invalid and isinstance(choices, dict) and choices.get('install') == 'alongside':
+        return None
     if str(storage.value('locale')).startswith('de'):
-        return ('Windows-Datenumzug noch nicht verfügbar',
-                'Die gewählte Windows-Datenquelle kann während der Installation noch nicht sicher erhalten werden. '
-                'Die Installation wurde vor der Partitionierung angehalten. Erstelle eine externe Datensicherung; '
-                'ohne ausgewählten Datenumzug kann der Installer verwendet werden.')
-    return ('Windows migration is not yet available',
-            'The selected Windows data source cannot yet be guaranteed to survive installation. '
-            'Installation stopped before partitioning. Make an external backup; '
-            'the installer can be used without selecting Windows data migration.')
+        return ('Windows-Datenumzug nur bei „Parallel installieren“',
+                'Der Datenumzug ist nur möglich, wenn Windows bestehen bleibt: Wähle „Parallel installieren“ '
+                'oder schalte den Datenumzug aus. Die Installation wurde vor der Partitionierung angehalten, '
+                'damit keine Daten verloren gehen.')
+    return ('Windows data migration needs "Install alongside"',
+            'Data migration only works while Windows stays on the disk: choose "Install alongside" or switch '
+            'the migration off. Installation stopped before partitioning so that no data is lost.')
