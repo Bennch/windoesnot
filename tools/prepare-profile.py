@@ -269,6 +269,7 @@ def main():
     # driver modules land in the initramfs. Needs the keyring from windoesnotprepare.
     execution.insert(execution.index('initcpiocfg'), 'windoesnotsystem')
     execution.insert(execution.index('bootloader'), 'grubcfg')
+    execution.insert(execution.index('partition'), 'windoesnotmigrate_guard')
     execution.insert(execution.index('partition'), 'shellprocess@prepartition')
     execution.insert(execution.index('partition'), 'windoesnotbootreuse@preflight')
     execution.insert(execution.index('unpackfs'), 'windoesnotbootreuse@guard')
@@ -304,7 +305,7 @@ def main():
     cfg('windoesnotapps.conf', {'catalog':'/usr/share/windoesnot/iso/software/catalog.json', 'mode':'offline'})
     cfg('windoesnotmigrate.conf', {'mode':'offline'})
     cfg('windoesnotmigrate-result.conf', {'mode':'result'})
-    for job in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotmigrate_install','windoesnotfinish']:
+    for job in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotmigrate_guard','windoesnotmigrate_install','windoesnotfinish']:
         cfg(job + '.conf', {'mode':'offline'})
     locale=yaml.safe_load((modules/'locale/locale.conf').read_text())
     locale['geoip']={'style':'none'}
@@ -342,7 +343,7 @@ def main():
     (online / 'branding').symlink_to('../branding',target_is_directory=True)
     shutil.copytree(cal / 'modules', online / 'modules')
     write(online / 'settings.conf',yaml.safe_dump(settings,sort_keys=False))
-    for job in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotmigrate_install','windoesnotfinish','windoesnotapps','windoesnotmigrate']:
+    for job in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotmigrate_guard','windoesnotmigrate_install','windoesnotfinish','windoesnotapps','windoesnotmigrate']:
         config=yaml.safe_load((online / 'modules' / (job+'.conf')).read_text())
         config['mode']='online'
         write(online / 'modules' / (job+'.conf'),yaml.safe_dump(config,sort_keys=False))

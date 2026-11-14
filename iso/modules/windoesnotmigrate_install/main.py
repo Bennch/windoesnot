@@ -15,6 +15,10 @@ def pretty_name():
 
 
 def run():
+    # The result page must only report a transfer after the copy job actually
+    # completed; the presence of a selection alone is not proof of a copy.
+    libcalamares.globalstorage.insert('windoesnotMigrateCompleted', False)
+    libcalamares.globalstorage.insert('windoesnotMigrateWarning', '')
     raw = libcalamares.globalstorage.value('windoesnotMigrateManifest')
     if not raw:
         return None
@@ -43,6 +47,8 @@ def run():
                                        nm_dir=target_root / 'etc/NetworkManager/system-connections')
         if result['errors']:
             warn(f"Windows data migration incomplete: {len(result['errors'])} item(s) could not be copied. First: {result['errors'][0]['path']}: {result['errors'][0]['error']}")
+        else:
+            libcalamares.globalstorage.insert('windoesnotMigrateCompleted', True)
     except Exception as error:
         warn('Windows data migration could not finish: ' + str(error))
     finally:

@@ -34,6 +34,13 @@ with tempfile.TemporaryDirectory() as tmp:
     assert m.copy_manifest(manifest, home, source_root=root, dry_run=True)['bytes'] == 5
     m.copy_manifest(manifest, home, source_root=root)
     assert (home / 'Bilder/photo.txt').read_bytes() == b'photo'
+    assert not m.copy_manifest(manifest, home, source_root=root)['errors']
+    (home / 'Bilder/photo.txt').write_bytes(b'local')  # Same size, different contents.
+    conflict = m.copy_manifest(manifest, home, source_root=root)
+    assert any('different contents' in error['error'] for error in conflict['errors'])
+    assert (home / 'Bilder/photo.txt').read_bytes() == b'local'
+    assert (root / 'Users/Ada/Pictures/photo.txt').read_bytes() == b'photo'
+    (home / 'Bilder/photo.txt').write_bytes(b'photo')
     forged = json.loads(json.dumps(manifest)); forged['profiles'][0]['items'][0]['source'] = '../secret'
     try: m.copy_manifest(forged, home, source_root=root)
     except ValueError: pass
@@ -162,7 +169,7 @@ with tempfile.TemporaryDirectory() as tmp:
     assert m.firefox_target(flatpak_home) == flatpak_home / '.var/app/org.mozilla.firefox/.mozilla/firefox'
     wlan = root / 'WinDoesNotHandoff/wlan'; wlan.mkdir(parents=True)
     def export(name, auth, key):
-        (wlan / name).write_text('<WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1"><name>Test WLAN</name><MSM><security><authEncryption><authentication>' + auth + '</authentication><encryption>AES</encryption></authEncryption><sharedKey><protected>false</protected><keyMaterial>' + key + '</keyMaterial></sharedKey></security></MSM></WLANProfile>')
+        (wlan / name).write_text('<WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1"><name>Windows profile label</name><SSIDConfig><SSID><name>Test WLAN</name></SSID><nonBroadcast>true</nonBroadcast></SSIDConfig><MSM><security><authEncryption><authentication>' + auth + '</authentication><encryption>AES</encryption></authEncryption><sharedKey><protected>false</protected><keyMaterial>' + key + '</keyMaterial></sharedKey></security></MSM></WLANProfile>')
     export('WLAN-Test.xml', 'WPA2PSK', 'secret-passphrase')
     nm = Path(tmp) / 'system-connections'
     imported = m.import_wlan(wlan, nm)
@@ -170,6 +177,16 @@ with tempfile.TemporaryDirectory() as tmp:
     connection = next(nm.iterdir())
     assert connection.stat().st_mode & 0o777 == 0o600
     assert 'key-mgmt=wpa-psk' in connection.read_text()
+    assert 'ssid=Test WLAN' in connection.read_text() and 'hidden=true' in connection.read_text()
+    assert 'Windows profile label' not in connection.read_text()
+    hex_dir = Path(tmp) / 'hex-wlan'; hex_dir.mkdir()
+    (hex_dir / 'WLAN-hex.xml').write_text((wlan / 'WLAN-Test.xml').read_text().replace('<name>Test WLAN</name></SSID>', '<hex>5465737420574C414E</hex></SSID>'))
+    hex_target = Path(tmp) / 'hex-target'
+    assert m.import_wlan(hex_dir, hex_target)['imported'] == 1
+    assert 'ssid=Test WLAN' in next(hex_target.iterdir()).read_text()
+    no_ssid = Path(tmp) / 'missing-ssid'; no_ssid.mkdir()
+    (no_ssid / 'WLAN-no-ssid.xml').write_text((wlan / 'WLAN-Test.xml').read_text().replace('<SSIDConfig><SSID><name>Test WLAN</name></SSID><nonBroadcast>true</nonBroadcast></SSIDConfig>', ''))
+    assert m.import_wlan(no_ssid, Path(tmp) / 'missing-ssid-target')['errors']
     export('WLAN-Unknown.xml', 'WPA2ENT', 'never-print-this')
     rejected = m.import_wlan(wlan, nm)
     assert rejected['imported'] == 0 and len(rejected['errors']) == 2
@@ -218,11 +235,31 @@ with tempfile.TemporaryDirectory() as tmp:
                 assert job.run() is None
                 assert str(failure) in values['windoesnotMigrateWarning']
                 assert values['windoesnotMigrateSecret'] == ''
+                assert values['windoesnotMigrateCompleted'] is False
     assert len(warnings_logged) == 2
     with patch.dict(sys.modules, {'libcalamares': fake_calamares, 'migrate': m}):
         with patch.object(job.migrate, 'copy_manifest', return_value={'errors': [{'path': 'Users/Ada/Pictures/photo.txt', 'error': 'rsync code 23'}]}):
             assert job.run() is None
             assert 'photo.txt' in values['windoesnotMigrateWarning'] and 'rsync code 23' in values['windoesnotMigrateWarning']
+            assert values['windoesnotMigrateCompleted'] is False
+    # Exercise the Calamares job with the real importer and a synthetic source.
+    # No block device, real Windows profile, or WLAN credentials are involved.
+    source = Path(tmp) / 'calamares-windows'
+    (source / 'Users/Ada/Documents').mkdir(parents=True)
+    (source / 'Users/Ada/Documents/Grüße.txt').write_bytes(b'synthetic data\x00\xff')
+    plan = m.scan_tree(source, '/dev/synthetic', locale='de_DE.UTF-8')
+    values.update(windoesnotMigrateManifest=json.dumps(plan), windoesnotMigrateWarning='')
+    real_copy = m.copy_manifest
+    def copy_from_fixture(manifest, home, **kwargs):
+        return real_copy(manifest, home, source_root=source, **kwargs)
+    with patch.dict(sys.modules, {'libcalamares': fake_calamares, 'migrate': m}):
+        with patch.object(m, 'copy_manifest', side_effect=copy_from_fixture):
+            assert job.run() is None
+    assert values['windoesnotMigrateCompleted'] is True
+    assert (target_root / 'home/ada/Dokumente/Grüße.txt').read_bytes() == b'synthetic data\x00\xff'
+    assert (source / 'Users/Ada/Documents/Grüße.txt').read_bytes() == b'synthetic data\x00\xff'
+    values['windoesnotMigrateManifest'] = ''
+    assert job.run() is None and values['windoesnotMigrateCompleted'] is False
     with patch.object(m.shutil, 'disk_usage', return_value=SimpleNamespace(free=0)):
         try: m.copy_manifest(manifest, home, source_root=root)
         except OSError as error: assert 'Not enough free space' in str(error)

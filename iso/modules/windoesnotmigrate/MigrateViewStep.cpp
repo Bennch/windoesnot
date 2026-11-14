@@ -154,14 +154,13 @@ public:
                 layout->setSpacing(16);
                 const bool german = QLocale().language() == QLocale::German;
                 auto* gs = Calamares::JobQueue::instance()->globalStorage();
-                const QString manifest = gs->value(QStringLiteral("windoesnotMigrateManifest")).toString();
                 const QString warning = gs->value(QStringLiteral("windoesnotMigrateWarning")).toString();
-                const bool migrated = !manifest.isEmpty();
+                const bool migrated = gs->value(QStringLiteral("windoesnotMigrateCompleted")).toBool();
                 auto* title = new QLabel(german ? QStringLiteral("WinDoesNot wurde installiert.") : QStringLiteral("WinDoesNot has been installed."), m_widget);
                 title->setStyleSheet(QStringLiteral("color:#eeeeee;font-size:24px;font-weight:700;"));
                 layout->addWidget(title);
-                if (migrated) {
-                    if (warning.isEmpty()) {
+                if (migrated || !warning.isEmpty()) {
+                    if (migrated && warning.isEmpty()) {
                         auto* detail = new QLabel(german ? QStringLiteral("Windows-Daten wurden übernommen.") : QStringLiteral("Windows data was transferred."), m_widget);
                         detail->setTextFormat(Qt::PlainText);
                         detail->setWordWrap(true);

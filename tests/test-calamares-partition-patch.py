@@ -8,6 +8,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'upstream/cachyos-calamares/src/modules/partition/gui/ChoicePage.cpp'
+CORE = ROOT / 'upstream/cachyos-calamares/src/modules/partition/core/PartitionCoreModule.cpp'
 if not SOURCE.is_file():
     print('SKIP: upstream Calamares checkout missing')
     sys.exit(0)
@@ -32,4 +33,26 @@ with tempfile.TemporaryDirectory() as directory:
         assert (patched.count(opening) - patched.count(closing)) == (original.count(opening) - original.count(closing)), f'{opening}{closing} unbalanced by the patch'
     # The hint stays under its original source string so the translation catalogs still match.
     assert '"<strong>Select a partition to shrink, "' in patched
+    core = Path(directory) / 'PartitionCoreModule.cpp'
+    shutil.copy(CORE, core)
+    assert module.patch_partition_core(core)
+    patched_core = core.read_text()
+    assert not module.patch_partition_core(core)
+    assert 'windoesnotPartitionDevicePlan' in patched_core
+    assert 'info->isDirty()' in patched_core and 'info->jobs().size()' in patched_core
+    assert patched_core.index('windoesnotPartitionDevicePlan') < patched_core.index('lst << info->jobs();')
+    core.write_text(patched_core + '\n// unexpected change\n')
+    try:
+        module.patch_partition_core(core)
+    except SystemExit:
+        pass
+    else:
+        raise AssertionError('modified patched source accepted')
+    core.write_text(CORE.read_text() + '\n// upstream changed\n')
+    try:
+        module.patch_partition_core(core)
+    except SystemExit:
+        pass
+    else:
+        raise AssertionError('unknown upstream source accepted')
 print('PASS: Calamares alongside patch applies once, is idempotent and balanced')

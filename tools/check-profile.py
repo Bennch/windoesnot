@@ -62,6 +62,8 @@ assert sequence.index('grubcfg') < sequence.index('bootloader')
 boot=yaml.safe_load((cal/'modules/bootloader.conf').read_text())
 assert boot['efiBootLoader']=='grub' and boot['efiBootLoaderVar']=='windoesnotBootInstall'
 assert sequence.index('windoesnotbootreuse@preflight') < sequence.index('partition')
+assert sequence.index('windoesnotmigrate_guard') < sequence.index('partition')
+assert (a/'usr/share/windoesnot/vendor/calamares/src/modules/windoesnotmigrate_guard/module.desc').is_file()
 assert sequence.index('mount') < sequence.index('windoesnotbootreuse@guard') < sequence.index('unpackfs')
 assert sequence.index('grubcfg') < sequence.index('windoesnotbootreuse@install') < sequence.index('bootloader')
 assert sequence.index('windoesnotfinish') < sequence.index('windoesnotbootreuse@finish') < sequence.index('umount')

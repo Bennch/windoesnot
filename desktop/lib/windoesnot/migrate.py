@@ -249,26 +249,38 @@ def import_wlan(source, target):
             if warning_flags(xml) or xml.stat().st_size > 1048576:
                 raise ValueError('Unsafe WLAN export')
             tree = ET.parse(xml)
-            def field(path):
+            def field(path, strip=True):
                 node = tree.getroot()
                 for part in path.split('/'):
                     node = next((child for child in node if child.tag.rsplit('}', 1)[-1] == part), None) if node is not None else None
-                return (node.text or '').strip() if node is not None else ''
-            ssid = field('name')
+                value = (node.text or '') if node is not None else ''
+                return value.strip() if strip else value
+            # The profile name can differ from the actual wireless network.
+            # Never silently connect to the profile label as if it were an SSID.
+            ssid = field('SSIDConfig/SSID/name', strip=False)
+            if not ssid:
+                hex_ssid = field('SSIDConfig/SSID/hex')
+                try:
+                    ssid = bytes.fromhex(hex_ssid).decode('utf-8') if hex_ssid else ''
+                except (ValueError, UnicodeDecodeError):
+                    raise ValueError('Unsupported WLAN SSID')
+            hidden = field('SSIDConfig/nonBroadcast').lower()
+            if hidden not in ('', 'true', 'false'):
+                raise ValueError('Invalid WLAN visibility')
             auth = field('MSM/security/authEncryption/authentication')
             encryption = field('MSM/security/authEncryption/encryption')
             protected = field('MSM/security/sharedKey/protected')
-            key = field('MSM/security/sharedKey/keyMaterial')
+            key = field('MSM/security/sharedKey/keyMaterial', strip=False)
             if auth not in ('WPA2PSK', 'WPA3SAE') or encryption != 'AES' or protected.lower() != 'false':
                 raise ValueError('Unsupported WLAN authentication or encryption')
-            if not ssid or len(ssid.encode('utf-8')) > 32 or any(ord(c) < 32 for c in ssid):
+            if not ssid or ssid != ssid.strip() or len(ssid.encode('utf-8')) > 32 or any(ord(c) < 32 for c in ssid):
                 raise ValueError('Invalid WLAN name')
-            if not (8 <= len(key) <= 63 or (auth == 'WPA2PSK' and len(key) == 64 and re.fullmatch(r'[0-9a-fA-F]{64}', key))) or any(ord(c) < 32 or ord(c) > 126 for c in key):
+            if key != key.strip() or not (8 <= len(key) <= 63 or (auth == 'WPA2PSK' and len(key) == 64 and re.fullmatch(r'[0-9a-fA-F]{64}', key))) or any(ord(c) < 32 or ord(c) > 126 for c in key):
                 raise ValueError('Invalid WLAN key')
             uid = str(uuid.uuid5(uuid.NAMESPACE_DNS, 'windoesnot-wlan:' + ssid))
             path = target / ('windoesnot-' + hashlib.sha256(ssid.encode()).hexdigest()[:16] + '.nmconnection')
             escaped_ssid = ssid.replace('\\', '\\\\')
-            content = f'[connection]\nid={escaped_ssid}\nuuid={uid}\ntype=wifi\n\n[802-11-wireless]\nssid={escaped_ssid}\nmode=infrastructure\n\n[802-11-wireless-security]\nkey-mgmt={"sae" if auth == "WPA3SAE" else "wpa-psk"}\npsk={key.replace(chr(92), chr(92) * 2)}\n\n[ipv4]\nmethod=auto\n\n[ipv6]\nmethod=auto\n'
+            content = f'[connection]\nid={escaped_ssid}\nuuid={uid}\ntype=wifi\n\n[802-11-wireless]\nssid={escaped_ssid}\nmode=infrastructure\nhidden={"true" if hidden == "true" else "false"}\n\n[802-11-wireless-security]\nkey-mgmt={"sae" if auth == "WPA3SAE" else "wpa-psk"}\npsk={key.replace(chr(92), chr(92) * 2)}\n\n[ipv4]\nmethod=auto\n\n[ipv6]\nmethod=auto\n'
             descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
             with os.fdopen(descriptor, 'w', encoding='utf-8') as stream:
                 stream.write(content)
@@ -382,19 +394,36 @@ def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, 
             error = {'path': str(path), 'error': message}
             summary['errors'].append(error)
             report('file_error', **error)
+        def files_match(source, target):
+            with source.open('rb') as left, target.open('rb') as right:
+                while True:
+                    chunk = left.read(1024 * 1024)
+                    if chunk != right.read(1024 * 1024):
+                        return False
+                    if not chunk:
+                        return True
         def copy_file(entry, destination):
             safe_target(destination)
-            if (destination / entry.name).is_symlink():
+            target_file = destination / entry.name
+            if target_file.is_symlink():
                 failed(entry, 'target file is redirected')
                 return
             make_target(destination)
-            result = command(['rsync', '-a', '--no-links', '--no-devices', '--no-specials', '--no-perms', '--chown=' + str(home.stat().st_uid) + ':' + str(home.stat().st_gid), '--', str(entry), str(destination) + '/'])
+            # Preserve existing user files, including a file appearing between
+            # the existence check and rsync. A retry may reuse identical data.
+            result = command(['rsync', '-a', '--ignore-existing', '--no-links', '--no-devices', '--no-specials', '--no-perms', '--chown=' + str(home.stat().st_uid) + ':' + str(home.stat().st_gid), '--', str(entry), str(destination) + '/'])
             nonlocal copied
             if result.returncode:
                 failed(entry, result.stderr.strip() or 'rsync failed')
             else:
-                copied += entry.stat(follow_symlinks=False).st_size
-                report('file', path=str(entry), copied_bytes=copied, total_bytes=needed)
+                try:
+                    if target_file.is_symlink() or not target_file.is_file() or not files_match(entry, target_file):
+                        failed(entry, 'target file already exists with different contents or copy verification failed')
+                        return
+                    copied += entry.stat(follow_symlinks=False).st_size
+                    report('file', path=str(entry), copied_bytes=copied, total_bytes=needed)
+                except OSError:
+                    failed(entry, 'could not verify copied file')
         def copy_tree(source, target):
             safe_target(target)
             make_target(target)
