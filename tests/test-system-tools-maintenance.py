@@ -44,6 +44,10 @@ class Maintenance(unittest.TestCase):
             self.assertEqual(m.orphan_packages(),[])
         with patch.object(m.subprocess,'run',return_value=subprocess.CompletedProcess([],1,'','error: database')):
             with self.assertRaises(RuntimeError): m.orphan_packages()
+        # Fresh installation: unsynchronized databases only produce warnings; the page must still load.
+        warning="warning: database file for 'core' does not exist (use '-Sy' to download)\n"
+        with patch.object(m.subprocess,'run',return_value=subprocess.CompletedProcess([],1,'',warning)):
+            self.assertEqual(m.orphan_packages(),[])
 
     def test_active_manager_keeps_lock(self):
         with tempfile.TemporaryDirectory() as temp, patch.object(m,'DB_LOCK',Path(temp)/'db.lck'), patch.object(m,'package_processes',return_value=[{'pid':123,'name':'pacman'}]):

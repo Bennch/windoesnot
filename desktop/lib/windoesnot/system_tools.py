@@ -270,7 +270,10 @@ def cache_bytes():
 def orphan_packages():
     result = subprocess.run(['/usr/bin/pacman', '-Qdtq'], env=ENV, stdin=subprocess.DEVNULL,
                             capture_output=True, text=True, timeout=60)
-    if result.returncode not in (0, 1) or (result.returncode == 1 and result.stderr.strip()):
+    # Exit code 1 simply means 'no orphans'. Warnings (for example unsynchronized databases on a
+    # fresh installation) are harmless; only real 'error:' lines make the query unusable.
+    errors = [line for line in result.stderr.splitlines() if line.lower().startswith('error')]
+    if result.returncode not in (0, 1) or (result.returncode == 1 and errors):
         raise RuntimeError('Cannot read orphan packages: ' + result.stderr.strip())
     names = result.stdout.splitlines()
     if any(not re.fullmatch(r'[a-zA-Z0-9@._+][a-zA-Z0-9@._+-]{0,254}', n) for n in names):
