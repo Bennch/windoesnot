@@ -223,7 +223,13 @@ IpcHandler {
 IpcHandler {
     target: "windoesnot-capture"
     function network() { networkWindow.visible = true }
-    function volume() { volumeOverlay.currentVolume = 0.42; volumeOverlay.isMuted = false; volumeOverlay.visible = true }
+    function volume() {
+        // Re-map the window even when an earlier call left it marked visible.
+        volumeOverlay.currentVolume = 0.42
+        volumeOverlay.isMuted = false
+        volumeOverlay.visible = false
+        Qt.callLater(function() { volumeOverlay.visible = true })
+    }
 }
 
 IpcHandler {

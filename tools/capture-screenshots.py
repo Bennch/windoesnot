@@ -125,6 +125,9 @@ def set_display(vm_name: str, dry_run: bool) -> None:
 def capture(vm_name: str, output: Path, scene: dict, dry_run: bool) -> None:
     guest_path = f"/tmp/windoesnot-capture-{scene['id']}.png"
     cmd = "grim " + shlex.quote(guest_path)
+    if scene["kind"] == "volume":
+        # The on-screen volume display hides itself after a moment: show it again right before the shot.
+        cmd = ipc_call("windoesnot-capture", "volume") + "; sleep 2.5; " + cmd
     guest(vm_name, cmd, dry_run)
     if dry_run:
         run_vmctl(vm_name, "pull", guest_path, f"capture-{scene['id']}.png", dry_run=True)
