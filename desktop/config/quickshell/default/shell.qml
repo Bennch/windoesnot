@@ -219,6 +219,13 @@ IpcHandler {
     }
 }
 
+// Deterministic entry points for shell popups, including screenshot capture.
+IpcHandler {
+    target: "windoesnot-capture"
+    function network() { networkWindow.visible = true }
+    function volume() { volumeOverlay.currentVolume = 0.42; volumeOverlay.isMuted = false; volumeOverlay.visible = true }
+}
+
 IpcHandler {
     target: "windoesnot-snap"
     function open() {

@@ -4,6 +4,7 @@ set -euo pipefail
 project=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 rootless=true; mode=both; iso=; dry=false; headless=false; fresh=false; installed=false; network=true
 memory=8192; cpus=4; graphics=auto; vm_name=debug; build_id=; extra_disk=
+vm_res=${WINDOESNOT_VM_RES:-}
 language=en
 usage() {
     cat <<EOF
@@ -53,6 +54,7 @@ done
 [[ $memory =~ ^[0-9]+$ && $cpus =~ ^[0-9]+$ && $vm_name =~ ^[a-zA-Z0-9_-]+$ ]] || { echo 'Invalid VM arguments' >&2; exit 2; }
 ((memory >= 4096 && cpus >= 1 && cpus <= 64)) || { echo 'Minimum: 4096 MiB and 1 vCPU' >&2; exit 2; }
 [[ $graphics == auto || $graphics == gl || $graphics == soft ]] || exit 2
+if [[ -n $vm_res && ! $vm_res =~ ^[0-9]+x[0-9]+$ ]]; then echo 'WINDOESNOT_VM_RES must be WIDTHxHEIGHT' >&2; exit 2; fi
 [[ $language == en || $language == de ]] || { echo 'Language must be en or de' >&2; exit 2; }
 [[ -z $build_id || $build_id =~ ^[a-zA-Z0-9_-]+$ ]] || exit 2
 if ((EUID == 0)) && [[ $mode != build ]]; then
@@ -140,10 +142,10 @@ fi
 gtk_display=gtk
 clipboard_chardev=(-chardev qemu-vdagent,id=vdagent,name=vdagent,clipboard=on)
 if [[ $graphics == gl ]]; then
-    display=(-device virtio-vga-gl)
+    if [[ -n $vm_res ]]; then display=(-device "virtio-vga-gl,xres=${vm_res%x*},yres=${vm_res#*x}"); else display=(-device virtio-vga-gl); fi
     if $headless; then display+=(-display egl-headless); else display+=(-display "$gtk_display,gl=on"); fi
 else
-    display=(-device virtio-vga)
+    if [[ -n $vm_res ]]; then display=(-device "virtio-vga,xres=${vm_res%x*},yres=${vm_res#*x}"); else display=(-device virtio-vga); fi
     if $headless; then display+=(-display none); else display+=(-display "$gtk_display,gl=off"); fi
 fi
 command=(qemu-system-x86_64 -name "WinDoesNot-$vm_name" -machine q35 "${accel[@]}" -m "$memory" -smp "$cpus"
