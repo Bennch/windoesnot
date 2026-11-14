@@ -60,7 +60,7 @@ def run_vmctl(vm_name: str, action: str, *args: str, dry_run: bool = False,
 
 
 def guest(vm_name: str, script: str, dry_run: bool = False) -> str:
-    session = ('entry=$(getent passwd vmtest || getent passwd liveuser) || exit 1; '
+    session = ('entry=$(getent passwd "${WINDOESNOT_CAPTURE_USER:-vmtest}" || getent passwd vmtest || getent passwd liveuser || getent passwd "$(ls /home | head -n1)") || exit 1; '
                'IFS=: read -r name _ uid _ _ home _ <<<"$entry"; '
                'sig=$(find "/run/user/$uid/hypr" -mindepth 1 -maxdepth 1 -type d '
                '-printf "%f\\n" | head -n1); '
@@ -74,7 +74,7 @@ def guest(vm_name: str, script: str, dry_run: bool = False) -> str:
 
 def ipc_command(language: str | None = None, theme: str | None = None,
                 state: bool = False) -> str:
-    user = ('entry=$(getent passwd vmtest || getent passwd liveuser) || exit 1; '
+    user = ('entry=$(getent passwd "${WINDOESNOT_CAPTURE_USER:-vmtest}" || getent passwd vmtest || getent passwd liveuser || getent passwd "$(ls /home | head -n1)") || exit 1; '
             'IFS=: read -r name _ uid _ _ home _ <<<"$entry"; ')
     target = '"$home/.config/quickshell/default/shell.qml"'
     calls = []
@@ -148,12 +148,12 @@ def prepare_scene(vm_name: str, scene: dict, dry_run: bool) -> None:
     cleanup = ("hyprctl -j clients | python3 -c 'import json,sys; "
                "[print(x[\"address\"]) for x in json.load(sys.stdin) "
                "if not x.get(\"class\", \"\").lower().startswith(\"quickshell\")]' "
-               "| while read -r address; do hyprctl dispatch closewindow \"address:$address\"; done")
+               "| while read -r address; do hyprctl dispatch \"hl.dsp.window.close({window=\\\"address:$address\\\"})\"; done")
     guest(vm_name, cleanup, dry_run)
     if kind == "desktop":
         return
     if kind == "shortcut":
-        run_vmctl(vm_name, "hmp", "sendkey", scene["key"], "10", dry_run=dry_run)
+        press(vm_name, scene["key"], dry_run)
         if not dry_run:
             time.sleep(1.5)
     elif kind == "click":
@@ -166,7 +166,7 @@ def prepare_scene(vm_name: str, scene: dict, dry_run: bool) -> None:
             time.sleep(2)
     elif kind == "settings":
         # Existing Super+I global binding opens Settings; then select its category.
-        run_vmctl(vm_name, "hmp", "sendkey", "meta-i", "10", dry_run=dry_run)
+        press(vm_name, "meta-i", dry_run)
         if not dry_run:
             time.sleep(1.5)
         x, y = scene["point"]
@@ -177,6 +177,19 @@ def prepare_scene(vm_name: str, scene: dict, dry_run: bool) -> None:
             time.sleep(0.8)
     else:
         raise RuntimeError(f"Unknown scene kind: {kind}")
+
+
+
+GLOBAL_SHORTCUTS = {"meta-r": "quickshell:toggle-startmenu", "meta-i": "quickshell:show-settings"}
+
+
+def press(vm_name, key, dry_run):
+    """Headless GL VMs do not always deliver synthetic key presses to Hyprland binds; use the global shortcut directly."""
+    name = GLOBAL_SHORTCUTS.get(key)
+    if name:
+        guest(vm_name, "hyprctl dispatch 'hl.dsp.global(\"" + name + "\")'", dry_run)
+    else:
+        run_vmctl(vm_name, "hmp", "sendkey", key, "10", dry_run=dry_run)
 
 
 def main() -> int:
