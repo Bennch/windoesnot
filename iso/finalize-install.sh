@@ -17,6 +17,8 @@ timeout --kill-after=2 30 systemctl disable systemd-networkd.service systemd-net
 timeout --kill-after=2 30 systemctl disable systemd-time-wait-sync.service 2>/dev/null || true
 timeout --kill-after=2 30 systemctl enable sddm.service NetworkManager.service bluetooth.service getty@tty1.service
 timeout --kill-after=2 30 systemctl enable "windoesnot-super-tap@$install_user.service"
+# Keep Avahi as the only mDNS responder. Existing drop-ins are preserved.
+bash /usr/share/windoesnot/iso/configure-mdns.sh
 # sddm writes /etc/sddm.conf itself on its first run, with a stray, broken
 # [Autologin] Session=hyprland (no matching session, no User=, so autologin
 # never actually triggers) that only causes a spurious "Autologin failed"

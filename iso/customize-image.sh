@@ -38,6 +38,14 @@ project=/usr/share/windoesnot
 "$project/tools/build-image-connectivity.sh"
 "$project/tools/build-image-packages.sh"
 "$project/tools/build-calamares.sh"
+# Configure the image after package hooks have created the resolver and
+# NetworkManager defaults; Avahi remains the sole mDNS responder.
+bash "$project/iso/configure-mdns.sh"
+# This image deliberately excludes all ZFS packages. Drop the dangling
+# modules-load entry they leave behind, but retain it if a ZFS provider exists.
+if ! pacman -Qq | grep -Eq '^(zfs|zfs-dkms|zfs-linux|zfs-linux-lts|zfs-utils)$'; then
+  rm -f /etc/modules-load.d/zfs.conf
+fi
 # The taskbar/Start menu spawn-and-disown a fresh ghostty process per click;
 # GTK single-instance's D-Bus handoff can lose that race and the window
 # flashes shut. extras/nautilus/windoesnot-terminal.py already avoids this
