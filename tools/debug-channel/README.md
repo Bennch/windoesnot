@@ -17,7 +17,10 @@ Nur im vertrauenswürdigen LAN und nur auf ausdrücklich ausgewählten Live-/Tes
 
 - Auf dem Text-Terminal mit Strg+Alt+F2 als `liveuser` anmelden und nur die ausgegebene `curl .../TOKEN/s | sh`-Zeile ausführen.
 - `grim` wird bewusst nicht aufgerufen: auf alter Hardware kann es hängen. `bluetoothctl` läuft ausschließlich mit Timeout, da ohne Dienst/Adapter kein verlässliches Ende garantiert ist. Diagnose- und Queue-Befehle haben Timeouts; Queue-Befehle maximal 180 Sekunden und Ausgaben maximal 400 KB.
-- Für GUI-Befehle `G ...` verwenden; die Funktion setzt die Liveuser-Hyprland-/DBus-Umgebung. `hot-patch` legt Dateien flach nach `~/.config/quickshell` und ruft `windoesnot-restart-shell` auf.
+- Für GUI-Befehle `G ...` verwenden; die Funktion setzt die Liveuser-Hyprland-/DBus-Umgebung. `hot-patch` legt Dateien flach nach `~/.config/quickshell` und ruft `windoesnot-restart-shell` auf. `G` übernimmt die Renderer-Einstellungen der Hyprland-Sitzung (`QT_QUICK_BACKEND`, `GSK_RENDERER`, `LIBGL_ALWAYS_SOFTWARE`), damit neu gestartete Programme sich wie in der echten Sitzung verhalten.
 - Kein `pkill -f` mit einem Suchmuster, das auch die eigene Shell-/Befehlszeile trifft. Netzwerkdiagnose bevorzugt `ip`/`nmcli`; `nmcli`-Abfragen ebenfalls begrenzen und keine Ausgabe mit Zugangsdaten weitergeben.
 
 Offline-Tests: `python3 -m unittest discover -s tests -p 'test_debug_channel.py'` (aus dem Repository, ohne VM oder Paket-/ISO-Build).
+
+Hinweis: `debug-channel start` gibt die Setup-Zeile erst nach dem Start aus; bei Umleitung in eine Datei `python3 -u` verwenden. Die Setup-Datei lässt sich auch per `curl <Server>/<Token>/s -o wdn-ssh.sh` erzeugen und per LocalSend verschicken (dann auf dem Gerät in einem Terminal `sh wdn-ssh.sh` ausführen, nicht per Doppelklick).
+
