@@ -16,4 +16,10 @@ esac
 configuration=/etc/windoesnot-calamares
 [[ $mode != online ]] || configuration+=/online
 ui_locale=$(/usr/bin/python3 /usr/share/windoesnot/iso/live-language.py --read-preference)
-exec pkexec /usr/bin/env LANG="$ui_locale" LANGUAGE="${ui_locale%%_*}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:?}" WAYLAND_DISPLAY="${WAYLAND_DISPLAY:?}" QT_QPA_PLATFORM=wayland /usr/bin/calamares -c "$configuration" "$@"
+# pkexec clears the environment. On old graphics hardware (lite mode) the installer must render in
+# software like the rest of the session, otherwise Qt Quick shows garbage (seen on nouveau, 2026-11-14).
+render_environment=()
+if [[ -f /etc/windoesnot/lite-mode || ${QT_QUICK_BACKEND:-} == software ]]; then
+    render_environment=(QT_QUICK_BACKEND=software GSK_RENDERER=cairo LIBGL_ALWAYS_SOFTWARE=1 QT_XCB_FORCE_SOFTWARE_OPENGL=1)
+fi
+exec pkexec /usr/bin/env "${render_environment[@]}" LANG="$ui_locale" LANGUAGE="${ui_locale%%_*}" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:?}" WAYLAND_DISPLAY="${WAYLAND_DISPLAY:?}" QT_QPA_PLATFORM=wayland /usr/bin/calamares -c "$configuration" "$@"
