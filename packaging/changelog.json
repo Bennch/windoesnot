@@ -20,7 +20,16 @@
         "Ältere Rechner: Alle mitgelieferten Programme (Store, Netzwerk, Bluetooth, Audio, Grafik, Geräte-Manager) laufen jetzt auf jedem 64-Bit-Prozessor. Bisher stürzten sie auf Rechnern ab, deren Prozessor älter ist als der des Build-Rechners.",
         "Desktop-Symbole erscheinen auch auf langsamen Rechnern zuverlässig; der Start wartet länger auf die Symbol-Ebene.",
         "Schnellerer Start: Die Symbol-Zuordnung wird nur noch neu erzeugt, wenn sich die Programmliste ändert.",
-        "Das Wetter-Fenster erscheint sofort an der richtigen Stelle über der Taskleiste und wandert nicht mehr von der Bildschirmmitte dorthin."
+        "Das Wetter-Fenster erscheint sofort an der richtigen Stelle über der Taskleiste und wandert nicht mehr von der Bildschirmmitte dorthin.",
+        "Alte Rechner: Der Leichtmodus schaltet sich jetzt auch bei weniger als 3 GB Arbeitsspeicher oder einem Prozessor ohne SSE4.1 einmalig von selbst ein. In den Einstellungen lässt er sich ausschalten.",
+        "Alte NVIDIA-Karten: Nach der Installation startet der Desktop mit dem freien Treiber nouveau. Der blaue Fehlerbildschirm bei Grafiktreiber-Problemen erklärt auf Deutsch und Englisch, was zu tun ist.",
+        "Installer: „Parallel installieren“ wählt die einzige verkleinerbare Partition vor und zeigt den Hinweis deutlich. Auf Platten mit erweiterten Partitionen (MBR) wird die neue Partition korrekt angelegt.",
+        "Installer: Der Windows-Datenumzug ist bei „Parallel installieren“ möglich und lässt die Windows-Daten unverändert. Bei Löschen, Ersetzen oder manueller Partitionierung wird er vor dem Partitionieren angehalten.",
+        "Installer: Dateien aus dem Live-System (Schreibtisch, Dokumente, Downloads, Bilder, Musik, Videos) werden in das neue Benutzerkonto übernommen.",
+        "Installer: Auf alten Rechnern läuft das Installer-Fenster ohne Grafikfehler, und die Systemdateien werden mit leichterer Kompression kopiert.",
+        "Screenshots: Nach der Aufnahme erscheint oben rechts eine Meldung, ein Klick öffnet das Bild. Es liegt außerdem in der Zwischenablage.",
+        "Terminal im Leichtmodus: Der angeheftete Starter in der Taskleiste funktioniert wieder, das Fenster gruppiert sich unter dem Ghostty-Symbol.",
+        "Fernhilfe: Der Befehl windoesnot-remote-support erlaubt auf Wunsch Hilfe aus der Ferne, nur nach ausdrücklicher Bestätigung."
       ],
       "en": [
         "Installation with the systemd-boot menu no longer aborts. If the German translation does not match the version, the standard English menu stays.",
@@ -38,7 +47,16 @@
         "Older machines: All bundled apps (Store, Network, Bluetooth, Audio, Graphics, Device Manager) now run on any 64-bit processor. Before, they crashed on computers whose processor is older than the build machine's.",
         "Desktop icons appear reliably on slow machines; startup now waits longer for the icon layer.",
         "Faster startup: the icon mapping is only rebuilt when the list of installed apps changes.",
-        "The weather window appears at its place above the taskbar right away instead of gliding in from the middle of the screen."
+        "The weather window appears at its place above the taskbar right away instead of gliding in from the middle of the screen.",
+        "Older machines: Lite mode now also switches itself on once for machines with less than 3 GB of memory or a processor without SSE4.1. It can be switched off in Settings.",
+        "Legacy NVIDIA cards: after installation the desktop starts with the free nouveau driver. The blue error screen for graphics driver problems now explains in German and English what to do.",
+        "Installer: “Install alongside” preselects the only shrinkable partition and shows its hint clearly. On disks with extended partitions (MBR) the new partition is created correctly.",
+        "Installer: Windows data migration works with “Install alongside” and leaves the Windows data untouched. With erase, replace or manual partitioning it is stopped before partitioning.",
+        "Installer: files from the live session (Desktop, Documents, Downloads, Pictures, Music, Videos) are carried over to the new user account.",
+        "Installer: on old computers the installer window renders without graphics glitches, and system files are copied with lighter compression.",
+        "Screenshots: after a capture a notification appears at the top right, a click opens the picture. It is also on the clipboard.",
+        "Terminal in lite mode: the pinned taskbar launcher works again, and the window groups under the Ghostty icon.",
+        "Remote support: the windoesnot-remote-support command allows help from afar on request, only after explicit confirmation."
       ]
     },
     {
