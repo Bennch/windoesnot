@@ -14,7 +14,14 @@ G() {
   uid=$(timeout 3 id -u liveuser 2>/dev/null) || return 1
   runtime="/run/user/$uid"
   signature=$(timeout 3 sh -c 'ls -1 "$1/hypr" 2>/dev/null | head -n 1' sh "$runtime")
-  timeout 20 runuser -u liveuser -- env \
+  # Inherit the renderer settings Hyprland gave the session (lite mode), so
+  # restarted clients behave like the real session.
+  local inherited=() pid line
+  pid=$(timeout 3 pgrep -x Hyprland 2>/dev/null | head -n 1)
+  if [ -n "$pid" ]; then
+    while IFS= read -r line; do inherited+=("$line"); done < <(timeout 3 tr '\0' '\n' < "/proc/$pid/environ" 2>/dev/null | grep -E '^(QT_QUICK_BACKEND|GSK_RENDERER|LIBGL_ALWAYS_SOFTWARE)=')
+  fi
+  timeout 20 runuser -u liveuser -- env "${inherited[@]}" \
     XDG_RUNTIME_DIR="$runtime" WAYLAND_DISPLAY=wayland-1 \
     HYPRLAND_INSTANCE_SIGNATURE="$signature" \
     DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime/bus" "$@"
@@ -34,7 +41,14 @@ G() {
   uid=$(timeout 3 id -u liveuser 2>/dev/null) || return 1
   runtime="/run/user/$uid"
   signature=$(timeout 3 sh -c 'ls -1 "$1/hypr" 2>/dev/null | head -n 1' sh "$runtime")
-  timeout 20 runuser -u liveuser -- env \
+  # Inherit the renderer settings Hyprland gave the session (lite mode), so
+  # restarted clients behave like the real session.
+  local inherited=() pid line
+  pid=$(timeout 3 pgrep -x Hyprland 2>/dev/null | head -n 1)
+  if [ -n "$pid" ]; then
+    while IFS= read -r line; do inherited+=("$line"); done < <(timeout 3 tr '\0' '\n' < "/proc/$pid/environ" 2>/dev/null | grep -E '^(QT_QUICK_BACKEND|GSK_RENDERER|LIBGL_ALWAYS_SOFTWARE)=')
+  fi
+  timeout 20 runuser -u liveuser -- env "${inherited[@]}" \
     XDG_RUNTIME_DIR="$runtime" WAYLAND_DISPLAY=wayland-1 \
     HYPRLAND_INSTANCE_SIGNATURE="$signature" \
     DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime/bus" "$@"
