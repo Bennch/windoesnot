@@ -12,8 +12,16 @@ for attempt in 1 2 3; do
     printf 'start attempt %s: %s\n' "$attempt" "$(date)" >> "$logfile"
     LD_PRELOAD=/usr/lib/libgtk4-layer-shell.so "$desk" >> "$logfile" 2>&1 &
     child=$!
-    sleep "${WINDOESNOT_HYPRDESK_CHECK_DELAY:-3}"
-    if layer_ready; then
+    # Slow hardware (software rendering) needs well over 3 s for the layer to
+    # appear; poll until the deadline instead of killing a still-starting child.
+    deadline=$(( $(date +%s%N) / 1000000 + $(awk -v s="${WINDOESNOT_HYPRDESK_CHECK_DELAY:-40}" 'BEGIN{printf "%d", s*1000}') ))
+    ready=0
+    while [ $(( $(date +%s%N) / 1000000 )) -lt "$deadline" ]; do
+        kill -0 "$child" 2>/dev/null || break
+        if layer_ready; then ready=1; break; fi
+        sleep 0.5
+    done
+    if [ "$ready" = 1 ] || layer_ready; then
         printf 'desktop layer found on attempt %s\n' "$attempt" >> "$logfile"
         wait "$child"
         exit $?

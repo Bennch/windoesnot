@@ -210,7 +210,7 @@ def command_start(args):
             raise ValueError("Wildcard-Bind braucht die ausdrückliche Option --allow-any")
     if args.runtime <= 0:
         raise ValueError("--runtime muss positiv sein")
-    if args.max_upload <= 0:
+    if args.max_upload_bytes <= 0:
         raise ValueError("--max-upload-bytes muss positiv sein")
 
     runtime = runtime_root()
@@ -227,7 +227,7 @@ def command_start(args):
         subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-C",
                         "windoesnot-debug-channel", "-f", str(private_key)], check=True)
         public_key = (keydir / "id_ed25519.pub").read_text(encoding="utf-8").strip()
-        server = DebugChannelServer(args.bind, args.port, base, token, args.max_upload)
+        server = DebugChannelServer(args.bind, args.port, base, token, args.max_upload_bytes)
         _actual_host, actual_port = server.address[:2]
         # The advertised address defaults to the bind address; a host label can
         # override it when binding to a concrete interface name.
