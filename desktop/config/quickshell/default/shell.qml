@@ -3768,7 +3768,7 @@ FloatingWindow {
                 var customApps = [
                     {name: Lang.get("shell.calculator", settingsMenu.uiLanguage), icon: "img/calc.svg", cmd: "gnome-calculator", pinNames: ["Taschenrechner", "Calculator"]},
                     {name: Lang.get("shell.colorPicker", settingsMenu.uiLanguage), icon: "img/colorgrab.svg", cmd: "hyprpicker -a -f hex", pinNames: ["Color Picker", "Farbauswahl"]},
-                    {name: Lang.get("shell.screenshot", settingsMenu.uiLanguage), icon: "img/screenshot.svg", cmd: "hyprshot -m region", pinNames: ["Screenshot", "Bildschirmfoto"]}
+                    {name: Lang.get("shell.screenshot", settingsMenu.uiLanguage), icon: "img/screenshot.svg", cmd: "windoesnot-screenshot region", pinNames: ["Screenshot", "Bildschirmfoto"]}
                 ]
 
                 // Desktop-Apps laden

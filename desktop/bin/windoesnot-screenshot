@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Screenshot with a clickable notification: hyprshot saves the image and copies it to the clipboard,
+# then a notification (top right) opens the picture with a click, or its folder via the second button.
+#   windoesnot-screenshot [region|window|output|active]
+set -uo pipefail
+mode=${1:-region}
+case $mode in region|window|output|active) ;; *) echo "Unknown mode: $mode" >&2; exit 2;; esac
+dir=$(xdg-user-dir PICTURES 2>/dev/null || true)
+[[ -n $dir ]] || dir=$HOME/Pictures
+dir+=/Screenshots
+mkdir -p -- "$dir"
+name=$(date +%Y-%m-%d_%H-%M-%S).png
+file=$dir/$name
+args=(-m "$mode")
+[[ $mode == active ]] && args=(-m window -m active)
+# Esc during the selection cancels: nothing was saved, nothing to announce.
+hyprshot "${args[@]}" --silent -o "$dir" -f "$name" || exit 0
+[[ -s $file ]] || exit 0
+wl-copy --type image/png <"$file" 2>/dev/null || true
+if [[ ${LC_ALL:-${LANG:-}} == de* ]]; then
+    title='Screenshot gespeichert'; body='In der Zwischenablage. Klicke zum Öffnen.'; open_label='Öffnen'; folder_label='Ordner'
+else
+    title='Screenshot saved'; body='Copied to the clipboard. Click to open.'; open_label='Open'; folder_label='Folder'
+fi
+# The notification waits for a click, so it runs detached and this command returns at once.
+setsid bash -c '
+    action=$(notify-send -a Screenshot -i "$1" -A "default=$3" -A "folder=$4" --wait "$5" "$6" 2>/dev/null) || exit 0
+    case $action in
+        default) xdg-open "$1" ;;
+        folder) xdg-open "$2" ;;
+    esac' _ "$file" "$dir" "$open_label" "$folder_label" "$title" "$body" >/dev/null 2>&1 &
+exit 0
