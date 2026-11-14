@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Screenshot with a clickable notification: hyprshot saves the image and copies it to the clipboard,
-# then a notification (top right) opens the picture with a click, or its folder via the second button.
+# then a notification opens the picture with a click on the card or on the "Open" button, or its folder.
 #   windoesnot-screenshot [region|window|output|active]
 set -uo pipefail
 mode=${1:-region}
@@ -24,9 +24,9 @@ else
 fi
 # The notification waits for a click, so it runs detached and this command returns at once.
 setsid bash -c '
-    action=$(notify-send -a Screenshot -i "$1" -A "default=$3" -A "folder=$4" --wait "$5" "$6" 2>/dev/null) || exit 0
+    action=$(notify-send -a Screenshot -i "$1" -A "default=$3" -A "open=$3" -A "folder=$4" --wait "$5" "$6" 2>/dev/null) || exit 0
     case $action in
-        default) xdg-open "$1" ;;
+        default|open) xdg-open "$1" ;;
         folder) xdg-open "$2" ;;
     esac' _ "$file" "$dir" "$open_label" "$folder_label" "$title" "$body" >/dev/null 2>&1 &
 exit 0

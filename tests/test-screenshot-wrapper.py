@@ -38,7 +38,7 @@ with tempfile.TemporaryDirectory() as directory:
     assert len(shots) == 1, shots
     assert '-m region' in calls and '--silent' in calls and f'-o {temp}/Pictures/Screenshots' in calls
     assert 'wl-copy --type image/png' in calls
-    assert 'default=Öffnen' in calls and 'folder=Ordner' in calls and '--wait' in calls
+    assert 'default=Öffnen' in calls and 'open=Öffnen' in calls and 'folder=Ordner' in calls and '--wait' in calls
     assert f'xdg-open {shots[0]}' in calls, 'a click on the notification opens the picture'
     # A cancelled selection saves and announces nothing.
     log.unlink()
