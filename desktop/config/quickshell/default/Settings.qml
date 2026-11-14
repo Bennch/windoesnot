@@ -1149,6 +1149,12 @@ FloatingWindow {
             settingsMenu.darkMode = enabled
             return enabled ? "dark" : "light"
         }
+        function setCategory(category: string): string {
+            var valid = ["desktop", "background", "appearance", "alignment", "input", "power", "apps", "maintenance", "backups", "updates"]
+            if (valid.indexOf(category) < 0) return "unsupported"
+            settingsMenu.currentCategory = category
+            return category
+        }
         function state(): string {
             var locales = []
             for (var i = 0; i < settingsMenu.systemLocalesModel.count; i++) {

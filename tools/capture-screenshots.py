@@ -20,26 +20,25 @@ ROOT = Path(__file__).resolve().parent.parent
 LANGUAGES = ("de", "en")
 THEMES = ("dark", "light")
 
-# Coordinates refer to the requested 1920x1080 Virtual-1 output. The settings
-# sidebar points are intentionally data: adjust them if the installed image's
-# category order/geometry changes. A page failure cannot produce a silent fake.
+# Settings navigation uses the shell's IPC, so the selected page is independent
+# of font metrics, translations, and input-device coordinate mapping.
 SCENES = [
     {"id": "desktop", "label": "Empty desktop", "kind": "desktop"},
     {"id": "start-menu", "label": "Start menu", "kind": "shortcut", "key": "meta-r"},
     {"id": "file-manager", "label": "File manager", "kind": "launch", "command": ["/usr/bin/nautilus"]},
-    {"id": "settings-desktop", "label": "Settings / Desktop", "kind": "settings", "category": "desktop", "point": (620, 245)},
-    {"id": "settings-background", "label": "Settings / Background", "kind": "settings", "category": "background", "point": (620, 335)},
-    {"id": "settings-appearance", "label": "Settings / Appearance", "kind": "settings", "category": "appearance", "point": (620, 380)},
-    {"id": "settings-taskbar-start", "label": "Settings / Taskbar and Start menu", "kind": "settings", "category": "alignment", "point": (620, 425)},
-    {"id": "settings-input-language-time", "label": "Settings / Input, language and time", "kind": "settings", "category": "input", "point": (620, 470)},
-    {"id": "settings-battery", "label": "Settings / Battery", "kind": "settings", "category": "power", "point": (620, 515)},
-    {"id": "settings-apps", "label": "Settings / Apps", "kind": "settings", "category": "apps", "point": (620, 560)},
-    {"id": "settings-maintenance", "label": "Settings / Maintenance", "kind": "settings", "category": "maintenance", "point": (620, 605)},
-    {"id": "settings-backups", "label": "Settings / Backups", "kind": "settings", "category": "backups", "point": (620, 650)},
-    {"id": "settings-updates", "label": "Settings / Updates", "kind": "settings", "category": "updates", "point": (620, 695)},
+    {"id": "settings-desktop", "label": "Settings / Desktop", "kind": "settings", "category": "desktop"},
+    {"id": "settings-background", "label": "Settings / Background", "kind": "settings", "category": "background"},
+    {"id": "settings-appearance", "label": "Settings / Appearance", "kind": "settings", "category": "appearance"},
+    {"id": "settings-taskbar-start", "label": "Settings / Taskbar and Start menu", "kind": "settings", "category": "alignment"},
+    {"id": "settings-input-language-time", "label": "Settings / Input, language and time", "kind": "settings", "category": "input"},
+    {"id": "settings-battery", "label": "Settings / Battery", "kind": "settings", "category": "power"},
+    {"id": "settings-apps", "label": "Settings / Apps", "kind": "settings", "category": "apps"},
+    {"id": "settings-maintenance", "label": "Settings / Maintenance", "kind": "settings", "category": "maintenance"},
+    {"id": "settings-backups", "label": "Settings / Backups", "kind": "settings", "category": "backups"},
+    {"id": "settings-updates", "label": "Settings / Updates", "kind": "settings", "category": "updates"},
     {"id": "store", "label": "Store home", "kind": "launch", "command": ["/usr/bin/windoesnot-store", "--open-desktop"]},
     {"id": "volume-popup", "label": "Volume popup", "kind": "volume"},
-    {"id": "network-popup", "label": "Network popup", "kind": "click", "clicks": [(1815, 1045)]},
+    {"id": "network-popup", "label": "Network popup", "kind": "ipc", "handler": "network"},
     {"id": "task-manager", "label": "Task manager", "kind": "launch", "command": ["/usr/bin/gnome-system-monitor"]},
 ]
 
@@ -60,7 +59,7 @@ def run_vmctl(vm_name: str, action: str, *args: str, dry_run: bool = False,
 
 
 def guest(vm_name: str, script: str, dry_run: bool = False) -> str:
-    session = ('entry=$(getent passwd "${WINDOESNOT_CAPTURE_USER:-vmtest}" || getent passwd vmtest || getent passwd liveuser || getent passwd "$(ls /home | head -n1)") || exit 1; '
+    session = ('entry=$(getent passwd "${WINDOESNOT_CAPTURE_USER:-liveuser}" || getent passwd liveuser || getent passwd vmtest || getent passwd "$(ls /home | head -n1)") || exit 1; '
                'IFS=: read -r name _ uid _ _ home _ <<<"$entry"; '
                'sig=$(find "/run/user/$uid/hypr" -mindepth 1 -maxdepth 1 -type d '
                '-printf "%f\\n" | head -n1); '
@@ -74,7 +73,7 @@ def guest(vm_name: str, script: str, dry_run: bool = False) -> str:
 
 def ipc_command(language: str | None = None, theme: str | None = None,
                 state: bool = False) -> str:
-    user = ('entry=$(getent passwd "${WINDOESNOT_CAPTURE_USER:-vmtest}" || getent passwd vmtest || getent passwd liveuser || getent passwd "$(ls /home | head -n1)") || exit 1; '
+    user = ('entry=$(getent passwd "${WINDOESNOT_CAPTURE_USER:-liveuser}" || getent passwd liveuser || getent passwd vmtest || getent passwd "$(ls /home | head -n1)") || exit 1; '
             'IFS=: read -r name _ uid _ _ home _ <<<"$entry"; ')
     target = '"$home/.config/quickshell/default/shell.qml"'
     calls = []
@@ -110,10 +109,14 @@ def click(vm_name: str, x: int, y: int, dry_run: bool) -> None:
 
 
 def set_display(vm_name: str, dry_run: bool) -> None:
-    script = 'hyprctl eval \'hl.monitor({output="Virtual-1", mode="1920x1080@60", position="0x0", scale=1})\''
-    guest(vm_name, script, dry_run)
+    # The QEMU device must start at the target mode. Runtime changes leave
+    # Hyprland's generated window geometry stale until its monitor watcher runs.
+    raw = guest(vm_name, "hyprctl monitors -j", dry_run)
     if not dry_run:
-        time.sleep(1.5)
+        monitors = json.loads(raw)
+        monitor = next((m for m in monitors if m.get("name") == "Virtual-1"), None)
+        if not monitor or monitor.get("width") != 1920 or monitor.get("height") != 1080:
+            raise RuntimeError(f"Virtual-1 must start at 1920x1080; got {monitor}")
     # The guest's HMP mouse mode makes absolute QMP clicks map correctly.
     run_vmctl(vm_name, "hmp", "mouse_set", "4", dry_run=dry_run)
 
@@ -165,22 +168,26 @@ def prepare_scene(vm_name: str, scene: dict, dry_run: bool) -> None:
         if not dry_run:
             time.sleep(2)
     elif kind == "settings":
-        # Existing Super+I global binding opens Settings; then select its category.
         press(vm_name, "meta-i", dry_run)
         if not dry_run:
             time.sleep(1.5)
-        x, y = scene["point"]
-        click(vm_name, x, y, dry_run)
+        guest(vm_name, ipc_call("windoesnot-settings", "setCategory", scene["category"]), dry_run)
     elif kind == "volume":
-        guest(vm_name, "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 0.02+", dry_run)
-        if not dry_run:
-            time.sleep(0.8)
+        guest(vm_name, ipc_call("windoesnot-capture", "volume"), dry_run)
+    elif kind == "ipc":
+        guest(vm_name, ipc_call("windoesnot-capture", scene["handler"]), dry_run)
     else:
         raise RuntimeError(f"Unknown scene kind: {kind}")
 
 
 
 GLOBAL_SHORTCUTS = {"meta-r": "quickshell:toggle-startmenu", "meta-i": "quickshell:show-settings"}
+
+
+def ipc_call(target: str, method: str, *args: str) -> str:
+    entry = 'entry=$(getent passwd "${WINDOESNOT_CAPTURE_USER:-liveuser}" || getent passwd liveuser || getent passwd vmtest || getent passwd "$(ls /home | head -n1)") || exit 1; IFS=: read -r name _ uid _ _ home _ <<<"$entry"; '
+    quoted = " ".join(shlex.quote(value) for value in args)
+    return entry + 'quickshell ipc --path "$home/.config/quickshell/default/shell.qml" call ' + shlex.quote(target) + " " + shlex.quote(method) + (" " + quoted if quoted else "")
 
 
 def press(vm_name, key, dry_run):
