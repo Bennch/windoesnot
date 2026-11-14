@@ -64,7 +64,7 @@ ShellRoot {
     testWindow.check(panel.tr("nearby.title")==="In der Nähe teilen","German")
     testWindow.check(testWindow.find(panel,o=>o.text==="Eigene IP-Adressen") && testWindow.find(panel,o=>o.text==="192.168.77.10, 192.168.77.12"),"local addresses shown")
     testWindow.check(testWindow.find(panel,o=>o.text==="Kopieren"),"copy button shown")
-    testWindow.check(testWindow.find(panel,o=>o.text==="Other computer\\nWinDoesNot Live-System\\n192.168.77.11"),"peer alias, model and IP shown")
+    testWindow.check(testWindow.find(panel,o=>o.text==="Other computer") && testWindow.find(panel,o=>o.text==="WinDoesNot Live-System  ·  192.168.77.11"),"peer alias, model and IP shown on two lines")
     const accept=testWindow.find(panel,o=>o.text==="Annehmen")
     testWindow.check(accept && accept.visible,"explicit approval offered")
     testWindow.check(testWindow.find(panel,o=>o.text==="Anfrage von <b>Other</b>").textFormat===Text.PlainText,"peer text is plain")

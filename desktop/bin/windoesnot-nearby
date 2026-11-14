@@ -136,9 +136,18 @@ def downloads_directory():
     return Path.home() / 'Downloads'
 
 
+# Container, VM and tunnel interfaces carry addresses other devices cannot reach.
+VIRTUAL_INTERFACES = ('lo', 'docker', 'br-', 'virbr', 'vmnet', 'veth', 'vboxnet', 'tun', 'tap', 'wg',
+                      'tailscale', 'zt', 'podman', 'cni', 'flannel', 'lxc', 'lxd', 'incus')
+PHYSICAL_INTERFACES = ('en', 'eth', 'wl', 'ww')
+
+
 def local_ipv4_addresses():
-    """Read configured interface addresses from the kernel; this sends no packets."""
-    result = set()
+    """Addresses other devices can reach this computer on, read from the kernel (no packets sent).
+
+    Interfaces of containers, virtual machines and tunnels are left out; when a wired or wireless
+    interface has an address, only those are returned, so a normal PC shows its one LAN address."""
+    by_kind = {'physical': set(), 'other': set()}
     probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         for _, name in socket.if_nameindex():
@@ -147,12 +156,16 @@ def local_ipv4_addresses():
                 raw = fcntl.ioctl(probe.fileno(), 0x8915, request)  # SIOCGIFADDR
                 address = socket.inet_ntoa(raw[20:24])
                 parsed = ipaddress.IPv4Address(address)
-                if not parsed.is_loopback and not parsed.is_unspecified and not parsed.is_multicast:
-                    result.add(address)
+                if parsed.is_loopback or parsed.is_unspecified or parsed.is_multicast:
+                    continue
+                if name.startswith(VIRTUAL_INTERFACES):
+                    continue
+                by_kind['physical' if name.startswith(PHYSICAL_INTERFACES) else 'other'].add(address)
             except OSError:
                 continue
     finally:
         probe.close()
+    result = by_kind['physical'] or by_kind['other']
     return sorted(result, key=lambda value: (int(ipaddress.IPv4Address(value))))
 
 

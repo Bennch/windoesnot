@@ -49,6 +49,27 @@ Rectangle {
     }
     component Heading: Label { color: panel.foreground; font.bold: true; font.pixelSize: 16 }
     component Action: Tools.SystemToolsButton { settingsMenu: panel }
+    // A found device: name on the first line, model and IP address on the second.
+    component DeviceButton: Tools.SystemToolsButton {
+        id: device
+        required property var modelData
+        settingsMenu: panel
+        implicitHeight: 54
+        contentItem: Column {
+            spacing: 2
+            Text {
+                width: parent.width; text: device.modelData.alias
+                color: device.dark ? "#eeeeee" : "#222222"; font.pixelSize: 13; font.bold: true
+                horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
+            }
+            Text {
+                width: parent.width
+                text: (device.modelData.model ? device.modelData.model + "  ·  " : "") + (device.modelData.address || "")
+                color: device.dark ? "#bbbbbb" : "#555555"; font.pixelSize: 12
+                horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
+            }
+        }
+    }
 
     FileDialog {
         id: picker
@@ -151,10 +172,8 @@ Rectangle {
             Label { visible: panel.viewState.devices.length === 0; text: panel.tr("nearby.noDevices") }
             Repeater {
                 model: panel.viewState.devices
-                delegate: Action {
-                    required property var modelData
+                delegate: DeviceButton {
                     width: parent.width
-                    text: modelData.alias + (modelData.model ? "\n" + modelData.model : "") + "\n" + (modelData.address || "")
                     enabled: panel.viewState.selected.length > 0 && !panel.viewState.outgoing
                     onClicked: panel.act("send", {peer:modelData.id})
                 }

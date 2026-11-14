@@ -163,13 +163,17 @@ class Nearby(unittest.TestCase):
         self.assertEqual(state['devices'][0]['address'], '192.168.77.11')
         self.assertEqual(state['devices'][0]['model'], 'WinDoesNot Live-System')
 
-    def test_local_ipv4_addresses_uses_kernel_addresses_and_filters_nonlocal(self):
+    def test_local_ipv4_addresses_uses_kernel_addresses_and_skips_virtual_interfaces(self):
         probe = types.SimpleNamespace(fileno=lambda: 7, close=lambda: None)
         addresses = {
             'eth0': '192.168.77.10',
             'wlan0': '10.0.0.2',
             'lo': '127.0.0.1',
             'down0': None,
+            'docker0': '172.17.0.1',
+            'br-4509bb02ac58': '172.18.0.1',
+            'virbr0': '192.168.122.1',
+            'vmnet8': '192.168.59.1',
         }
 
         def ioctl(_fd, _request, packed_name):
