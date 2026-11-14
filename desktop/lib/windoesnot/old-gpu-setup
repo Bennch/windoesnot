@@ -1,5 +1,6 @@
 #!/bin/sh
-# Clear nvidia-utils' nouveau blacklist only for devices listed by chwd.
+# Boot-time hardware gate: frees nouveau for legacy NVIDIA devices listed by chwd and switches lite mode on
+# (once) for legacy GPUs and for machines that are too weak for the full desktop.
 set -eu
 
 id_file=${WINDOESNOT_NOUVEAU_IDS:-/var/lib/chwd/ids/nouveau.ids}
@@ -20,6 +21,31 @@ sync_lite_env() {
     fi
 }
 trap sync_lite_env EXIT
+
+cpuinfo=${WINDOESNOT_CPUINFO:-/proc/cpuinfo}
+meminfo=${WINDOESNOT_MEMINFO:-/proc/meminfo}
+
+# Machines that are too weak for the full desktop also start in lite mode, once: less than 3 GiB of
+# memory or a processor without SSE4.1 (designs from 2008 and older). The user can switch it off in
+# Settings; the marker keeps later boots from undoing that.
+lowend_reason() {
+    mem_kib=$(sed -n 's/^MemTotal:[[:space:]]*\([0-9][0-9]*\) kB.*/\1/p' "$meminfo" 2>/dev/null | head -n 1)
+    if [ -n "${mem_kib:-}" ] && [ "$mem_kib" -lt 3145728 ]; then
+        echo "less than 3 GiB of memory (${mem_kib} kB)"
+        return 0
+    fi
+    if [ -r "$cpuinfo" ] && grep -q '^flags' "$cpuinfo" && ! grep -m1 '^flags' "$cpuinfo" | grep -qw sse4_1; then
+        echo "processor without SSE4.1"
+        return 0
+    fi
+    return 1
+}
+if [ ! -e "$lite_marker" ] && reason=$(lowend_reason); then
+    mkdir -p "${lite_flag%/*}" "${lite_marker%/*}"
+    : > "$lite_flag"
+    : > "$lite_marker"
+    logger -t windoesnot-old-gpu "lite mode switched on: $reason" 2>/dev/null || true
+fi
 
 [ -r "$id_file" ] || exit 0
 
