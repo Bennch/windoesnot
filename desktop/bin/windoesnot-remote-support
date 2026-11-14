@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Remote support: lets the person running the support server execute commands on this computer.
+# Never starts by itself. It needs the server address and the code you were given, and asks first.
+#   windoesnot-remote-support [--yes] [--dry-run] HOST[:PORT] CODE
+#   example: windoesnot-remote-support 192.168.8.138 wdn7
+set -euo pipefail
+assume_yes=0; dry_run=0
+while [[ ${1:-} == --* ]]; do
+    case $1 in
+        --yes) assume_yes=1;;
+        --dry-run) dry_run=1;;
+        --help) sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
+        *) echo "Unknown option: $1" >&2; exit 2;;
+    esac
+    shift
+done
+host=${1:-}; code=${2:-}
+if [[ -z $host || -z $code ]]; then
+    echo 'Usage: windoesnot-remote-support [--yes] [--dry-run] HOST[:PORT] CODE' >&2
+    exit 2
+fi
+[[ $host =~ ^[A-Za-z0-9.-]{1,253}(:[0-9]{1,5})?$ ]] || { echo 'Invalid server address.' >&2; exit 2; }
+[[ $code =~ ^[A-Za-z0-9]{4,64}$ ]] || { echo 'Invalid code.' >&2; exit 2; }
+[[ $host == *:* ]] || host+=:8000
+german=0; [[ ${LANG:-} == de* || ${LC_ALL:-} == de* ]] && german=1
+if ((german)); then
+    cat <<MSG
+Fernhilfe
+---------
+Der Rechner ${host%%:*} darf diesen Computer fernsteuern: Befehle als Administrator ausführen,
+Dateien lesen und übertragen. Das gilt, bis du neu startest.
+Fahre nur fort, wenn du diese Hilfe gerade selbst angefordert hast und die Person kennst.
+MSG
+    prompt='Fernhilfe erlauben? [j/N] '; yes_pattern='^[jJyY]$'
+else
+    cat <<MSG
+Remote support
+--------------
+The computer ${host%%:*} will be able to control this computer: run commands as administrator,
+read and transfer files. This lasts until you restart.
+Continue only if you asked for this help yourself and know the person.
+MSG
+    prompt='Allow remote support? [y/N] '; yes_pattern='^[yYjJ]$'
+fi
+url="http://$host/$code/s"
+if ((dry_run)); then echo "Would run: curl --fail --silent --show-error --max-time 20 $url | sh"; exit 0; fi
+if ((!assume_yes)); then
+    [[ -t 0 ]] || { echo 'Confirmation needs a terminal.' >&2; exit 1; }
+    read -r -p "$prompt" answer
+    [[ $answer =~ $yes_pattern ]] || { echo 'Cancelled.'; exit 1; }
+fi
+curl --fail --silent --show-error --max-time 20 "$url" | sh
