@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""Make the "install alongside" choice obvious in a disposable Calamares source copy.
+"""Make the "install alongside" choice obvious and working in a disposable Calamares source copy.
 
 Upstream leaves "Next" disabled until the user clicks the partition to shrink in the bar at the top of
-the page, with only a small hint. Two changes (ChoicePage.cpp):
+the page, with only a small hint. Three changes (ChoicePage.cpp):
   * when exactly one partition can be shrunk there is nothing to choose, so it is selected right away;
-  * the hint above the bars is shown large and in the accent colour.
+  * the hint above the bars is shown large and in the accent colour;
+  * when the shrunk partition is a logical one (MBR disk, extended partition), the new partition starts
+    further behind it. Upstream starts it 2 sectors after the shrunk partition; sfdisk then refuses
+    ("Startsektor ... ist ausserhalb des Bereichs") because the next logical partition needs room for its
+    extended boot record, and the install aborts after the resize (seen on a 2010 laptop, 2026-11-14).
 The patch is idempotent and fails loudly when upstream changes the code it hooks into.
 """
 import argparse
@@ -69,14 +73,31 @@ FILTER_NEW = '''        m_beforePartitionBarsView->setSelectionFilter( filter );
 '''
 
 
+START_OLD = '''            m_core->resizePartition( dev, candidate, firstSector, newLastSector );
+            m_core->layoutApply( dev,
+                                 newLastSector + 2,
+'''
+START_NEW = '''            m_core->resizePartition( dev, candidate, firstSector, newLastSector );
+            // WinDoesNot: a logical partition needs room for the next extended boot record, or sfdisk
+            // rejects the start sector of the new partition (about 1.5 MiB are required). Leave 2 MiB,
+            // expressed in sectors of this disk, so 512 byte and 4096 byte sector disks both work.
+            const qint64 ebrGapSectors = qMax< qint64 >( 4, Calamares::MiBtoBytes( 2ULL ) / dev->logicalSize() );
+            const qint64 newPartitionStart = candidate->roles().has( PartitionRole::Logical )
+                ? newLastSector + ebrGapSectors
+                : newLastSector + 2;
+            m_core->layoutApply( dev,
+                                 newPartitionStart,
+'''
+
+
 def patch_choicepage(path: Path) -> bool:
     text = path.read_text()
     if MARKER in text:
         return False
-    for old in (INCLUDE_OLD, LABEL_OLD, FILTER_OLD):
+    for old in (INCLUDE_OLD, LABEL_OLD, FILTER_OLD, START_OLD):
         if text.count(old) != 1:
             raise SystemExit(f'patch-calamares-partition: upstream ChoicePage.cpp changed, cannot find:\n{old}')
-    text = text.replace(INCLUDE_OLD, INCLUDE_NEW, 1).replace(LABEL_OLD, LABEL_NEW, 1).replace(FILTER_OLD, FILTER_NEW, 1)
+    text = text.replace(INCLUDE_OLD, INCLUDE_NEW, 1).replace(LABEL_OLD, LABEL_NEW, 1).replace(FILTER_OLD, FILTER_NEW, 1).replace(START_OLD, START_NEW, 1)
     path.write_text(text)
     return True
 

@@ -24,6 +24,8 @@ with tempfile.TemporaryDirectory() as directory:
     assert target.read_text() == patched
     assert module.MARKER in patched and '#include <functional>' in patched
     assert 'canBeResized( candidate, Logger::Once() )' in patched and 'candidates == 1' in patched
+    assert 'ebrGapSectors' in patched and 'MiBtoBytes( 2ULL ) / dev->logicalSize()' in patched and 'roles().has( PartitionRole::Logical )' in patched, 'logical partitions need an EBR gap'
+    assert 'newPartitionStart,' in patched and 'newLastSector + 2,\n' not in patched
     original = SOURCE.read_text()
     for opening, closing in ('{}', '()', '[]'):
         # Upstream strings and comments may contain stray brackets: compare the balance, not zero.
