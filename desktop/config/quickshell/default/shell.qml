@@ -157,6 +157,15 @@ IpcHandler {
     }
 }
 
+// Opens or closes the weather popup from the command line (used to test it without a click).
+IpcHandler {
+    target: "windoesnot-weather"
+    function toggle() {
+        if (weatherPopup.visible) weatherPopup.visible = false
+        else panelWindow.openWeatherPopup(null)
+    }
+}
+
 IpcHandler {
     target: "windoesnot-snap"
     function open() {
@@ -659,42 +668,41 @@ PanelWindow {
     // weatherPopupCol grows taller than it was when first positioned (it
     // otherwise stayed anchored to the shorter pre-data height, landing too
     // far above the taskbar instead of flush against it).
+    // Fit a floating popup to its content and park it flush above the taskbar: Hyprland keeps the
+    // size the window was mapped with, so the size is set first, then the position.
+    function popupFitCommand(title, w, h, x, y) {
+        var sel = "window=\"title:^(" + title + ")$\""
+        return ["windoesnot-bounded", "8", "sh", "-c",
+                "hyprctl dispatch 'hl.dsp.window.resize({x=" + w + ",y=" + h + ",relative=false," + sel + "})' >/dev/null; " +
+                "hyprctl dispatch 'hl.dsp.window.move({x=" + x + ",y=" + y + ",relative=false," + sel + "})' >/dev/null"]
+    }
+
     function repositionWeatherPopup() {
-        if (!weatherPopupIconItem) return null
-        var popupW = 380
-        var popupH = Math.round(weatherPopupCol.height + 30)
+        // Position comes from the static weather-popup-config rule (bottom right, flush above the
+        // taskbar, evaluated when the window maps). A mapped window is only re-fitted when the
+        // weather data changes its height.
         var primaryScreen = null
         for (var s = 0; s < Quickshell.screens.length; s++) {
             if (Quickshell.screens[s].name === settingsMenu.primaryMonitor) { primaryScreen = Quickshell.screens[s]; break }
         }
-        var monW = primaryScreen ? primaryScreen.width  : (panelWindow.screen ? panelWindow.screen.width : 1280)
-        var monH = primaryScreen ? primaryScreen.height : (panelWindow.screen ? panelWindow.screen.height : 800)
-        var iconPos = weatherPopupIconItem.mapToItem(panelWindow.contentItem, 0, 0)
-        var px = Math.round(iconPos.x + weatherPopupIconItem.width / 2 - popupW / 2)
-        px = Math.max(4, Math.min(monW - popupW - 4, px))
-        var taskbarH = panelWindow.implicitHeight || 45
-        var py = monH - taskbarH - popupH + 1
+        var scr = primaryScreen || panelWindow.screen
+        if (!scr) return null
+        var popupW = 380
+        var popupH = Math.round(weatherPopupCol.height + 30)
+        var taskbarH = 45
         var posProc = Qt.createQmlObject('import Quickshell.Io; Process {}', panelWindow)
-        // Hyprland 0.57 has no "keyword" any more: move the mapped window natively.
-        posProc.command = ["windoesnot-bounded", "8", "hyprctl", "dispatch", "hl.dsp.window.move({x=" + (px + (primaryScreen ? primaryScreen.x : 0)) + ",y=" + (py + (primaryScreen ? primaryScreen.y : 0)) + ",relative=false,window=\"title:^(quickshell-weather)$\"})"]
+        posProc.command = popupFitCommand("quickshell-weather", popupW, popupH, scr.x + scr.width - popupW - 8, scr.y + scr.height - taskbarH - popupH)
         posProc.running = true
         return posProc
     }
 
-    Timer {
-        id: weatherPlaceTimer
-        interval: 120
-        repeat: false
-        onTriggered: if (weatherPopup.visible) panelWindow.repositionWeatherPopup()
-    }
 
     function openWeatherPopup(iconItem) {
         if (weatherPopup.visible) { weatherPopup.visible = false; weatherPopupIconItem = null; return }
         weatherPopupIconItem = iconItem
-        // The static weather-popup-config rule places it bottom-right at map time;
-        // then the window is centred over its taskbar icon.
+        // The generated weather-popup-config rule places it bottom-right at map time;
+        // the timer only fits the height once the weather data is there.
         weatherPopup.visible = true
-        weatherPlaceTimer.restart()
         if (panelWindow.weatherActiveTab === 0) Qt.callLater(function() { panelWindow.scrollWeatherHourlyToNow() })
     }
 
@@ -5615,7 +5623,7 @@ FloatingWindow {
     // Content height arrives after the window is shown (power data loads): move the live window.
     Process { id: placeProc; running: false }
     onImplicitHeightChanged: if (visible) {
-        placeProc.command = ["windoesnot-bounded", "8", "hyprctl", "dispatch", "hl.dsp.window.move({x=" + Math.round(bottomRightX()) + ",y=" + Math.round(bottomRightY()) + ",relative=false,window=\"title:^(quickshell-battery)$\"})"]
+        placeProc.command = panelWindow.popupFitCommand("quickshell-battery", implicitWidth, implicitHeight, Math.round(bottomRightX()), Math.round(bottomRightY()))
         placeProc.running = true
     }
 
@@ -5625,6 +5633,9 @@ FloatingWindow {
     // height, while the window height follows the panel (a loop that froze the size).
     Loader {
         id: batteryLoader
+        // Hyprland may keep the window taller than the panel while it loads: pin the panel to
+        // the window's bottom edge (the placement rule puts that edge on the taskbar).
+        anchors.bottom: parent.bottom
         // Hardware status and DDC probes are only needed after the popup is first opened.
         // Keep the loaded component alive afterwards so repeat opens stay immediate.
         active: batteryWindow.visible || item !== null
@@ -5782,7 +5793,7 @@ FloatingWindow {
     }
     // Moves the mapped window to its final position once the panel has its real height.
     function placeLive() {
-        nearbyPlaceProc.command = ["windoesnot-bounded", "8", "hyprctl", "dispatch", "hl.dsp.window.move({x=" + Math.round(bottomRightX()) + ",y=" + Math.round(bottomRightY()) + ",relative=false,window=\"title:^(quickshell-nearby)$\"})"]
+        nearbyPlaceProc.command = panelWindow.popupFitCommand("quickshell-nearby", implicitWidth, Math.round(height), Math.round(bottomRightX()), Math.round(bottomRightY()))
         nearbyPlaceProc.running = true
     }
     Timer { id: nearbyPlaceTimer; interval: 150; repeat: false; onTriggered: nearbyWindow.placeLive() }

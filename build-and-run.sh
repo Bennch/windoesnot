@@ -132,7 +132,7 @@ if ! $dry; then
 fi
 # Never open the same writable VM disk from two instances.
 if ! $dry; then exec 9>"$vm/running.lock"; flock -n 9 || { echo 'VM already running' >&2; exit 1; }; fi
-if [[ -r /dev/kvm && -w /dev/kvm ]]; then accel=(-accel kvm -cpu host)
+if [[ -r /dev/kvm && -w /dev/kvm ]]; then accel=(-accel kvm -cpu "${WINDOESNOT_VM_CPU:-host}")
 else accel=(-accel tcg,thread=multi -cpu max); echo 'KVM unavailable; using slower TCG.'; fi
 if [[ $graphics == auto ]]; then
     if $headless; then graphics=soft; else graphics=gl; fi
