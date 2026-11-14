@@ -112,10 +112,20 @@ with tempfile.TemporaryDirectory() as tmp:
     with patch.object(m, 'command', flaky):
         result = m.copy_manifest(manifest, home, source_root=root, progress=events.append)
     assert len(result['errors']) == 1 and 'Grüße.txt' in result['errors'][0]['path']
+    # A failed/aborted copy must leave the Windows source byte-for-byte available.
+    assert (root / 'Users/Ada/Pictures/Grüße.txt').read_text() == 'äöü'
+    assert (root / 'Users/Ada/Pictures/photo.txt').read_bytes() == b'photo'
     assert (home / 'Bilder' / long_name).read_text() == 'long'
     assert (home / 'Bilder' / nested.relative_to(root / 'Users/Ada/Pictures') / 'deep.txt').read_text() == 'nested'
     assert events[0]['event'] == 'start' and events[-1]['event'] == 'done'
     assert any(event['event'] == 'file_error' for event in events)
+    # Simulate a file that becomes unreadable after the read-only scan.
+    real_warning_flags = m.warning_flags
+    unreadable_file = root / 'Users/Ada/Pictures/Grüße.txt'
+    with patch.object(m, 'warning_flags', side_effect=lambda path: ['unreadable'] if Path(path) == unreadable_file else real_warning_flags(path)):
+        unreadable = m.copy_manifest(manifest, home, source_root=root)
+    assert any(error['path'].endswith('Grüße.txt') and 'unreadable' in error['error'] for error in unreadable['errors'])
+    assert unreadable_file.read_text() == 'äöü'
     outside = Path(tmp) / 'outside.txt'; outside.write_text('untouched')
     (home / 'Bilder/photo.txt').unlink()
     (home / 'Bilder/photo.txt').symlink_to(outside)
