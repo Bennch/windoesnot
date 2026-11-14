@@ -3,7 +3,7 @@
   "releases": [
     {
       "version": "0.1.0-29",
-      "date": "2026-11-13",
+      "date": "2026-11-14",
       "de": [
         "Installation mit dem Startmenü systemd-boot bricht nicht mehr ab. Passt die deutsche Übersetzung nicht zur Version, bleibt das englische Standardmenü.",
         "Alte Rechner: Wird eine alte NVIDIA-Karte erkannt, wird der Treiber nouveau nicht mehr blockiert, und der Desktop startet im Leicht-Modus mit Software-Zeichnen, weniger Effekten und einem leichten Terminal. Einstellungen, Wartung: Der Leicht-Modus lässt sich ein- und ausschalten.",
@@ -16,7 +16,11 @@
         "Startmenü: Technische Programme sind ausgeblendet und lassen sich mit einem Schalter einblenden.",
         "Installer: Deutsche Texte sind einheitlich mit Du geschrieben, Größe statt Grösse.",
         "Die Desktop-Symbole starten bei einem Startfehler automatisch neu.",
-        "Die Warnung von pacman zu DownloadUser ist weg."
+        "Die Warnung von pacman zu DownloadUser ist weg.",
+        "Ältere Rechner: Alle mitgelieferten Programme (Store, Netzwerk, Bluetooth, Audio, Grafik, Geräte-Manager) laufen jetzt auf jedem 64-Bit-Prozessor. Bisher stürzten sie auf Rechnern ab, deren Prozessor älter ist als der des Build-Rechners.",
+        "Desktop-Symbole erscheinen auch auf langsamen Rechnern zuverlässig; der Start wartet länger auf die Symbol-Ebene.",
+        "Schnellerer Start: Die Symbol-Zuordnung wird nur noch neu erzeugt, wenn sich die Programmliste ändert.",
+        "Das Wetter-Fenster erscheint sofort an der richtigen Stelle über der Taskleiste und wandert nicht mehr von der Bildschirmmitte dorthin."
       ],
       "en": [
         "Installation with the systemd-boot menu no longer aborts. If the German translation does not match the version, the standard English menu stays.",
@@ -30,7 +34,11 @@
         "Start menu: technical programs are hidden and can be shown with a switch.",
         "Installer: German texts consistently use the informal du, and Größe instead of Grösse.",
         "The desktop icons restart automatically after a start error.",
-        "The pacman warning about DownloadUser is gone."
+        "The pacman warning about DownloadUser is gone.",
+        "Older machines: All bundled apps (Store, Network, Bluetooth, Audio, Graphics, Device Manager) now run on any 64-bit processor. Before, they crashed on computers whose processor is older than the build machine's.",
+        "Desktop icons appear reliably on slow machines; startup now waits longer for the icon layer.",
+        "Faster startup: the icon mapping is only rebuilt when the list of installed apps changes.",
+        "The weather window appears at its place above the taskbar right away instead of gliding in from the middle of the screen."
       ]
     },
     {
