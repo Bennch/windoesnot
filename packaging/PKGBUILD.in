@@ -79,6 +79,7 @@ package_windoesnot-desktop() {
     cp -a desktop/share/sddm/themes/windoesnot/. "$pkgdir/usr/share/sddm/themes/windoesnot/"
     cp -a desktop/share/sddm/themes/silentsddm/. "$pkgdir/usr/share/sddm/themes/silentsddm/"
     install -Dm644 desktop/share/systemd/system/sddm.service.d/10-windoesnot-locale.conf "$pkgdir/usr/lib/systemd/system/sddm.service.d/10-windoesnot-locale.conf"
+    install -Dm644 desktop/share/systemd/system/sddm.service.d/20-windoesnot-lite.conf "$pkgdir/usr/lib/systemd/system/sddm.service.d/20-windoesnot-lite.conf"
     # The greeter only sees system fonts; thyx's Plus Jakarta Sans (OFL) is installed for it.
     install -d "$pkgdir/usr/share/fonts/windoesnot"
     install -m644 desktop/share/sddm/themes/windoesnot/fonts/*.ttf "$pkgdir/usr/share/fonts/windoesnot/"

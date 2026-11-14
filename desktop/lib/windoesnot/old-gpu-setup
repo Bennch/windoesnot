@@ -8,6 +8,19 @@ lite_flag=${WINDOESNOT_LITE_FLAG:-/etc/windoesnot/lite-mode}
 lite_marker=${WINDOESNOT_LITE_MARKER:-/var/lib/windoesnot/old-gpu-lite-decided}
 nvidia_blacklist=${WINDOESNOT_NVIDIA_BLACKLIST:-/etc/modprobe.d/windoesnot-legacy-nvidia.conf}
 
+lite_env=${WINDOESNOT_LITE_ENV:-/run/windoesnot/lite.env}
+
+# Whatever happens below, hand the greeter (SDDM) the lite mode rendering settings for this boot.
+sync_lite_env() {
+    if [ -e "$lite_flag" ]; then
+        mkdir -p "${lite_env%/*}"
+        printf 'QT_QUICK_BACKEND=software\nGSK_RENDERER=cairo\n' > "$lite_env"
+    else
+        rm -f "$lite_env"
+    fi
+}
+trap sync_lite_env EXIT
+
 [ -r "$id_file" ] || exit 0
 
 devices=$(

@@ -35,6 +35,7 @@ esac
     lite_flag = root / 'windoesnot/lite-mode'
     lite_marker = root / 'state/old-gpu-lite-decided'
     blacklist = root / 'legacy-nvidia.conf'
+    lite_env = root / 'run/lite.env'
     old.write_text('blacklist nouveau\n')
     gpu0300, gpu0302 = root / '0300', root / '0302'
 
@@ -43,7 +44,7 @@ esac
         env = dict(os.environ, PATH=str(bindir) + os.pathsep + os.environ['PATH'],
                    GPU_0300=str(gpu0300), GPU_0302=str(gpu0302),
                    MODPROBE_LOG=str(modprobe_log), WINDOESNOT_NOUVEAU_IDS=str(ids),
-                   WINDOESNOT_MODPROBE_OVERRIDE=str(old), WINDOESNOT_LITE_FLAG=str(lite_flag), WINDOESNOT_LITE_MARKER=str(lite_marker), WINDOESNOT_NVIDIA_BLACKLIST=str(blacklist))
+                   WINDOESNOT_MODPROBE_OVERRIDE=str(old), WINDOESNOT_LITE_FLAG=str(lite_flag), WINDOESNOT_LITE_MARKER=str(lite_marker), WINDOESNOT_NVIDIA_BLACKLIST=str(blacklist), WINDOESNOT_LITE_ENV=str(lite_env))
         subprocess.run([str(SCRIPT)], env=env, check=True)
 
     run('01:00.0 0300: 10de:0a74 (rev a2)\n')
@@ -67,5 +68,13 @@ esac
     lite_flag.unlink(); old.write_text('blacklist nouveau\n'); modprobe_log.unlink(missing_ok=True)
     run('01:00.0 0300: 10de:0a74 (rev a2)\n')
     assert old.read_text() == '' and not lite_flag.exists() and modprobe_log.read_text() == 'nouveau\n'
+
+    # The greeter gets software rendering exactly while lite mode is on.
+    run('')
+    assert not lite_flag.exists() and not lite_env.exists()
+    lite_flag.touch(); run('')
+    assert lite_env.read_text() == 'QT_QUICK_BACKEND=software\nGSK_RENDERER=cairo\n'
+    lite_flag.unlink(); run('')
+    assert not lite_env.exists()
 
 print('PASS: nouveau IDs trigger blacklist override and modprobe; newer NVIDIA/Intel are untouched')
