@@ -52,25 +52,23 @@ for package in sorted(args.directory.glob('*.pkg.tar.zst')):
                 # GNU ld emits this property only when the ELF declares an
                 # ISA requirement. Absence is inconclusive; a v2/v3/v4 note
                 # is a definite incompatibility with our x86-64-v1 target.
+                # Streaming archive: every member can be read exactly once.
                 stream = archive.extractfile(info)
-                if stream:
-                    head = stream.read(4)
-                    if head == b'\x7fELF':
-                        with tempfile.NamedTemporaryFile() as elf:
-                            elf.write(head)
-                            while chunk := stream.read(1024 * 1024):
-                                elf.write(chunk)
-                            elf.flush()
-                            note = subprocess.run(['readelf', '-n', elf.name], capture_output=True, text=True)
-                        if note.returncode == 0:
-                            required = re.findall(r'x86 ISA needed:\s*(x86-64-v[234])', note.stdout)
-                            assert not required, (info.name, required)
+                data = stream.read() if stream else b''
+                if data[:4] == b'\x7fELF':
+                    with tempfile.NamedTemporaryFile() as elf:
+                        elf.write(data)
+                        elf.flush()
+                        note = subprocess.run(['readelf', '-n', elf.name], capture_output=True, text=True)
+                    if note.returncode == 0:
+                        required = re.findall(r'x86 ISA needed:\s*(x86-64-v[234])', note.stdout)
+                        assert not required, (info.name, required)
             assert not info.mode & 0o6000,(info.name,oct(info.mode))
             assert not any(p in ('home','root','.ssh','.aws','.codex','import-manifest.json') for p in path.parts),info.name
             if path.as_posix().startswith('usr/share/windoesnot/desktop/config/'):
                 assert path.name not in {'settings.txt','state.lua','host.lua','geometry.lua','calendar_notes.json','icons.json'},info.name
-            if info.name=='.PKGINFO': metadata=archive.extractfile(info).read().decode()
-            if info.name.endswith(('/plugins-flags.txt','/components-flags.txt')): flags=archive.extractfile(info).read().decode()
+            if info.name=='.PKGINFO': metadata=data.decode()
+            if info.name.endswith(('/plugins-flags.txt','/components-flags.txt')): flags=data.decode()
     process.stdout.close()
     assert process.wait()==0
     assert metadata
