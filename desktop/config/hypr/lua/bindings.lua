@@ -1,5 +1,5 @@
 -- Bindings retain their original order.
-hl.bind("SUPER + Q", hl.dsp.exec_cmd("if [ -e /etc/windoesnot/lite-mode ] && command -v foot >/dev/null; then exec foot; else exec ghostty; fi"), {}) -- legacy:272
+hl.bind("SUPER + Q", hl.dsp.exec_cmd("if [ -e /etc/windoesnot/lite-mode ] && command -v foot >/dev/null; then exec foot --app-id=com.mitchellh.ghostty; else exec ghostty; fi"), {}) -- legacy:272
 hl.bind("SUPER + C", hl.dsp.window.close({}), {}) -- legacy:273
 hl.bind("SUPER + M", hl.dsp.exit(), {}) -- legacy:274
 hl.bind("SUPER + E", hl.dsp.exec_cmd("nautilus"), {}) -- legacy:275
