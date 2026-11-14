@@ -6,6 +6,7 @@ tools/vmctl.py; guest commands use the QEMU guest agent.
 """
 from __future__ import annotations
 
+import shutil
 import argparse
 import json
 import os
@@ -33,10 +34,10 @@ SCENES = [
     {"id": "settings-input-language-time", "label": "Settings / Input, language and time", "kind": "settings", "category": "input"},
     {"id": "settings-battery", "label": "Settings / Battery", "kind": "settings", "category": "power"},
     {"id": "settings-apps", "label": "Settings / Apps", "kind": "settings", "category": "apps"},
-    {"id": "settings-maintenance", "label": "Settings / Maintenance", "kind": "settings", "category": "maintenance"},
+    {"id": "settings-maintenance", "label": "Settings / Maintenance", "kind": "settings", "category": "maintenance", "section": 1},
     {"id": "settings-backups", "label": "Settings / Backups", "kind": "settings", "category": "backups"},
     {"id": "settings-updates", "label": "Settings / Updates", "kind": "settings", "category": "updates"},
-    {"id": "store", "label": "Store home", "kind": "launch", "command": ["/usr/bin/windoesnot-store", "--open-desktop"]},
+    {"id": "store", "label": "Store home", "kind": "launch", "command": ["/usr/bin/windoesnot-store"]},
     {"id": "volume-popup", "label": "Volume popup", "kind": "volume"},
     {"id": "network-popup", "label": "Network popup", "kind": "ipc", "handler": "network"},
     {"id": "task-manager", "label": "Task manager", "kind": "launch", "command": ["/usr/bin/gnome-system-monitor"]},
@@ -132,7 +133,7 @@ def capture(vm_name: str, output: Path, scene: dict, dry_run: bool) -> None:
                        f"capture-{scene['id']}.png")
     source = Path(pulled)
     output.parent.mkdir(parents=True, exist_ok=True)
-    source.replace(output)
+    shutil.move(str(source), str(output))
     with output.open("rb") as image:
         header = image.read(24)
     if len(header) < 24 or header[:8] != b"\x89PNG\r\n\x1a\n":
@@ -165,13 +166,22 @@ def prepare_scene(vm_name: str, scene: dict, dry_run: bool) -> None:
     elif kind == "launch":
         command = shlex.join(scene["command"])
         guest(vm_name, "setsid -f " + command + " >/tmp/windoesnot-capture-app.log 2>&1", dry_run)
-        if not dry_run:
-            time.sleep(2)
+        # GTK apps take several seconds on a software-rendered VM: wait for their window.
+        wait = ("i=0; while [ $i -lt 60 ]; do n=$(hyprctl -j clients | python3 -c 'import json,sys; "
+                "print(sum(1 for x in json.load(sys.stdin) if not x.get(\"class\", \"\").lower().startswith(\"quickshell\")))'); "
+                "[ \"$n\" -gt 0 ] && break; sleep 0.5; i=$((i+1)); done; sleep 3")
+        guest(vm_name, wait, dry_run)
     elif kind == "settings":
         press(vm_name, "meta-i", dry_run)
         if not dry_run:
             time.sleep(1.5)
         guest(vm_name, ipc_call("windoesnot-settings", "setCategory", scene["category"]), dry_run)
+        if "section" in scene:
+            if not dry_run:
+                time.sleep(2)
+            guest(vm_name, ipc_call("windoesnot-settings", "setSection", str(scene["section"])), dry_run)
+        if not dry_run:
+            time.sleep(2)
     elif kind == "volume":
         guest(vm_name, ipc_call("windoesnot-capture", "volume"), dry_run)
     elif kind == "ipc":

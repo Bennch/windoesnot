@@ -1155,6 +1155,14 @@ FloatingWindow {
             settingsMenu.currentCategory = category
             return category
         }
+        function setSection(section: string): string {
+            // Tab of the Maintenance & Kernel page: 0 account, 1 maintenance, 2 kernel and performance.
+            var index = parseInt(section)
+            if (isNaN(index) || index < 0 || index > 2) return "unsupported"
+            if (!maintenanceLoader.item) return "not loaded"
+            maintenanceLoader.item.section = index
+            return String(index)
+        }
         function state(): string {
             var locales = []
             for (var i = 0; i < settingsMenu.systemLocalesModel.count; i++) {
