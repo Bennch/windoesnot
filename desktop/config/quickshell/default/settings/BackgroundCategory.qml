@@ -21,6 +21,8 @@ Item {
     readonly property string builtinFolder: "/usr/share/backgrounds/windoesnot"
     property string picturesFolder: ""
     property var settingsMenu: null
+    // Null-safe: delegates can be created before the parent binds settingsMenu.
+    readonly property bool dark: settingsMenu ? settingsMenu.darkMode : true
     property string _lang: settingsMenu ? settingsMenu.uiLanguage : "de"  // Reference to parent settings window
 
     signal wallpaperChanged(string monitorName, string wallpaperPath)
@@ -556,9 +558,9 @@ Item {
 
             Rectangle {
                 anchors.fill: parent
-                color: settingsMenu.darkMode ? "#1a1a1a" : "#e5e5e5"
+                color: root.dark ? "#1a1a1a" : "#e5e5e5"
                 radius: 8
-                border.color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
+                border.color: root.dark ? "#3a3a3a" : "#d0d0d0"
                 border.width: 1
 
                 // Monitor visualization canvas
@@ -651,7 +653,7 @@ Item {
                                     border.color = root.accentColor
                                     border.width = 3
                                 } else {
-                                    border.color = (settingsMenu.darkMode ? "#4a4a4a" : "#c0c0c0")
+                                    border.color = (root.dark ? "#4a4a4a" : "#c0c0c0")
                                     border.width = 1
                                 }
                             }
@@ -661,8 +663,8 @@ Item {
                             width: displayWidth * monitorCanvas.scaleX
                             height: displayHeight * monitorCanvas.scaleY
 
-                            color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
-                            border.color: (settingsMenu.darkMode ? "#4a4a4a" : "#c0c0c0")
+                            color: root.dark ? "#2a2a2a" : "#f0f0f0"
+                            border.color: (root.dark ? "#4a4a4a" : "#c0c0c0")
                             border.width: 1
                             radius: 4
 
@@ -731,7 +733,7 @@ Item {
 
                                 onExited: {
                                     if (!isSelected) {
-                                        monitorRect.border.color = (settingsMenu.darkMode ? "#4a4a4a" : "#c0c0c0")
+                                        monitorRect.border.color = (root.dark ? "#4a4a4a" : "#c0c0c0")
                                     }
                                 }
                             }
@@ -742,7 +744,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: Lang.get("background.noMonitors", _lang) + " (monitors.length=" + monitors.length + ")"
-                        color: settingsMenu.darkMode ? "#666" : "#888"
+                        color: root.dark ? "#666" : "#888"
                         font.pixelSize: 14
                         visible: monitors.length === 0
                     }
@@ -759,7 +761,7 @@ Item {
             Text {
                 text: selectedMonitorIndex >= 0 && selectedMonitorIndex < monitors.length ?
                       Lang.get("background.wallpaperFor", _lang) + " " + monitors[selectedMonitorIndex].name : ""
-                color: settingsMenu.darkMode ? "#ccc" : "#1a1a1a"
+                color: root.dark ? "#ccc" : "#1a1a1a"
                 font.pixelSize: 16
                 font.bold: true
             }
@@ -767,13 +769,13 @@ Item {
             Rectangle {
                 width: parent.width
                 height: 1
-                color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
+                color: root.dark ? "#3a3a3a" : "#d0d0d0"
             }
 
             // Wallpapers shipped with WinDoesNot
             Text {
                 text: Lang.get("background.builtin", _lang)
-                color: settingsMenu.darkMode ? "#aaa" : "#555"
+                color: root.dark ? "#aaa" : "#555"
                 font.pixelSize: 13
                 font.bold: true
                 visible: builtinWallpapers.length > 0
@@ -795,8 +797,8 @@ Item {
                         width: (parent.width - 48) / 5
                         height: width * 0.6
                         radius: 8
-                        color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
-                        border.color: isCurrent ? root.accentColor : (builtinMouseArea.containsMouse ? root.accentColor : (settingsMenu.darkMode ? "#3a3a3a" : "#c0c0c0"))
+                        color: root.dark ? "#2a2a2a" : "#f0f0f0"
+                        border.color: isCurrent ? root.accentColor : (builtinMouseArea.containsMouse ? root.accentColor : (root.dark ? "#3a3a3a" : "#c0c0c0"))
                         border.width: isCurrent ? 3 : 2
                         clip: true
 
@@ -828,7 +830,7 @@ Item {
 
             Text {
                 text: Lang.get("background.yourPictures", _lang)
-                color: settingsMenu.darkMode ? "#aaa" : "#555"
+                color: root.dark ? "#aaa" : "#555"
                 font.pixelSize: 13
                 font.bold: true
                 visible: builtinWallpapers.length > 0
@@ -846,7 +848,7 @@ Item {
                     width: (parent.width - 45) / 4
                     height: width * 0.6
                     radius: 8
-                    color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
+                    color: root.dark ? "#2a2a2a" : "#f0f0f0"
                     border.color: root.accentColor
                     border.width: 3
                     clip: true
@@ -920,7 +922,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: Lang.get("background.noImage", _lang)
-                        color: settingsMenu.darkMode ? "#666" : "#888"
+                        color: root.dark ? "#666" : "#888"
                         font.pixelSize: 12
                         visible: currentWallpaperImage.source === ""
                     }
@@ -934,8 +936,8 @@ Item {
                         width: (parent.width - 45) / 4
                         height: width * 0.6
                         radius: 8
-                        color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
-                        border.color: wallpaperMouseArea.containsMouse ? root.accentColor : (settingsMenu.darkMode ? "#3a3a3a" : "#c0c0c0")
+                        color: root.dark ? "#2a2a2a" : "#f0f0f0"
+                        border.color: wallpaperMouseArea.containsMouse ? root.accentColor : (root.dark ? "#3a3a3a" : "#c0c0c0")
                         border.width: 2
                         clip: true
 
@@ -976,7 +978,7 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             text: Lang.get("background.noImage", _lang)
-                            color: settingsMenu.darkMode ? "#666" : "#888"
+                            color: root.dark ? "#666" : "#888"
                             font.pixelSize: 12
                             visible: !wallpaperPath
                         }
@@ -1026,7 +1028,7 @@ Item {
                     width: (parent.width - 45) / 4
                     height: width * 0.6
                     radius: 8
-                    color: fileDialogMouseArea.containsMouse ? root.accentColor : (settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0")
+                    color: fileDialogMouseArea.containsMouse ? root.accentColor : (root.dark ? "#2a2a2a" : "#f0f0f0")
                     border.color: root.accentColor
                     border.width: 2
 
@@ -1047,7 +1049,7 @@ Item {
                             smooth: true
                             antialiasing: true
                             mipmap: true
-                            layer.enabled: !settingsMenu.darkMode
+                            layer.enabled: !root.dark
                             layer.smooth: true
                             layer.effect: ColorOverlay { color: "#000000" }
                         }
@@ -1128,12 +1130,12 @@ Item {
             Rectangle {
                 width: parent.width
                 height: 1
-                color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
+                color: root.dark ? "#3a3a3a" : "#d0d0d0"
             }
 
             Text {
                 text: Lang.get("background.sddmThemeTitle", _lang)
-                color: settingsMenu.darkMode ? "#ccc" : "#1a1a1a"
+                color: root.dark ? "#ccc" : "#1a1a1a"
                 font.pixelSize: 16
                 font.bold: true
             }
@@ -1151,8 +1153,8 @@ Item {
                 height: width * 9 / 16
                 radius: 6
                 clip: true
-                color: settingsMenu.darkMode ? "#1e1e1e" : "#e0e0e0"
-                border.color: settingsMenu.darkMode ? "#4a4a4a" : "#c0c0c0"
+                color: root.dark ? "#1e1e1e" : "#e0e0e0"
+                border.color: root.dark ? "#4a4a4a" : "#c0c0c0"
                 border.width: 1
 
                 Image {
@@ -1179,8 +1181,8 @@ Item {
                         width: Math.max(110, label.implicitWidth + 24)
                         height: 40
                         radius: 6
-                        color: isCurrent ? root.accentColor : (settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0")
-                        border.color: isCurrent ? root.accentColor : (settingsMenu.darkMode ? "#4a4a4a" : "#c0c0c0")
+                        color: isCurrent ? root.accentColor : (root.dark ? "#2a2a2a" : "#f0f0f0")
+                        border.color: isCurrent ? root.accentColor : (root.dark ? "#4a4a4a" : "#c0c0c0")
                         border.width: 1
                         opacity: sddmThemeSection.busy ? 0.6 : 1.0
 
@@ -1190,7 +1192,7 @@ Item {
                             id: label
                             anchors.centerIn: parent
                             text: modelData.label
-                            color: isCurrent ? "#ffffff" : (settingsMenu.darkMode ? "#ccc" : "#1a1a1a")
+                            color: isCurrent ? "#ffffff" : (root.dark ? "#ccc" : "#1a1a1a")
                             font.pixelSize: 12
                             font.bold: isCurrent
                         }
@@ -1250,18 +1252,18 @@ Item {
             Rectangle {
                 width: parent.width
                 height: 1
-                color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
+                color: root.dark ? "#3a3a3a" : "#d0d0d0"
             }
 
             Text {
                 text: Lang.get("background.bootloaderThemeTitle", _lang)
                 font.pixelSize: 15; font.weight: Font.DemiBold
-                color: settingsMenu.darkMode ? "#ffffff" : "#1a1a1a"
+                color: root.dark ? "#ffffff" : "#1a1a1a"
             }
             Text {
                 text: Lang.get("background.bootloaderThemeDesc", _lang)
                 font.pixelSize: 13
-                color: settingsMenu.darkMode ? "#aaaaaa" : "#555555"
+                color: root.dark ? "#aaaaaa" : "#555555"
                 width: parent.width; wrapMode: Text.WordWrap
             }
 
