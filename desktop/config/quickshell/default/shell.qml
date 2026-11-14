@@ -675,20 +675,27 @@ PanelWindow {
         var taskbarH = panelWindow.implicitHeight || 45
         var py = monH - taskbarH - popupH + 1
         var posProc = Qt.createQmlObject('import Quickshell.Io; Process {}', panelWindow)
-        posProc.command = ["windoesnot-bounded", "8", "windoesnot-hyprctl", "keyword", "windowrule[weather-popup-config]:move", px + " " + py]
+        // Hyprland 0.57 has no "keyword" any more: move the mapped window natively.
+        posProc.command = ["windoesnot-bounded", "8", "hyprctl", "dispatch", "hl.dsp.window.move({x=" + (px + (primaryScreen ? primaryScreen.x : 0)) + ",y=" + (py + (primaryScreen ? primaryScreen.y : 0)) + ",relative=false,window=\"title:^(quickshell-weather)$\"})"]
         posProc.running = true
         return posProc
+    }
+
+    Timer {
+        id: weatherPlaceTimer
+        interval: 120
+        repeat: false
+        onTriggered: if (weatherPopup.visible) panelWindow.repositionWeatherPopup()
     }
 
     function openWeatherPopup(iconItem) {
         if (weatherPopup.visible) { weatherPopup.visible = false; weatherPopupIconItem = null; return }
         weatherPopupIconItem = iconItem
-        // Set position BEFORE showing so Hyprland uses it at map time
-        var posProc = repositionWeatherPopup()
-        posProc.exited.connect(function() {
-            weatherPopup.visible = true
-            if (panelWindow.weatherActiveTab === 0) Qt.callLater(function() { panelWindow.scrollWeatherHourlyToNow() })
-        })
+        // The static weather-popup-config rule places it bottom-right at map time;
+        // then the window is centred over its taskbar icon.
+        weatherPopup.visible = true
+        weatherPlaceTimer.restart()
+        if (panelWindow.weatherActiveTab === 0) Qt.callLater(function() { panelWindow.scrollWeatherHourlyToNow() })
     }
 
     function scrollWeatherHourlyToNow() {
