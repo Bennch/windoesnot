@@ -157,12 +157,40 @@ IpcHandler {
     }
 }
 
+// Opens or closes any taskbar panel from the command line (placement checks, screenshots).
+IpcHandler {
+    target: "windoesnot-panels"
+    function windowFor(name: string): var {
+        var map = {calendar: calendarWindow, audio: audioWindow, bluetooth: bluetoothWindow,
+                   graphics: graphicsWindow, network: networkWindow, docker: dockerWindow,
+                   ollama: ollamaWindow, start: startMenu, power: powerMenu,
+                   settings: settingsMenu, search: searchWindow}
+        return map[name] || null
+    }
+    function toggle(name: string): string {
+        if (name === "battery") { if (batteryWindow.visible) batteryWindow.visible = false; else batteryWindow.openBattery(); return (batteryWindow.visible || batteryWindow.batteryPreload) ? "open" : "closed" }
+        if (name === "nearby") { if (nearbyWindow.visible) nearbyWindow.visible = false; else nearbyWindow.openAt(); return nearbyWindow.visible ? "open" : "closed" }
+        if (name === "weather") { if (weatherPopup.visible) weatherPopup.visible = false; else panelWindow.openWeatherPopup(panelWindow.visibleWeatherSlot()); return weatherPopup.visible ? "open" : "closed" }
+        var w = windowFor(name)
+        if (!w) return "unknown"
+        w.visible = !w.visible
+        return w.visible ? "open" : "closed"
+    }
+    function closeAll(): void {
+        var names = ["calendar", "audio", "bluetooth", "graphics", "network", "docker", "ollama", "start", "power", "settings", "search"]
+        for (var i = 0; i < names.length; i++) { var w = windowFor(names[i]); if (w) w.visible = false }
+        batteryWindow.visible = false
+        nearbyWindow.visible = false
+        weatherPopup.visible = false
+    }
+}
+
 // Opens or closes the weather popup from the command line (used to test it without a click).
 IpcHandler {
     target: "windoesnot-weather"
     function toggle() {
         if (weatherPopup.visible) weatherPopup.visible = false
-        else panelWindow.openWeatherPopup(null)
+        else panelWindow.openWeatherPopup(panelWindow.visibleWeatherSlot())
     }
 }
 
@@ -663,6 +691,15 @@ PanelWindow {
 
     property var weatherPopupIconItem: null
 
+    // The taskbar weather icon that is currently shown (null when the widget is off).
+    function visibleWeatherSlot() {
+        var slots = [weatherSlot0Area, weatherSlot1Area, weatherSlot2Area, weatherSlot3Area, weatherSlot4Area]
+        for (var i = 0; i < slots.length; i++) {
+            if (slots[i] && slots[i].visible && slots[i].width > 0) return slots[i]
+        }
+        return null
+    }
+
     // Separate from openWeatherPopup so it can also run later, when forecast/
     // hourly data finishes loading after the popup is already on screen and
     // weatherPopupCol grows taller than it was when first positioned (it
@@ -672,13 +709,15 @@ PanelWindow {
     // size the window was mapped with, so the size is set first, then the position.
     function popupFitCommand(title, w, h, x, y) {
         var sel = "window=\"title:^(" + title + ")$\""
-        return ["windoesnot-bounded", "8", "sh", "-c",
+        // The window maps a moment after visible = true: wait for it (max ~1 s) before moving it.
+        var wait = "i=0; while [ $i -lt 40 ] && ! hyprctl clients -j | grep -q '\"title\": \"" + title + "\"'; do sleep 0.025; i=$((i+1)); done; "
+        return ["windoesnot-bounded", "8", "sh", "-c", wait +
                 "hyprctl dispatch 'hl.dsp.window.resize({x=" + w + ",y=" + h + ",relative=false," + sel + "})' >/dev/null; " +
                 "hyprctl dispatch 'hl.dsp.window.move({x=" + x + ",y=" + y + ",relative=false," + sel + "})' >/dev/null"]
     }
 
     // One long-lived process object: re-fitting on every weather update must not pile up QML objects.
-    Process { id: weatherPosProc; running: false }
+    Process { id: weatherPosProc; running: false; onExited: weatherPopup.placed = true }
 
     function repositionWeatherPopup() {
         // Position comes from the static weather-popup-config rule (bottom right, flush above the
@@ -693,9 +732,16 @@ PanelWindow {
         var popupW = 380
         var popupH = Math.round(weatherPopupCol.height + 30)
         var taskbarH = 45
+        var px = scr.x + scr.width - popupW - 8
+        if (weatherPopupIconItem) {
+            // Centred over the taskbar icon, kept inside the monitor.
+            var iconPos = weatherPopupIconItem.mapToItem(panelWindow.contentItem, 0, 0)
+            px = Math.round(scr.x + iconPos.x + weatherPopupIconItem.width / 2 - popupW / 2)
+            px = Math.max(scr.x + 4, Math.min(scr.x + scr.width - popupW - 4, px))
+        }
         var posProc = weatherPosProc
         if (posProc.running) return posProc
-        posProc.command = popupFitCommand("quickshell-weather", popupW, popupH, scr.x + scr.width - popupW - 8, scr.y + scr.height - taskbarH - popupH)
+        posProc.command = popupFitCommand("quickshell-weather", popupW, popupH, px, scr.y + scr.height - taskbarH - popupH)
         posProc.running = true
         return posProc
     }
@@ -706,7 +752,9 @@ PanelWindow {
         weatherPopupIconItem = iconItem
         // The generated weather-popup-config rule places it bottom-right at map time;
         // the timer only fits the height once the weather data is there.
+        weatherPopup.placed = false
         weatherPopup.visible = true
+        panelWindow.repositionWeatherPopup()
         if (panelWindow.weatherActiveTab === 0) Qt.callLater(function() { panelWindow.scrollWeatherHourlyToNow() })
     }
 
@@ -5619,9 +5667,32 @@ FloatingWindow {
     function bottomRightX() { return screen ? screen.x + screen.width - implicitWidth - 8 : 0 }
     function bottomRightY() { return screen ? screen.y + screen.height - 45 - implicitHeight : 0 }
 
+    // The panel loads its rows one after another. Showing the window while it grows would be
+    // visible as a resize, so it is loaded hidden first and mapped once its height is stable.
+    property bool batteryPreload: false
+    property int batteryLastHeight: -1
+    property int batteryTries: 0
     function openBattery() {
         // Position comes from the static battery-config rule (size independent expression).
-        batteryWindow.visible = true
+        batteryPreload = true
+        batteryLastHeight = -1
+        batteryTries = 0
+        batteryShowTimer.restart()
+    }
+    Timer {
+        id: batteryShowTimer
+        interval: 90
+        repeat: false
+        onTriggered: {
+            var h = batteryLoader.item ? Math.round(batteryLoader.height) : 0
+            batteryWindow.batteryTries++
+            if ((h > 0 && h === batteryWindow.batteryLastHeight) || batteryWindow.batteryTries >= 12) {
+                batteryWindow.visible = true
+            } else {
+                batteryWindow.batteryLastHeight = h
+                batteryShowTimer.restart()
+            }
+        }
     }
 
     // Content height arrives after the window is shown (power data loads): move the live window.
@@ -5631,7 +5702,7 @@ FloatingWindow {
         placeProc.running = true
     }
 
-    onVisibleChanged: panelWindow.syncFocusGrab(batteryFocusGrab, visible)
+    onVisibleChanged: { panelWindow.syncFocusGrab(batteryFocusGrab, visible); if (!visible) batteryPreload = false }
 
     // Not anchored to the window: anchors.fill would force the panel to the window's
     // height, while the window height follows the panel (a loop that froze the size).
@@ -5642,13 +5713,13 @@ FloatingWindow {
         anchors.bottom: parent.bottom
         // Hardware status and DDC probes are only needed after the popup is first opened.
         // Keep the loaded component alive afterwards so repeat opens stay immediate.
-        active: batteryWindow.visible || item !== null
+        active: batteryWindow.batteryPreload || batteryWindow.visible || item !== null
         source: "widgets/BatteryPanel.qml"
 
         onLoaded: {
             item.accentColor = Qt.binding(function() { return settingsMenu.accentColor })
             item.borderRadius = Qt.binding(function() { return settingsMenu.borderRadius })
-            item.windowVisible = Qt.binding(function() { return batteryWindow.visible })
+            item.windowVisible = Qt.binding(function() { return batteryWindow.visible || batteryWindow.batteryPreload })
             item.darkMode = Qt.binding(function() { return settingsMenu.darkMode })
             item.uiLanguage = Qt.binding(function() { return settingsMenu.uiLanguage })
         }
@@ -7079,6 +7150,9 @@ FloatingWindow {
 FloatingWindow {
     id: weatherPopup
     visible: false
+    // The window is created at the generated rule's default position and moved over its icon;
+    // its content stays invisible until that has happened, so nothing is seen jumping.
+    property bool placed: false
     color: "transparent"
     title: "quickshell-weather"
     screen: {
@@ -7090,7 +7164,7 @@ FloatingWindow {
     implicitWidth: 380
     implicitHeight: Math.round(weatherPopupCol.height + 30)
 
-    onVisibleChanged: panelWindow.syncFocusGrab(weatherPopupFocusGrab, visible)
+    onVisibleChanged: { panelWindow.syncFocusGrab(weatherPopupFocusGrab, visible); if (!visible) placed = false }
 
     HyprlandFocusGrab {
         id: weatherPopupFocusGrab
@@ -7101,6 +7175,7 @@ FloatingWindow {
     Item {
         anchors.fill: parent
         clip: true
+        opacity: weatherPopup.placed ? 1 : 0
 
         Rectangle {
             anchors { top: parent.top; left: parent.left; right: parent.right }

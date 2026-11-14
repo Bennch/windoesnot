@@ -22,6 +22,7 @@ assert '["size"]="380 390"' not in ref[ref.index('["name"]="weather-popup-config
 assert not re.search(r'windowrule\[(battery|nearby|weather-popup)-config\]', qml), 'popups must not set rules through the Python bridge on open'
 assert 'hl.dsp.window.move' in qml and 'hl.dsp.window.resize' in qml, 'popups are resized to their content, then moved'
 assert 'popupFitCommand("quickshell-weather"' in qml and 'popupFitCommand("quickshell-battery"' in qml and 'popupFitCommand("quickshell-nearby"' in qml
-assert 'weatherPopupIconItem.mapToItem' not in qml
+assert 'weatherPopupIconItem.mapToItem' in qml, 'the weather popup is centred over its taskbar icon'
+assert 'opacity: weatherPopup.placed ? 1 : 0' in qml, 'the weather popup stays invisible until it has been moved'
 assert 'target: "windoesnot-weather"' in qml
 print('PASS: battery, nearby and weather popups use static expression rules and native hyprctl placement')
