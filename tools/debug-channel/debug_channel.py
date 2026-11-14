@@ -6,6 +6,7 @@ import argparse
 import ipaddress
 import json
 import os
+import re
 import shlex
 import shutil
 import signal
@@ -216,7 +217,14 @@ def command_start(args):
     runtime = runtime_root()
     if runtime.resolve().is_relative_to(HERE.parents[1]):
         raise ValueError("XDG_RUNTIME_DIR muss außerhalb des Repositorys liegen")
-    token = os.urandom(24).hex()
+    if args.token:
+        # A short fixed token makes the setup line typeable on a test device. It is a weak Bearer
+        # secret: only for a trusted LAN and a disposable device, never for longer runs.
+        if not re.fullmatch(r"[A-Za-z0-9]{4,32}", args.token):
+            raise ValueError("--token must be 4 to 32 letters or digits")
+        token = args.token
+    else:
+        token = os.urandom(24).hex()
     base = Path(args.data_dir).expanduser().resolve() if args.data_dir else Path(
         tempfile.mkdtemp(prefix="windoesnot-debug-channel-", dir=runtime))
     base.mkdir(parents=True, exist_ok=True)
@@ -294,6 +302,7 @@ def parser():
     start.add_argument("--runtime", type=int, default=7200, help="Maximale Laufzeit in Sekunden (Standard: 2 h)")
     start.add_argument("--data-dir", help="Queue, Uploads, Ausgaben und Zugrifflog")
     start.add_argument("--max-upload-bytes", type=int, default=5_000_000)
+    start.add_argument("--token", help="Fester kurzer Token (4-32 Zeichen) für ein Testgerät im vertrauenswürdigen LAN, statt eines zufälligen")
     start.add_argument("--allow-any", action="store_true", help="Wildcard-Bind (0.0.0.0/::) ausdrücklich erlauben")
     start.set_defaults(func=command_start)
 

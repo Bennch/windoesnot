@@ -24,3 +24,5 @@ Offline-Tests: `python3 -m unittest discover -s tests -p 'test_debug_channel.py'
 
 Hinweis: `debug-channel start` gibt die Setup-Zeile erst nach dem Start aus; bei Umleitung in eine Datei `python3 -u` verwenden. Die Setup-Datei lässt sich auch per `curl <Server>/<Token>/s -o wdn-ssh.sh` erzeugen und per LocalSend verschicken (dann auf dem Gerät in einem Terminal `sh wdn-ssh.sh` ausführen, nicht per Doppelklick).
 
+`--token wdn7` setzt einen festen, kurzen Token. Die Setup-Zeile ist dann auf dem Testgerät tippbar (`curl -s <IP>:8000/wdn7/s | sh`) und bleibt nach einem Neustart des Servers gleich, es braucht kein LocalSend. Der Token ist ein schwaches Bearer-Geheimnis: nur im vertrauenswürdigen LAN, auf einem Wegwerf-Testgerät und mit kurzer Laufzeit verwenden.
+
