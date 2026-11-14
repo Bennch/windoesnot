@@ -21,7 +21,7 @@ for attempt in 1 2 3; do
         if layer_ready; then ready=1; break; fi
         sleep 0.5
     done
-    if [ "$ready" = 1 ] || layer_ready; then
+    if [ "$ready" = 1 ]; then
         printf 'desktop layer found on attempt %s\n' "$attempt" >> "$logfile"
         wait "$child"
         exit $?

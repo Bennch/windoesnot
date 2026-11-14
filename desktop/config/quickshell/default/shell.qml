@@ -677,6 +677,9 @@ PanelWindow {
                 "hyprctl dispatch 'hl.dsp.window.move({x=" + x + ",y=" + y + ",relative=false," + sel + "})' >/dev/null"]
     }
 
+    // One long-lived process object: re-fitting on every weather update must not pile up QML objects.
+    Process { id: weatherPosProc; running: false }
+
     function repositionWeatherPopup() {
         // Position comes from the static weather-popup-config rule (bottom right, flush above the
         // taskbar, evaluated when the window maps). A mapped window is only re-fitted when the
@@ -690,7 +693,8 @@ PanelWindow {
         var popupW = 380
         var popupH = Math.round(weatherPopupCol.height + 30)
         var taskbarH = 45
-        var posProc = Qt.createQmlObject('import Quickshell.Io; Process {}', panelWindow)
+        var posProc = weatherPosProc
+        if (posProc.running) return posProc
         posProc.command = popupFitCommand("quickshell-weather", popupW, popupH, scr.x + scr.width - popupW - 8, scr.y + scr.height - taskbarH - popupH)
         posProc.running = true
         return posProc
