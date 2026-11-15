@@ -233,7 +233,12 @@ $save.Add_Click({
             [System.IO.Directory]::Delete($backup, $true)
             $movedPrevious = $false
         }
-        [System.Windows.Forms.MessageBox]::Show("Auswahl gespeichert unter $root`r`nWLAN-Schlüssel liegen dort im Klartext, falls WLAN-Export gewählt wurde.", 'WinDoesNot Setup') | Out-Null
+        if ([System.Globalization.CultureInfo]::CurrentUICulture.TwoLetterISOLanguageName -eq 'de') {
+            $next = "Auswahl gespeichert unter $root`r`n`r`n1. Windows neu starten, nicht herunterfahren.`r`n2. WinDoesNot-USB-Stick einstecken und davon starten.`r`n3. Im Installer „Parallel installieren“ wählen. Dort erscheint die Seite Windows-Daten.`r`n4. Daten übernehmen.`r`n`r`nFalls gewählt, liegen WLAN-Schlüssel im Übergabeordner im Klartext."
+        } else {
+            $next = "Selection saved at $root`r`n`r`n1. Restart Windows; do not shut it down.`r`n2. Insert the WinDoesNot USB stick and boot from it.`r`n3. In the installer choose Install alongside. The Windows data page appears there.`r`n4. Import your data.`r`n`r`nIf selected, WLAN keys are stored in clear text in the handoff folder."
+        }
+        [System.Windows.Forms.MessageBox]::Show($next, 'WinDoesNot Setup') | Out-Null
         $form.Close()
     } catch {
         $message = $_.Exception.Message

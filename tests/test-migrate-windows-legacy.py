@@ -9,4 +9,7 @@ for pattern in patterns:
     assert not re.search(pattern, script, re.I), pattern
 assert script.startswith('# WinDoesNot')
 assert '-NoProfile -STA' in (root / 'windows/WinDoesNotSetup.cmd').read_text()
+assert 'CurrentUICulture.TwoLetterISOLanguageName' in script
+for phrase in ('Windows neu starten', 'Parallel installieren', 'Restart Windows', 'Install alongside'):
+    assert phrase in script, phrase
 print('PASS legacy static patterns (not a runtime test)')

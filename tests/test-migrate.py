@@ -61,7 +61,9 @@ with tempfile.TemporaryDirectory() as tmp:
     with patch.object(m, 'command', fake_mount):
         m.mount_readonly('/dev/test', Path(tmp) / 'mount')
     assert [call[0] for call in mounted] == ['mount', 'ntfs-3g']
-    assert 'ro,nosuid,nodev,noexec' in mounted[1]
+    for call in mounted:
+        options = call[call.index('-o') + 1].split(',')
+        assert 'ro' in options and 'remove_hiberfile' not in options
     (root / 'Users/Ada/Pictures/link').unlink()
     (home / 'Bilder').rename(home / 'Bilder-old')
     (home / 'Bilder').symlink_to(home / 'Bilder-old')

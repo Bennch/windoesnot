@@ -42,3 +42,15 @@ powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File .\windows\tests\Tes
 
 The check does not inspect Windows profiles or export credentials. It is not a
 substitute for per-version VM, installation and recovery tests.
+
+## Next steps / Nächste Schritte
+
+1. Restart Windows, rather than choosing Shut down.
+2. Insert the WinDoesNot USB stick and boot from it.
+3. In the installer choose “Install alongside”; the Windows data page appears there.
+4. Select and import your data.
+
+1. Windows neu starten, nicht herunterfahren.
+2. Den WinDoesNot-USB-Stick einstecken und davon starten.
+3. Im Installer „Parallel installieren“ wählen; dort erscheint die Seite Windows-Daten.
+4. Daten auswählen und übernehmen.

@@ -105,7 +105,7 @@ Rectangle {
         }
 
         Rectangle {
-            visible: page.bridge && !!page.bridge.error
+            visible: page.bridge && !!page.bridge.error && !/hibernation|Fast Startup|Schnellstart/i.test(page.bridge.error)
             color: "#432a22"
             border.color: "#fe6f2d"
             radius: 8
@@ -146,7 +146,7 @@ Rectangle {
                 anchors.margins: 10
                 color: "#f3c99d"
                 wrapMode: Text.WordWrap
-                text: page.tr("Ruhezustand / Schnellstart: Windows vollständig herunterfahren und Schnellstart deaktivieren, falls Dateien nicht gelesen werden können.", "Hibernation / Fast Startup: Shut down Windows fully and disable Fast Startup if files cannot be read.")
+                text: page.tr("Die Windows-Partition kann wegen Ruhezustand oder Schnellstart möglicherweise nicht gelesen werden. Starte Windows und wähle „Neu starten“ statt „Herunterfahren“. Alternativ schalte in Windows den Schnellstart aus. Starte danach erneut vom WinDoesNot-USB-Stick.", "The Windows partition may be unreadable because of hibernation or Fast Startup. Start Windows and choose Restart instead of Shut down. Alternatively, turn off Fast Startup in Windows. Then boot from the WinDoesNot USB stick again.")
             }
 
         }
