@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 import json
+import importlib.util
+import wave
+
+import numpy as np
 from pathlib import Path
 import shutil
 import subprocess
@@ -19,6 +23,52 @@ class VideoTest(unittest.TestCase):
             result = subprocess.run([sys.executable, str(ROOT/'tools/make-umzug-video.py'), '--footage', str(root), '--out', str(root.parent/'umzug-unused-output')], capture_output=True, text=True)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('02-boot', result.stderr)
+
+    def test_kicks_and_beat_reel(self):
+        with tempfile.TemporaryDirectory(prefix='umzug-beat-') as temp:
+            root = Path(temp)
+            rate = 44100
+            seconds = 7
+            rng = np.random.default_rng(42)
+            signal = rng.normal(0, .002, rate * seconds)
+            truth = np.arange(.2, seconds, 60/124)
+            for beat in truth:
+                start = int(beat * rate)
+                length = min(int(.25 * rate), len(signal) - start)
+                t = np.arange(length) / rate
+                signal[start:start+length] += .8 * np.sin(2*np.pi*60*t) * np.exp(-25*t)
+            for beat in np.arange(.2, seconds, 30/124):
+                start = int(beat * rate)
+                length = min(int(.04 * rate), len(signal) - start)
+                signal[start:start+length] += rng.normal(0, .03, length) * np.exp(-80*np.arange(length)/rate)
+            music = root/'kicks.wav'
+            with wave.open(str(music), 'wb') as audio:
+                audio.setparams((1, 2, rate, 0, 'NONE', 'not compressed'))
+                audio.writeframes((np.clip(signal, -1, 1)*32767).astype('<i2').tobytes())
+            spec = importlib.util.spec_from_file_location('video', ROOT/'tools/make-umzug-video.py')
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            beats, _ = module.detect_beats(music)
+            errors = np.min(np.abs(np.asarray(beats)[:, None] - truth), axis=0)
+            self.assertLessEqual(errors.mean(), .04)
+            self.assertGreaterEqual(np.mean(errors <= .04), .9)
+            footage = root/'footage'
+            for folder in ('01-windows', '02-boot', '03-installer', '04-desktop'):
+                (footage/folder).mkdir(parents=True)
+            image = root/'image.png'
+            subprocess.run(['magick', '-size', '320x200', 'xc:#455266', str(image)], check=True)
+            shutil.copy(image, footage/'01-windows/windows-10.png')
+            for folder in ('02-boot', '03-installer', '04-desktop'):
+                shutil.copy(image, footage/folder/'frame-0001.png')
+                (footage/folder/'fps.txt').write_text('4')
+            out = root/'out'
+            subprocess.run([sys.executable, str(ROOT/'tools/make-umzug-video.py'), '--footage', str(footage), '--out', str(out), '--music', str(music), '--duration', '6', '--only', 'reel', '--lang', 'de'], check=True, timeout=50)
+            info = json.loads(subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_type,width,height:format=duration', '-of', 'json', str(out/'umzug-reel-9x16-de.mp4')]))
+            video = next(x for x in info['streams'] if x['codec_type'] == 'video')
+            self.assertEqual((video['width'], video['height']), (1080, 1920))
+            self.assertTrue(any(x['codec_type'] == 'audio' for x in info['streams']))
+            self.assertAlmostEqual(float(info['format']['duration']), 6, delta=.2)
+            self.assertTrue((out/'beats.json').is_file())
 
     def test_outputs(self):
         with tempfile.TemporaryDirectory(prefix='umzug-test-') as temp:
