@@ -22,7 +22,7 @@ if not re.fullmatch(r'[0-9]+(?:\.[0-9]+)+', args.version) or not re.fullmatch(r'
 
 # Same selection rules as tools/prepare-packages.py, which the export ships.
 excluded = {'__pycache__', '.git', 'import-manifest.json', 'settings.txt', 'state.lua', 'host.lua', 'geometry.lua', 'calendar_notes.json', 'copilot-state.json', 'icons.json', 'icon-map.json', 'state.json', 'state.lock'}
-included = ['desktop', 'LICENSE', 'THIRD-PARTY.md', 'sources.json', 'packaging/LICENSE-NOTES.md', 'packaging/version.json', 'packaging/changelog.json', 'packaging/PKGBUILD.in', 'packaging/release-key', 'tools/build-components.sh', 'tools/check-plugin-symbols.py', 'tools/prepare-packages.py']
+included = ['desktop', 'LICENSE', 'THIRD-PARTY.md', 'sources.json', 'packaging/LICENSE-NOTES.md', 'packaging/version.json', 'packaging/changelog.json', 'packaging/PKGBUILD.in', 'packaging/windoesnot-desktop.install', 'packaging/release-key', 'tools/build-components.sh', 'tools/check-plugin-symbols.py', 'tools/prepare-packages.py', 'tools/install-dotfiles.sh']
 
 commit = subprocess.run(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], capture_output=True, text=True, check=True).stdout.strip()
 dirty = subprocess.run(['git', '-C', str(ROOT), 'status', '--porcelain', '--', *included], capture_output=True, text=True, check=True).stdout.strip()

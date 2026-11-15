@@ -27,6 +27,7 @@ python-gobject
 python-cairo
 python-evdev
 python-requests
+python-cryptography
 python-websockets
 python-yaml
 adw-gtk-theme

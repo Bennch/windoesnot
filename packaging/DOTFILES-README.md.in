@@ -18,6 +18,13 @@ on the target machine. Installations made from the WinDoesNot packages receive
 updates through the signed update channel; see
 https://windoesnot.me/hilfe/paketupdates/ for the one-time setup.
 
+Interactive installation
+------------------------
+On Arch/CachyOS, run `tools/install-dotfiles.sh` as your normal user. Use
+`--help` for language, readiness check, dry run and AUR options. Review each
+package list and keep a backup. Fresh Arch/CachyOS installation has not yet been verified here in a container
+or on real hardware; container testing is still required.
+
 Build the split desktop packages
 -------------------------------
 From the extracted directory, as your normal user:

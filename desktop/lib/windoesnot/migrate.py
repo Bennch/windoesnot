@@ -2,6 +2,7 @@
 """Read-only Windows discovery and checked rsync migration. See docs/dev/UMZUG-MANIFEST.md."""
 import argparse
 import configparser
+import csv
 import hashlib
 import json
 import os
@@ -20,6 +21,7 @@ EXCLUDED = {'default', 'public', 'all users', 'default user'}
 DE = {'Documents': 'Dokumente', 'Pictures': 'Bilder', 'Music': 'Musik', 'Videos': 'Videos', 'Downloads': 'Downloads', 'Desktop': 'Schreibtisch'}
 XDG_KEYS = {'Documents': 'DOCUMENTS', 'Pictures': 'PICTURES', 'Music': 'MUSIC', 'Videos': 'VIDEOS', 'Downloads': 'DOWNLOAD', 'Desktop': 'DESKTOP'}
 SCHEMA = 1
+ENVELOPE_FILES = ('chromium-chrome.igcred', 'chromium-edge.igcred', 'chromium-brave.igcred')  # written by the Setup app, one per browser
 FIREFOX_LOCKS = ('parent.lock', '.parentlock', 'lock')
 
 
@@ -182,7 +184,7 @@ def scan_tree(root, device='fixture', filesystem='ntfs', locale='en'):
         root_warnings.append('hibernation_possible')
     return {'schema': SCHEMA, 'device': device, 'filesystem': filesystem, 'locale': locale, 'profiles': profiles,
             'handoff': {'windows_version': handoff['windows_version'], 'locale': handoff['locale'], 'wlan_exports': handoff['wlan_exports'],
-                        'wlan_selected': handoff['wlan'], 'chromium_passwords': handoff['chromium_passwords']} if handoff else None,
+                        'wlan_selected': handoff['wlan'], 'chromium_passwords': handoff['chromium_passwords'], 'chromium_envelope': handoff['chromium_envelope']} if handoff else None,
             'warnings': root_warnings}
 
 
@@ -345,7 +347,59 @@ def read_handoff(root):
     chromium = handoff / 'chromium-passwords.csv'
     return {'locale': data['locale'], 'windows_version': data['windows_version'], 'profiles': data['profiles'],
             'wlan': data.get('wlan', False), 'wlan_exports': len(list((handoff / 'wlan').glob('WLAN-*.xml'))) if (handoff / 'wlan').is_dir() else 0,
-            'chromium_passwords': chromium.is_file() and not warning_flags(chromium)}
+            'chromium_passwords': chromium.is_file() and not warning_flags(chromium),
+            'chromium_envelope': any((handoff / name).is_file() and not warning_flags(handoff / name) for name in ENVELOPE_FILES)}
+
+
+def export_envelope(path, home, password):
+    """Authenticate the entire payload before creating a browser import file."""
+    from cryptography.exceptions import InvalidTag
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+    if warning_flags(path) or not path.is_file():
+        raise ValueError('Passworthülle fehlt oder ist unsicher')
+    data = path.read_bytes()
+    if len(data) < 52 or data[:8] != b'IGCRD001':
+        raise ValueError('Passworthülle ist beschädigt oder hat ein unbekanntes Format')
+    key = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), data[8:24], 600000, dklen=32)
+    try:
+        payload = json.loads(AESGCM(key).decrypt(data[24:36], data[36:], None))
+        if not isinstance(payload, dict) or not isinstance(payload.get('browser'), str) or not isinstance(payload.get('logins'), list):
+            raise ValueError()
+        rows = []
+        for login in payload['logins']:
+            if not isinstance(login, dict) or any(not isinstance(login.get(k), str) for k in ('url', 'username', 'password')):
+                raise ValueError()
+            rows.append((login['url'], login['url'], login['username'], login['password']))
+    except (InvalidTag, ValueError, UnicodeDecodeError, TypeError):
+        raise ValueError('Passwort falsch oder Passworthülle beschädigt oder manipuliert') from None
+
+    target = home / 'Umzug-Windows'
+    if target.is_symlink() or (target.exists() and not target.is_dir()):
+        raise ValueError('Zielordner ist umgeleitet')
+    if not target.exists():
+        target.mkdir(mode=0o700)
+        os.chown(target, home.stat().st_uid, home.stat().st_gid)
+    number = 1
+    while True:
+        filename = 'Passwoerter.csv' if number == 1 else f'Passwoerter-{number}.csv'
+        destination = target / filename
+        try:
+            fd = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            break
+        except FileExistsError:
+            number += 1
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8', newline='') as stream:
+            os.fchmod(stream.fileno(), 0o600)
+            os.fchown(stream.fileno(), home.stat().st_uid, home.stat().st_gid)
+            writer = csv.writer(stream)
+            writer.writerow(('name', 'url', 'username', 'password'))
+            writer.writerows(rows)
+    except BaseException:
+        destination.unlink(missing_ok=True)
+        raise
+    return destination
 
 
 def _valid_item(root, profile, item):
@@ -388,7 +442,7 @@ def profile_folder_name(name):
     return cleaned or 'Windows'
 
 
-def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, progress=None, nm_dir=None):
+def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, progress=None, nm_dir=None, envelope_password=None):
     if manifest.get('schema') != SCHEMA or manifest.get('filesystem') not in ('ntfs', 'bitlocker'):
         raise ValueError('Unsupported manifest')
     home = Path(home)
@@ -562,6 +616,24 @@ def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, 
                 os.chmod(staged, 0o600)
                 os.chown(staged, home.stat().st_uid, home.stat().st_gid)
                 os.replace(staged, ini)
+        if manifest.get('handoff') and envelope_password:
+            try:
+                handoff = read_handoff(root)
+                summary['password_csv'] = []
+                for envelope_name in ENVELOPE_FILES:
+                    envelope_path = root / 'WinDoesNotHandoff' / envelope_name
+                    if not (handoff and (envelope_path.exists() or envelope_path.is_symlink())):
+                        continue
+                    try:
+                        summary['password_csv'].append(str(export_envelope(envelope_path, home, envelope_password)))
+                    except (OSError, ValueError, ImportError) as error:
+                        failed('WinDoesNotHandoff/' + envelope_name, str(error))
+                if summary['password_csv']:
+                    summary['password_notice'] = 'Nach dem Passwortimport die CSV-Datei(en) löschen.'
+                else:
+                    del summary['password_csv']
+            except (OSError, ValueError, json.JSONDecodeError) as error:
+                failed('WinDoesNotHandoff', str(error))
         if manifest.get('handoff') and manifest['handoff'].get('wlan_selected'):
             try:
                 handoff = read_handoff(root)
@@ -591,7 +663,7 @@ def main():
     sub = parser.add_subparsers(dest='action', required=True)
     sub.add_parser('partitions')
     scan = sub.add_parser('scan'); scan.add_argument('device'); scan.add_argument('--locale', default='en'); scan.add_argument('--secret-stdin', action='store_true')
-    copy = sub.add_parser('copy'); copy.add_argument('manifest', type=Path); copy.add_argument('home', type=Path); copy.add_argument('--dry-run', action='store_true'); copy.add_argument('--secret-stdin', action='store_true'); copy.add_argument('--progress-json', action='store_true'); copy.add_argument('--nm-dir', type=Path)
+    copy = sub.add_parser('copy'); copy.add_argument('manifest', type=Path); copy.add_argument('home', type=Path); copy.add_argument('--dry-run', action='store_true'); copy.add_argument('--secret-stdin', action='store_true'); copy.add_argument('--progress-json', action='store_true'); copy.add_argument('--nm-dir', type=Path); copy.add_argument('--envelope-password-stdin', action='store_true')
     args = parser.parse_args()
     if args.action == 'partitions':
         result = partitions()
@@ -599,7 +671,11 @@ def main():
         result = scan_device(args.device, args.locale, secret=__import__('sys').stdin.readline().strip() if args.secret_stdin else None)
     else:
         callback = (lambda event: print(json.dumps(event, ensure_ascii=False), flush=True)) if args.progress_json else None
-        result = copy_manifest(json.loads(args.manifest.read_text()), args.home, dry_run=args.dry_run, secret=sys.stdin.readline().strip() if args.secret_stdin else None, progress=callback, nm_dir=args.nm_dir)
+        secret = sys.stdin.readline().rstrip('\r\n') if args.secret_stdin else None
+        envelope_password = sys.stdin.readline().rstrip('\r\n') if args.envelope_password_stdin else None
+        if args.envelope_password_stdin and not envelope_password:
+            raise ValueError('Passwort für die Passworthülle fehlt')
+        result = copy_manifest(json.loads(args.manifest.read_text()), args.home, dry_run=args.dry_run, secret=secret, progress=callback, nm_dir=args.nm_dir, envelope_password=envelope_password)
     print(json.dumps(result if not getattr(args, 'progress_json', False) else {'event': 'summary', **result}, ensure_ascii=False))
 
 if __name__ == '__main__':
