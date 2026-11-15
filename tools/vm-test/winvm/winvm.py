@@ -147,7 +147,7 @@ def make_iso(src, out, label):
     run('genisoimage', '-quiet', '-o', out, '-J', '-r', '-V', label, src)
 
 
-def build_payload(version, job=None, gui=False, app=None):
+def build_payload(version, job=None, gui=False, app=None, english=False, light=False):
     d = vmdir(version)
     tmp = d / 'payload-src'
     if tmp.exists():
@@ -161,6 +161,10 @@ def build_payload(version, job=None, gui=False, app=None):
     shutil.copyfile(jobs / 'gui.cmd', tmp / 'gui.cmd')
     if app:
         shutil.copytree(app, tmp / 'app')
+    if english:
+        (tmp / 'WDN_LANG_EN.txt').write_text('en\r\n')
+    if light:
+        (tmp / 'WDN_LIGHT.txt').write_text('light\r\n')
     if gui:
         (tmp / 'WDN_GUI.txt').write_text('gui\r\n')
     make_iso(tmp, d / 'payload.iso', 'WDNPAYLOAD')
@@ -264,6 +268,8 @@ def main():
     p.add_argument('arg', nargs='?')
     p.add_argument('--job', help='job script for the payload')
     p.add_argument('--app', help='folder with the published WinDoesNot Setup app (win-x64, self-contained); the GUI job starts it instead of the PowerShell exporter')
+    p.add_argument('--english', action='store_true', help='start the Setup app in English (WINDOESNOT_SETUP_LANG=en)')
+    p.add_argument('--light', action='store_true', help='use the light Windows app theme')
     p.add_argument('--gui', action='store_true', help='payload starts the exporter window at logon (needs the WdnGui task)')
     a = p.parse_args()
     if a.action == 'status':
@@ -290,7 +296,7 @@ def main():
     elif a.action == 'run':
         start(v, False)
     elif a.action == 'payload':
-        build_payload(v, a.job, a.gui, a.app)
+        build_payload(v, a.job, a.gui, a.app, a.english, a.light)
     elif a.action == 'shot':
         out = Path(a.arg or vmdir(v) / 'screen.png').resolve()
         print(qmp(v, 'screendump', filename=str(out), format='png'))

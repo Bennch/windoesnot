@@ -13,6 +13,9 @@ start "" /min powershell.exe -WindowStyle Hidden -NoProfile -STA -ExecutionPolic
 if not "%RES%"=="" echo started > %RES%\gui-started.txt
 goto :eof
 :runapp
+if exist "%~dp0WDN_LANG_EN.txt" set WINDOESNOT_SETUP_LANG=en
+if exist "%~dp0WDN_LIGHT.txt" reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize /v AppsUseLightTheme /t REG_DWORD /d 1 /f >nul
+if not exist "%~dp0WDN_LIGHT.txt" reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize /v AppsUseLightTheme /t REG_DWORD /d 0 /f >nul
 xcopy /E /Y /I "%~dp0app" C:\wdn-test\app >nul
 start "" C:\wdn-test\app\WinDoesNotSetup.exe
 if not "%RES%"=="" echo app-started > %RES%\gui-started.txt
