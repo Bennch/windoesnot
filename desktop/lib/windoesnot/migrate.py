@@ -3,6 +3,7 @@
 import argparse
 import configparser
 import csv
+import filecmp
 import hashlib
 import json
 import os
@@ -22,6 +23,7 @@ DE = {'Documents': 'Dokumente', 'Pictures': 'Bilder', 'Music': 'Musik', 'Videos'
 XDG_KEYS = {'Documents': 'DOCUMENTS', 'Pictures': 'PICTURES', 'Music': 'MUSIC', 'Videos': 'VIDEOS', 'Downloads': 'DOWNLOAD', 'Desktop': 'DESKTOP'}
 SCHEMA = 1
 ENVELOPE_FILES = ('chromium-chrome.igcred', 'chromium-edge.igcred', 'chromium-brave.igcred')  # written by the Setup app, one per browser
+MAIL_PATHS = {'Thunderbird': 'AppData/Roaming/Thunderbird', 'Windows Live Mail': 'AppData/Local/Microsoft/Windows Live Mail', 'Windows Mail': 'AppData/Local/Microsoft/Windows Mail'}
 FIREFOX_LOCKS = ('parent.lock', '.parentlock', 'lock')
 
 
@@ -165,6 +167,31 @@ def scan_tree(root, device='fixture', filesystem='ntfs', locale='en'):
                     warnings.append('firefox_unavailable')
                 selected = 'Firefox' in handoff['profiles'].get(profile.name, []) if handoff else False
                 items.append({'kind': 'Firefox', 'source': str(firefox.relative_to(root)), 'bytes': size, 'selected': selected, 'warnings': warnings})
+            thunderbird = profile / MAIL_PATHS['Thunderbird']
+            if plain_path(profile, MAIL_PATHS['Thunderbird']) and thunderbird.is_dir():
+                size, warnings = measure(thunderbird)
+                try:
+                    firefox_profiles(thunderbird)
+                except ValueError:
+                    warnings.append('thunderbird_unavailable')
+                items.append({'kind': 'Thunderbird', 'source': str(thunderbird.relative_to(root)), 'bytes': size, 'selected': True, 'warnings': warnings})
+            for kind in ('Windows Live Mail', 'Windows Mail'):
+                relative = MAIL_PATHS[kind]
+                path = profile / relative
+                if plain_path(profile, relative) and path.is_dir():
+                    size, warnings = measure(path)
+                    items.append({'kind': kind, 'source': str(path.relative_to(root)), 'bytes': size, 'selected': True, 'warnings': warnings})
+            for relative in ('Documents/Outlook Files', 'AppData/Local/Microsoft/Outlook'):
+                folder = profile / relative
+                if not plain_path(profile, relative) or not folder.is_dir():
+                    continue
+                for base, dirs, files in os.walk(folder, followlinks=False):
+                    dirs[:] = [d for d in dirs if not warning_flags(Path(base) / d)]
+                    for name in sorted(files):
+                        path = Path(base) / name
+                        if path.suffix.lower() in ('.pst', '.ost') and not warning_flags(path) and path.is_file():
+                            kind = 'Outlook PST' if path.suffix.lower() == '.pst' else 'Outlook OST'
+                            items.append({'kind': kind, 'source': str(path.relative_to(root)), 'bytes': path.stat().st_size, 'selected': kind == 'Outlook PST', 'warnings': ['outlook_ost'] if kind == 'Outlook OST' else []})
             browsers = []
             for name, relative in (('Edge', 'Microsoft/Edge'), ('Chrome', 'Google/Chrome'), ('Chromium', 'Chromium')):
                 browser = profile / 'AppData/Local' / relative / 'User Data'
@@ -261,6 +288,59 @@ def firefox_profiles(source):
     if not profiles:
         raise ValueError('No Firefox profiles found')
     return profiles
+
+
+def thunderbird_accounts(folder):
+    """Read public account settings only; never inspect credential stores."""
+    prefs = folder / 'prefs.js'
+    if warning_flags(prefs) or not prefs.is_file() or prefs.stat().st_size > 4 * 1024 * 1024:
+        return []
+    settings = {}
+    pattern = re.compile(r'^user_pref\("(mail\.(?:account|server|identity)\.[A-Za-z0-9_.-]+)",\s*("(?:[^"\\]|\\.)*"|[0-9]+)\);\s*$')
+    for line in prefs.read_text(encoding='utf-8', errors='replace').splitlines():
+        match = pattern.match(line)
+        if match:
+            try:
+                settings[match.group(1)] = json.loads(match.group(2))
+            except ValueError:
+                continue
+    accounts = []
+    for key, server in settings.items():
+        if not re.fullmatch(r'mail\.account\.[^.]+\.server', key) or not isinstance(server, str):
+            continue
+        kind = settings.get('mail.server.' + server + '.type', '')
+        if kind not in ('imap', 'pop3'):
+            continue
+        identity = settings.get(key[:-6] + 'identities', '')
+        identity = identity.split(',')[0] if isinstance(identity, str) else ''
+        values = (settings.get('mail.identity.' + identity + '.useremail', ''),
+                  settings.get('mail.server.' + server + '.hostname', ''), kind)
+        accounts.append(tuple(re.sub(r'[\x00-\x1f\x7f]', ' ', str(v))[:256] for v in values))
+    return accounts
+
+
+def eml_to_mbox(source, target):
+    """Convert each EML directory to a Thunderbird mbox and .sbd hierarchy."""
+    def convert(folder, destination):
+        entries = sorted(folder.iterdir(), key=lambda p: p.name.casefold())
+        files = [p for p in entries if p.suffix.lower() == '.eml']
+        children = [p for p in entries if p.is_dir() and not warning_flags(p)]
+        if any(warning_flags(p) for p in entries):
+            raise ValueError('Link or reparse point in mail store')
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        with destination.open('wb') as out:
+            for entry in files:
+                if not entry.is_file():
+                    raise ValueError('Invalid EML file')
+                data = entry.read_bytes().replace(b'\r\n', b'\n').replace(b'\r', b'\n')
+                out.write(b'From - Sat Jan 01 00:00:00 2000\n')
+                out.write(re.sub(br'(?m)^(>*From )', br'>\1', data))
+                out.write(b'\n' if data.endswith(b'\n') else b'\n\n')
+        for child in children:
+            if child.name in ('.', '..') or '/' in child.name or '\\' in child.name:
+                raise ValueError('Invalid mail folder name')
+            convert(child, Path(str(destination) + '.sbd') / child.name)
+    convert(source, target)
 
 
 def import_wlan(source, target):
@@ -404,13 +484,22 @@ def export_envelope(path, home, password):
 
 def _valid_item(root, profile, item):
     kind = item.get('kind')
-    if kind not in (*FOLDERS, 'Firefox'):
+    if kind not in (*FOLDERS, 'Firefox', *MAIL_PATHS, 'Outlook PST', 'Outlook OST'):
         raise ValueError('Invalid folder kind')
-    expected = Path('Users') / profile / ('AppData/Roaming/Mozilla/Firefox' if kind == 'Firefox' else kind)
+    if kind in ('Outlook PST', 'Outlook OST'):
+        relative = Path(str(item.get('source', '')))
+        prefix = Path('Users') / profile
+        if (not relative.is_relative_to(prefix) or '..' in relative.parts or
+                relative.suffix.lower() != ('.pst' if kind == 'Outlook PST' else '.ost') or
+                not any(relative.is_relative_to(prefix / folder) for folder in ('Documents/Outlook Files', 'AppData/Local/Microsoft/Outlook'))):
+            raise ValueError('Invalid Outlook source path')
+        expected = relative
+    else:
+        expected = Path('Users') / profile / ('AppData/Roaming/Mozilla/Firefox' if kind == 'Firefox' else MAIL_PATHS.get(kind, kind))
     if item.get('source') != str(expected) or profile.lower() in EXCLUDED or not profile or '/' in profile or '\\' in profile or profile in ('.', '..'):
         raise ValueError('Invalid source path')
     path = root / expected
-    if not path.is_dir() or not path.resolve().is_relative_to(root.resolve()):
+    if not (path.is_file() if kind in ('Outlook PST', 'Outlook OST') else path.is_dir()) or not path.resolve().is_relative_to(root.resolve()):
         raise ValueError('Source folder missing or redirected')
     current = root
     for component in expected.parts:
@@ -486,9 +575,9 @@ def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, 
             for item in profile.get('items', []):
                 if item.get('selected'):
                     source = _valid_item(root, profile.get('name', ''), item)
-                    size, flags = measure(source)
-                    if item['kind'] == 'Firefox':
-                        target = firefox_target(home)
+                    size, flags = (source.stat().st_size, []) if item['kind'] in ('Outlook PST', 'Outlook OST') else measure(source)
+                    if item['kind'] in ('Firefox', *MAIL_PATHS, 'Outlook PST', 'Outlook OST'):
+                        target = firefox_target(home) if item['kind'] == 'Firefox' else home / '.thunderbird'
                     else:
                         target = home / target_name(item['kind'], manifest.get('locale', 'en'), home)
                         # The first Windows account fills the folder directly; further accounts get their own
@@ -502,7 +591,7 @@ def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, 
         free = shutil.disk_usage(home).free
         if needed > free:
             raise OSError(f'Not enough free space: need {needed} bytes, have {free} bytes')
-        summary = {'bytes': needed, 'free': free, 'folders': len(jobs), 'errors': [], 'wlan_imported': 0}
+        summary = {'bytes': needed, 'free': free, 'folders': len(jobs), 'errors': [], 'warnings': [], 'wlan_imported': 0, 'mail_imported': False}
         if dry_run:
             return summary
         def report(event, **fields):
@@ -510,6 +599,7 @@ def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, 
                 progress({'event': event, **fields})
         report('start', bytes=needed, free=free, folders=len(jobs))
         copied = 0
+        mail_accounts = []
         def failed(path, message):
             error = {'path': str(path), 'error': message}
             summary['errors'].append(error)
@@ -568,7 +658,91 @@ def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, 
                         continue
                     copy_file(entry, target / relative)
         for source, target, _, flags, kind in jobs:
-            if kind != 'Firefox':
+            if kind in ('Outlook PST', 'Outlook OST'):
+                if kind == 'Outlook OST':
+                    summary['warnings'].append({'path': str(source), 'error': 'OST: reconnect the server account or export a PST in Outlook'})
+                    continue
+                try:
+                    make_target(target / 'PST-Import')
+                    destination = target / 'PST-Import' / (profile_folder_name(source.stem) + '-' + hashlib.sha256(str(source.relative_to(root)).encode()).hexdigest()[:12])
+                    if destination.exists() or destination.is_symlink():
+                        raise ValueError('PST destination already exists')
+                    with tempfile.TemporaryDirectory(prefix='.readpst-', dir=home) as temporary_pst:
+                        converted = Path(temporary_pst) / 'converted'
+                        converted.mkdir()
+                        result = subprocess.run(['readpst', '-r', '-o', str(converted), str(source)], capture_output=True, text=True, timeout=3600)
+                        if result.returncode:
+                            raise ValueError('readpst failed: ' + result.stderr.strip()[:1000])
+                        for base, dirs, files in os.walk(converted, followlinks=False):
+                            if any(warning_flags(Path(base) / n) for n in dirs + files):
+                                raise ValueError('Unsafe readpst output')
+                            os.chown(base, home.stat().st_uid, home.stat().st_gid)
+                            for name in files:
+                                os.chown(Path(base) / name, home.stat().st_uid, home.stat().st_gid)
+                        os.replace(converted, destination)
+                    summary['mail_imported'] = True
+                    summary['warnings'].append({'path': str(destination), 'error': 'PST converted; import the resulting mailboxes into Thunderbird'})
+                except (OSError, ValueError, subprocess.TimeoutExpired) as error:
+                    summary['warnings'].append({'path': str(source), 'error': str(error)})
+                continue
+            if kind in ('Windows Live Mail', 'Windows Mail'):
+                try:
+                    safe_target(target)
+                    make_target(target / 'Profiles' / 'windows-mail' / 'Mail' / 'Local Folders')
+                    local = target / 'Profiles' / 'windows-mail' / 'Mail' / 'Local Folders'
+                    name = profile_folder_name(source.parts[-5] if len(source.parts) >= 5 else 'Windows') + '-' + kind
+                    final = local / name
+                    if final.is_symlink() or Path(str(final) + '.sbd').is_symlink():
+                        raise ValueError('Mail destination is redirected')
+                    with tempfile.TemporaryDirectory(prefix='.mail-', dir=local) as temp:
+                        staged = Path(temp) / name
+                        eml_to_mbox(source, staged)
+                        sub = Path(str(staged) + '.sbd')
+                        final_sub = Path(str(final) + '.sbd')
+                        if final.exists() or final_sub.exists():
+                            def same_tree(left, right):
+                                if not left.is_dir() or not right.is_dir() or warning_flags(right):
+                                    return False
+                                left_names = {p.name for p in left.iterdir()}
+                                if left_names != {p.name for p in right.iterdir()}:
+                                    return False
+                                return all(same_tree(left / n, right / n) if (left / n).is_dir() else
+                                           not warning_flags(right / n) and (right / n).is_file() and filecmp.cmp(left / n, right / n, shallow=False)
+                                           for n in left_names)
+                            if (not final.is_file() or not filecmp.cmp(staged, final, shallow=False) or
+                                (sub.exists() != final_sub.exists()) or (sub.exists() and not same_tree(sub, final_sub))):
+                                raise ValueError('Mail destination already exists with different contents')
+                        else:
+                            os.replace(staged, final)
+                            if sub.exists():
+                                os.replace(sub, final_sub)
+                    prefs = target / 'Profiles' / 'windows-mail' / 'prefs.js'
+                    if prefs.is_symlink():
+                        raise ValueError('Target preferences are redirected')
+                    if not prefs.exists():
+                        prefs.write_text('user_pref("mail.account.account1.server", "server1");\nuser_pref("mail.accountmanager.accounts", "account1");\nuser_pref("mail.accountmanager.localfoldersserver", "server1");\nuser_pref("mail.server.server1.type", "none");\nuser_pref("mail.server.server1.name", "Local Folders");\nuser_pref("mail.server.server1.directory-rel", "[ProfD]Mail/Local Folders");\n', encoding='utf-8')
+                    ini = target / 'profiles.ini'
+                    if ini.is_symlink():
+                        raise ValueError('Target profiles.ini is redirected')
+                    existing = ini.read_text(encoding='utf-8') if ini.exists() else '[General]\nStartWithLastProfile=1\n'
+                    config = configparser.ConfigParser(interpolation=None)
+                    config.read_string(existing)
+                    if not any(config.get(section, 'Path', fallback='') == 'Profiles/windows-mail' for section in config.sections()):
+                        indices = [int(section[7:]) for section in config.sections() if re.fullmatch(r'Profile\d+', section)]
+                        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=target, delete=False) as stream:
+                            stream.write(existing.rstrip() + f'\n\n[Profile{max(indices, default=-1)+1}]\nName=Windows Mail\nIsRelative=1\nPath=Profiles/windows-mail\n')
+                            staged_ini = Path(stream.name)
+                        os.chown(staged_ini, home.stat().st_uid, home.stat().st_gid)
+                        os.replace(staged_ini, ini)
+                    for base, dirs, files in os.walk(target / 'Profiles' / 'windows-mail'):
+                        os.chown(base, home.stat().st_uid, home.stat().st_gid)
+                        for file in files:
+                            os.chown(Path(base) / file, home.stat().st_uid, home.stat().st_gid)
+                    summary['mail_imported'] = True
+                except (OSError, ValueError, configparser.Error) as error:
+                    failed(source, str(error))
+                continue
+            if kind not in ('Firefox', 'Thunderbird'):
                 copy_tree(source, target)
                 continue
             try:
@@ -593,7 +767,13 @@ def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, 
             indices = [int(section[7:]) for section in parsed.sections() if re.fullmatch(r'Profile\d+', section)]
             existing_profiles = {parsed.get(section, 'Path', fallback=''): parsed.get(section, 'Name', fallback='') for section in parsed.sections() if re.fullmatch(r'Profile\d+', section)}
             additions = []
+            profile_errors_before = len(summary['errors'])
             for name, folder in profiles:
+                if kind == 'Thunderbird':
+                    try:
+                        mail_accounts.extend(thunderbird_accounts(folder))
+                    except OSError:
+                        failed(folder, 'Could not read account settings')
                 base = folder.name + '-windows'
                 candidate = base
                 number = 2
@@ -609,6 +789,8 @@ def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, 
                     index = max(indices, default=-1) + 1
                     indices.append(index)
                     additions.append(f'[Profile{index}]\nName={name} (Windows)\nIsRelative=1\nPath=Profiles/{candidate}\n')
+            if kind == 'Thunderbird' and (additions or any(existing_profiles.get('Profiles/' + folder.name + '-windows') == name + ' (Windows)' for name, folder in profiles)) and len(summary['errors']) == profile_errors_before:
+                summary['mail_imported'] = True
             if additions:
                 with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=target, prefix='.profiles-', delete=False) as stream:
                     stream.write(existing.rstrip() + '\n\n' + '\n'.join(additions))
@@ -616,6 +798,28 @@ def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, 
                 os.chmod(staged, 0o600)
                 os.chown(staged, home.stat().st_uid, home.stat().st_gid)
                 os.replace(staged, ini)
+        if any(kind in (*MAIL_PATHS, 'Outlook PST', 'Outlook OST') for _, _, _, _, kind in jobs):
+            try:
+                report_dir = home / 'Umzug-Windows'
+                make_target(report_dir)
+                german = manifest.get('locale', 'en').lower().startswith('de')
+                lines = (['Mail-Konten', 'Serverkonten in Thunderbird über „Konto hinzufügen“ einrichten; die Autokonfiguration kann dabei helfen.', 'Thunderbird gegebenenfalls installieren.', 'OST: Serverkonto erneut verbinden oder in Outlook als PST exportieren. Webmail und neues Outlook: Serverkonto in Thunderbird hinzufügen. PST-Ergebnisse gegebenenfalls in Thunderbird importieren.'] if german else
+                         ['Mail accounts', 'Set up server accounts in Thunderbird using Add Account; automatic configuration can help.', 'Install Thunderbird if needed.', 'OST: reconnect the server account or export a PST in Outlook. Webmail and new Outlook: add the server account in Thunderbird. Import converted PST mailboxes into Thunderbird if needed.'])
+                lines += [' | '.join(account) for account in sorted(set(mail_accounts))]
+                for number in range(1, 10000):
+                    path = report_dir / ('Mail-Konten.txt' if number == 1 else f'Mail-Konten-{number}.txt')
+                    try:
+                        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+                        with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+                            os.fchown(stream.fileno(), home.stat().st_uid, home.stat().st_gid)
+                            stream.write('\n'.join(lines) + '\n')
+                        break
+                    except FileExistsError:
+                        continue
+                else:
+                    raise OSError('No available account report filename')
+            except (OSError, ValueError) as error:
+                failed('Mail-Konten.txt', str(error))
         if manifest.get('handoff') and envelope_password:
             try:
                 handoff = read_handoff(root)

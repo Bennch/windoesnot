@@ -58,9 +58,10 @@ Rectangle {
             "Videos": "Videos",
             "Downloads": "Downloads",
             "Desktop": "Desktop",
-            "Firefox": "Firefox"
+            "Firefox": "Firefox",
+            "Thunderbird": "E-Mail (Thunderbird)"
         };
-        return german ? (names[kind] || kind) : kind;
+        return german ? (names[kind] || kind) : (kind === "Thunderbird" ? "Email (Thunderbird)" : kind);
     }
 
     function hasWarning(code) {
@@ -329,6 +330,14 @@ Rectangle {
                                 }
 
                             }
+                            Label { visible: profile.items.some(function(item) { return item.kind === "Thunderbird" })
+                                Layout.fillWidth: true; wrapMode: Text.WordWrap
+                                text: page.tr("Thunderbird schließen. Gespeicherte Passwörter werden übernommen; ein Hauptpasswort und die Entschlüsselung können nicht geprüft werden. Serverkonten lassen sich in Thunderbird über ‚Konto hinzufügen‘ neu einrichten.", "Close Thunderbird. Saved passwords are copied; a primary password and decryption cannot be checked. Server accounts can be set up again using Add Account.") }
+                            Label { visible: profile.items.some(function(item) { return item.warnings.indexOf("thunderbird_unavailable") >= 0 })
+                                Layout.fillWidth: true; color: "#f3c99d"; wrapMode: Text.WordWrap
+                                text: page.tr("Thunderbird-Profil nicht bereit: Thunderbird unter Windows schließen und erneut prüfen.", "Thunderbird profile unavailable: close Thunderbird in Windows and scan again.") }
+                            Label { Layout.fillWidth: true; wrapMode: Text.WordWrap
+                                text: page.tr("Webmail und neues Outlook: Konto in Thunderbird erneut hinzufügen. OST-Dateien lassen sich nicht direkt übernehmen; Konto erneut verbinden oder in Outlook als PST exportieren. PST-Ergebnisse müssen gegebenenfalls in Thunderbird importiert werden.", "Webmail and new Outlook: add the account again in Thunderbird. OST files cannot be imported directly; reconnect the account or export a PST in Outlook. Converted PST mailboxes may need to be imported into Thunderbird.") }
                             Label { visible: profile.items.some(function(item) { return item.kind === "Firefox" })
                                 wrapMode: Text.WordWrap; Layout.fillWidth: true
                                 text: page.tr("Firefox schließen. Ein Hauptpasswort wird nicht erkannt; gespeicherte Passwörter und ihre Entschlüsselung sind nicht geprüft.", "Close Firefox. A primary password is not detected; saved passwords and their decryption have not been verified.") }

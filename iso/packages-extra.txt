@@ -142,3 +142,5 @@ ufw
 fwupd
 accountsservice
 imagemagick
+
+libpst

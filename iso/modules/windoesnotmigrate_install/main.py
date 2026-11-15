@@ -140,6 +140,9 @@ def run():
         if handoff.get('chromium_envelope') and not envelope_password:
             notice = ('Die Browser-Passwort-Hülle wurde ohne Passwort nicht übernommen.' if german
                       else 'The browser password envelope was not imported because no password was provided.')
+        if result.get('warnings'):
+            mail_notice = ('Mail-Umzug: Bitte Hinweise prüfen. ' if german else 'Mail migration: please check the notices. ') + '; '.join(w['error'] for w in result['warnings'])
+            notice = (notice + '\n' if notice else '') + mail_notice
         if result['errors']:
             count = len(result['errors'])
             warn(f"Windows data migration incomplete: {count} item(s) could not be copied. First: {result['errors'][0]['path']}: {result['errors'][0]['error']}",
