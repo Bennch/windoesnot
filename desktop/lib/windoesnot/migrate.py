@@ -71,6 +71,19 @@ def mount_readonly(device, mountpoint):
     raise RuntimeError('NTFS read-only mount failed; Windows Fast Startup or hibernation may be active. ' + ' | '.join(errors))
 
 
+def is_legacy_junction(path):
+    """Windows 7's 'My Pictures' junctions (localised: 'Eigene Bilder') inside Documents. They point at one of the
+    profile's standard folders, which are copied on their own, so skipping them loses nothing and needs no warning."""
+    if path.name in LEGACY_JUNCTIONS:
+        return True
+    try:
+        target = os.readlink(path)
+    except OSError:
+        return False
+    parts = [part for part in re.split(r'[\\/]', target) if part not in ('', '.', '..')]
+    return len(parts) >= 3 and parts[-3].lower() == 'users' and parts[-1] in FOLDERS
+
+
 def warning_flags(path):
     flags = []
     try:
@@ -94,7 +107,7 @@ def measure(path):
             if flags:
                 dirs.remove(name)
                 # Windows' legacy junctions point at folders measured and copied separately.
-                if name not in LEGACY_JUNCTIONS:
+                if not is_legacy_junction(Path(base) / name):
                     warnings.update(flags)
         for name in files:
             item = Path(base) / name
@@ -165,7 +178,7 @@ def scan_tree(root, device='fixture', filesystem='ntfs', locale='en'):
                 if browsers:
                     warnings.append('chromium_passwords_windows_export_only')
                 profiles.append({'name': profile.name, 'items': items, 'warnings': sorted(set(warnings)), 'browsers': browsers})
-    if (root / 'hiberfil.sys').exists():
+    if hibernation_pending(root / 'hiberfil.sys'):
         root_warnings.append('hibernation_possible')
     return {'schema': SCHEMA, 'device': device, 'filesystem': filesystem, 'locale': locale, 'profiles': profiles,
             'handoff': {'windows_version': handoff['windows_version'], 'locale': handoff['locale'], 'wlan_exports': handoff['wlan_exports'],
@@ -353,6 +366,28 @@ def _valid_item(root, profile, item):
     return path
 
 
+def hibernation_pending(hiberfil):
+    """True if hiberfil.sys holds a saved session (hibernation or Fast Startup), so Windows files may be stale.
+
+    Windows 7 keeps a hiberfil.sys on most PCs; its header is 'wake' or zeroes after a normal start, 'hibr'/'HIBR'/'RSTR'
+    while a session is saved. An empty or unreadable file counts as pending (be careful rather than wrong).
+    """
+    try:
+        if not hiberfil.exists():
+            return False
+        with hiberfil.open('rb') as stream:
+            magic = stream.read(4)
+    except OSError:
+        return True
+    return magic.lower() in (b'', b'hibr', b'rstr') or (len(magic) < 4)
+
+
+def profile_folder_name(name):
+    """Safe folder name for a further Windows account's files (never '.', '..' or a path)."""
+    cleaned = re.sub(r'[\\/:*?"<>|\x00-\x1f]', '_', str(name)).strip(' .')
+    return cleaned or 'Windows'
+
+
 def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, progress=None, nm_dir=None):
     if manifest.get('schema') != SCHEMA or manifest.get('filesystem') not in ('ntfs', 'bitlocker'):
         raise ValueError('Unsupported manifest')
@@ -392,12 +427,21 @@ def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, 
                 if not current.exists():
                     current.mkdir()
                     os.chown(current, owner.st_uid, owner.st_gid)
+        seen_kinds = set()
         for profile in manifest.get('profiles', []):
             for item in profile.get('items', []):
                 if item.get('selected'):
                     source = _valid_item(root, profile.get('name', ''), item)
                     size, flags = measure(source)
-                    target = firefox_target(home) if item['kind'] == 'Firefox' else home / target_name(item['kind'], manifest.get('locale', 'en'), home)
+                    if item['kind'] == 'Firefox':
+                        target = firefox_target(home)
+                    else:
+                        target = home / target_name(item['kind'], manifest.get('locale', 'en'), home)
+                        # The first Windows account fills the folder directly; further accounts get their own
+                        # subfolder, so same-named files of different people never collide or get dropped.
+                        if item['kind'] in seen_kinds:
+                            target = target / profile_folder_name(profile.get('name', ''))
+                        seen_kinds.add(item['kind'])
                     safe_target(target)
                     jobs.append((source, target, size, flags, item['kind']))
         needed = sum(size for _, _, size, _, _ in jobs)
@@ -456,7 +500,7 @@ def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, 
                     if warning_flags(entry):
                         dirs.remove(name)
                         # Windows' legacy junctions point at folders copied separately.
-                        if name not in LEGACY_JUNCTIONS:
+                        if not is_legacy_junction(entry):
                             failed(entry, 'link, reparse point or unreadable')
                     else:
                         safe_target(target / relative / name)
