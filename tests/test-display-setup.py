@@ -2,6 +2,7 @@
 """First-start display helper: mode list, request building and input checks, no desktop needed."""
 import importlib.machinery
 import importlib.util
+import json
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -33,6 +34,14 @@ class DisplaySetup(unittest.TestCase):
     def test_primary_from_settings_wins_over_focus(self):
         with patch.object(m, 'preferred_primary', return_value='DP-1'):
             self.assertEqual(m.pick_primary(MONITORS)['name'], 'DP-1')
+
+    def test_default_scale_and_explicit_laptop_choice(self):
+        defaults = json.loads((ROOT / 'desktop/defaults/hypr-state.json').read_text())
+        self.assertEqual(defaults['monitors'], [dict(output='', mode='preferred', position='auto', scale=1)])
+        laptop = dict(MONITORS[0], name='LVDS-1', focused=True, width=1600, height=900,
+                      scale=1.25, availableModes=['1600x900@60.00Hz'])
+        self.assertEqual(m.status([laptop])['scale'], 1.25)
+        self.assertEqual(m.build_request([laptop], 1600, 900, 1.25)['monitors']['monitors'][0]['scale'], 1.25)
 
     def test_request_changes_only_the_primary(self):
         request = m.build_request(MONITORS, 1920, 1080, 1.5)['monitors']

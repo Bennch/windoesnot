@@ -6,6 +6,7 @@ import configparser
 from contextlib import contextmanager
 import io
 import shlex
+import shutil
 import json
 import os
 import re
@@ -287,6 +288,22 @@ def boot_language_matches_limine(root):
     return upstream == manifest['loaders']['limine']['version']
 
 
+def configure_bootnames(root, base):
+    source = base / 'iso/bootnames'
+    for name, destination in (
+        ('95-windoesnot.install', 'etc/kernel/install.d/95-windoesnot.install'),
+        ('zz-windoesnot-bootnames.hook', 'etc/pacman.d/hooks/zz-windoesnot-bootnames.hook'),
+    ):
+        target = root / destination
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source / name, target)
+        if name.endswith('.install'):
+            target.chmod(0o755)
+    config = root / 'etc/sdboot-manage.conf.d/90-windoesnot.conf'
+    config.parent.mkdir(parents=True, exist_ok=True)
+    config.write_text('REMOVE_EXISTING="no"\nOVERWRITE_EXISTING="no"\n')
+
+
 def prepare(bootloader, firmware, mode, base=BASE, root=Path('/')):
     validate_choice(bootloader, firmware, mode)
     if firmware == 'efi':
@@ -303,6 +320,8 @@ def prepare(bootloader, firmware, mode, base=BASE, root=Path('/')):
             install_packages(packages, mode, base)
     else:
         install_packages(packages, mode, base)
+    if bootloader == 'systemd-boot':
+        configure_bootnames(root, base)
     record = root / 'var/lib/windoesnot/installation.json'
     record.parent.mkdir(parents=True, exist_ok=True)
     record.write_text(json.dumps({'schema_version': 1, 'mode': mode, 'bootloader': bootloader, 'firmware': firmware, 'filesystem': filesystem}, indent=2) + '\n')
@@ -342,6 +361,7 @@ def finish(bootloader, firmware, mode, root=Path('/'), selected_locale=None):
     apply_selected_locale(root, selected_locale)
     if bootloader == 'systemd-boot':
         subprocess.run(['sdboot-manage', 'gen'], check=True)
+        subprocess.run(['/usr/bin/python3', str(BASE / 'iso/bootnames/bootnames.py'), 'sdboot'], check=True)
     elif bootloader == 'limine':
         config = root / 'boot/limine.conf'
         text = config.read_text().replace('/+CachyOS', '/+WinDoesNot')

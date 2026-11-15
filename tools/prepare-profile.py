@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import os
 import tempfile
 import shlex
 import re
@@ -145,6 +146,11 @@ def main():
     parser.add_argument('--language', choices=('en', 'de'), default='en')
     parser.add_argument('--version', default='0.1-dev')
     args = parser.parse_args()
+    small_esp = os.environ.get('WINDOESNOT_SMALL_ESP', '0')
+    if small_esp not in ('0', '1'):
+        raise SystemExit('WINDOESNOT_SMALL_ESP must be 0 or 1')
+    if small_esp == '1':
+        raise SystemExit('WINDOESNOT_SMALL_ESP is not implemented; refusing to generate an unsafe profile')
     profile = args.output.resolve()
     if profile == ROOT or ROOT not in profile.parents or profile.name in ['desktop', 'upstream']:
         raise SystemExit('Profile output must be a dedicated directory below this project')

@@ -1,0 +1,4 @@
+#!/bin/sh
+[ "$1" = add ] || exit 0
+[ "${KERNEL_INSTALL_LAYOUT:-}" = bls ] || exit 0
+exec /usr/bin/python3 /usr/share/windoesnot/iso/bootnames/bootnames.py kernel "$2" "$3"

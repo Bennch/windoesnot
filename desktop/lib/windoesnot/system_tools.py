@@ -989,6 +989,7 @@ def refresh_bootloader(loader):
     elif loader == 'systemd-boot':
         command('/usr/bin/sdboot-manage', 'remove', timeout=180)
         command('/usr/bin/sdboot-manage', 'gen', timeout=180)
+        command('/usr/bin/python3', '/usr/share/windoesnot/iso/bootnames/bootnames.py', 'sdboot', timeout=180)
     elif loader == 'refind':
         # rEFInd discovers /boot/vmlinuz-* directly; mkinitcpio generates images.
         if not Path('/boot/refind_linux.conf').is_file():

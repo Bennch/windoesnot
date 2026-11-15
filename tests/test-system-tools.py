@@ -131,7 +131,7 @@ class SystemTools(unittest.TestCase):
     def test_bootloader_generators(self):
         with patch.object(m,'command') as command:
             for loader, expected in [('grub',('/usr/bin/grub-mkconfig','-o','/boot/grub/grub.cfg')),
-                    ('limine',('/usr/bin/limine-update',)), ('systemd-boot',('/usr/bin/sdboot-manage','gen'))]:
+                    ('limine',('/usr/bin/limine-update',)), ('systemd-boot',('/usr/bin/python3','/usr/share/windoesnot/iso/bootnames/bootnames.py','sdboot'))]:
                 m.refresh_bootloader(loader); self.assertEqual(command.call_args.args,expected)
             with self.assertRaises(ValueError): m.refresh_bootloader('unknown')
 
