@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Filled in when the script is published on its own (tools/make-install-script.py): the matching source archive and
+# its SHA-256. Empty inside the dotfiles archive, where the sources are already next to the script.
+WDN_DOTFILES_URL=''
+WDN_DOTFILES_SHA256=''
+orig_args=("$@")
 
 lang=${LANG:-en}
 [[ $lang == de* ]] && lang=de || lang=en
@@ -23,9 +28,20 @@ ask() {
     if ((yes)); then [[ $default == yes ]]; return; fi
     if [[ $default == yes ]]; then prompt+=' [Y/n] '; else prompt+=' [y/N] '; fi
     printf '%s' "$prompt"
-    if ! read -r answer; then return 1; fi
+    if [[ -t 0 ]]; then
+        if ! read -r answer; then return 1; fi
+    elif [[ -r /dev/tty ]]; then
+        if ! read -r answer </dev/tty; then return 1; fi
+    else
+        return 1
+    fi
     case $answer in y|Y|yes|YES|j|J|ja|JA) return 0 ;; '') [[ $default == yes ]] ;; *) return 1 ;; esac
 }
+# In --yes mode nothing may wait for a pacman prompt (tests, CI): the questions above were already answered.
+# Source file names contain umlauts: bsdtar/makepkg need a UTF-8 locale (minimal systems and containers often have none).
+if [[ $(locale charmap 2>/dev/null || true) != UTF-8 ]]; then export LC_ALL=C.UTF-8; fi
+noconfirm=()
+((yes)) && noconfirm=(--noconfirm)
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 root_dir=$(dirname -- "$script_dir")
 prepare=$script_dir/prepare-packages.py
@@ -33,7 +49,26 @@ cache=${XDG_CACHE_HOME:-$HOME/.cache}/windoesnot-install
 build=$cache/build
 os_release=${WDN_OS_RELEASE:-/etc/os-release}
 if ((EUID == 0)); then say 'Bitte als normaler Benutzer starten, nicht als root.' 'Run as a normal user, not root.' >&2; exit 1; fi
-if [[ ! -f $prepare || ! -f $root_dir/packaging/PKGBUILD.in ]]; then say 'Export unvollständig: prepare-packages.py oder PKGBUILD.in fehlt.' 'Incomplete export: prepare-packages.py or PKGBUILD.in missing.' >&2; exit 1; fi
+fetch_sources() {
+    local dest=$cache/source archive extracted
+    mkdir -p -- "$dest"
+    archive=$dest/dotfiles.tar.gz
+    say "Lade die passenden Dotfiles-Quellen: $WDN_DOTFILES_URL" "Downloading the matching dotfiles sources: $WDN_DOTFILES_URL"
+    curl -fL --proto '=https' --tlsv1.2 -o "$archive" -- "$WDN_DOTFILES_URL"
+    if ! printf '%s  %s\n' "$WDN_DOTFILES_SHA256" "$archive" | sha256sum -c - >/dev/null 2>&1; then
+        say 'Die Prüfsumme der Quellen stimmt nicht. Abbruch.' 'The checksum of the sources does not match. Aborting.' >&2; exit 1
+    fi
+    tar -xzf "$archive" -C "$dest"
+    extracted=$(compgen -G "$dest/windoesnot-dotfiles-*/tools/install-dotfiles.sh" | head -n 1 || true)
+    [[ -n $extracted && -f $extracted ]] || { say 'Das Archiv enthält das Installationsskript nicht.' 'The archive does not contain the install script.' >&2; exit 1; }
+    WDN_BOOTSTRAPPED=1 exec bash "$extracted" "${orig_args[@]}"
+}
+if [[ ! -f $prepare || ! -f $root_dir/packaging/PKGBUILD.in ]]; then
+    if [[ -n $WDN_DOTFILES_URL && -z ${WDN_BOOTSTRAPPED:-} ]]; then
+        command -v curl >/dev/null && command -v sha256sum >/dev/null && command -v tar >/dev/null || { say 'curl, sha256sum und tar werden benötigt.' 'curl, sha256sum and tar are required.' >&2; exit 1; }
+        fetch_sources
+    fi
+    say 'Export unvollständig: prepare-packages.py oder PKGBUILD.in fehlt.' 'Incomplete export: prepare-packages.py or PKGBUILD.in missing.' >&2; exit 1; fi
 # Read only the two os-release fields, without executing the file.
 if ! awk -F= '/^(ID|ID_LIKE)=/ {gsub(/["\047]/,"",$2); n=split($2,a,/ /); for(i=1;i<=n;i++) if(a[i]=="arch" || a[i]=="cachyos") found=1} END {exit !found}' "$os_release"; then
     say 'Dieses System wird nicht unterstützt. Die WinDoesNot-ISO: https://windoesnot.me/download/' 'This system is not supported. Get the WinDoesNot ISO: https://windoesnot.me/download/' >&2; exit 1
@@ -46,7 +81,7 @@ if ! command -v python3 >/dev/null; then
     if ((check || dry)); then exit 1; fi
     if pacman -Si python >/dev/null 2>&1 && pacman -Sp python >/dev/null 2>&1; then
         say 'Befehl: sudo pacman -S --needed python' 'Command: sudo pacman -S --needed python'
-        if ask "$(say 'Python installieren?' 'Install Python?')" yes; then sudo pacman -S --needed python; else exit 1; fi
+        if ask "$(say 'Python installieren?' 'Install Python?')" yes; then sudo pacman -S --needed "${noconfirm[@]}" python; else exit 1; fi
     else
         say 'Python ist im Repository nicht verfügbar.' 'Python is not available in the repositories.' >&2; exit 1
     fi
@@ -99,6 +134,36 @@ for dep in "${deps[@]}"; do
 done
 say "Fehlende Repository-Pakete: ${repo[*]:-(keine)}" "Missing repository packages: ${repo[*]:-(none)}"
 say "Nicht in konfigurierten Repositories gefunden (eventuell AUR oder Zusatz-Repository): ${unavailable[*]:-(keine)}" "Not found in configured repositories (possibly AUR or an additional repository): ${unavailable[*]:-(none)}"
+setup_channel() {
+    local fingerprint=ED9530A990C6D39EB7D4BA8F9BDCA578FBF1DDB0 version=0.1.0-19 base=https://download.windoesnot.me/repo/bootstrap
+    local key=$root_dir/packaging/release-key/RELEASE-KEY.asc work actual
+    for tool in gpg gpgv curl tar; do command -v "$tool" >/dev/null || { say "$tool wird benötigt." "$tool is required." >&2; return 1; }; done
+    actual=$(gpg --show-keys --with-colons -- "$key" 2>/dev/null | awk -F: '$1=="fpr"{print $10; exit}')
+    if [[ $actual != "$fingerprint" ]]; then
+        say "Der Schlüssel in diesem Export hat nicht den erwarteten Fingerabdruck ($fingerprint). Abbruch." "The key in this export does not have the expected fingerprint ($fingerprint). Aborting." >&2; return 1
+    fi
+    work=$(mktemp -d)
+    curl -fL --proto '=https' --tlsv1.2 -o "$work/bundle.tar.gz" -- "$base/windoesnot-update-client-$version.tar.gz"
+    curl -fL --proto '=https' --tlsv1.2 -o "$work/bundle.tar.gz.sig" -- "$base/windoesnot-update-client-$version.tar.gz.sig"
+    gpg --dearmor --output "$work/release.gpg" -- "$key"
+    gpgv --keyring "$work/release.gpg" "$work/bundle.tar.gz.sig" "$work/bundle.tar.gz" || { say 'Signaturprüfung fehlgeschlagen. Abbruch.' 'Signature check failed. Aborting.' >&2; return 1; }
+    tar -xzf "$work/bundle.tar.gz" -C "$work"
+    say 'Befehl: sudo ./bootstrap.sh (trägt nur den WinDoesNot-Schlüssel und das Repository ein, sichert /etc/pacman.conf)' 'Command: sudo ./bootstrap.sh (adds only the WinDoesNot key and repository, backs up /etc/pacman.conf)'
+    (cd "$work/windoesnot-update-client-$version" && sudo ./bootstrap.sh)
+    sudo pacman -Sy "${noconfirm[@]}"
+    if [[ $work == /tmp/* && ! -L $work ]]; then rm -r -- "$work"; fi
+}
+channel_missing=()
+for dep in "${unavailable[@]}"; do [[ $dep == windoesnot-* ]] && channel_missing+=("$dep"); done
+if ((${#channel_missing[@]})) && ! grep -qs 'windoesnot' /etc/pacman.conf /etc/pacman.d/windoesnot.conf 2>/dev/null; then
+    say "Die Pakete ${channel_missing[*]} liegen im signierten WinDoesNot-Updatekanal. Er wird einmalig eingerichtet (Fingerabdruck wird gegen den Schlüssel in diesem Export geprüft)." "The packages ${channel_missing[*]} come from the signed WinDoesNot update channel. It is set up once (the fingerprint is checked against the key in this export)."
+    if ((! check && ! dry)); then
+        if ask "$(say 'Updatekanal jetzt einrichten?' 'Set up the update channel now?')" yes; then
+            setup_channel || exit 1
+            WDN_BOOTSTRAPPED=1 exec bash "${BASH_SOURCE[0]}" "${orig_args[@]}"
+        fi
+    fi
+fi
 if ((check)); then
     ((${#repo[@]} == 0 && ${#unavailable[@]} == 0)) || exit 1
     say 'Voraussetzungen erfüllt.' 'Prerequisites satisfied.'; exit 0
@@ -110,7 +175,7 @@ if ((dry)); then
 fi
 if ((${#repo[@]})); then
     say "Befehl: sudo pacman -S --needed ${repo[*]}" "Command: sudo pacman -S --needed ${repo[*]}"
-    if ask "$(say 'Diese Liste installieren?' 'Install this list?')" yes; then sudo pacman -S --needed "${repo[@]}"; else exit 1; fi
+    if ask "$(say 'Diese Liste installieren?' 'Install this list?')" yes; then sudo pacman -S --needed "${noconfirm[@]}" "${repo[@]}"; else exit 1; fi
 fi
 if ((${#unavailable[@]})); then
     helper=''
@@ -119,7 +184,7 @@ if ((${#unavailable[@]})); then
     fi
     if [[ -n $helper ]]; then
         say "Befehl: $helper -S --needed ${unavailable[*]} (der Helfer kann pacman/sudo aufrufen)." "Command: $helper -S --needed ${unavailable[*]} (the helper may invoke pacman/sudo)."
-        if ask "$(say 'Diese Liste mit dem AUR-Helfer installieren?' 'Install this list with the AUR helper?')" no; then "$helper" -S --needed "${unavailable[@]}"; fi
+        if ask "$(say 'Diese Liste mit dem AUR-Helfer installieren?' 'Install this list with the AUR helper?')" no; then "$helper" -S --needed "${noconfirm[@]}" "${unavailable[@]}"; fi
     fi
     missing=()
     for dep in "${unavailable[@]}"; do pacman -Q "$dep" >/dev/null 2>&1 || missing+=("$dep"); done
@@ -137,12 +202,12 @@ say 'Befehl: makepkg -s --force (fehlende Abhängigkeiten könnten pacman aufruf
 if ! ask "$(say 'Pakete bauen?' 'Build packages?')" yes; then exit 1; fi
 # All dependencies must already be installed: makepkg must not silently install more.
 if ! pacman -T "${deps[@]}" >/dev/null; then say 'Abhängigkeiten fehlen noch; bitte prüfen und erneut starten.' 'Dependencies are still missing; check them and rerun.'; exit 1; fi
-(cd "$build" && makepkg -s --force)
+(cd "$build" && makepkg -s --force "${noconfirm[@]}")
 mapfile -t packages < <(cd "$build" && makepkg --packagelist)
 for package in "${packages[@]}"; do [[ -f $package ]] || { say "Paket fehlt: $package" "Package missing: $package"; exit 1; }; done
 ((${#packages[@]})) || { say 'Keine Pakete gebaut.' 'No packages built.'; exit 1; }
 say "Befehl: sudo pacman -U ${packages[*]}" "Command: sudo pacman -U ${packages[*]}"
-if ask "$(say 'Diese Pakete installieren?' 'Install these packages?')" yes; then sudo pacman -U "${packages[@]}"; else exit 1; fi
+if ask "$(say 'Diese Pakete installieren?' 'Install these packages?')" yes; then sudo pacman -U "${noconfirm[@]}" "${packages[@]}"; else exit 1; fi
 if systemctl is-active --quiet display-manager.service 2>/dev/null; then say 'Ein Display-Manager ist aktiv.' 'A display manager is active.'; else say 'Kein aktiver Display-Manager erkannt; bitte bei Bedarf selbst einrichten.' 'No active display manager detected; set one up if needed.'; fi
 say 'Wähle die Sitzung WinDoesNot beim Anmelden.' 'Choose the WinDoesNot session at login.'
 say 'Befehl: windoesnot-initialize (legt nur fehlende Standardwerte an).' 'Command: windoesnot-initialize (creates missing defaults only).'
