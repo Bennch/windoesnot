@@ -251,8 +251,14 @@ if ($Unattended) {
 }
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'WinDoesNot Setup – Daten für den Umzug auswählen'
-$form.ClientSize = New-Object -TypeName System.Drawing.Size -ArgumentList 700,650
-$form.MinimumSize = New-Object -TypeName System.Drawing.Size -ArgumentList 716,689
+# Small screens (800x600, 1024x600 netbooks): never taller or wider than the working area, scroll instead.
+$workArea = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+$formWidth = [Math]::Min(700, $workArea.Width - 20)
+$formHeight = [Math]::Min(650, $workArea.Height - 50)
+$form.ClientSize = New-Object -TypeName System.Drawing.Size -ArgumentList $formWidth,$formHeight
+$form.MinimumSize = New-Object -TypeName System.Drawing.Size -ArgumentList ([Math]::Min(716, $workArea.Width)),([Math]::Min(689, $workArea.Height))
+$form.AutoScroll = $true
+$form.AutoScrollMinSize = New-Object -TypeName System.Drawing.Size -ArgumentList 700,650
 $form.StartPosition = 'CenterScreen'
 $form.BackColor = [System.Drawing.Color]::FromArgb(25, 25, 34)
 $form.ForeColor = [System.Drawing.Color]::FromArgb(240, 240, 245)

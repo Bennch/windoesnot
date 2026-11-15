@@ -147,7 +147,7 @@ def make_iso(src, out, label):
     run('genisoimage', '-quiet', '-o', out, '-J', '-r', '-V', label, src)
 
 
-def build_payload(version, job=None):
+def build_payload(version, job=None, gui=False):
     d = vmdir(version)
     tmp = d / 'payload-src'
     if tmp.exists():
@@ -157,6 +157,10 @@ def build_payload(version, job=None):
     (tmp / 'firstlogon.cmd').write_text(FIRSTLOGON.replace('\n', '\r\n'))
     (tmp / 'job.cmd').write_text((Path(job).read_text() if job else JOB_DEFAULT).replace('\r\n', '\n').replace('\n', '\r\n'))
     shutil.copytree(ROOT / 'windows', tmp / 'windows', ignore=shutil.ignore_patterns('__pycache__'))
+    jobs = Path(__file__).resolve().parent / 'jobs'
+    shutil.copyfile(jobs / 'gui.cmd', tmp / 'gui.cmd')
+    if gui:
+        (tmp / 'WDN_GUI.txt').write_text('gui\r\n')
     make_iso(tmp, d / 'payload.iso', 'WDNPAYLOAD')
     shutil.rmtree(tmp)
 
@@ -257,6 +261,7 @@ def main():
     p.add_argument('version', nargs='?', choices=list(VERSIONS))
     p.add_argument('arg', nargs='?')
     p.add_argument('--job', help='job script for the payload')
+    p.add_argument('--gui', action='store_true', help='payload starts the exporter window at logon (needs the WdnGui task)')
     a = p.parse_args()
     if a.action == 'status':
         for v in VERSIONS:
@@ -282,7 +287,7 @@ def main():
     elif a.action == 'run':
         start(v, False)
     elif a.action == 'payload':
-        build_payload(v, a.job)
+        build_payload(v, a.job, a.gui)
     elif a.action == 'shot':
         out = Path(a.arg or vmdir(v) / 'screen.png').resolve()
         print(qmp(v, 'screendump', filename=str(out), format='png'))
