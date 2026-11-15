@@ -69,11 +69,12 @@ public:
         return info.isValid() && info.isReady() && QDir::cleanPath(info.rootPath()) == QDir::cleanPath(path) ? info.bytesAvailable() : -1;
     }
     QString secret() const { return m_secret; }
+    QString envelopeSecret() const { return m_envelopeSecret; }
     bool skipped() const { return m_skip; }
     Q_INVOKABLE void discover() { start(QStringLiteral("partitions"), {}); }
     Q_INVOKABLE void scan(const QString& device) {
         if (device.isEmpty()) return;
-        m_device = device; m_manifest.clear(); m_secret.clear(); emit changed();
+        m_device = device; m_manifest.clear(); m_secret.clear(); m_envelopeSecret.clear(); emit changed();
         start(QStringLiteral("scan"), {device, QStringLiteral("--locale"), german() ? QStringLiteral("de_DE.UTF-8") : QStringLiteral("en_US.UTF-8")});
     }
     Q_INVOKABLE void unlock(const QString& secret) {
@@ -100,6 +101,7 @@ public:
         m_manifest = QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Compact)); emit changed();
     }
     Q_INVOKABLE void setSecret(const QString& secret) { m_secret = secret; }
+    Q_INVOKABLE void setEnvelopeSecret(const QString& secret) { m_envelopeSecret = secret; }
     void start(const QString& action, const QStringList& args) {
         if (m_process.state() != QProcess::NotRunning) return;
         m_action = action; m_error.clear(); m_busy = true; emit changed();
@@ -109,7 +111,7 @@ signals:
     void changed();
 private:
     QProcess m_process;
-    QString m_action, m_device, m_manifest, m_devices, m_error, m_secret;
+    QString m_action, m_device, m_manifest, m_devices, m_error, m_secret, m_envelopeSecret;
     bool m_busy = false, m_skip = false;
 };
 
@@ -208,6 +210,7 @@ public:
         auto* storage = Calamares::JobQueue::instance()->globalStorage();
         storage->insert("windoesnotMigrateManifest", m_bridge->skipped() ? QString() : m_bridge->manifest());
         storage->insert("windoesnotMigrateSecret", m_bridge->skipped() ? QString() : m_bridge->secret());
+        storage->insert("windoesnotMigrateEnvelopeSecret", m_bridge->skipped() ? QString() : m_bridge->envelopeSecret());
     }
     Calamares::JobList jobs() const override { return {}; }
     void setConfigurationMap(const QVariantMap& config) override { m_resultMode = config.value(QStringLiteral("mode")).toString() == QStringLiteral("result"); }

@@ -207,6 +207,15 @@ Rectangle {
                     (page.plan.handoff.chromium_passwords ? page.tr(" · Chromium-Passwortexport vorhanden", " · Chromium password export available") : "") : ""
             }
         }
+        TextField {
+            visible: !!page.plan.handoff && !!page.plan.handoff.chromium_envelope
+            enabled: !page.skipped
+            Layout.fillWidth: true
+            echoMode: TextInput.Password
+            placeholderText: page.tr("Passwort der Browser-Passwort-Hülle (optional)", "Browser password envelope password (optional)")
+            onTextChanged: if (page.bridge) page.bridge.setEnvelopeSecret(text)
+            onVisibleChanged: if (!visible) text = ""
+        }
         CheckBox { visible: !!page.plan.handoff && page.plan.handoff.wlan_exports > 0
             enabled: !page.skipped
             checked: !!page.plan.handoff && page.plan.handoff.wlan_selected

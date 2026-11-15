@@ -25,6 +25,9 @@ with patch.dict(sys.modules, {'libcalamares': fake}):
         assert 'vor der Partitionierung' in guard.run()[1]
         values['windoesnotMigrateManifest'] = json.dumps({'profiles': [], 'handoff': {'wlan_selected': True}})
         assert 'vor der Partitionierung' in guard.run()[1]
+    values['partitionChoices'] = {'install': 'erase'}
+    values['windoesnotMigrateManifest'] = json.dumps({'profiles': [], 'handoff': {'chromium_envelope': True}})
+    assert guard.run() is not None
     # Installing alongside keeps Windows on the disk: the import may run.
     values['partitionChoices'] = {'install': 'alongside'}
     values['windoesnotMigrateManifest'] = json.dumps({'profiles': [{'items': [{'selected': True}]}], 'handoff': None})

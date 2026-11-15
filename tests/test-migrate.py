@@ -244,6 +244,24 @@ with tempfile.TemporaryDirectory() as tmp:
             assert job.run() is None
             assert 'photo.txt' in values['windoesnotMigrateWarning'] and 'rsync code 23' in values['windoesnotMigrateWarning']
             assert values['windoesnotMigrateCompleted'] is False
+    # Envelope-only handoffs use stdin and clean both secrets on success and error.
+    envelope_plan = {'profiles': [], 'handoff': {'chromium_envelope': True}}
+    values.update(windoesnotMigrateManifest=json.dumps(envelope_plan), windoesnotMigrateSecret='bit-secret',
+                  windoesnotMigrateEnvelopeSecret='envelope-secret', locale='de_DE')
+    def fake_run(args, **kwargs):
+        assert 'bit-secret' not in args and 'envelope-secret' not in args
+        assert kwargs['input'] == 'bit-secret\nenvelope-secret\n'
+        return SimpleNamespace(returncode=0, stderr='', stdout=json.dumps({'event': 'summary', 'errors': [], 'password_csv': ['fixture.csv']}))
+    with patch.dict(sys.modules, {'libcalamares': fake_calamares, 'migrate': m}):
+        with patch.object(job.subprocess, 'run', side_effect=fake_run):
+            assert job.run() is None
+    assert 'CSV' in values['windoesnotMigrateWarning'] and values['windoesnotMigrateCompleted']
+    assert values['windoesnotMigrateSecret'] == values['windoesnotMigrateEnvelopeSecret'] == ''
+    values['windoesnotMigrateEnvelopeSecret'] = 'envelope-secret'
+    with patch.dict(sys.modules, {'libcalamares': fake_calamares, 'migrate': m}):
+        with patch.object(job.subprocess, 'run', side_effect=OSError('copy failed')):
+            assert job.run() is None
+    assert values['windoesnotMigrateEnvelopeSecret'] == '' and not values['windoesnotMigrateCompleted']
     # Exercise the Calamares job with the real importer and a synthetic source.
     # No block device, real Windows profile, or WLAN credentials are involved.
     source = Path(tmp) / 'calamares-windows'

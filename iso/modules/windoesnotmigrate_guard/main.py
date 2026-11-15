@@ -2,9 +2,7 @@
 """Stop before partitioning while an in-installer import cannot be protected."""
 import json
 import importlib.util
-import os
 from pathlib import Path
-import stat
 
 spec = importlib.util.spec_from_file_location("windoesnot_block_identity", Path(__file__).with_name("block_identity.py"))
 block_identity = importlib.util.module_from_spec(spec)
@@ -44,6 +42,10 @@ def has_selection(raw):
         if not isinstance(handoff, dict) or not isinstance(handoff.get('wlan_selected', False), bool):
             raise ValueError('Invalid migration plan')
         selected |= handoff.get('wlan_selected', False)
+        # An envelope can be imported even when no folder or WLAN is selected.
+        if not isinstance(handoff.get('chromium_envelope', False), bool):
+            raise ValueError('Invalid browser envelope selection')
+        selected |= handoff.get('chromium_envelope', False)
     return selected
 
 
@@ -68,23 +70,9 @@ def run():
     # partitioning can destroy it before it is read: stop before anything is written.
     choices = storage.value('partitionChoices') or {}
     if not invalid and isinstance(choices, dict) and choices.get('install') == 'alongside':
-        if not linux:
-            return None
-        try:
-            device = candidate['device']
-            info = os.stat(device)
-            identity = f'{os.major(info.st_rdev)}:{os.minor(info.st_rdev)}'
-            targets = choices.get('writableTargets')
-            if (not stat.S_ISBLK(info.st_mode) or identity != candidate.get('block_identity')
-                    or not isinstance(targets, list) or not targets
-                    or any(not isinstance(x, str) or not x.startswith('/dev/') for x in targets)
-                    or not block_identity.disjoint_backing(device, targets)):
-                raise ValueError('Unsafe source or target')
-            # Calamares does not provide a verified complete writable-target
-            # inventory here. A caller-provided list cannot establish that no
-            # other partition or bootloader target will be written.
-        except (OSError, ValueError, KeyError, TypeError):
-            pass
+        # Same rule for Linux sources: "alongside" only shrinks a partition (its data stays) and Calamares
+        # offers no earlier proof about other targets. Erase, replace and manual stay blocked below.
+        return None
     if linux:
         if str(storage.value('locale')).startswith('de'):
             return ('Linux-Datenquelle schützen',
