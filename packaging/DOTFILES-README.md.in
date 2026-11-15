@@ -44,7 +44,7 @@ Contents and limitations
 - No host settings, private histories, credentials, backups or compiled plugins.
 - The source package build path is used for the ISO. Installing this standalone
   source export on other systems has not been separately smoke-tested.
-- Real hardware, BIOS boot and Secure Boot are not yet verified.
+- Tested on virtual machines and a 2010 laptop (BIOS boot, light mode). Secure Boot and AMD graphics are not yet verified.
 
 Project code is GPL-3.0-or-later. Third-party components retain their licenses;
 read LICENSE, THIRD-PARTY.md and packaging/LICENSE-NOTES.md.

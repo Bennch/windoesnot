@@ -47,11 +47,11 @@ log out and back in; follow any reboot instructions for system updates.
 Once configured and refreshed, Settings and the Store use the normal package
 databases to show available WinDoesNot updates.
 
-The 18 → 19 upgrade and login were checked in a UEFI VM, including native plugins
+The 18 → 19 and 28 → 30 upgrades (with login) were checked in a UEFI VM, including native plugins
 and preservation of private settings. During the CachyOS CPU-package transition,
 the regulatory-domain service failed in the test system without the `nl80211`
 wireless subsystem. This is recorded separately from the component-update result;
-real-hardware coverage is still open.
+the update path itself has not been tested on real hardware yet.
 
 ## If you need to disable it
 
@@ -86,11 +86,11 @@ wird als bereits eingerichtet gemeldet und nicht überschrieben. Nach dem Update
 Neustarthinweise für Systemupdates beachten. Einstellungen und Store zeigen den
 Kanal über die normalen Paketdatenbanken an, sobald er eingerichtet und geprüft ist.
 
-Das Update 18 → 19 mit erneuter Anmeldung, nativen Plugins und Erhalt der privaten
+Die Updates 18 → 19 und 28 → 30 mit erneuter Anmeldung, nativen Plugins und Erhalt der privaten
 Einstellungen wurde in einer UEFI-VM geprüft. Beim Wechsel auf die CachyOS-CPU-Pakete
 meldete der Länderkennungsdienst im Testsystem ohne WLAN-Subsystem (`nl80211`)
-einen Fehler. Dieser Hinweis ist separat dokumentiert; echte Hardware ist weiterhin
-noch nicht mit diesem Updateweg geprüft.
+einen Fehler. Dieser Hinweis ist separat dokumentiert; der Updateweg selbst ist auf echter
+Hardware noch nicht geprüft.
 
 Zum Abschalten kannst du die beim Einrichten genannte Konfigurationssicherung
 zurückspielen, sofern du die Paketquellen seitdem nicht weiter geändert hast.
