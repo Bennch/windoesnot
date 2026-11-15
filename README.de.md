@@ -21,7 +21,7 @@ und [Quickshell](https://quickshell.org).
 </div>
 
 > [!WARNING]
-> **Öffentliche Vorschau: 0.1.0-28.** [ISO herunterladen](https://windoesnot.me/download/).
+> **Öffentliche Vorschau: 0.1.0-29.** [ISO herunterladen](https://windoesnot.me/download/).
 > Live-System und Installer sind in UEFI-VMs und auf einem Laptop von 2010 getestet
 > (BIOS-Start, Installation neben vorhandenen Daten). Secure Boot und AMD-Grafik sind noch
 > ungetestet. Mit Ecken, Kanten und größeren Änderungen ist zu rechnen.
@@ -78,7 +78,7 @@ Arch-News vor dem Systemupdate.
 | Signierte Komponentenupdates | [Einmalige Einrichtung](UPDATE-CHANNEL.md#deutsch) · Update in einer UEFI-VM geprüft |
 | Echte Hardware: BIOS-Start, alte CPU und Grafik (Laptop von 2010, Leichtmodus), Rechner des Autors mit mehreren Monitoren | Getestet |
 | Secure Boot, AMD-Grafik, andere Laptops | **Noch nicht getestet** |
-| Öffentlicher ISO-Download | [Download-Seite](https://windoesnot.me/download/) · aktuelle Version 0.1.0-28 |
+| Öffentlicher ISO-Download | [Download-Seite](https://windoesnot.me/download/) · aktuelle Version 0.1.0-29 |
 
 ## Bauen
 
