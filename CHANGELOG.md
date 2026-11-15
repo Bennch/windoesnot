@@ -2,6 +2,38 @@
 
 Generated from `packaging/changelog.json` (newest first). Releases with downloads: https://github.com/Bennch/windoesnot/releases
 
+## 0.1.0-30 (2026-11-15)
+
+- Updates from older versions: fixed a file conflict on the Ghostty launcher shim so pacman -Syu runs through cleanly.
+
+## 0.1.0-29 (2026-11-14)
+
+- Installation with the systemd-boot menu no longer aborts. If the German translation does not match the version, the standard English menu stays.
+- Old computers: if an old NVIDIA card is detected, the nouveau driver is no longer blocked and the desktop starts in Lite Mode with software drawing, fewer effects and a light terminal. Settings, Maintenance: Lite Mode can be switched on and off.
+- Less background load: Bluetooth, notifications, network and volume no longer poll constantly but react to events. If a service hangs, processes no longer pile up. This helps most on weak PCs.
+- Wallpaper: a new renderer replaces hyprpaper and also works without 3D acceleration, for example in virtual machines. If it does not start, it is started again.
+- File manager: right-click scripts and programs, Run as administrator.
+- Settings, Maintenance: the new Your device card shows processor, memory and graphics and recommends Lite Mode on older devices. Nothing is sent.
+- Settings, Maintenance: new configuration files (.pacnew) are shown with a comparison. Nothing is changed automatically. The Desktop state card shows configuration errors and loaded window extensions.
+- Sharing: the window shows your own IP address and the addresses of devices found.
+- Start menu: technical programs are hidden and can be shown with a switch.
+- Installer: German texts consistently use the informal du, and Größe instead of Grösse.
+- The desktop icons restart automatically after a start error.
+- The pacman warning about DownloadUser is gone.
+- Older machines: All bundled apps (Store, Network, Bluetooth, Audio, Graphics, Device Manager) now run on any 64-bit processor. Before, they crashed on computers whose processor is older than the build machine's.
+- Desktop icons appear reliably on slow machines; startup now waits longer for the icon layer.
+- Faster startup: the icon mapping is only rebuilt when the list of installed apps changes.
+- The weather window appears at its place above the taskbar right away instead of gliding in from the middle of the screen.
+- Older machines: Lite mode now also switches itself on once for machines with less than 3 GB of memory or a processor without SSE4.1. It can be switched off in Settings.
+- Legacy NVIDIA cards: after installation the desktop starts with the free nouveau driver. The blue error screen for graphics driver problems now explains in German and English what to do.
+- Installer: “Install alongside” preselects the only shrinkable partition and shows its hint clearly. On disks with extended partitions (MBR) the new partition is created correctly.
+- Installer: Windows data migration works with “Install alongside” and leaves the Windows data untouched. With erase, replace or manual partitioning it is stopped before partitioning.
+- Installer: files from the live session (Desktop, Documents, Downloads, Pictures, Music, Videos) are carried over to the new user account.
+- Installer: on old computers the installer window renders without graphics glitches, and system files are copied with lighter compression.
+- Screenshots: after a capture a notification appears at the top right, a click opens the picture. It is also on the clipboard.
+- Terminal in lite mode: the pinned taskbar launcher works again, and the window groups under the Ghostty icon.
+- Remote support: the windoesnot-remote-support command allows help from afar on request, only after explicit confirmation.
+
 ## 0.1.0-28 (2026-11-12)
 
 - At first start you set resolution, zoom and pointer speed. A new display setting is reverted after 12 seconds unless you keep it.
