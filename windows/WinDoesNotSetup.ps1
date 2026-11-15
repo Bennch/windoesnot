@@ -205,13 +205,16 @@ function Write-SetupLog([string]$line) {
     if (-not $script:LogPath) { return }
     try { [System.IO.File]::AppendAllText($script:LogPath, ((Get-Date).ToString('s') + ' ' + $line + "`r`n")) } catch { }
 }
+$isGerman = [System.Globalization.CultureInfo]::CurrentUICulture.TwoLetterISOLanguageName -eq 'de'
 try { $windowsLabel = Get-WindowsLabel } catch {
     [System.Windows.Forms.MessageBox]::Show($_.Exception.Message, 'WinDoesNot Setup') | Out-Null
     exit 1
 }
 if (-not (Is-Administrator)) {
     if ($Unattended) { exit 3 }
-    $answer = [System.Windows.Forms.MessageBox]::Show('Zum Schreiben der Auswahl auf das Windows-Laufwerk ist eine Administratorfreigabe nötig. Es werden keine Windows-Anmeldepasswörter ausgelesen.', 'WinDoesNot Setup', 'OKCancel', 'Information')
+    if ($isGerman) { $adminText = 'Zum Schreiben der Auswahl auf das Windows-Laufwerk ist eine Administratorfreigabe nötig. Es werden keine Windows-Anmeldepasswörter ausgelesen.' }
+    else { $adminText = 'Administrator permission is required to write the selection to the Windows drive. Windows sign-in passwords are not read.' }
+    $answer = [System.Windows.Forms.MessageBox]::Show($adminText, 'WinDoesNot Setup', 'OKCancel', 'Information')
     if ($answer -ne [System.Windows.Forms.DialogResult]::OK) { exit 0 }
     Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList @('-NoProfile','-STA','-ExecutionPolicy','Bypass','-File',('"' + $MyInvocation.MyCommand.Path + '"'))
     exit 0
@@ -249,59 +252,111 @@ if ($Unattended) {
         exit 3
     }
 }
+# Show 'Windows 10', not the build number, in the window.
+$shownLabel = $windowsLabel -replace '^(Windows [0-9.]+).*$','$1'
 $form = New-Object System.Windows.Forms.Form
-$form.Text = 'WinDoesNot Setup – Daten für den Umzug auswählen'
-# Small screens (800x600, 1024x600 netbooks): never taller or wider than the working area, scroll instead.
-$workArea = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
-$formWidth = [Math]::Min(700, $workArea.Width - 20)
-$formHeight = [Math]::Min(650, $workArea.Height - 50)
-$form.ClientSize = New-Object -TypeName System.Drawing.Size -ArgumentList $formWidth,$formHeight
-$form.MinimumSize = New-Object -TypeName System.Drawing.Size -ArgumentList ([Math]::Min(716, $workArea.Width)),([Math]::Min(689, $workArea.Height))
+if ($isGerman) { $form.Text = 'WinDoesNot Setup - Daten für den Umzug auswählen' }
+else { $form.Text = 'WinDoesNot Setup - Select data to migrate' }
+# Design coordinates are at 96 DPI; WinForms scales controls and the scroll area together.
+$form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Dpi
+$form.AutoScaleDimensions = New-Object -TypeName System.Drawing.SizeF -ArgumentList 96,96
+$form.ClientSize = New-Object -TypeName System.Drawing.Size -ArgumentList 700,680
 $form.AutoScroll = $true
-$form.AutoScrollMinSize = New-Object -TypeName System.Drawing.Size -ArgumentList 700,650
-$form.StartPosition = 'CenterScreen'
-$form.BackColor = [System.Drawing.Color]::FromArgb(25, 25, 34)
-$form.ForeColor = [System.Drawing.Color]::FromArgb(240, 240, 245)
-$form.Font = New-Object System.Drawing.Font('Segoe UI', 9)
+$form.AutoScrollMinSize = New-Object -TypeName System.Drawing.Size -ArgumentList 700,680
+$form.StartPosition = [System.Windows.Forms.FormStartPosition]::Manual
+$form.BackColor = [System.Drawing.Color]::FromArgb(27,27,31)
+$form.ForeColor = [System.Drawing.Color]::FromArgb(238,238,238)
+$fontName = 'Tahoma'
+$installedFonts = New-Object System.Drawing.Text.InstalledFontCollection
+foreach ($family in $installedFonts.Families) { if ($family.Name -eq 'Segoe UI') { $fontName = 'Segoe UI'; break } }
+$fontFamily = New-Object System.Drawing.FontFamily($fontName)
+$installedFonts.Dispose()
+$form.Font = New-Object System.Drawing.Font($fontFamily, 9.5, [System.Drawing.FontStyle]::Regular)
 $title = New-Object System.Windows.Forms.Label
 $title.Text = 'WinDoesNot. Setup'
-$title.Font = New-Object System.Drawing.Font('Segoe UI', 19, [System.Drawing.FontStyle]::Bold)
-$title.ForeColor = [System.Drawing.Color]::FromArgb(255, 124, 48)
-$title.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 22,16
+$title.Font = New-Object System.Drawing.Font($fontFamily, 19, [System.Drawing.FontStyle]::Bold)
+$title.ForeColor = [System.Drawing.Color]::FromArgb(254,111,45)
+$title.AutoSize = $false
+$title.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 24,16
 $title.Size = New-Object -TypeName System.Drawing.Size -ArgumentList 650,42
 $form.Controls.Add($title)
 $intro = New-Object System.Windows.Forms.Label
-$intro.Text = "Quelle: $windowsLabel`r`nWähle die Ordner für deinen Umzug. Deine Dateien bleiben an ihrem ursprünglichen Ort. Browser-Passwörter werden nicht automatisch ausgelesen."
-$intro.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 24,66; $intro.Size = New-Object -TypeName System.Drawing.Size -ArgumentList 650,60
+if ($isGerman) { $intro.Text = "Quelle: $shownLabel`r`nWähle die Ordner für deinen Umzug. Deine Dateien bleiben an ihrem ursprünglichen Ort. Browser-Passwörter werden nicht automatisch ausgelesen." }
+else { $intro.Text = "Source: $shownLabel`r`nChoose the folders to migrate. Your files stay in their original location. Browser passwords are not read automatically." }
+$intro.AutoSize = $false
+$intro.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 24,66
+$intro.Size = New-Object -TypeName System.Drawing.Size -ArgumentList 650,70
 $form.Controls.Add($intro)
 $list = New-Object System.Windows.Forms.CheckedListBox
-$list.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 24,132; $list.Size = New-Object -TypeName System.Drawing.Size -ArgumentList 650,360
+$list.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 24,142
+$list.Size = New-Object -TypeName System.Drawing.Size -ArgumentList 650,350
+$list.IntegralHeight = $false
 $list.CheckOnClick = $true
 $list.DisplayMember = 'Label'
-$list.BackColor = [System.Drawing.Color]::FromArgb(38, 38, 48)
-$list.ForeColor = [System.Drawing.Color]::FromArgb(240, 240, 245)
+$list.BackColor = [System.Drawing.Color]::FromArgb(20,20,20)
+$list.ForeColor = [System.Drawing.Color]::FromArgb(238,238,238)
 $list.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-$list.Font = New-Object System.Drawing.Font('Segoe UI', 10)
 foreach ($item in @(Get-HandoffItems $usersRoot $defaultFolders)) {
     $idx = $list.Items.Add($item)
     if ($item.Name -eq $env:USERNAME) { $list.SetItemChecked($idx, $true) }
 }
 $form.Controls.Add($list)
 $wifi = New-Object System.Windows.Forms.CheckBox
-$wifi.Text = 'Gespeicherte WLAN-Schlüssel exportieren (lesbar auf dem USB/Laufwerk gespeichert)'
-$wifi.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 24,508; $wifi.Size = New-Object -TypeName System.Drawing.Size -ArgumentList 650,28
+if ($isGerman) { $wifi.Text = 'Gespeicherte WLAN-Schlüssel exportieren (lesbar auf dem USB/Laufwerk gespeichert)' }
+else { $wifi.Text = 'Export saved Wi-Fi keys (stored in readable form on the USB drive)' }
+$wifi.AutoSize = $false
+$wifi.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$wifi.BackColor = [System.Drawing.Color]::FromArgb(27,27,31)
+$wifi.ForeColor = [System.Drawing.Color]::FromArgb(238,238,238)
+$wifi.UseVisualStyleBackColor = $false
+$wifi.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 24,508
+$wifi.Size = New-Object -TypeName System.Drawing.Size -ArgumentList 650,40
 $form.Controls.Add($wifi)
 $notice = New-Object System.Windows.Forms.Label
-$notice.Text = 'Umgeleitete und nicht lokal verfügbare Ordner fehlen möglicherweise. Chrome/Edge-Passwörter im jeweiligen Browser als CSV exportieren. Firefox schließen; Passwortübernahme ist ungeprüft.'
-$notice.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 24,545; $notice.Size = New-Object -TypeName System.Drawing.Size -ArgumentList 650,42
+if ($isGerman) { $notice.Text = 'Umgeleitete und nicht lokal verfügbare Ordner fehlen möglicherweise. Chrome/Edge-Passwörter im jeweiligen Browser als CSV exportieren. Firefox schließen; Passwortübernahme ist ungeprüft.' }
+else { $notice.Text = 'Redirected folders and folders unavailable locally may be missing. Export Chrome/Edge passwords as CSV in the browser. Close Firefox; password import is unverified.' }
+$notice.AutoSize = $false
+$notice.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 24,552
+$notice.Size = New-Object -TypeName System.Drawing.Size -ArgumentList 650,62
 $form.Controls.Add($notice)
 $save = New-Object System.Windows.Forms.Button
-$save.Text = 'Auswahl speichern'; $save.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 510,602; $save.Size = New-Object -TypeName System.Drawing.Size -ArgumentList 164,34
+if ($isGerman) { $save.Text = 'Auswahl speichern' } else { $save.Text = 'Save selection' }
+$save.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 510,630
+$save.Size = New-Object -TypeName System.Drawing.Size -ArgumentList 164,34
 $save.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-$save.FlatAppearance.BorderSize = 0
-$save.BackColor = [System.Drawing.Color]::FromArgb(255, 111, 45)
-$save.ForeColor = [System.Drawing.Color]::White
+$save.FlatAppearance.BorderSize = 1
+$save.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(254,111,45)
+$save.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(255,145,88)
+$save.FlatAppearance.MouseDownBackColor = [System.Drawing.Color]::FromArgb(220,85,25)
+$save.BackColor = [System.Drawing.Color]::FromArgb(254,111,45)
+$save.ForeColor = [System.Drawing.Color]::FromArgb(20,20,20)
 $save.UseVisualStyleBackColor = $false
+# Clamp the scaled outer size, including the native frame, after WinForms has scaled the layout.
+$form.Add_Load({
+    $graphics = $form.CreateGraphics()
+    try { $dpiFactor = $graphics.DpiX / 96.0 } finally { $graphics.Dispose() }
+    $workArea = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+    $scaledWidth = [int][Math]::Ceiling(700 * $dpiFactor)
+    $wanted = [int][Math]::Ceiling(680 * $dpiFactor)
+    # Start from the design size, then fit the window to the work area and measure what is left of the client area.
+    $form.ClientSize = New-Object -TypeName System.Drawing.Size -ArgumentList $scaledWidth,$wanted
+    $width = [Math]::Min($form.Width, $workArea.Width)
+    $height = [Math]::Min($form.Height, $workArea.Height)
+    $form.Size = New-Object -TypeName System.Drawing.Size -ArgumentList $width,$height
+    $missing = $wanted - $form.ClientSize.Height
+    # Small screens (800x600): shrink the list so that the Save button stays visible without scrolling.
+    $shrink = 0
+    if ($missing -gt 0) { $shrink = [Math]::Min($missing, $list.Height - [int](90 * $dpiFactor)) }
+    if ($shrink -gt 0) {
+        $list.Height = $list.Height - $shrink
+        foreach ($moved in @($wifi, $notice, $save)) { $moved.Top = $moved.Top - $shrink }
+    }
+    if ($shrink -ge $missing) { $form.AutoScroll = $false }
+    else { $form.AutoScrollMinSize = New-Object -TypeName System.Drawing.Size -ArgumentList $scaledWidth,($wanted - $shrink) }
+    $left = $workArea.Left + [int](($workArea.Width - $width) / 2)
+    $top = $workArea.Top + [int](($workArea.Height - $height) / 2)
+    $form.Location = New-Object -TypeName System.Drawing.Point -ArgumentList $left,$top
+})
 $save.Add_Click({
     try {
         Save-Handoff (Group-Selection $list.CheckedItems) $wifi.Checked $root $windowsLabel
@@ -313,7 +368,8 @@ $save.Add_Click({
         [System.Windows.Forms.MessageBox]::Show($next, 'WinDoesNot Setup') | Out-Null
         $form.Close()
     } catch {
-        [System.Windows.Forms.MessageBox]::Show($_.Exception.Message, 'WinDoesNot Setup – Fehler', 'OK', 'Error') | Out-Null
+        if ($isGerman) { $errorTitle = 'WinDoesNot Setup - Fehler' } else { $errorTitle = 'WinDoesNot Setup - Error' }
+        [System.Windows.Forms.MessageBox]::Show($_.Exception.Message, $errorTitle, 'OK', 'Error') | Out-Null
     }
 })
 $form.Controls.Add($save)
