@@ -166,7 +166,7 @@ with tempfile.TemporaryDirectory() as tmp:
     (firefox / 'parent.lock').unlink()
     flatpak_home = Path(tmp) / 'flatpak-home'; flatpak_home.mkdir()
     (flatpak_home / '.var/app/org.mozilla.firefox').mkdir(parents=True)
-    assert m.firefox_target(flatpak_home) == flatpak_home / '.var/app/org.mozilla.firefox/.mozilla/firefox'
+    assert m.firefox_target(flatpak_home) == flatpak_home / '.mozilla/firefox'
     wlan = root / 'WinDoesNotHandoff/wlan'; wlan.mkdir(parents=True)
     def export(name, auth, key):
         (wlan / name).write_text('<WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1"><name>Windows profile label</name><SSIDConfig><SSID><name>Test WLAN</name></SSID><nonBroadcast>true</nonBroadcast></SSIDConfig><MSM><security><authEncryption><authentication>' + auth + '</authentication><encryption>AES</encryption></authEncryption><sharedKey><protected>false</protected><keyMaterial>' + key + '</keyMaterial></sharedKey></security></MSM></WLANProfile>')

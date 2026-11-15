@@ -303,12 +303,15 @@ Rectangle {
                                 }
 
                             }
+                            Label { visible: profile.items.some(function(item) { return item.kind === "Firefox" })
+                                wrapMode: Text.WordWrap; Layout.fillWidth: true
+                                text: page.tr("Firefox schließen. Ein Hauptpasswort wird nicht erkannt; gespeicherte Passwörter und ihre Entschlüsselung sind nicht geprüft.", "Close Firefox. A primary password is not detected; saved passwords and their decryption have not been verified.") }
                             Label { visible: profile.items.some(function(item) { return item.warnings.indexOf("firefox_unavailable") >= 0 })
                                 Layout.fillWidth: true; color: "#f3c99d"; wrapMode: Text.WordWrap
                                 text: page.tr("Firefox-Profil nicht bereit: Firefox unter Windows schließen und erneut prüfen.", "Firefox profile unavailable: close Firefox in Windows and scan again.") }
                             Label { visible: profile.browsers && profile.browsers.length > 0
                                 Layout.fillWidth: true; color: "#f3c99d"; wrapMode: Text.WordWrap
-                                text: (profile.browsers || []).join(", ") + ": " + page.tr("Passwörter werden hier nicht übernommen und können nur unter Windows exportiert werden: Das geht separat mit unserem Umzugsprogramm „WinDoesNot Setup“ für Windows. Browserprofile werden nicht kopiert.", "Passwords are not transferred here and can only be exported in Windows: use our separate migration program “WinDoesNot Setup” for Windows. Browser profiles are not copied.") }
+                                text: (profile.browsers || []).join(", ") + ": " + page.tr("Passwörter werden hier nicht übernommen und können nur unter Windows exportiert werden: Chrome- und Edge-Passwörter unter Windows im jeweiligen Browser als CSV exportieren und später dort importieren. Die CSV enthält Klartext; sicher verwahren und anschließend löschen.", "Passwords are not transferred here and can only be exported in Windows: export Chrome and Edge passwords as CSV in each browser on Windows and import them later. The CSV contains plaintext; store it securely and delete it afterwards.") }
 
                             Repeater {
                                 model: profile.items

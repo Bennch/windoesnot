@@ -111,6 +111,15 @@ def measure(path):
     return total, sorted(warnings)
 
 
+def plain_path(root, relative):
+    current = root
+    for part in Path(relative).parts:
+        current = current / part
+        if warning_flags(current):
+            return False
+    return True
+
+
 def scan_tree(root, device='fixture', filesystem='ntfs', locale='en'):
     root = Path(root)
     profiles = []
@@ -121,7 +130,7 @@ def scan_tree(root, device='fixture', filesystem='ntfs', locale='en'):
         handoff = None
         root_warnings.append('handoff_invalid')
     users = root / 'Users'
-    if users.is_dir():
+    if not warning_flags(users) and users.is_dir():
         for profile in sorted(users.iterdir(), key=lambda p: p.name.lower()):
             if profile.name.lower() in EXCLUDED or warning_flags(profile) or not profile.is_dir():
                 continue
@@ -133,7 +142,7 @@ def scan_tree(root, device='fixture', filesystem='ntfs', locale='en'):
                     selected = folder in handoff['profiles'].get(profile.name, []) if handoff else True
                     items.append({'kind': folder, 'source': str(path.relative_to(root)), 'bytes': size, 'selected': selected, 'warnings': warnings})
             firefox = profile / 'AppData/Roaming/Mozilla/Firefox'
-            if not warning_flags(firefox) and firefox.is_dir():
+            if plain_path(profile, 'AppData/Roaming/Mozilla/Firefox') and firefox.is_dir():
                 size, warnings = measure(firefox)
                 try:
                     firefox_profiles(firefox)
@@ -144,7 +153,7 @@ def scan_tree(root, device='fixture', filesystem='ntfs', locale='en'):
             browsers = []
             for name, relative in (('Edge', 'Microsoft/Edge'), ('Chrome', 'Google/Chrome'), ('Chromium', 'Chromium')):
                 browser = profile / 'AppData/Local' / relative / 'User Data'
-                if not warning_flags(browser) and browser.is_dir():
+                if plain_path(profile, str(browser.relative_to(profile))) and browser.is_dir():
                     browsers.append(name)
             if items or browsers:
                 warnings = []
@@ -204,8 +213,7 @@ def target_name(kind, locale, home=None):
 
 
 def firefox_target(home):
-    flatpak = home / '.var/app/org.mozilla.firefox'
-    return flatpak / '.mozilla/firefox' if flatpak.is_dir() and not (home / '.mozilla/firefox').exists() else home / '.mozilla/firefox'
+    return home / '.mozilla/firefox'
 
 
 def firefox_profiles(source):
@@ -213,7 +221,10 @@ def firefox_profiles(source):
     if not ini.is_file() or warning_flags(ini):
         raise ValueError('Firefox profiles.ini is missing or redirected')
     config = configparser.ConfigParser(interpolation=None)
-    config.read(ini, encoding='utf-8-sig')
+    try:
+        config.read(ini, encoding='utf-8-sig')
+    except (configparser.Error, UnicodeError, OSError):
+        raise ValueError('Firefox profiles.ini cannot be read')
     profiles = []
     for section in config.sections():
         if not re.fullmatch(r'Profile\d+', section):
@@ -222,10 +233,12 @@ def firefox_profiles(source):
         if config.get(section, 'IsRelative', fallback='0') != '1' or len(path.parts) != 2 or path.parts[0] != 'Profiles' or path.parts[1] in ('.', '..') or any(ord(c) < 32 for c in path.parts[1]):
             raise ValueError('Unsupported Firefox profile path')
         folder = source / path
-        if warning_flags(folder) or not folder.is_dir():
+        if not plain_path(source, str(path)) or not folder.is_dir():
             raise ValueError('Firefox profile is missing or redirected')
-        if any((folder / name).exists() for name in FIREFOX_LOCKS):
+        if any(os.path.lexists(folder / name) for name in FIREFOX_LOCKS):
             raise ValueError('Firefox profile is locked; close Firefox in Windows first')
+        if any(folder.glob('*.sqlite-wal')) or any(folder.glob('*.sqlite-journal')) or any(folder.glob('*.db-wal')) or any(folder.glob('*.db-journal')) or any(folder.glob('*.sqlite-shm')) or any(folder.glob('*.db-shm')):
+            raise ValueError('Firefox database journal present; close Firefox in Windows first')
         name = config.get(section, 'Name', fallback=path.name)
         if not name or any(ord(c) < 32 for c in name):
             raise ValueError('Invalid Firefox profile name')
@@ -297,13 +310,22 @@ def read_handoff(root):
         return None
     if warning_flags(handoff) or warning_flags(manifest) or manifest.stat().st_size > 65536:
         raise ValueError('Unsafe handoff manifest')
-    data = json.loads(manifest.read_text(encoding='utf-8'))
-    if data.get('schema') != 1 or not isinstance(data.get('profiles'), dict):
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('Duplicate handoff key')
+            result[key] = value
+        return result
+    data = json.loads(manifest.read_text(encoding='utf-8-sig'), object_pairs_hook=unique_object)
+    if not isinstance(data, dict):
+        raise ValueError('Invalid handoff manifest')
+    if type(data.get('schema')) is not int or data.get('schema') != 1 or not isinstance(data.get('profiles'), dict):
         raise ValueError('Unsupported handoff manifest')
     if not isinstance(data.get('locale'), str) or not re.fullmatch(r'[A-Za-z]{2,3}(?:_[A-Za-z]{2})?(?:\.UTF-8)?', data['locale']) or not isinstance(data.get('windows_version'), str) or len(data['windows_version']) > 128 or any(ord(c) < 32 for c in data['windows_version']):
         raise ValueError('Invalid handoff metadata')
     for name, folders in data['profiles'].items():
-        if not isinstance(name, str) or not name or '/' in name or '\\' in name or not isinstance(folders, list) or any(folder not in (*FOLDERS, 'Firefox') for folder in folders):
+        if not isinstance(name, str) or not name or name in ('.', '..') or any(ord(c) < 32 for c in name) or '/' in name or '\\' in name or not isinstance(folders, list) or any(not isinstance(folder, str) or folder not in (*FOLDERS, 'Firefox') for folder in folders) or len(set(folders)) != len(folders):
             raise ValueError('Invalid handoff selection')
     if not isinstance(data.get('wlan', False), bool):
         raise ValueError('Invalid WLAN selection')

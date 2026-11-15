@@ -123,7 +123,7 @@ $wifi.Text = 'Gespeicherte WLAN-Schlüssel exportieren (lesbar auf dem USB/Laufw
 $wifi.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 24,508; $wifi.Size = New-Object -TypeName System.Drawing.Size -ArgumentList 650,28
 $form.Controls.Add($wifi)
 $notice = New-Object System.Windows.Forms.Label
-$notice.Text = 'Umgeleitete und nicht lokal verfügbare Ordner fehlen möglicherweise. Browser-Passwörter werden nicht automatisch übertragen.'
+$notice.Text = 'Umgeleitete und nicht lokal verfügbare Ordner fehlen möglicherweise. Chrome/Edge-Passwörter im jeweiligen Browser als CSV exportieren. Firefox schließen; Passwortübernahme ist ungeprüft.'
 $notice.Location = New-Object -TypeName System.Drawing.Point -ArgumentList 24,545; $notice.Size = New-Object -TypeName System.Drawing.Size -ArgumentList 650,42
 $form.Controls.Add($notice)
 $save = New-Object System.Windows.Forms.Button

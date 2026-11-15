@@ -10,8 +10,8 @@ The companion requests administrator approval and records selected profile
 folder kinds in `<system drive>:\WinDoesNotHandoff\manifest.json`. This is a
 selection, not a backup: the files remain on the Windows partition. The Linux
 importer must still read that partition. The current Calamares source-protection
-guard blocks a selected in-installer migration because preservation of that
-source is not yet established. Never rely on this manifest to protect data
+guard permits a selected in-installer migration only with the "install alongside"
+partitioning choice; other paths remain blocked. Never rely on this manifest to protect data
 when replacing or formatting Windows.
 
 Only canonical local paths under `Users` are offered. Reparse points are
@@ -24,7 +24,11 @@ WLAN export is optional and disabled by default. With explicit selection,
 folder. Only WPA2/WPA3 variants supported by the Linux importer can be used;
 the WLAN path has not been tested with real profiles. The Windows account
 password and browser passwords are not extracted. Firefox profile portability,
-including saved credentials, has not been established.
+including saved credentials, has not been established. Close Firefox before export;
+a primary password is not detected and must not be assumed absent. Export Chrome
+and Edge passwords to CSV from each browser on Windows if needed; CSV contains
+plaintext secrets and must be stored securely and deleted after use. Redirected
+OneDrive folders are not exported. Long Windows paths may fail in legacy tools.
 
 New handoffs are prepared separately and replaced with backup/rollback on a
 normal error. An interruption between renames may leave a `.previous-*` folder
