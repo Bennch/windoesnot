@@ -2,6 +2,16 @@
   "comment": "WinDoesNot changes per desktop package release, newest first. Shown in Settings > Updates; entries marked unreleased are never offered as an update.",
   "releases": [
     {
+      "version": "0.1.0-30",
+      "date": "2026-11-15",
+      "de": [
+        "Updates von älteren Versionen: Ein Dateikonflikt beim Ghostty-Startskript ist behoben, sodass pacman -Syu sauber durchläuft."
+      ],
+      "en": [
+        "Updates from older versions: fixed a file conflict on the Ghostty launcher shim so pacman -Syu runs through cleanly."
+      ]
+    },
+    {
       "version": "0.1.0-29",
       "date": "2026-11-14",
       "de": [

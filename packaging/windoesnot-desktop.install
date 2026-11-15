@@ -1,0 +1,22 @@
+# /usr/local/bin/ghostty is a launcher shim that older releases copied there
+# without owning it. The package keeps the wrapper in /usr/lib and installs the
+# shim from this script, so an update never fails with a file conflict.
+_wdn_shim() {
+    if [ -f /usr/lib/windoesnot/ghostty-wrapper ]; then
+        install -Dm755 /usr/lib/windoesnot/ghostty-wrapper /usr/local/bin/ghostty
+    fi
+}
+
+post_install() {
+    _wdn_shim
+}
+
+post_upgrade() {
+    _wdn_shim
+}
+
+pre_remove() {
+    if cmp -s /usr/lib/windoesnot/ghostty-wrapper /usr/local/bin/ghostty 2>/dev/null; then
+        rm -f /usr/local/bin/ghostty
+    fi
+}

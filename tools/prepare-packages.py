@@ -48,6 +48,7 @@ with tarfile.open(archive, 'w:gz', dereference=False) as stream:
 checksum = hashlib.sha256(archive.read_bytes()).hexdigest()
 template = (ROOT / 'packaging/PKGBUILD.in').read_text()
 (output / 'PKGBUILD').write_text(template.replace('@VERSION@', args.version).replace('@RELEASE@', args.release).replace('@SHA256@', checksum))
+(output / 'windoesnot-desktop.install').write_text((ROOT / 'packaging/windoesnot-desktop.install').read_text())
 (output / 'SOURCE-MANIFEST.json').write_text(json.dumps({'version': args.version, 'release': args.release, 'source_sha256': checksum, 'files': files}, indent=2, sort_keys=True) + '\n')
 (output / (archive.name + '.sha256')).write_text(checksum + '  ' + archive.name + '\n')
 print(output)
