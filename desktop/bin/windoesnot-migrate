@@ -42,7 +42,7 @@ button.suggested-action { background: #fe6f2d; color: #202020; }
 
 class Window(Adw.ApplicationWindow):
     def __init__(self, app):
-        super().__init__(application=app, title=tr('Windows-Daten übernehmen', 'Bring Windows data'), default_width=760, default_height=680)
+        super().__init__(application=app, title=tr('Daten übernehmen', 'Bring your data'), default_width=760, default_height=680)
         self.plan = None
         self.devices = []
         self.secret = None

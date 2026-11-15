@@ -11,7 +11,7 @@ import migrate
 
 
 def pretty_name():
-    return 'Windows-Daten kopieren' if str(libcalamares.globalstorage.value('locale')).startswith('de') else 'Copy Windows data'
+    return 'Daten kopieren' if str(libcalamares.globalstorage.value('locale')).startswith('de') else 'Copy data'
 
 
 def run():
@@ -19,17 +19,22 @@ def run():
     # completed; the presence of a selection alone is not proof of a copy.
     libcalamares.globalstorage.insert('windoesnotMigrateCompleted', False)
     libcalamares.globalstorage.insert('windoesnotMigrateWarning', '')
+    libcalamares.globalstorage.insert('windoesnotMigrateSystem', '')
+    german = str(libcalamares.globalstorage.value('locale')).startswith('de')
     raw = libcalamares.globalstorage.value('windoesnotMigrateManifest')
     if not raw:
         return None
-    def warn(message):
-        libcalamares.globalstorage.insert('windoesnotMigrateWarning', message)
+    def warn(message, shown=None):
+        # The log stays English; the result page shows the localised text.
+        libcalamares.globalstorage.insert('windoesnotMigrateWarning', shown or message)
         libcalamares.utils.warning('windoesnotmigrate: ' + message)
     try:
         username = libcalamares.globalstorage.value('username')
         if not isinstance(username, str) or not re.fullmatch(r'[a-z_][a-z0-9_-]{0,30}\$?', username):
             raise ValueError('Target username is invalid')
         plan = json.loads(raw)
+        system = str(((plan.get('handoff') or {}).get('windows_version')) or '')
+        libcalamares.globalstorage.insert('windoesnotMigrateSystem', system if re.fullmatch(r'[\w .()-]{1,40}', system) else '')
         if not any(item.get('selected') for profile in plan.get('profiles', []) for item in profile.get('items', [])) and not (plan.get('handoff') or {}).get('wlan_selected'):
             return None
         secret = libcalamares.globalstorage.value('windoesnotMigrateSecret') or None
@@ -46,11 +51,16 @@ def run():
         result = migrate.copy_manifest(plan, target_root / 'home' / username, secret=secret, progress=progress,
                                        nm_dir=target_root / 'etc/NetworkManager/system-connections')
         if result['errors']:
-            warn(f"Windows data migration incomplete: {len(result['errors'])} item(s) could not be copied. First: {result['errors'][0]['path']}: {result['errors'][0]['error']}")
+            count = len(result['errors'])
+            warn(f"Windows data migration incomplete: {count} item(s) could not be copied. First: {result['errors'][0]['path']}: {result['errors'][0]['error']}",
+                 (f"{count} Element(e) konnten nicht übernommen werden; die Originale bleiben unverändert." if german
+                   else f"{count} item(s) could not be copied; the originals stay untouched.")
+                 + f"\n{result['errors'][0]['path']}: {result['errors'][0]['error']}")
         else:
             libcalamares.globalstorage.insert('windoesnotMigrateCompleted', True)
     except Exception as error:
-        warn('Windows data migration could not finish: ' + str(error))
+        warn('Windows data migration could not finish: ' + str(error),
+             ('Die Daten konnten nicht übernommen werden.' if german else 'The data could not be copied.') + '\n' + str(error))
     finally:
         libcalamares.globalstorage.insert('windoesnotMigrateSecret', '')
     return None

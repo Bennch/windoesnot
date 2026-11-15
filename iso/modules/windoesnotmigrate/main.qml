@@ -22,6 +22,9 @@ Rectangle {
         return sum;
     }
 
+    // Name of the system the data comes from (Windows 7 ... 11), from the exporter's handoff; neutral until known.
+    readonly property string systemName: plan && plan.handoff && plan.handoff.windows_version ? plan.handoff.windows_version : "Windows"
+
     function tr(de, en) {
         return german ? de : en;
     }
@@ -58,7 +61,7 @@ Rectangle {
         spacing: 12
 
         Label {
-            text: page.tr("Windows-Daten übernehmen", "Bring your Windows data")
+            text: page.tr("Daten aus " + page.systemName + " übernehmen", "Bring your " + page.systemName + " data")
             font.pixelSize: 24
             font.bold: true
             color: "#eeeeee"
@@ -185,7 +188,7 @@ Rectangle {
             radius: 8
             implicitHeight: handoffText.implicitHeight + 20
             Label { id: handoffText; anchors.fill: parent; anchors.margins: 10; color: "#eeeeee"; wrapMode: Text.WordWrap; textFormat: Text.PlainText
-                text: page.plan.handoff ? page.tr("Windows-Vorauswahl übernommen (", "Windows selection loaded (") + page.plan.handoff.windows_version + "). " +
+                text: page.plan.handoff ? page.tr("Auswahl aus ", "Selection taken over from ") + page.plan.handoff.windows_version + ". " +
                     page.tr("WLAN-Exporte: ", "WLAN exports: ") + page.plan.handoff.wlan_exports +
                     (page.plan.handoff.chromium_passwords ? page.tr(" · Chromium-Passwortexport vorhanden", " · Chromium password export available") : "") : ""
             }

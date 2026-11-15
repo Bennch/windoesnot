@@ -117,11 +117,11 @@ class PLUGINDLLEXPORT MigrateViewStep : public Calamares::ViewStep {
     Q_OBJECT
 public:
     explicit MigrateViewStep(QObject* parent = nullptr) : Calamares::ViewStep(parent) {}
-    QString prettyName() const override { return m_resultMode ? (QLocale().language() == QLocale::German ? QStringLiteral("Abschließen") : QStringLiteral("Done")) : (QLocale().language() == QLocale::German ? QStringLiteral("Windows-Daten") : QStringLiteral("Windows data")); }
+    QString prettyName() const override { return m_resultMode ? (QLocale().language() == QLocale::German ? QStringLiteral("Abschließen") : QStringLiteral("Done")) : (QLocale().language() == QLocale::German ? QStringLiteral("Umzug") : QStringLiteral("Move data")); }
     QString prettyStatus() const override {
         const bool german = QLocale().language() == QLocale::German;
         if (m_resultMode) return prettyName();
-        if (!m_bridge || m_bridge->skipped()) return german ? QStringLiteral("Keine Windows-Daten") : QStringLiteral("No Windows data");
+        if (!m_bridge || m_bridge->skipped()) return german ? QStringLiteral("Keine Daten") : QStringLiteral("No data");
         const auto plan = QJsonDocument::fromJson(m_bridge->manifest().toUtf8()).object();
         QStringList folders;
         qint64 bytes = 0;
@@ -140,7 +140,7 @@ public:
             }
         }
         if (plan.value("handoff").toObject().value("wlan_selected").toBool()) folders << (german ? QStringLiteral("WLAN") : QStringLiteral("Wi-Fi"));
-        if (folders.isEmpty()) return german ? QStringLiteral("Keine Windows-Daten") : QStringLiteral("No Windows data");
+        if (folders.isEmpty()) return german ? QStringLiteral("Keine Daten") : QStringLiteral("No data");
         const QString amount = bytes >= 1073741824 ? QString::number(double(bytes) / 1073741824.0, 'f', 1) + QStringLiteral(" GiB") : QString::number(double(bytes) / 1048576.0, 'f', 1) + QStringLiteral(" MiB");
         const QString names = folders.size() > 4 ? folders.mid(0, 4).join(QStringLiteral(", ")) + QStringLiteral(" …") : folders.join(QStringLiteral(", "));
         return names + QStringLiteral(" · ") + amount;
@@ -155,24 +155,26 @@ public:
                 const bool german = QLocale().language() == QLocale::German;
                 auto* gs = Calamares::JobQueue::instance()->globalStorage();
                 const QString warning = gs->value(QStringLiteral("windoesnotMigrateWarning")).toString();
+                QString system = gs->value(QStringLiteral("windoesnotMigrateSystem")).toString();
+                if (system.isEmpty()) system = QStringLiteral("Windows");
                 const bool migrated = gs->value(QStringLiteral("windoesnotMigrateCompleted")).toBool();
                 auto* title = new QLabel(german ? QStringLiteral("WinDoesNot wurde installiert.") : QStringLiteral("WinDoesNot has been installed."), m_widget);
                 title->setStyleSheet(QStringLiteral("color:#eeeeee;font-size:24px;font-weight:700;"));
                 layout->addWidget(title);
                 if (migrated || !warning.isEmpty()) {
                     if (migrated && warning.isEmpty()) {
-                        auto* detail = new QLabel(german ? QStringLiteral("Windows-Daten wurden übernommen.") : QStringLiteral("Windows data was transferred."), m_widget);
+                        auto* detail = new QLabel(german ? QStringLiteral("Daten aus ") + system + QStringLiteral(" wurden übernommen.") : QStringLiteral("Data from ") + system + QStringLiteral(" was transferred."), m_widget);
                         detail->setTextFormat(Qt::PlainText);
                         detail->setWordWrap(true);
                         detail->setStyleSheet(QStringLiteral("color:#eeeeee;background:#141414;border:1px solid #3a3a3a;border-radius:10px;padding:16px;"));
                         layout->addWidget(detail);
                     } else {
-                        auto* detail = new QLabel((german ? QStringLiteral("Hinweis zum Windows-Datenumzug:\n") : QStringLiteral("Windows data migration notice:\n")) + warning, m_widget);
+                        auto* detail = new QLabel((german ? QStringLiteral("Hinweis zum Datenumzug aus ") + system + QStringLiteral(":\n") : QStringLiteral("Notice about the data move from ") + system + QStringLiteral(":\n")) + warning, m_widget);
                         detail->setTextFormat(Qt::PlainText);
                         detail->setWordWrap(true);
                         detail->setStyleSheet(QStringLiteral("color:#f3c99d;background:#382d22;border:1px solid #b8804b;border-radius:10px;padding:16px;"));
                         layout->addWidget(detail);
-                        auto* retry = new QLabel(german ? QStringLiteral("Nach dem Start können Sie ›Windows-Daten übernehmen‹ erneut öffnen.") : QStringLiteral("You can open ‘Bring Windows data’ again after the first boot."), m_widget);
+                        auto* retry = new QLabel(german ? QStringLiteral("Nach dem Start können Sie ›Daten übernehmen‹ erneut öffnen.") : QStringLiteral("You can open ‘Bring data’ again after the first boot."), m_widget);
                         retry->setWordWrap(true);
                         retry->setStyleSheet(QStringLiteral("color:#aaaaaa;"));
                         layout->addWidget(retry);

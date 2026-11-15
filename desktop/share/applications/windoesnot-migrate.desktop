@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
-Name=Bring Windows Data
-Name[de]=Windows-Daten übernehmen
+Name=Bring Your Data
+Name[de]=Daten übernehmen
 Comment=Copy selected files from a Windows installation
 Comment[de]=Ausgewählte Dateien aus einer Windows-Installation kopieren
 Exec=windoesnot-migrate
