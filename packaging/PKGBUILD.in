@@ -100,6 +100,9 @@ package_windoesnot-tools() {
         install -m755 "$command" "$pkgdir/usr/bin/$(basename "$command")"
     done
     install -Dm644 desktop/lib/windoesnot/migrate.py "$pkgdir/usr/lib/windoesnot/migrate.py"
+    install -Dm644 desktop/lib/windoesnot/mirror.py "$pkgdir/usr/lib/windoesnot/mirror.py"
+    install -Dm644 desktop/lib/windoesnot/mirror-packages.py "$pkgdir/usr/lib/windoesnot/mirror-packages.py"
+    install -Dm644 desktop/share/systemd/system/windoesnot-mirror-packages.service "$pkgdir/usr/lib/systemd/system/windoesnot-mirror-packages.service"
     install -Dm644 desktop/lib/windoesnot/livedata.py "$pkgdir/usr/lib/windoesnot/livedata.py"
     install -Dm755 desktop/lib/windoesnot/system_tools.py "$pkgdir/usr/lib/windoesnot/system_tools.py"
     install -Dm755 desktop/lib/windoesnot/hwcheck.py "$pkgdir/usr/lib/windoesnot/hwcheck.py"

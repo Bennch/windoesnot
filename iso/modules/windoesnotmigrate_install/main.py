@@ -4,6 +4,9 @@ import json
 from pathlib import Path
 import re
 import sys
+import subprocess
+import tempfile
+import os
 import libcalamares
 
 sys.path.insert(0, '/usr/lib/windoesnot')
@@ -44,6 +47,47 @@ def run():
         if not isinstance(username, str) or not re.fullmatch(r'[a-z_][a-z0-9_-]{0,30}\$?', username):
             raise ValueError('Target username is invalid')
         plan = json.loads(raw)
+        if plan.get('kind') == 'linux':
+            system = str(plan.get('system', 'Linux'))
+            libcalamares.globalstorage.insert('windoesnotMigrateSystem', system[:200])
+            target_root = libcalamares.globalstorage.value('rootMountPoint')
+            if not isinstance(target_root, str) or not target_root.startswith('/'):
+                raise ValueError('Calamares target mount point is missing')
+            target_root = Path(target_root).resolve()
+            if target_root == Path('/') or not (target_root / 'etc/windoesnot-image-build').is_file():
+                raise ValueError('Refusing to copy outside the installation target')
+            secret = libcalamares.globalstorage.value('windoesnotMigrateSecret') or ''
+            with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8') as manifest_file:
+                json.dump(plan, manifest_file); manifest_file.flush()
+                script = '/usr/lib/windoesnot/mirror.py'
+                with tempfile.TemporaryFile(mode='w+', encoding='utf-8') as error_file:
+                    process = subprocess.Popen([sys.executable, script, 'copy', manifest_file.name, str(target_root / 'home' / username), '--target-root', str(target_root), '--progress-json', '--secret-stdin'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=error_file, text=True)
+                    process.stdin.write(secret + '\n'); process.stdin.close()
+                    result = None
+                    for line in process.stdout:
+                        event = json.loads(line)
+                        if 'errors' in event:
+                            result = event
+                        job = getattr(libcalamares, 'job', None)
+                        if event.get('event') == 'file' and event.get('total_bytes') and hasattr(job, 'setprogress'):
+                            job.setprogress(min(1.0, event['copied_bytes'] / event['total_bytes']))
+                    process.wait()
+                    error_file.seek(0)
+                    stderr = error_file.read()
+            if process.returncode or result is None:
+                raise RuntimeError(stderr.strip() or 'Mirror copy failed')
+            wants = target_root / 'etc/systemd/system/multi-user.target.wants'
+            if wants.resolve() != wants:
+                raise ValueError('Unsafe service destination')
+            wants.mkdir(parents=True, exist_ok=True)
+            link = wants / 'windoesnot-mirror-packages.service'
+            if not link.exists() and not link.is_symlink():
+                link.symlink_to('/usr/lib/systemd/system/windoesnot-mirror-packages.service')
+            if result['errors']:
+                warn('Linux data migration incomplete: ' + str(result['errors']))
+            else:
+                libcalamares.globalstorage.insert('windoesnotMigrateCompleted', True)
+            return None
         system = nice_windows_name(str(((plan.get('handoff') or {}).get('windows_version')) or ''))
         libcalamares.globalstorage.insert('windoesnotMigrateSystem', system if re.fullmatch(r'[\w .()-]{1,40}', system) else '')
         if not any(item.get('selected') for profile in plan.get('profiles', []) for item in profile.get('items', [])) and not (plan.get('handoff') or {}).get('wlan_selected'):

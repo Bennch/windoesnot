@@ -1,0 +1,12 @@
+[Unit]
+Description=Install packages from Linux migration inventory
+Wants=network-online.target
+After=network-online.target
+ConditionPathExistsGlob=/var/lib/windoesnot/mirror/*/packages.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/lib/windoesnot/mirror-packages.py
+
+[Install]
+WantedBy=multi-user.target
