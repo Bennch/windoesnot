@@ -287,6 +287,48 @@ ShellRoot {
                         wrapMode: Text.WordWrap; textFormat: Text.PlainText
                     }
                 }
+                Rectangle {
+                    id: donateCard
+                    visible: !!welcome.payload.donateTitle && !!welcome.payload.donateAvailable
+                    width: parent.width
+                    implicitHeight: donateColumn.implicitHeight + 32
+                    radius: 10
+                    color: welcome.darkMode ? "#141414" : "#f5f5f5"
+                    border.width: 1; border.color: welcome.darkMode ? "#3a3a3a" : "#d0d0d0"
+                    ColumnLayout {
+                        id: donateColumn
+                        anchors { left: parent.left; right: parent.right; top: parent.top; margins: 16 }
+                        spacing: 8
+                        Text {
+                            Layout.fillWidth: true; text: welcome.payload.donateTitle || ""
+                            color: welcome.foreground; font.pixelSize: 16; font.bold: true; textFormat: Text.PlainText
+                        }
+                        Text {
+                            Layout.fillWidth: true; text: welcome.payload.donateText || ""
+                            color: welcome.secondary; font.pixelSize: 13; wrapMode: Text.WordWrap; textFormat: Text.PlainText
+                        }
+                        Flow {
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Repeater {
+                                model: welcome.payload.donateLinks || []
+                                delegate: Tools.SystemToolsButton {
+                                    id: donateButton
+                                    required property var modelData
+                                    settingsMenu: welcome
+                                    text: modelData.name
+                                    onClicked: donateOpen.running = true
+                                    Accessible.name: modelData.name
+                                    Process {
+                                        id: donateOpen
+                                        // Opens the page in the default browser; the welcome window stays open.
+                                        command: ["setsid", "--fork"].concat(donateButton.modelData.command || [])
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 Text {
                     width: parent.width; text: welcome.payload.hint || ""; color: welcome.secondary
                     font.pixelSize: 13; wrapMode: Text.WordWrap; textFormat: Text.PlainText

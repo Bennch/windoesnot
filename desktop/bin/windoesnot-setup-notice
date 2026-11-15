@@ -84,6 +84,14 @@ def welcome_payload(data, preferences, hwcheck=None):
         'open': 'Öffnen' if german else 'Open',
         'unavailable': 'Nicht installiert' if german else 'Not installed',
         'launchError': 'Das Programm konnte nicht geöffnet werden.' if german else 'The app could not be opened.',
+        'donateTitle': 'Gefällt dir WinDoesNot?' if german else 'Enjoying WinDoesNot?',
+        'donateText': ('WinDoesNot ist kostenlos und wird von einer einzelnen Person gebaut. Eine kleine Spende hilft bei Hardwaretests und Hosting. Freiwillig, nichts ändert sich, wenn du darauf verzichtest.'
+                       if german else 'WinDoesNot is free and built by one person. A small donation helps with hardware tests and hosting. Entirely optional; nothing changes if you skip it.'),
+        'donateLinks': [
+            {'name': 'PayPal', 'icon': 'paypal', 'command': ['xdg-open', 'https://www.paypal.com/donate/?business=info%40lichtauf.computer&currency_code=EUR']},
+            {'name': 'Buy Me a Coffee', 'icon': 'coffee', 'command': ['xdg-open', 'https://www.buymeacoffee.com/windoesnot']},
+        ],
+        'donateAvailable': bool(shutil.which('xdg-open')),
         'setupTitle': 'Für deinen Rechner eingerichtet' if german else 'Set up for your computer',
         'lines': summary(data, german),
         'hint': ('Du findest diese Informationen auch in den Einstellungen unter „Kernel und Leistung“ und „Wartung“.'
