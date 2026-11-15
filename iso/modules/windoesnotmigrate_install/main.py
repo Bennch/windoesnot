@@ -33,7 +33,7 @@ def run():
         if not isinstance(username, str) or not re.fullmatch(r'[a-z_][a-z0-9_-]{0,30}\$?', username):
             raise ValueError('Target username is invalid')
         plan = json.loads(raw)
-        system = str(((plan.get('handoff') or {}).get('windows_version')) or '')
+        system = re.sub(r'^(Windows [0-9.]+).*$', r'\1', str(((plan.get('handoff') or {}).get('windows_version')) or ''))
         libcalamares.globalstorage.insert('windoesnotMigrateSystem', system if re.fullmatch(r'[\w .()-]{1,40}', system) else '')
         if not any(item.get('selected') for profile in plan.get('profiles', []) for item in profile.get('items', [])) and not (plan.get('handoff') or {}).get('wlan_selected'):
             return None

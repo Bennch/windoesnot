@@ -23,7 +23,7 @@ Rectangle {
     }
 
     // Name of the system the data comes from (Windows 7 ... 11), from the exporter's handoff; neutral until known.
-    readonly property string systemName: plan && plan.handoff && plan.handoff.windows_version ? plan.handoff.windows_version : "Windows"
+    readonly property string systemName: plan && plan.handoff && plan.handoff.windows_version ? String(plan.handoff.windows_version).replace(/^(Windows [0-9.]+).*$/, "$1") : "Windows"
 
     function tr(de, en) {
         return german ? de : en;
@@ -188,7 +188,7 @@ Rectangle {
             radius: 8
             implicitHeight: handoffText.implicitHeight + 20
             Label { id: handoffText; anchors.fill: parent; anchors.margins: 10; color: "#eeeeee"; wrapMode: Text.WordWrap; textFormat: Text.PlainText
-                text: page.plan.handoff ? page.tr("Auswahl aus ", "Selection taken over from ") + page.plan.handoff.windows_version + ". " +
+                text: page.plan.handoff ? page.tr("Auswahl aus ", "Selection taken over from ") + page.systemName + ". " +
                     page.tr("WLAN-Exporte: ", "WLAN exports: ") + page.plan.handoff.wlan_exports +
                     (page.plan.handoff.chromium_passwords ? page.tr(" · Chromium-Passwortexport vorhanden", " · Chromium password export available") : "") : ""
             }
