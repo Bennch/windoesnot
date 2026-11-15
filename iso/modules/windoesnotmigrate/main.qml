@@ -23,7 +23,21 @@ Rectangle {
     }
 
     // Name of the system the data comes from (Windows 7 ... 11), from the exporter's handoff; neutral until known.
-    readonly property string systemName: plan && plan.handoff && plan.handoff.windows_version ? String(plan.handoff.windows_version).replace(/^(Windows [0-9.]+).*$/, "$1") : "Windows"
+    readonly property string systemName: plan && plan.handoff && plan.handoff.windows_version ? niceWindowsName(String(plan.handoff.windows_version)) : "Windows"
+
+    // "Windows 10 19045" (PowerShell exporter) or "10.0.26100.0" (Setup app) -> "Windows 10" / "Windows 11".
+    function niceWindowsName(raw) {
+        var numeric = /^(\d+)\.(\d+)\.(\d+)/.exec(raw);
+        if (numeric) {
+            var major = parseInt(numeric[1]), minor = parseInt(numeric[2]), build = parseInt(numeric[3]);
+            if (major === 10) return build >= 22000 ? "Windows 11" : "Windows 10";
+            if (major === 6 && minor === 3) return "Windows 8.1";
+            if (major === 6 && minor === 2) return "Windows 8";
+            if (major === 6 && minor === 1) return "Windows 7";
+            return "Windows";
+        }
+        return raw.replace(/^(Windows [0-9.]+).*$/, "$1");
+    }
 
     function tr(de, en) {
         return german ? de : en;

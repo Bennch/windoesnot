@@ -10,6 +10,17 @@ sys.path.insert(0, '/usr/lib/windoesnot')
 import migrate
 
 
+def nice_windows_name(raw):
+    """'Windows 10 19045' (PowerShell exporter) or '10.0.26100.0' (Setup app) -> 'Windows 10' / 'Windows 11'."""
+    numeric = re.match(r'^(\d+)\.(\d+)\.(\d+)', raw)
+    if numeric:
+        major, minor, build = (int(part) for part in numeric.groups())
+        if major == 10:
+            return 'Windows 11' if build >= 22000 else 'Windows 10'
+        return {(6, 3): 'Windows 8.1', (6, 2): 'Windows 8', (6, 1): 'Windows 7'}.get((major, minor), 'Windows')
+    return re.sub(r'^(Windows [0-9.]+).*$', r'\1', raw)
+
+
 def pretty_name():
     return 'Daten kopieren' if str(libcalamares.globalstorage.value('locale')).startswith('de') else 'Copy data'
 
@@ -33,7 +44,7 @@ def run():
         if not isinstance(username, str) or not re.fullmatch(r'[a-z_][a-z0-9_-]{0,30}\$?', username):
             raise ValueError('Target username is invalid')
         plan = json.loads(raw)
-        system = re.sub(r'^(Windows [0-9.]+).*$', r'\1', str(((plan.get('handoff') or {}).get('windows_version')) or ''))
+        system = nice_windows_name(str(((plan.get('handoff') or {}).get('windows_version')) or ''))
         libcalamares.globalstorage.insert('windoesnotMigrateSystem', system if re.fullmatch(r'[\w .()-]{1,40}', system) else '')
         if not any(item.get('selected') for profile in plan.get('profiles', []) for item in profile.get('items', [])) and not (plan.get('handoff') or {}).get('wlan_selected'):
             return None

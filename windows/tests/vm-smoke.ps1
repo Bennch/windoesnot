@@ -1,6 +1,6 @@
 # vm-smoke.ps1: runs the unattended exporter against synthetic profiles. Disposable test VMs only.
 # PowerShell 2.0 / .NET 3.5 compatible. Prints SMOKE-OK or SMOKE-FAIL <reason> and exits 0 or 1.
-param([string]$ResultsDir = '')
+param([string]$ResultsDir = '', [string]$App = '')
 $ErrorActionPreference = 'Stop'
 $setup = Join-Path (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)) 'WinDoesNotSetup.ps1'
 $users = Join-Path $env:SystemDrive 'Users'
@@ -47,7 +47,12 @@ try {
     $logFile = Join-Path $env:SystemDrive 'WinDoesNotHandoff-unattended.log'
     $errFile = Join-Path $env:TEMP 'wdn-exporter-stderr.txt'
     $outFile = Join-Path $env:TEMP 'wdn-exporter-stdout.txt'
-    $process = Start-Process -FilePath 'powershell.exe' -Wait -PassThru -NoNewWindow -RedirectStandardError $errFile -RedirectStandardOutput $outFile -ArgumentList @('-NoProfile','-STA','-ExecutionPolicy','Bypass','-File',('"' + $setup + '"'),'-Unattended','-ProfileName','*','-Folders',($folders -join ','))
+    if ($App) {
+        # The WinDoesNot Setup app (Windows 10/11) in its headless export mode.
+        $process = Start-Process -FilePath $App -Wait -PassThru -NoNewWindow -RedirectStandardError $errFile -RedirectStandardOutput $outFile -ArgumentList @('--export-only','--unattended','--profile','all','--folders',($folders -join ','))
+    } else {
+        $process = Start-Process -FilePath 'powershell.exe' -Wait -PassThru -NoNewWindow -RedirectStandardError $errFile -RedirectStandardOutput $outFile -ArgumentList @('-NoProfile','-STA','-ExecutionPolicy','Bypass','-File',('"' + $setup + '"'),'-Unattended','-ProfileName','*','-Folders',($folders -join ','))
+    }
     if ($process.ExitCode -ne 0) {
         if ($ResultsDir) {
             foreach ($f in @($errFile, $outFile, $logFile)) { if (Test-Path -LiteralPath $f) { Copy-Item -LiteralPath $f (Join-Path $ResultsDir ('exporter-' + (Split-Path -Leaf $f))) -Force } }

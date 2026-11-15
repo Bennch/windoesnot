@@ -147,7 +147,7 @@ def make_iso(src, out, label):
     run('genisoimage', '-quiet', '-o', out, '-J', '-r', '-V', label, src)
 
 
-def build_payload(version, job=None, gui=False):
+def build_payload(version, job=None, gui=False, app=None):
     d = vmdir(version)
     tmp = d / 'payload-src'
     if tmp.exists():
@@ -159,6 +159,8 @@ def build_payload(version, job=None, gui=False):
     shutil.copytree(ROOT / 'windows', tmp / 'windows', ignore=shutil.ignore_patterns('__pycache__'))
     jobs = Path(__file__).resolve().parent / 'jobs'
     shutil.copyfile(jobs / 'gui.cmd', tmp / 'gui.cmd')
+    if app:
+        shutil.copytree(app, tmp / 'app')
     if gui:
         (tmp / 'WDN_GUI.txt').write_text('gui\r\n')
     make_iso(tmp, d / 'payload.iso', 'WDNPAYLOAD')
@@ -261,6 +263,7 @@ def main():
     p.add_argument('version', nargs='?', choices=list(VERSIONS))
     p.add_argument('arg', nargs='?')
     p.add_argument('--job', help='job script for the payload')
+    p.add_argument('--app', help='folder with the published WinDoesNot Setup app (win-x64, self-contained); the GUI job starts it instead of the PowerShell exporter')
     p.add_argument('--gui', action='store_true', help='payload starts the exporter window at logon (needs the WdnGui task)')
     a = p.parse_args()
     if a.action == 'status':
@@ -287,7 +290,7 @@ def main():
     elif a.action == 'run':
         start(v, False)
     elif a.action == 'payload':
-        build_payload(v, a.job, a.gui)
+        build_payload(v, a.job, a.gui, a.app)
     elif a.action == 'shot':
         out = Path(a.arg or vmdir(v) / 'screen.png').resolve()
         print(qmp(v, 'screendump', filename=str(out), format='png'))
