@@ -22,8 +22,9 @@ built on [CachyOS](https://cachyos.org), [Hyprland](https://hypr.land) and
 
 > [!WARNING]
 > **Public preview: 0.1.0-28.** [Download the ISO](https://windoesnot.me/en/download/).
-> The live system and installer are tested in UEFI virtual machines; tests on real
-> hardware are still open. Expect rough edges and breaking changes.
+> The live system and installer are tested in UEFI virtual machines and on a 2010 laptop
+> (BIOS boot, install next to existing data). Secure Boot and AMD graphics are still untested.
+> Expect rough edges and breaking changes.
 
 ## What it is
 
@@ -85,7 +86,8 @@ speed. The installed system's setup summary stays below the shortcuts.
 | Desktop on an existing Arch/CachyOS system | Used daily by the author |
 | Live boot, offline/online install, all four bootloaders | Tested in QEMU (UEFI) |
 | Signed component updates | [One-time setup](UPDATE-CHANNEL.md) · upgrade checked in a UEFI VM |
-| Real hardware, BIOS boot, Secure Boot, multi-monitor | **Not tested yet** |
+| Real hardware: BIOS boot, old CPU and graphics (2010 laptop, light mode), author's PC with several monitors | Tested |
+| Secure Boot, AMD graphics, other laptops | **Not tested yet** |
 | Public ISO download | [Download page](https://windoesnot.me/en/download/) · current version 0.1.0-28 |
 
 ## Building

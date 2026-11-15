@@ -22,8 +22,9 @@ und [Quickshell](https://quickshell.org).
 
 > [!WARNING]
 > **Öffentliche Vorschau: 0.1.0-28.** [ISO herunterladen](https://windoesnot.me/download/).
-> Live-System und Installer sind in UEFI-VMs getestet; Tests auf echter Hardware stehen
-> noch aus. Mit Ecken, Kanten und größeren Änderungen ist zu rechnen.
+> Live-System und Installer sind in UEFI-VMs und auf einem Laptop von 2010 getestet
+> (BIOS-Start, Installation neben vorhandenen Daten). Secure Boot und AMD-Grafik sind noch
+> ungetestet. Mit Ecken, Kanten und größeren Änderungen ist zu rechnen.
 
 ## Worum es geht
 
@@ -75,7 +76,8 @@ Arch-News vor dem Systemupdate.
 | Desktop auf bestehendem Arch-/CachyOS-System | Vom Autor täglich genutzt |
 | Live-Start, Offline-/Online-Installation, alle vier Bootloader | In QEMU (UEFI) getestet |
 | Signierte Komponentenupdates | [Einmalige Einrichtung](UPDATE-CHANNEL.md#deutsch) · Update in einer UEFI-VM geprüft |
-| Echte Hardware, BIOS-Start, Secure Boot, mehrere Monitore | **Noch nicht getestet** |
+| Echte Hardware: BIOS-Start, alte CPU und Grafik (Laptop von 2010, Leichtmodus), Rechner des Autors mit mehreren Monitoren | Getestet |
+| Secure Boot, AMD-Grafik, andere Laptops | **Noch nicht getestet** |
 | Öffentlicher ISO-Download | [Download-Seite](https://windoesnot.me/download/) · aktuelle Version 0.1.0-28 |
 
 ## Bauen
