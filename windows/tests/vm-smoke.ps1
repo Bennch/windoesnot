@@ -47,7 +47,7 @@ try {
     $logFile = Join-Path $env:SystemDrive 'WinDoesNotHandoff-unattended.log'
     $errFile = Join-Path $env:TEMP 'wdn-exporter-stderr.txt'
     $outFile = Join-Path $env:TEMP 'wdn-exporter-stdout.txt'
-    $process = Start-Process -FilePath 'powershell.exe' -Wait -PassThru -WindowStyle Hidden -RedirectStandardError $errFile -RedirectStandardOutput $outFile -ArgumentList @('-NoProfile','-STA','-ExecutionPolicy','Bypass','-File',('"' + $setup + '"'),'-Unattended','-ProfileName','*','-Folders',($folders -join ','))
+    $process = Start-Process -FilePath 'powershell.exe' -Wait -PassThru -NoNewWindow -RedirectStandardError $errFile -RedirectStandardOutput $outFile -ArgumentList @('-NoProfile','-STA','-ExecutionPolicy','Bypass','-File',('"' + $setup + '"'),'-Unattended','-ProfileName','*','-Folders',($folders -join ','))
     if ($process.ExitCode -ne 0) {
         if ($ResultsDir) {
             foreach ($f in @($errFile, $outFile, $logFile)) { if (Test-Path -LiteralPath $f) { Copy-Item -LiteralPath $f (Join-Path $ResultsDir ('exporter-' + (Split-Path -Leaf $f))) -Force } }
