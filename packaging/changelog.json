@@ -10,14 +10,24 @@
         "Umzug: Thunderbird-Profile, Windows Live Mail und Outlook-Postfächer (PST) kommen als E-Mail mit. Gespeicherte Browser-Passwörter lassen sich mit einem eigenen Passwort schützen und als Datei zum Import in den Browser ablegen.",
         "Neu: Linux zu Linux. Home, WLAN-Verbindungen und Paketliste eines anderen Linux auf der Platte können mitkommen, wenn du Parallel dazu installierst.",
         "Neu: Altes System entfernen unter Einstellungen, Wartung. Nach dem Umzug entfernt der Assistent Windows und schlägt den Platz deinem System zu. Er zeigt vorher genau, was verschwindet, und verlangt eine Bestätigung.",
-        "Der Installer sagt vor dem Umzug klar, dass er nur bei Parallel installieren geht. Beim ersten Start gibt es eine freiwillige Spendenkarte."
+        "Der Installer sagt vor dem Umzug klar, dass er nur bei Parallel installieren geht. Beim ersten Start gibt es eine freiwillige Spendenkarte.",
+        "Neu: Tastenkürzel-Übersicht und eine geführte Willkommens-Checkliste für den Start.",
+        "Neu: App-Berechtigungen für Flatpak-Programme in den Einstellungen. Du siehst, worauf eine App zugreifen darf.",
+        "Neu: Medienformate-Prüfung und Hilfe für Windows-Programme (mit Bottles).",
+        "Neu: Looks unter Einstellungen, Aussehen. Sechs fertige Kombinationen aus Hell oder Dunkel, Akzentfarbe, Rundung und Hintergrund, mit Zurück zu deinen Einstellungen.",
+        "Der Exporter für Windows 7 und 8.1 hat jetzt drei Schritte mit Seitenleiste und passt zum Aussehen der großen Windows-App."
       ],
       "en": [
         "Moving from Windows: several Windows accounts no longer end up in one folder; each further account gets its own subfolder. The page shows which system the data comes from.",
         "Moving: Thunderbird profiles, Windows Live Mail and Outlook mailboxes (PST) come along as e-mail. Saved browser passwords can be protected with their own password and saved as a file for the browser import.",
         "New: Linux to Linux. Home, Wi-Fi connections and the package list of another Linux on the disk can come along when you install alongside.",
         "New: Remove old system under Settings, Maintenance. After the move, the assistant removes Windows and gives the space to your system. It shows exactly what disappears first and asks for confirmation.",
-        "The installer now says up front that the move only works with Install alongside. The first start has an optional donation card."
+        "The installer now says up front that the move only works with Install alongside. The first start has an optional donation card.",
+        "New: keyboard shortcut overview and a guided welcome checklist for the first start.",
+        "New: app permissions for Flatpak programs in the settings. You see what an app may access.",
+        "New: media format check and help for Windows programs (with Bottles).",
+        "New: Looks under Settings, Appearance. Six ready-made combinations of light or dark, accent colour, corner radius and background, with a way back to your own settings.",
+        "The exporter for Windows 7 and 8.1 now has three steps with a sidebar and matches the look of the large Windows app."
       ]
     },
     {
