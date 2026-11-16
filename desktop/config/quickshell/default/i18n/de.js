@@ -1,4 +1,8 @@
 var strings = {
+    "looks.title": "Looks",
+    "looks.restore": "Zurück zu meinen Einstellungen",
+    "looks.error": "Look konnte nicht angewendet oder wiederhergestellt werden.",
+
     "shortcuts.terminal": "Terminal öffnen",
     "shortcuts.closeWindow": "Fenster schließen",
     "shortcuts.logout": "Abmelden",

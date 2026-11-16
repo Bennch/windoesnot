@@ -12,6 +12,14 @@ Column {
     width: parent.width
     spacing: 30
 
+    ThemePresets { settingsMenu: parent.settingsMenu }
+
+    Rectangle {
+        width: parent.width
+        height: 1
+        color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
+    }
+
     // Dark/Light Mode
     Row {
         width: parent.width

@@ -24,3 +24,5 @@ SystemToolsConfirm 1.0 SystemToolsConfirm.qml
 ShellSettings 1.0 ShellSettings.qml
 VmClipboardSettings 1.0 VmClipboardSettings.qml
 FlatpakPermissions 1.0 FlatpakPermissions.qml
+
+ThemePresets 1.0 ThemePresets.qml

@@ -1181,6 +1181,10 @@ FloatingWindow {
         if (panelWindow) panelWindow.rebuildTrayModel()
     }
 
+    function reloadPresetWallpapers() {
+        if (backgroundSettingsLoader.item) backgroundSettingsLoader.item.loadCurrentWallpapers()
+    }
+
     function saveSettings() {
         if (isLoadingSettings) {
             console.log("Skipping save during settings load")
