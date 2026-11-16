@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""A safe starting point for opening Windows programs."""
+import os
+import subprocess
+import sys
+import threading
+from pathlib import Path
+from urllib.parse import quote
+
+import gi
+gi.require_version('Gtk', '4.0')
+gi.require_version('Adw', '1')
+from gi.repository import Adw, Gio, GLib, Gtk
+
+GERMAN = (os.environ.get('LANGUAGE') or os.environ.get('LC_ALL') or os.environ.get('LC_MESSAGES') or os.environ.get('LANG') or '').startswith('de')
+def tr(de, en): return de if GERMAN else en
+
+class Window(Adw.ApplicationWindow):
+    def __init__(self, app, filename):
+        super().__init__(application=app, title=tr('Windows-Programm öffnen', 'Open Windows program'), default_width=540, default_height=440)
+        self.filename = filename
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=20, margin_bottom=20, margin_start=20, margin_end=20)
+        self.set_content(box)
+        heading = Gtk.Label(label=tr('Windows-Programme unter Linux', 'Windows programs on Linux'), xalign=0)
+        heading.add_css_class('title-2'); box.append(heading)
+        label = Gtk.Label(label=tr('Windows-Programme laufen unter Linux nicht immer. Bottles kann manche Programme in einer eigenen Umgebung starten. Eine Garantie gibt es nicht.', 'Windows programs do not always work on Linux. Bottles can run some programs in a separate environment. There is no guarantee.'), xalign=0, wrap=True)
+        box.append(label)
+        if filename:
+            label = Gtk.Label(label=tr('Ausgewählte Datei: ', 'Selected file: ') + Path(filename).name, xalign=0, wrap=True); box.append(label)
+        self.status = Gtk.Label(xalign=0, wrap=True); box.append(self.status)
+        for text, callback in [(tr('Bottles installieren / öffnen', 'Install / open Bottles'), self.bottles), (tr('ProtonDB durchsuchen', 'Search ProtonDB'), lambda *_: self.search('https://www.protondb.com/search?q=')), (tr('WineHQ AppDB durchsuchen', 'Search WineHQ AppDB'), lambda *_: self.search('https://appdb.winehq.org/objectManager.php?sClass=application&sTitle=')), (tr('Linux-Alternative im Store suchen', 'Find a Linux alternative in the Store'), self.store)]:
+            button = Gtk.Button(label=text); button.connect('clicked', callback); box.append(button)
+
+    def search(self, base):
+        term = Path(self.filename).stem if self.filename else ''
+        Gio.AppInfo.launch_default_for_uri(base + quote(term), None)
+
+    def store(self, *_):
+        try:
+            subprocess.Popen(['windoesnot-store'])
+            self.status.set_text(tr('Suche im Store nach dem Namen des Programms oder seiner Aufgabe.', 'Search the Store for the program name or what it does.'))
+        except OSError:
+            self.status.set_text(tr('Der Store konnte nicht geöffnet werden.', 'The Store could not be opened.'))
+
+    def bottles(self, *_):
+        def check():
+            try: installed = subprocess.run(['flatpak', 'info', 'com.usebottles.bottles'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+            except OSError: installed = False
+            GLib.idle_add(self.after_check, installed)
+        threading.Thread(target=check, daemon=True).start()
+
+    def after_check(self, installed):
+        if installed:
+            try:
+                subprocess.Popen(['flatpak', 'run', 'com.usebottles.bottles'])
+                self.status.set_text(tr('Wähle die Datei anschließend in Bottles aus.', 'Select the file in Bottles afterwards.'))
+            except OSError: self.status.set_text(tr('Bottles konnte nicht geöffnet werden.', 'Could not open Bottles.'))
+            return
+        dialog = Adw.MessageDialog(transient_for=self, heading=tr('Bottles installieren?', 'Install Bottles?'), body=tr('Bottles und benötigte Laufzeitpakete werden von Flathub für dein Benutzerkonto heruntergeladen.', 'Bottles and required runtimes will be downloaded from Flathub for your user account.'))
+        dialog.add_response('cancel', tr('Abbrechen', 'Cancel')); dialog.add_response('install', tr('Installieren', 'Install'))
+        dialog.set_default_response('cancel'); dialog.set_close_response('cancel')
+        dialog.connect('response', self.confirm); dialog.present()
+
+    def confirm(self, _dialog, response):
+        if response != 'install': return
+        self.status.set_text(tr('Installation läuft …', 'Installing …'))
+        def install():
+            try:
+                result = subprocess.run(['flatpak', 'install', '--user', '--noninteractive', 'flathub', 'com.usebottles.bottles'], capture_output=True, text=True)
+                message = tr('Installation abgeschlossen. Klicke erneut auf Bottles öffnen.', 'Installation complete. Click Open Bottles again.') if result.returncode == 0 else tr('Installation fehlgeschlagen: ', 'Installation failed: ') + result.stderr.strip()
+            except OSError as error: message = str(error)
+            GLib.idle_add(self.status.set_text, message)
+        threading.Thread(target=install, daemon=True).start()
+
+class App(Adw.Application):
+    def __init__(self, filename):
+        super().__init__(application_id='me.windoesnot.WindowsProgram', flags=Gio.ApplicationFlags.NON_UNIQUE)
+        self.filename = filename
+    def do_activate(self): Window(self, self.filename).present()
+
+if __name__ == '__main__':
+    raise SystemExit(App(sys.argv[1] if len(sys.argv) > 1 else '').run([sys.argv[0]]))

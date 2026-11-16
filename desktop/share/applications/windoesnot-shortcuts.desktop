@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Keyboard Shortcuts
+Name[de]=Tastenkürzel
+Exec=windoesnot-hyprctl dispatch global quickshell:toggle-shortcuts
+Icon=preferences-desktop-keyboard-shortcuts
+Terminal=false
+Categories=Settings;DesktopSettings;

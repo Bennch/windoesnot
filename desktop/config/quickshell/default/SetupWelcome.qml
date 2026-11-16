@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import "settings" as Tools
+import "i18n/Lang.js" as Lang
 
 ShellRoot {
     Window {
@@ -15,6 +16,19 @@ ShellRoot {
         readonly property color foreground: darkMode ? "#eeeeee" : "#202020"
         readonly property color secondary: darkMode ? "#aaaaaa" : "#666666"
         property string launchError: ""
+        property var checklistState: ({})
+        property bool windowsPresent: false
+        property string uiLanguage: payload.language || "de"
+        Process {
+            id: checklistLoad
+            running: true
+            command: ["windoesnot-welcome-state"]
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    try { var data = JSON.parse(text); welcome.checklistState = data.state; welcome.windowsPresent = data.windows } catch (error) {}
+                }
+            }
+        }
         title: "WinDoesNot"
         visible: true
         width: Math.min(920, screen.width - 32)
@@ -49,6 +63,56 @@ ShellRoot {
                     visible: !!welcome.payload.hwcheckHint
                     width: parent.width; text: welcome.payload.hwcheckHint || ""; color: welcome.secondary
                     font.pixelSize: 14; wrapMode: Text.WordWrap; textFormat: Text.PlainText
+                }
+                Text {
+                    text: Lang.get("shortcuts.welcome", welcome.uiLanguage); color: welcome.foreground
+                    font.pixelSize: 20; font.bold: true
+                }
+                Text {
+                    width: parent.width; text: Lang.get("shortcuts.optional", welcome.uiLanguage)
+                    color: welcome.secondary; wrapMode: Text.WordWrap
+                }
+                Repeater {
+                    model: ["wifi", "updates", "backup", "view", "migrate"]
+                    delegate: Rectangle {
+                        id: step
+                        required property string modelData
+                        visible: modelData !== "migrate" || welcome.windowsPresent
+                        width: parent.width; height: visible ? 58 : 0; radius: 8
+                        color: welcome.darkMode ? "#141414" : "#f5f5f5"
+                        border.color: welcome.darkMode ? "#3a3a3a" : "#d0d0d0"
+                        RowLayout {
+                            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12
+                            CheckBox {
+                                checked: !!welcome.checklistState[step.modelData]
+                                text: Lang.get("shortcuts.done", welcome.uiLanguage)
+                                Accessible.name: text + ": " + Lang.get("shortcuts." + step.modelData, welcome.uiLanguage)
+                                onClicked: { save.command = ["windoesnot-welcome-state", step.modelData, checked ? "true" : "false"]; save.running = true }
+                            }
+                            Text {
+                                Layout.fillWidth: true; text: Lang.get("shortcuts." + step.modelData, welcome.uiLanguage)
+                                color: welcome.foreground; elide: Text.ElideRight
+                            }
+                            Tools.SystemToolsButton {
+                                settingsMenu: welcome; text: welcome.payload.open || "Open"
+                                Accessible.name: text + ": " + Lang.get("shortcuts." + step.modelData, welcome.uiLanguage)
+                                onClicked: launchStep.running = true
+                            }
+                        }
+                        Process { id: save }
+                        Process {
+                            id: launchStep
+                            command: {
+                                if (step.modelData === "migrate") return ["setsid", "--fork", "windoesnot-migrate"]
+                                var base = Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")
+                                var cmd = ["quickshell", "ipc", "--path", base + "/quickshell/default/shell.qml", "call", "windoesnot-welcome"]
+                                if (step.modelData === "wifi") return cmd.concat(["network"])
+                                if (step.modelData === "view") return cmd.concat(["shortcuts"])
+                                return cmd.concat(["settings", step.modelData === "backup" ? "backups" : "updates"])
+                            }
+                            onExited: (code) => { if (code !== 0) welcome.launchError = welcome.payload.launchError }
+                        }
+                    }
                 }
                 // Display and mouse: set at the first start, so the desktop is usable right away.
                 Rectangle {

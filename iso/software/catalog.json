@@ -1591,6 +1591,22 @@
       "flatpak_id": "ai.storyteller.filmcraft",
       "flatpak_remote": "artcraft-oci",
       "license": "Apache-2.0"
+    },
+    {
+      "id": "bottles",
+      "name": {
+        "de": "Bottles",
+        "en": "Bottles"
+      },
+      "category": "tools",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Windows-Programme in getrennten Umgebungen ausführen",
+        "en": "Run Windows programs in separate environments"
+      },
+      "required": false,
+      "flatpak_id": "com.usebottles.bottles"
     }
   ],
   "flatpak_remotes": {

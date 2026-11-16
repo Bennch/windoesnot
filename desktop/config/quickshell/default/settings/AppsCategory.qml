@@ -11,6 +11,7 @@ Column {
     width: parent.width
     spacing: 30
 
+    FlatpakPermissions { width: parent.width; settingsMenu: parent.settingsMenu }
     ShellSettings { width: parent.width; settingsMenu: parent.settingsMenu }
     VmClipboardSettings { width: parent.width; settingsMenu: parent.settingsMenu }
 

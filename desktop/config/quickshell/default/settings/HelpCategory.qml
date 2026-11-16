@@ -17,91 +17,13 @@ Column {
         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
     }
 
-    Column {
-        width: parent.width
-        spacing: 12
-
-        Repeater {
-            model: ListModel {
-                ListElement { key1: "SUPER"; key2: "M"; descKey: "help.openStartmenu" }
-                ListElement { key1: "SUPER"; key2: "S"; descKey: "help.openSettings" }
-                ListElement { key1: "SUPER"; key2: "Q"; descKey: "help.openTerminal" }
-                ListElement { key1: "SUPER"; key2: "E"; descKey: "help.openFileManager" }
-                ListElement { key1: "SUPER"; key2: "C"; descKey: "help.closeWindow" }
-                ListElement { key1: "SUPER"; key2: "TAB"; descKey: "help.workspaceOverview" }
-                ListElement { key1: "SUPER"; key2: "V"; descKey: "help.pinWindow" }
-                ListElement { key1: "SUPER"; key2: "F"; descKey: "help.fullscreen" }
-                ListElement { key1: "SUPER"; key2: "H"; descKey: "help.showDesktop" }
-                ListElement { key1: "SUPER"; key2: "N"; descKey: "help.notifications" }
-                ListElement { key1: "SUPER"; key2: "P"; descKey: "help.colorPicker" }
-                ListElement { key1: "SUPER"; key2: "DRUCK"; descKey: "help.screenshot" }
-                ListElement { key1: "SUPER"; key2: "F12"; descKey: "help.gamescopeFix" }
-                ListElement { key1: "SUPER"; key2: "LMB"; descKey: "help.moveWindow" }
-            }
-
-            delegate: Row {
-                width: parent.width
-                spacing: 15
-
-                // Linker Bereich: Tastenkombination
-                Row {
-                    spacing: 8
-                    width: 200
-
-                    Rectangle {
-                        width: key1Text.width + 16
-                        height: 32
-                        radius: 6
-                        color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
-                        border.width: 1
-                        border.color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
-
-                        Text {
-                            id: key1Text
-                            anchors.centerIn: parent
-                            text: key1
-                            font.pixelSize: 11
-                            font.bold: true
-                            color: settingsMenu.accentColor
-                        }
-                    }
-
-                    Text {
-                        text: "+"
-                        font.pixelSize: 14
-                        color: settingsMenu.darkMode ? "#666" : "#888"
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-
-                    Rectangle {
-                        width: key2Text.width + 16
-                        height: 32
-                        radius: 6
-                        color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
-                        border.width: 1
-                        border.color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
-
-                        Text {
-                            id: key2Text
-                            anchors.centerIn: parent
-                            text: key2
-                            font.pixelSize: 11
-                            font.bold: true
-                            color: settingsMenu.accentColor
-                        }
-                    }
-                }
-
-                // Rechter Bereich: Beschreibung
-                Text {
-                    text: Lang.get(descKey)
-                    font.pixelSize: 13
-                    color: settingsMenu.darkMode ? "#aaa" : "#555"
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width - 220
-                    wrapMode: Text.WordWrap
-                }
-            }
+    Button {
+        text: Lang.get("shortcuts.open", _lang)
+        Accessible.name: text
+        onClicked: shortcutsProcess.running = true
+        Process {
+            id: shortcutsProcess
+            command: ["windoesnot-bounded", "5", "windoesnot-hyprctl", "dispatch", "global", "quickshell:toggle-shortcuts"]
         }
     }
 

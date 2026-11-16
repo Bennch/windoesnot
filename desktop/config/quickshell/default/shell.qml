@@ -116,6 +116,35 @@ GlobalShortcut {
     }
 }
 
+GlobalShortcut {
+    name: "toggle-shortcuts"
+    description: "Toggle keyboard shortcuts"
+    onPressed: {
+        var opening = !shortcutsWindow.visible
+        settingsMenu.visible = false
+        startMenu.visible = false
+        shortcutsWindow.visible = opening
+    }
+}
+
+IpcHandler {
+    target: "windoesnot-welcome"
+    function shortcuts() { shortcutsWindow.visible = true }
+    function network() { networkWindow.visible = true }
+    function settings(category: string) {
+        if (category === "updates" || category === "backups") {
+            settingsMenu.currentCategory = category
+            settingsMenu.visible = true
+        }
+    }
+}
+
+ShortcutOverlay {
+    id: shortcutsWindow
+    settingsMenu: settingsMenu
+    panelWindow: panelWindow
+}
+
 // Snap Preview Manager - Loaded from separate file
 SnapManager {
     id: snapManager

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Open Windows Program
+Name[de]=Windows-Programm öffnen
+Exec=windoesnot-windows-program %f
+Icon=application-x-executable
+Terminal=false
+Categories=Utility;
+MimeType=application/x-ms-dos-executable;application/x-msi;application/vnd.microsoft.portable-executable;

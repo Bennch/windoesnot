@@ -148,6 +148,21 @@ Item {
         }
     }
 
+    property var mediaReport: null
+    property bool mediaFailed: false
+    Process {
+        id: mediaProc
+        command: ["/usr/bin/python3", "-I", "/usr/lib/windoesnot/media_check.py"]
+        stdout: StdioCollector { id: mediaOutput }
+        onExited: (code) => {
+            page.mediaFailed = code !== 0
+            if (code === 0) {
+                try { page.mediaReport = JSON.parse(mediaOutput.text) }
+                catch (error) { page.mediaFailed = true }
+            }
+        }
+    }
+
     component Note: Text {
         width: parent.width; wrapMode: Text.Wrap; textFormat: Text.PlainText
         color: page.secondary; font.pixelSize: 13
@@ -161,6 +176,29 @@ Item {
         id: content
         width: parent.width; spacing: 20
         Note { text: page.tr("maintenance.intro") }
+        Rectangle {
+            objectName: "mediaCard"
+            width: parent.width; height: mediaColumn.implicitHeight + 32
+            radius: settingsMenu ? settingsMenu.borderRadius : 10
+            color: page.dark ? "#141414" : "#f5f5f5"
+            border.width: 1; border.color: page.lineColor
+            Column {
+                id: mediaColumn; x: 16; y: 16; width: parent.width - 32; spacing: 8
+                Text { text: page.tr("media.title"); color: page.foreground; font.bold: true; font.pixelSize: 15 }
+                Note { text: page.tr("media.hint") }
+                Tools.SystemToolsButton {
+                    settingsMenu: page.settingsMenu; text: page.tr("media.check"); enabled: !mediaProc.running
+                    onClicked: { page.mediaFailed = false; page.mediaReport = null; mediaProc.running = true }
+                }
+                Note {
+                    visible: page.mediaFailed || page.mediaReport !== null
+                    text: page.mediaFailed ? page.tr("media.failed") : page.mediaReport ? Object.keys(page.mediaReport).map(function (name) {
+                        const item = page.mediaReport[name]
+                        return name + ": FFmpeg " + page.tr(item.ffmpeg ? "media.present" : "media.missing") + ", GStreamer " + page.tr(item.gstreamer ? "media.present" : "media.missing")
+                    }).join("\n") : ""
+                }
+            }
+        }
         Rectangle {
             objectName: "hardwareCard"
             width: parent.width; height: hardwareColumn.implicitHeight + 32

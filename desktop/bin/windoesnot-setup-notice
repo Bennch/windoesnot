@@ -58,6 +58,7 @@ def welcome_payload(data, preferences, hwcheck=None):
         ('Terminal', 'Befehle und Werkzeuge für Fortgeschrittene', 'Commands and tools for advanced users', 'img/scalable/terminal.svg', ['ghostty']),
     ]
     return {
+        'language': 'de' if german else 'en',
         'dark': preferences.get('darkMode', 'true') == 'true',
         'accent': preferences.get('accentColor', '#FE6F2D'),
         'title': 'Willkommen bei WinDoesNot' if german else 'Welcome to WinDoesNot',

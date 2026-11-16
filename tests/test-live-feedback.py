@@ -21,7 +21,7 @@ with tempfile.TemporaryDirectory(prefix='wdn-live-feedback-') as temporary:
     runtime = directory / 'run'; runtime.mkdir(mode=0o700)
     binpath = directory / 'bin'; binpath.mkdir()
     # An isolated live probe: unexpected privileged/snapper calls leave evidence.
-    for command, body in [('sh', 'exit 10'), ('pkexec', 'echo unexpected >> "' + str(directory / 'unexpected') + '"; exit 1'), ('snapper', 'echo unexpected >> "' + str(directory / 'unexpected') + '"; exit 1')]:
+    for command, body in [('sh', 'exit 10'), ('flatpak', 'exit 0'), ('windoesnot-bounded', 'shift; exec "$@"'), ('pkexec', 'echo unexpected >> "' + str(directory / 'unexpected') + '"; exit 1'), ('snapper', 'echo unexpected >> "' + str(directory / 'unexpected') + '"; exit 1')]:
         p = binpath / command; p.write_text('#!/bin/bash\n' + body + '\n'); p.chmod(0o755)
     source = (BASE / 'Settings.qml').read_text()
     references = set(re.findall(r'settingsMenu\.([A-Za-z_]\w*)', (BASE / 'settings/AppsCategory.qml').read_text() + (BASE / 'settings/BackupsCategory.qml').read_text()))

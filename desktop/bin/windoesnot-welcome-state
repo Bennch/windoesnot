@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+"""Local, optional first-steps state and unprivileged Windows-volume detection."""
+import fcntl
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+KEYS = {'wifi', 'updates', 'backup', 'view', 'migrate'}
+
+
+def windows_present():
+    try:
+        result = subprocess.run(['lsblk', '--json', '--output', 'FSTYPE,PARTTYPE'], capture_output=True, text=True, timeout=4, check=True)
+        def found(devices):
+            return any((d.get('fstype') or '').lower() == 'ntfs' or (d.get('parttype') or '').lower() == 'ebd0a0a2-b9e5-4433-87c0-68b6b72699c7' or found(d.get('children', [])) for d in devices)
+        return found(json.loads(result.stdout).get('blockdevices', []))
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return False
+
+
+def main():
+    base = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config') / 'windoesnot'
+    base.mkdir(parents=True, exist_ok=True)
+    path = base / 'welcome-checklist.json'
+    with os.fdopen(os.open(path, os.O_CREAT | os.O_RDWR, 0o600), 'r+') as state_file:
+        fcntl.flock(state_file, fcntl.LOCK_EX)
+        state_file.seek(0)
+        try:
+            state = json.load(state_file)
+            if not isinstance(state, dict):
+                state = {}
+        except ValueError:
+            state = {}
+        if len(sys.argv) == 3 and sys.argv[1] in KEYS and sys.argv[2] in ('true', 'false'):
+            state[sys.argv[1]] = sys.argv[2] == 'true'
+            state_file.seek(0)
+            json.dump(state, state_file)
+            state_file.write('\n')
+            state_file.truncate()
+        else:
+            print(json.dumps({'state': state, 'windows': windows_present()}))
+
+
+if __name__ == '__main__':
+    main()

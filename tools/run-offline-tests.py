@@ -30,6 +30,8 @@ def requirement(path: str) -> str | None:
     if path in SKIP:
         return SKIP[path]
     if path.endswith('.cpp'):
+        if os.environ.get('WINDOESNOT_SKIP_CPP_TESTS') == '1':
+            return 'C++ compilation disabled by WINDOESNOT_SKIP_CPP_TESTS'
         if not shutil.which('g++') or not shutil.which('pkg-config'):
             return 'requires g++ and pkg-config to compile the standalone widget test'
         qt = subprocess.run(['pkg-config', '--exists', 'Qt6Widgets'], check=False)

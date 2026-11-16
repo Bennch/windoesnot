@@ -62,3 +62,5 @@ hl.bind("SUPER + TAB", hl.dsp.exec_cmd("qs ipc -c overview call overview toggle"
 hl.bind("SUPER + Z", hl.dsp.exec_cmd("qs ipc call windoesnot-snap toggle"), {})
 hl.bind("ALT + Tab", hl.dsp.exec_cmd("snappy-switcher next"), {}) -- legacy:358
 hl.bind("ALT + SHIFT + Tab", hl.dsp.exec_cmd("snappy-switcher prev"), {}) -- legacy:359
+
+hl.bind("SUPER + F1", hl.dsp.global("quickshell:toggle-shortcuts"), {})
