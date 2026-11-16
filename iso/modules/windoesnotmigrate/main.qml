@@ -12,6 +12,7 @@ Rectangle {
         "profiles": [],
         "warnings": []
     })
+    readonly property bool linux: plan.kind === "linux"
     property bool skipped: false
     property real freeBytes: bridge && bridge.freeBytes !== undefined ? bridge.freeBytes : -1
     property real selectedBytes: {
@@ -19,11 +20,12 @@ Rectangle {
         for (var p of plan.profiles || []) for (var item of p.items || []) if (item.selected) {
             sum += item.bytes;
         }
+        for (var u of plan.users || []) if (u.selected) sum += u.bytes || 0;
         return sum;
     }
 
     // Name of the system the data comes from (Windows 7 ... 11), from the exporter's handoff; neutral until known.
-    readonly property string systemName: plan && plan.handoff && plan.handoff.windows_version ? niceWindowsName(String(plan.handoff.windows_version)) : "Windows"
+    readonly property string systemName: linux ? (plan.system || "Linux") : plan && plan.handoff && plan.handoff.windows_version ? niceWindowsName(String(plan.handoff.windows_version)) : "Windows"
 
     // "Windows 10 19045" (PowerShell exporter) or "10.0.26100.0" (Setup app) -> "Windows 10" / "Windows 11".
     function niceWindowsName(raw) {
@@ -85,7 +87,7 @@ Rectangle {
                 anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 10
                 Label {
                     Layout.fillWidth: true; wrapMode: Text.WordWrap; color: "#f3c99d"
-                    text: page.tr("Der Umzug funktioniert nur mit ‚Parallel installieren‘, weil Windows oder dein altes System sonst vor dem Kopieren gelöscht werden kann. Nutze ‚Zurück‘, um zur Partitionierung zurückzukehren, oder lasse den Umzug aus. Parallel braucht mindestens etwa 32 GiB freien Platz nach dem Verkleinern.", "The data move only works with ‘Install alongside’, because Windows or your old system could otherwise be deleted before copying. Use ‘Back’ to return to partitioning or skip the data move. Installing alongside needs at least about 32 GiB free after shrinking.")
+                    text: page.tr("Der Umzug funktioniert nur mit ‚Parallel installieren‘, weil dein altes System sonst vor dem Kopieren gelöscht werden kann. Nutze ‚Zurück‘, um zur Partitionierung zurückzukehren, oder lasse den Umzug aus. Parallel braucht mindestens etwa 32 GiB freien Platz nach dem Verkleinern.", "The data move only works with ‘Install alongside’, because your old system could otherwise be deleted before copying. Use ‘Back’ to return to partitioning or skip the data move. Installing alongside needs at least about 32 GiB free after shrinking.")
                 }
                 Button { text: page.tr("Umzug auslassen", "Skip data move"); onClicked: { page.skipped = true; if (page.bridge) page.bridge.setSkipped(true) } }
             }
@@ -112,8 +114,10 @@ Rectangle {
                 id: diskBox
 
                 Layout.fillWidth: true
-                model: page.disks
-                textRole: "device"
+                enabled: !(page.bridge && page.bridge.busy)
+                currentIndex: Math.max(0, page.disks.findIndex(function(d) { return d.device === page.plan.device; }))
+                textRole: "display"
+                model: page.disks.map(function(d) { return { device: d.device, display: (d.system || (d.filesystem === "ntfs" || d.filesystem === "bitlocker" ? "Windows" : "Linux")) + " — " + d.device + (d.label ? " (" + d.label + ")" : "") }; })
                 onActivated: {
                     if (page.bridge) {
                         page.bridge.scan(page.disks[currentIndex].device);
@@ -135,7 +139,7 @@ Rectangle {
             color: "#2a2a2e"; border.color: "#555555"; radius: 8
             Layout.fillWidth: true; implicitHeight: noWindowsText.implicitHeight + 20
             Label { id: noWindowsText; anchors.fill: parent; anchors.margins: 10; color: "#cccccc"; wrapMode: Text.WordWrap
-                text: page.tr("Keine Windows-Installation gefunden. Es gibt nichts zu übernehmen; mit „Weiter“ geht es ohne Datenübernahme weiter.", "No Windows installation found. There is nothing to bring over; click Next to continue without copying data.") }
+                text: page.tr("Keine geeignete Quelle gefunden. Es gibt nichts zu übernehmen; mit „Weiter“ geht es ohne Datenübernahme weiter.", "No suitable source found. There is nothing to bring over; click Next to continue without copying data.") }
         }
 
         Rectangle {
@@ -211,6 +215,11 @@ Rectangle {
             onClicked: unlockDialog.open()
         }
 
+        Button {
+            visible: page.hasWarning("luks_locked")
+            text: page.tr("Verschlüsseltes Laufwerk entsperren", "Unlock encrypted drive")
+            onClicked: luksDialog.open()
+        }
         Rectangle {
             visible: !!page.plan.handoff
             Layout.fillWidth: true
@@ -282,6 +291,48 @@ Rectangle {
             ColumnLayout {
                 width: parent.width
                 spacing: 12
+
+                ColumnLayout {
+                    visible: page.linux && !page.hasWarning("luks_locked")
+                    Layout.fillWidth: true
+                    Rectangle {
+                        Layout.fillWidth: true; implicitHeight: linuxNotice.implicitHeight + 20
+                        color: "#382d22"; border.color: "#b8804b"; radius: 8
+                        Label { id: linuxNotice; anchors.fill: parent; anchors.margins: 10; wrapMode: Text.WordWrap; color: "#f3c99d"
+                            text: page.tr("Eigene Desktop-Konfiguration (z. B. ~/.config/hypr) ersetzt nicht das WinDoesNot-Aussehen. Sie landet unter ~/Umzug-<Benutzer>/original/. Separate Dateisysteme werden möglicherweise nicht erfasst.", "Your desktop configuration (e.g. ~/.config/hypr) does not replace the WinDoesNot appearance. It is saved under ~/Umzug-<user>/original/. Separate filesystems may not be included.") }
+                    }
+                    Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: "#aaaaaa"; text: page.tr("Ein Quellbenutzer kann übernommen werden.", "One source user can be transferred.") }
+                    Repeater {
+                        model: page.plan.users || []
+                        delegate: Rectangle {
+                            Layout.fillWidth: true; implicitHeight: linuxUser.implicitHeight + 20; radius: 8; color: "#141414"; border.color: "#3a3a3a"
+                            ColumnLayout { id: linuxUser; anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 10
+                                Label { color: "#eeeeee"; font.bold: true; text: modelData.name + " · " + page.size(modelData.bytes) }
+                                RadioButton { checked: !!modelData.selected; enabled: !page.skipped
+                                    text: page.tr("Home (alles inklusive versteckter Dateien)", "Home (everything including hidden files)")
+                                    contentItem: Text { text: parent.text; font: parent.font; color: "#eeeeee"; leftPadding: parent.indicator.width + parent.spacing; verticalAlignment: Text.AlignVCenter }
+                                    onClicked: if (page.bridge) page.bridge.setLinuxUser(index, true)
+                                }
+                                Label { visible: modelData.warnings && modelData.warnings.length > 0; color: "#f3c99d"; text: (modelData.warnings || []).join(", ") }
+                            }
+                        }
+                    }
+                    Repeater {
+                        model: [
+                            { key: "wlan", label: page.tr("WLAN-Verbindungen", "Wi-Fi connections"), checked: !!page.plan.wlan_selected },
+                            { key: "packages", label: page.tr("Pakete (explizit installierte Pakete nach dem ersten Start nachinstallieren)", "Packages (reinstall explicitly installed packages after first boot)"), checked: !!(page.plan.package_selection && page.plan.package_selection.arch_explicit) },
+                            { key: "flatpak", label: page.tr("Flatpak-Apps", "Flatpak apps"), checked: !!(page.plan.package_selection && page.plan.package_selection.flatpak) }
+                        ]
+                        delegate: CheckBox { enabled: !page.skipped; checked: modelData.checked; text: modelData.label
+                            contentItem: Text { text: parent.text; font: parent.font; color: "#eeeeee"; wrapMode: Text.WordWrap; leftPadding: parent.indicator.width + parent.spacing; verticalAlignment: Text.AlignVCenter }
+                            onClicked: if (page.bridge) page.bridge.setLinuxGroup(modelData.key, checked)
+                        }
+                    }
+                    CheckBox { checked: true; enabled: false; text: page.tr("/etc als Referenzkopie (immer)", "/etc as reference copy (always)")
+                        contentItem: Text { text: parent.text; font: parent.font; color: "#aaaaaa"; leftPadding: parent.indicator.width + parent.spacing; verticalAlignment: Text.AlignVCenter }
+                    }
+                    Label { visible: (page.plan.warnings || []).length > 0; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: "#f3c99d"; text: page.tr("Hinweise: ", "Notes: ") + (page.plan.warnings || []).join(", ") }
+                }
 
                 Repeater {
                     model: page.plan.profiles || []
@@ -464,6 +515,18 @@ Rectangle {
 
         }
 
+    }
+
+    Dialog {
+        id: luksDialog
+        modal: true; anchors.centerIn: parent; width: Math.min(parent.width - 48, 490)
+        title: page.tr("Verschlüsseltes Laufwerk entsperren", "Unlock encrypted drive")
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        background: Rectangle { color: "#202020"; border.color: "#3a3a3a"; radius: 10 }
+        onAccepted: { if (luksSecret.text && page.bridge) page.bridge.unlock(luksSecret.text); luksSecret.text = "" }
+        onRejected: luksSecret.text = ""
+        TextField { id: luksSecret; width: parent.width; echoMode: TextInput.Password
+            placeholderText: page.tr("Passwort des verschlüsselten Laufwerks", "Encrypted drive password") }
     }
 
 }

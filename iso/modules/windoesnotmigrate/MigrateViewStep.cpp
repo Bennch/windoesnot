@@ -40,19 +40,40 @@ public:
             if (code != 0 || status != QProcess::NormalExit) {
                 m_error = QString::fromUtf8(m_process.readAllStandardError()).trimmed();
             } else if (m_action == QStringLiteral("partitions")) {
-                m_devices = QString::fromUtf8(data).trimmed();
-                const auto devices = QJsonDocument::fromJson(data).array();
-                bool found = false;
-                for (const auto& value : devices) {
-                    const auto entry = value.toObject();
-                    if (entry.value("filesystem").toString() == QStringLiteral("ntfs")) {
-                        scan(entry.value("device").toString());
-                        found = true; break;
+                m_windows = QJsonDocument::fromJson(data).array();
+                start(QStringLiteral("linuxPartitions"), {});
+                return;
+            } else if (m_action == QStringLiteral("linuxPartitions")) {
+                auto entries = m_windows;
+                for (const auto& value : QJsonDocument::fromJson(data).array()) entries.append(value);
+                m_devices = QString::fromUtf8(QJsonDocument(entries).toJson(QJsonDocument::Compact));
+                if (!entries.isEmpty()) {
+                    QString device = entries.first().toObject().value("device").toString();
+                    for (const auto& value : entries) {
+                        const auto entry = value.toObject();
+                        if (entry.value("filesystem").toString() == QStringLiteral("ntfs")) { device = entry.value("device").toString(); break; }
                     }
+                    scan(device); return;
                 }
-                if (!found && !devices.isEmpty()) { scan(devices.first().toObject().value("device").toString()); return; }
             } else {
-                m_manifest = QString::fromUtf8(data).trimmed();
+                auto root = QJsonDocument::fromJson(data).object();
+                if (root.value("kind").toString() == QStringLiteral("linux")) {
+                    auto users = root.value("users").toArray();
+                    for (int i = 0; i < users.size(); ++i) {
+                        auto user = users[i].toObject(); user.insert("selected", i == 0); users[i] = user;
+                    }
+                    root.insert("users", users); root.insert("wlan_selected", true);
+                    QJsonObject groups;
+                    for (const auto& key : {"arch_explicit", "arch_foreign", "deb_manual", "flatpak"}) groups.insert(key, true);
+                    root.insert("package_selection", groups);
+                    auto entries = QJsonDocument::fromJson(m_devices.toUtf8()).array();
+                    for (int i = 0; i < entries.size(); ++i) {
+                        auto entry = entries[i].toObject();
+                        if (entry.value("device").toString() == m_device) { entry.insert("system", root.value("system")); entries[i] = entry; }
+                    }
+                    m_devices = QString::fromUtf8(QJsonDocument(entries).toJson(QJsonDocument::Compact));
+                }
+                m_manifest = QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Compact));
             }
             emit changed();
         });
@@ -81,12 +102,24 @@ public:
     Q_INVOKABLE void scan(const QString& device) {
         if (device.isEmpty()) return;
         m_device = device; m_manifest.clear(); m_secret.clear(); m_envelopeSecret.clear(); emit changed();
-        start(QStringLiteral("scan"), {device, QStringLiteral("--locale"), german() ? QStringLiteral("de_DE.UTF-8") : QStringLiteral("en_US.UTF-8")});
+        m_linux = false; QString fs;
+        for (const auto& value : QJsonDocument::fromJson(m_devices.toUtf8()).array()) {
+            auto entry = value.toObject();
+            if (entry.value("device").toString() == device) fs = entry.value("filesystem").toString();
+        }
+        m_linux = fs != QStringLiteral("ntfs") && fs != QStringLiteral("bitlocker");
+        if (fs == QStringLiteral("crypto_luks")) {
+            QJsonObject root; root.insert("kind", "linux"); root.insert("device", device); root.insert("system", "Linux"); root.insert("warnings", QJsonArray{QStringLiteral("luks_locked")});
+            m_manifest = QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Compact)); emit changed(); return;
+        }
+        if (m_linux) start(QStringLiteral("scan"), {device});
+        else start(QStringLiteral("scan"), {device, QStringLiteral("--locale"), german() ? QStringLiteral("de_DE.UTF-8") : QStringLiteral("en_US.UTF-8")});
     }
     Q_INVOKABLE void unlock(const QString& secret) {
         if (secret.isEmpty() || m_device.isEmpty()) return;
         m_secret = secret;
-        start(QStringLiteral("unlock"), {m_device, QStringLiteral("--locale"), german() ? QStringLiteral("de_DE.UTF-8") : QStringLiteral("en_US.UTF-8"), QStringLiteral("--secret-stdin")});
+        if (m_linux) start(QStringLiteral("unlock"), {m_device, QStringLiteral("--secret-stdin")});
+        else start(QStringLiteral("unlock"), {m_device, QStringLiteral("--locale"), german() ? QStringLiteral("de_DE.UTF-8") : QStringLiteral("en_US.UTF-8"), QStringLiteral("--secret-stdin")});
     }
     Q_INVOKABLE void setSelected(int profile, int item, bool selected) {
         auto document = QJsonDocument::fromJson(m_manifest.toUtf8());
@@ -96,6 +129,22 @@ public:
         if (item < 0 || item >= items.size()) return;
         auto entry = items[item].toObject(); entry.insert("selected", selected); items[item] = entry;
         person.insert("items", items); profiles[profile] = person; root.insert("profiles", profiles);
+        m_manifest = QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Compact)); emit changed();
+    }
+    Q_INVOKABLE void setLinuxUser(int index, bool selected) {
+        auto root = QJsonDocument::fromJson(m_manifest.toUtf8()).object(); auto users = root.value("users").toArray();
+        for (int i = 0; i < users.size(); ++i) { auto user = users[i].toObject(); user.insert("selected", i == index ? selected : (selected ? false : user.value("selected").toBool())); users[i] = user; }
+        root.insert("users", users); m_manifest = QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Compact)); emit changed();
+    }
+    Q_INVOKABLE void setLinuxGroup(const QString& group, bool selected) {
+        auto root = QJsonDocument::fromJson(m_manifest.toUtf8()).object();
+        if (group == QStringLiteral("wlan")) root.insert("wlan_selected", selected);
+        else {
+            auto groups = root.value("package_selection").toObject();
+            if (group == QStringLiteral("packages")) { groups.insert("arch_explicit", selected); groups.insert("arch_foreign", selected); groups.insert("deb_manual", selected); }
+            if (group == QStringLiteral("flatpak")) groups.insert("flatpak", selected);
+            root.insert("package_selection", groups);
+        }
         m_manifest = QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Compact)); emit changed();
     }
     Q_INVOKABLE void setSkipped(bool skipped) { m_skip = skipped; emit changed(); }
@@ -111,14 +160,15 @@ public:
     void start(const QString& action, const QStringList& args) {
         if (m_process.state() != QProcess::NotRunning) return;
         m_action = action; m_error.clear(); m_busy = true; emit changed();
-        m_process.start(QStringLiteral("/usr/bin/python3"), QStringList{QStringLiteral("/usr/lib/windoesnot/migrate.py"), action == QStringLiteral("unlock") ? QStringLiteral("scan") : action} + args);
+        m_process.start(QStringLiteral("/usr/bin/python3"), QStringList{(action == QStringLiteral("linuxPartitions") || (action != QStringLiteral("partitions") && m_linux)) ? QStringLiteral("/usr/lib/windoesnot/mirror.py") : QStringLiteral("/usr/lib/windoesnot/migrate.py"), action == QStringLiteral("unlock") ? QStringLiteral("scan") : (action == QStringLiteral("linuxPartitions") ? QStringLiteral("partitions") : action)} + args);
     }
 signals:
     void changed();
 private:
     QProcess m_process;
     QString m_action, m_device, m_manifest, m_devices, m_error, m_secret, m_envelopeSecret;
-    bool m_busy = false, m_skip = false;
+    QJsonArray m_windows;
+    bool m_busy = false, m_skip = false, m_linux = false;
 };
 
 class PLUGINDLLEXPORT MigrateViewStep : public Calamares::ViewStep {
@@ -147,6 +197,11 @@ public:
                 bytes += qint64(item.value("bytes").toDouble());
             }
         }
+        for (const auto& value : plan.value("users").toArray()) {
+            const auto user = value.toObject();
+            if (user.value("selected").toBool()) { folders << user.value("name").toString(); bytes += qint64(user.value("bytes").toDouble()); }
+        }
+        if (plan.value("wlan_selected").toBool()) folders << (german ? QStringLiteral("WLAN") : QStringLiteral("Wi-Fi"));
         if (plan.value("handoff").toObject().value("wlan_selected").toBool()) folders << (german ? QStringLiteral("WLAN") : QStringLiteral("Wi-Fi"));
         if (folders.isEmpty()) return german ? QStringLiteral("Keine Daten") : QStringLiteral("No data");
         const QString amount = bytes >= 1073741824 ? QString::number(double(bytes) / 1073741824.0, 'f', 1) + QStringLiteral(" GiB") : QString::number(double(bytes) / 1048576.0, 'f', 1) + QStringLiteral(" MiB");

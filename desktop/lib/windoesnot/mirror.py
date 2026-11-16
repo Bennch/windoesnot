@@ -19,6 +19,20 @@ import tempfile
 PACKAGE = re.compile(r'^[a-z0-9@._+-]+$')
 
 
+def partitions():
+    data = json.loads(subprocess.check_output(['lsblk', '--json', '-b', '-o', 'PATH,TYPE,FSTYPE,LABEL,SIZE,MOUNTPOINTS'], text=True, timeout=20))
+    result = []
+    def visit(node):
+        fs = (node.get('fstype') or '').lower()
+        if node.get('type') == 'part' and fs in ('ext4', 'btrfs', 'xfs', 'crypto_luks'):
+            result.append({'device': node['path'], 'filesystem': fs, 'size': node.get('size', 0), 'label': node.get('label') or ''})
+        for child in node.get('children') or []:
+            visit(child)
+    for node in data.get('blockdevices', []):
+        visit(node)
+    return result
+
+
 def safe_path(root, relative):
     """Resolve only ordinary components within root; never follow a symlink."""
     root = Path(root).resolve(strict=True)
@@ -561,6 +575,7 @@ def copy_manifest(manifest, home, target_root='/', secret=None, progress=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='action', required=True)
+    sub.add_parser('partitions')
     scan = sub.add_parser('scan')
     scan.add_argument('device')
     scan.add_argument('--secret-stdin', action='store_true')
@@ -571,6 +586,9 @@ def main():
     copy.add_argument('--target-root', default='/')
     copy.add_argument('--secret-stdin', action='store_true')
     args = parser.parse_args()
+    if args.action == 'partitions':
+        print(json.dumps(partitions(), ensure_ascii=False))
+        return
     if args.action == 'copy':
         with open(args.manifest, encoding='utf-8') as stream:
             manifest = json.load(stream)
