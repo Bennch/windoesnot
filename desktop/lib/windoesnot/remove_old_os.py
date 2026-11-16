@@ -483,7 +483,7 @@ def _grow(step, env, do, dry_run, progress):
     disk = step['disks'][0]
     mbr = step.get('table') == 'dos'
     if dry_run:
-        do(['sfdisk', '--append', disk] if mbr else ['sgdisk', '-n', '0:<start>:<end>', '-t', '0:8300', '-c', '0:WinDoesNot-Platz', disk])
+        do(['sfdisk', '--append', '--no-reread', disk] if mbr else ['sgdisk', '-n', '0:<start>:<end>', '-t', '0:8300', '-c', '0:WinDoesNot-Platz', disk])
         do(['btrfs', 'device', 'add', '-f', '<new partition>', '/'] if step['mode'] == 'join'
            else ['mkfs.ext4', '-L', 'Daten', '<new partition>'])
         return
@@ -494,7 +494,14 @@ def _grow(step, env, do, dry_run, progress):
     old = {p['path'] for _d, p in _flat(env.lsblk())}
     if mbr:
         # MBR: one more primary partition in the freed region (sfdisk reads the layout from stdin).
-        do(['sfdisk', '--append', disk], f'start={region[0]}, size={region[2]}, type=83\n')
+        # sfdisk wants an aligned start (the free region often begins at sector 2) and a size inside the region.
+        start = ((max(region[0], 2048) + 2047) // 2048) * 2048
+        size = region[1] - start + 1
+        size -= size % 2048
+        if size < 2097152:
+            _emit(progress, event='note', text='free-space-too-small')
+            return
+        do(['sfdisk', '--append', '--no-reread', disk], f'start={start}, size={size}, type=83\n')
     else:
         do(['sgdisk', '-n', f'0:{region[0]}:{region[1]}', '-t', '0:8300', '-c', '0:WinDoesNot-Platz', disk])
     do(['udevadm', 'settle'])
@@ -561,5 +568,7 @@ def main(argv=None):
 if __name__ == '__main__':
     try:
         main()
-    except (PermissionError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
+    except (PermissionError, ValueError, RuntimeError) as error:
         sys.exit(str(error))
+    except subprocess.CalledProcessError as error:
+        sys.exit(f'{error} {(error.stderr or "").strip()}')

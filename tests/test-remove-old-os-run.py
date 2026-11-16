@@ -206,6 +206,6 @@ with tempfile.TemporaryDirectory() as tmp:
     env_mbr.run = mbr_run
     mbr_plan2 = roo.build_plan(env_mbr, ['/dev/nvme0n1p2'], grow='data')
     roo.execute(mbr_plan2, env_mbr, phrase='WINDOWS LOESCHEN', backup=True)
-    assert real_mbr.inputs and real_mbr.inputs[0].startswith('start=1050624, size=18949377, type=83'), real_mbr.inputs
-    assert ['sfdisk', '--append', '/dev/nvme0n1'] in real_mbr.calls
+    assert real_mbr.inputs and real_mbr.inputs[0].startswith('start=1050624, size=18948096, type=83'), real_mbr.inputs
+    assert ['sfdisk', '--append', '--no-reread', '/dev/nvme0n1'] in real_mbr.calls
 print('PASS remove old OS: scan, plan, execution order, confirmations, stale-state abort, dry run, MBR')
