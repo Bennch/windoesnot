@@ -4,7 +4,11 @@ import json
 import importlib.util
 from pathlib import Path
 
-spec = importlib.util.spec_from_file_location("windoesnot_block_identity", Path(__file__).with_name("block_identity.py"))
+try:
+    _here = Path(__file__).resolve().parent
+except NameError:  # Calamares' embedded Python does not define __file__ for job modules
+    _here = Path('/usr/lib/calamares/modules/windoesnotmigrate_guard')
+spec = importlib.util.spec_from_file_location("windoesnot_block_identity", _here / "block_identity.py")
 block_identity = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(block_identity)
 import libcalamares

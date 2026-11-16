@@ -57,7 +57,7 @@ for name,data in boot_manifest['loaders'].items():
 assert (root/'usr/lib/os-probes/55windoesnot-btrfs').read_bytes()==(base/'iso/os-prober-btrfs').read_bytes(),'Missing Btrfs os-prober extension'
 assert (root/'usr/lib/os-probes/55windoesnot-btrfs').stat().st_mode & 0o111
 for name in ['windoesnotprepare','windoesnotsystem','windoesnotapps_install','windoesnotlivedata','windoesnotmigrate_guard','windoesnotmigrate_install','windoesnotfinish','windoesnotbootreuse']:
-    for filename in ['main.py','module.desc']:
+    for filename in sorted(f.name for f in (base/'iso/modules'/name).glob('*.py'))+['module.desc']:
         source=base/'iso/modules'/name/filename
         installed=root/'usr/lib/calamares/modules'/name/filename
         assert source.read_bytes()==installed.read_bytes(),f'Stale installed installer job: {name}/{filename}'

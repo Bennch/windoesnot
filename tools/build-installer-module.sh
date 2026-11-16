@@ -29,7 +29,7 @@ cmake --install "$work/build"
 # Our Python jobs have no compiled target; refresh them alongside the views.
 for name in windoesnotprepare windoesnotsystem windoesnotapps_install windoesnotlivedata windoesnotmigrate_guard windoesnotmigrate_install windoesnotfinish windoesnotbootreuse; do
     install -d "/usr/lib/calamares/modules/$name"
-    install -m644 "$project/iso/modules/$name/main.py" "$project/iso/modules/$name/module.desc" "/usr/lib/calamares/modules/$name/"
+    install -m644 "$project/iso/modules/$name/"*.py "$project/iso/modules/$name/module.desc" "/usr/lib/calamares/modules/$name/"
 done
 if ldd /usr/lib/calamares/modules/windoesnotapps/libcalamares_viewmodule_windoesnotapps.so | grep -q 'not found'; then exit 1; fi
 if ldd /usr/lib/calamares/modules/windoesnotboot/libcalamares_viewmodule_windoesnotboot.so | grep -q 'not found'; then exit 1; fi

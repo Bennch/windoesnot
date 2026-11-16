@@ -24,7 +24,7 @@ cmake --install "$work/build"
 # canonical jobs explicitly too, so a resumed build cannot retain an older copy.
 for name in windoesnotprepare windoesnotsystem windoesnotapps_install windoesnotfinish windoesnotbootreuse; do
     install -d "/usr/lib/calamares/modules/$name"
-    install -m644 "$project/iso/modules/$name/main.py" "$project/iso/modules/$name/module.desc" "/usr/lib/calamares/modules/$name/"
+    install -m644 "$project/iso/modules/$name/"*.py "$project/iso/modules/$name/module.desc" "/usr/lib/calamares/modules/$name/"
 done
 python3 "$project/iso/brand-installer.py"
 ldconfig
