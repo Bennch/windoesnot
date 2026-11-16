@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Remove Old System
+Name[de]=Altes System entfernen
+Comment=Remove Windows after the data move and use its space
+Comment[de]=Windows nach dem Umzug entfernen und den Platz nutzen
+Exec=windoesnot-remove-old-os
+Icon=drive-harddisk
+Terminal=false
+Categories=System;Utility;

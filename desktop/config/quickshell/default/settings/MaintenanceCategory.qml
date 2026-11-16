@@ -224,6 +224,25 @@ Item {
             }
         }
         Rectangle {
+            objectName: "removeOldCard"
+            width: parent.width; height: removeOldColumn.implicitHeight + 32
+            radius: settingsMenu ? settingsMenu.borderRadius : 10
+            color: page.dark ? "#141414" : "#f5f5f5"
+            border.width: 1; border.color: page.lineColor
+            Column {
+                id: removeOldColumn; x: 16; y: 16; width: parent.width - 32; spacing: 8
+                Text { text: page.tr("maintenance.removeOld"); color: page.foreground; font.bold: true; font.pixelSize: 15 }
+                Note { text: page.tr("maintenance.removeOldHint") }
+                Tools.SystemToolsButton {
+                    settingsMenu: page.settingsMenu
+                    enabled: !page.state.live
+                    text: page.tr("maintenance.removeOldOpen")
+                    onClicked: removeOldProcess.running = true
+                }
+                Process { id: removeOldProcess; command: ["setsid", "--fork", "windoesnot-remove-old-os"] }
+            }
+        }
+        Rectangle {
             objectName: "pacnewCard"
             width: parent.width; height: pacnewContent.implicitHeight + 32
             radius: settingsMenu ? settingsMenu.borderRadius : 10

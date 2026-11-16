@@ -75,6 +75,22 @@ Rectangle {
         anchors.margins: 24
         spacing: 12
 
+        Rectangle {
+            visible: page.bridge && page.bridge.installChoice !== "alongside" && !page.skipped
+            Layout.fillWidth: true
+            implicitHeight: choiceWarning.implicitHeight + 20
+            color: "#382d22"; border.color: "#fe6f2d"; radius: 8
+            ColumnLayout {
+                id: choiceWarning
+                anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 10
+                Label {
+                    Layout.fillWidth: true; wrapMode: Text.WordWrap; color: "#f3c99d"
+                    text: page.tr("Der Umzug funktioniert nur mit ‚Parallel installieren‘, weil Windows oder dein altes System sonst vor dem Kopieren gelöscht werden kann. Nutze ‚Zurück‘, um zur Partitionierung zurückzukehren, oder lasse den Umzug aus. Parallel braucht mindestens etwa 32 GiB freien Platz nach dem Verkleinern.", "The data move only works with ‘Install alongside’, because Windows or your old system could otherwise be deleted before copying. Use ‘Back’ to return to partitioning or skip the data move. Installing alongside needs at least about 32 GiB free after shrinking.")
+                }
+                Button { text: page.tr("Umzug auslassen", "Skip data move"); onClicked: { page.skipped = true; if (page.bridge) page.bridge.setSkipped(true) } }
+            }
+        }
+
         Label {
             text: page.tr("Daten aus " + page.systemName + " übernehmen", "Bring your " + page.systemName + " data")
             font.pixelSize: 24
@@ -83,7 +99,7 @@ Rectangle {
         }
 
         Label {
-            text: page.tr("Ordner auswählen. Windows bleibt unverändert; vorhandene Zieldateien können aktualisiert werden.", "Choose folders. Windows stays unchanged; existing target files may be updated.")
+            text: page.tr("Ordner auswählen. Beim Kopieren bleibt die Quelle unverändert; vorhandene Zieldateien können aktualisiert werden.", "Choose folders. Copying leaves the source unchanged; existing target files may be updated.")
             color: "#aaaaaa"
             wrapMode: Text.WordWrap
             Layout.fillWidth: true

@@ -7,10 +7,36 @@ import sys
 import subprocess
 import tempfile
 import os
+from datetime import datetime, timezone
 import libcalamares
 
 sys.path.insert(0, '/usr/lib/windoesnot')
 import migrate
+
+
+def write_migration_report(target_root, plan, result):
+    """Record outcomes; missing stable identity must never authorize deletion."""
+    directory = target_root / 'var/lib/windoesnot'
+    directory.mkdir(parents=True, exist_ok=True)
+    if directory.resolve() != directory or directory.is_symlink():
+        raise ValueError('Unsafe migration report directory')
+    report = {
+        'schema': 1, 'timestamp': datetime.now(timezone.utc).isoformat(),
+        'source_device': plan.get('device'),
+        'source_identity': plan.get('block_identity'),
+        # Linux's major:minor identity is meaningful only during this boot.
+        'identity_persistent': False,
+        'files': result.get('files', (result.get('home') or {}).get('files', 0)),
+        'errors': result['errors'], 'success': not result['errors'],
+    }
+    fd, temporary = tempfile.mkstemp(prefix='.migration-report-', dir=directory)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+            json.dump(report, stream, ensure_ascii=False)
+        os.replace(temporary, directory / 'migration-report.json')
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
 def nice_windows_name(raw):
@@ -56,6 +82,7 @@ def run():
             target_root = Path(target_root).resolve()
             if target_root == Path('/') or not (target_root / 'etc/windoesnot-image-build').is_file():
                 raise ValueError('Refusing to copy outside the installation target')
+            write_migration_report(target_root, plan, {'errors': [{'path': '', 'error': 'Migration did not finish'}]})
             secret = libcalamares.globalstorage.value('windoesnotMigrateSecret') or ''
             with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8') as manifest_file:
                 json.dump(plan, manifest_file); manifest_file.flush()
@@ -76,6 +103,7 @@ def run():
                     stderr = error_file.read()
             if process.returncode or result is None:
                 raise RuntimeError(stderr.strip() or 'Mirror copy failed')
+            write_migration_report(target_root, plan, result)
             wants = target_root / 'etc/systemd/system/multi-user.target.wants'
             if wants.resolve() != wants:
                 raise ValueError('Unsafe service destination')
@@ -101,6 +129,7 @@ def run():
         target_root = Path(target_root).resolve()
         if target_root == Path('/') or not (target_root / 'etc/windoesnot-image-build').is_file():
             raise ValueError('Refusing to copy outside the installation target')
+        write_migration_report(target_root, plan, {'errors': [{'path': '', 'error': 'Migration did not finish'}]})
         def progress(event):
             job = getattr(libcalamares, 'job', None)
             if event.get('event') == 'file' and event.get('total_bytes') and hasattr(job, 'setprogress'):
@@ -134,6 +163,10 @@ def run():
         else:
             result = migrate.copy_manifest(plan, target_root / 'home' / username, secret=secret, progress=progress,
                                            nm_dir=target_root / 'etc/NetworkManager/system-connections')
+        report_result = dict(result)
+        if handoff.get('chromium_envelope') and not envelope_password:
+            report_result['errors'] = result['errors'] + [{'path': 'chromium_envelope', 'error': 'Password not provided'}]
+        write_migration_report(target_root, plan, report_result)
         notice = (('Passwörter liegen als CSV in ~/Umzug-Windows, nach dem Browser-Import löschen.' if german
                    else 'Passwords are stored as CSV in ~/Umzug-Windows; delete them after importing into the browser.')
                   if result.get('password_csv') else '')

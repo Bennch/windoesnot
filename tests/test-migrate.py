@@ -276,6 +276,9 @@ with tempfile.TemporaryDirectory() as tmp:
         with patch.object(m, 'copy_manifest', side_effect=copy_from_fixture):
             assert job.run() is None
     assert values['windoesnotMigrateCompleted'] is True
+    report = json.loads((target_root / 'var/lib/windoesnot/migration-report.json').read_text())
+    assert report['success'] and report['files'] >= 1
+    assert report['source_device'] == '/dev/synthetic' and not report['identity_persistent']
     assert (target_root / 'home/ada/Dokumente/Grüße.txt').read_bytes() == b'synthetic data\x00\xff'
     assert (source / 'Users/Ada/Documents/Grüße.txt').read_bytes() == b'synthetic data\x00\xff'
     values['windoesnotMigrateManifest'] = ''

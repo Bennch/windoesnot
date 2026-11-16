@@ -28,6 +28,7 @@ class MigrateBridge : public QObject {
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(bool german READ german CONSTANT)
     Q_PROPERTY(qint64 freeBytes READ freeBytes CONSTANT)
+    Q_PROPERTY(QString installChoice READ installChoice NOTIFY changed)
 public:
     explicit MigrateBridge(QObject* parent = nullptr) : QObject(parent) {
         connect(&m_process, &QProcess::started, this, [this] {
@@ -61,6 +62,11 @@ public:
     QString error() const { return m_error; }
     bool busy() const { return m_busy; }
     bool german() const { return QLocale().language() == QLocale::German; }
+    QString installChoice() const {
+        return Calamares::JobQueue::instance()->globalStorage()->value(QStringLiteral("partitionChoices"))
+            .toMap().value(QStringLiteral("install")).toString();
+    }
+    void refreshChoice() { emit changed(); }
     qint64 freeBytes() const {
         auto* storage = Calamares::JobQueue::instance()->globalStorage();
         const QString path = storage->value("rootMountPoint").toString();
@@ -202,6 +208,7 @@ public:
         return m_widget;
     }
     bool isNextEnabled() const override { return true; }
+    void onActivate() override { widget(); if (m_bridge) m_bridge->refreshChoice(); }
     bool isBackEnabled() const override { return !m_resultMode; }
     bool isAtBeginning() const override { return true; }
     bool isAtEnd() const override { return true; }

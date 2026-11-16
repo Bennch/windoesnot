@@ -591,7 +591,7 @@ def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, 
         free = shutil.disk_usage(home).free
         if needed > free:
             raise OSError(f'Not enough free space: need {needed} bytes, have {free} bytes')
-        summary = {'bytes': needed, 'free': free, 'folders': len(jobs), 'errors': [], 'warnings': [], 'wlan_imported': 0, 'mail_imported': False}
+        summary = {'bytes': needed, 'free': free, 'folders': len(jobs), 'files': 0, 'errors': [], 'warnings': [], 'wlan_imported': 0, 'mail_imported': False}
         if dry_run:
             return summary
         def report(event, **fields):
@@ -631,6 +631,7 @@ def copy_manifest(manifest, home, source_root=None, dry_run=False, secret=None, 
                         failed(entry, 'target file already exists with different contents or copy verification failed')
                         return
                     copied += entry.stat(follow_symlinks=False).st_size
+                    summary['files'] += 1
                     report('file', path=str(entry), copied_bytes=copied, total_bytes=needed)
                 except OSError:
                     failed(entry, 'could not verify copied file')

@@ -77,15 +77,18 @@ def run():
         if str(storage.value('locale')).startswith('de'):
             return ('Linux-Datenquelle schützen',
                     'Die Linux-Quelle oder die Installationsziele konnten nicht sicher geprüft werden. '
-                    'Die Installation wurde vor der Partitionierung angehalten, um die Quelle zu schützen.')
+                    'Die Installation wurde vor der Partitionierung angehalten, um die Quelle zu schützen. '
+                    'Nach dem Umzug kann das alte System später entfernt werden.')
         return ('Protect Linux migration source',
                 'The Linux source or installation targets could not be verified safely. '
-                'Installation stopped before partitioning to protect the source.')
+                'Installation stopped before partitioning to protect the source. '
+                'After migration the old system can be removed later.')
     if str(storage.value('locale')).startswith('de'):
         return ('Windows-Datenumzug nur bei „Parallel installieren“',
                 'Der Datenumzug ist nur möglich, wenn Windows bestehen bleibt: Wähle „Parallel installieren“ '
                 'oder schalte den Datenumzug aus. Die Installation wurde vor der Partitionierung angehalten, '
-                'damit keine Daten verloren gehen.')
+                'damit keine Daten verloren gehen. Nach dem Umzug kann das alte System später entfernt werden.')
     return ('Windows data migration needs "Install alongside"',
             'Data migration only works while Windows stays on the disk: choose "Install alongside" or switch '
-            'the migration off. Installation stopped before partitioning so that no data is lost.')
+            'the migration off. Installation stopped before partitioning so that no data is lost. '
+            'After migration the old system can be removed later.')

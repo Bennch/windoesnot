@@ -1,0 +1,278 @@
+#!/usr/bin/env python3
+"""Remove the old operating system (Windows) after the data move and give the space to WinDoesNot.
+
+The window only collects choices. Everything privileged runs in /usr/lib/windoesnot/remove_old_os.py through pkexec;
+that backend rescans the disks, verifies Windows read-only and refuses anything it did not offer itself."""
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import threading
+
+import gi
+gi.require_version('Gtk', '4.0')
+gi.require_version('Adw', '1')
+from gi.repository import Adw, GLib, Gtk, Gdk
+
+BACKEND = Path('/usr/lib/windoesnot/remove_old_os.py')
+if not BACKEND.is_file():
+    BACKEND = Path(__file__).resolve().parent.parent / 'lib/windoesnot/remove_old_os.py'
+GERMAN = (os.environ.get('LANG') or '').startswith('de')
+PREVIEW = '--preview' in sys.argv
+PHRASE = 'WINDOWS LOESCHEN' if GERMAN else 'DELETE WINDOWS'
+
+
+def tr(de, en):
+    return de if GERMAN else en
+
+
+def size(value):
+    value = value or 0
+    return f'{value / 1073741824:.1f} GiB' if value >= 1073741824 else f'{value / 1048576:.0f} MiB'
+
+
+CSS = b'''
+window, window.background { background: #202020; color: #eeeeee; }
+.card { background: #141414; border: 1px solid #3a3a3a; border-radius: 10px; padding: 14px; }
+.card label, checkbutton, label.wdn-text { color: #eeeeee; }
+.heading-large { font-size: 22px; font-weight: 700; color: #eeeeee; }
+.dim { color: #aaaaaa; }
+.warning { background: #382d22; border: 1px solid #b8804b; border-radius: 8px; padding: 10px; color: #f3c99d; }
+.good { background: #1f3326; border: 1px solid #4b8b5f; border-radius: 8px; padding: 10px; color: #bfe8cb; }
+.error { background: #432a22; border: 1px solid #fe6f2d; border-radius: 8px; padding: 10px; color: #ffd0bc; }
+checkbutton check { background: #141414; border: 1px solid #777777; color: #202020; }
+checkbutton check:checked { background: #fe6f2d; border-color: #fe6f2d; color: #202020; }
+progressbar trough { background: #3a3a3a; min-height: 8px; border-radius: 4px; }
+progressbar progress { background: #fe6f2d; min-height: 8px; border-radius: 4px; }
+button.destructive-action { background: #c0392b; color: #ffffff; }
+button.destructive-action:disabled { background: #4a3a38; color: #888888; }
+entry { background: #141414; color: #eeeeee; }
+'''
+
+FIXTURE = {
+    'candidates': [
+        {'device': '/dev/nvme0n1p3', 'size': 214748364800, 'label': 'Windows', 'why': 'windows', 'selected': True},
+        {'device': '/dev/nvme0n1p4', 'size': 838860800, 'label': 'Recovery', 'why': 'windows-support', 'selected': True},
+        {'device': '/dev/nvme0n1p2', 'size': 16777216, 'label': '', 'why': 'windows-support', 'selected': True}],
+    'root': {'device': '/dev/nvme0n1p5', 'fstype': 'btrfs'}, 'efi_entries': ['0003'],
+    'migration': {'present': True, 'success': True, 'files': 4812, 'timestamp': '2026-11-16T10:21:00', 'errors': 0},
+    'other_partitions_on_same_disk': ['/dev/nvme0n1p6'],
+}
+
+
+class Window(Adw.ApplicationWindow):
+    def __init__(self, app):
+        super().__init__(application=app, title=tr('Altes System entfernen', 'Remove old system'), default_width=720, default_height=760)
+        self.found = None
+        self.checks = {}
+        toolbar = Adw.ToolbarView()
+        toolbar.add_top_bar(Adw.HeaderBar())
+        self.set_content(toolbar)
+        self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE)
+        toolbar.set_content(self.stack)
+        self.stack.add_named(self.page_message(tr('Suche nach Windows …', 'Looking for Windows …'), spinner=True), 'loading')
+        self.message = Gtk.Label(wrap=True, xalign=0)
+        self.stack.add_named(self.build_select(), 'select')
+        self.stack.add_named(self.build_progress(), 'progress')
+        self.done_label = Gtk.Label(wrap=True, xalign=0, margin_start=24, margin_end=24, margin_top=24)
+        self.done_label.add_css_class('wdn-text')
+        self.stack.add_named(self.done_label, 'done')
+        if PREVIEW:
+            self.show_found(FIXTURE)
+        else:
+            self.run_backend(['scan'], self.scanned)
+
+    def page_message(self, text, spinner=False):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
+        if spinner:
+            box.append(Gtk.Spinner(spinning=True, width_request=32, height_request=32))
+        label = Gtk.Label(label=text, wrap=True)
+        label.add_css_class('wdn-text')
+        box.append(label)
+        return box
+
+    def build_select(self):
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=18, margin_bottom=18, margin_start=24, margin_end=24)
+        title = Gtk.Label(label=tr('Windows entfernen und den Platz übernehmen', 'Remove Windows and take over its space'), xalign=0, wrap=True)
+        title.add_css_class('heading-large')
+        outer.append(title)
+        self.migration = Gtk.Label(xalign=0, wrap=True)
+        outer.append(self.migration)
+        warn = Gtk.Label(wrap=True, xalign=0, label=tr(
+            'Das Löschen lässt sich nicht rückgängig machen. Alles auf den unten markierten Partitionen ist danach weg, '
+            'auch Windows selbst und seine Programme.',
+            'Deleting cannot be undone. Everything on the partitions marked below is gone afterwards, including Windows '
+            'itself and its programs.'))
+        warn.add_css_class('warning')
+        outer.append(warn)
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        card.add_css_class('card')
+        heading = Gtk.Label(label=tr('Diese Partitionen werden gelöscht', 'These partitions will be deleted'), xalign=0)
+        heading.add_css_class('wdn-text')
+        card.append(heading)
+        self.list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        card.append(self.list)
+        self.others = Gtk.Label(xalign=0, wrap=True)
+        self.others.add_css_class('dim')
+        card.append(self.others)
+        outer.append(card)
+        self.grow = Gtk.DropDown.new_from_strings([
+            tr('Platz dem System hinzufügen (empfohlen)', 'Add the space to the system (recommended)'),
+            tr('Als eigenes Laufwerk unter /mnt/daten', 'As a separate drive at /mnt/daten'),
+            tr('Platz einfach freilassen', 'Just leave the space free')])
+        row = Gtk.Box(spacing=12)
+        label = Gtk.Label(label=tr('Freier Platz:', 'Free space:'), xalign=0)
+        label.add_css_class('wdn-text')
+        row.append(label)
+        row.append(self.grow)
+        outer.append(row)
+        self.boot_check = Gtk.CheckButton(label=tr('Windows aus dem Startmenü und der Firmware entfernen', 'Remove Windows from the boot menu and firmware'), active=True)
+        outer.append(self.boot_check)
+        self.backup_check = Gtk.CheckButton(label=tr('Ich habe ein Backup meiner wichtigen Daten.', 'I have a backup of my important data.'))
+        self.backup_check.connect('toggled', self.update_button)
+        outer.append(self.backup_check)
+        hint = Gtk.Label(label=tr(f'Zur Bestätigung tippe: {PHRASE}', f'To confirm, type: {PHRASE}'), xalign=0)
+        hint.add_css_class('dim')
+        outer.append(hint)
+        self.phrase = Gtk.Entry()
+        self.phrase.connect('changed', self.update_button)
+        outer.append(self.phrase)
+        self.status = Gtk.Label(xalign=0, wrap=True)
+        outer.append(self.status)
+        self.button = Gtk.Button(label=tr('Windows jetzt entfernen', 'Remove Windows now'), sensitive=False)
+        self.button.add_css_class('destructive-action')
+        self.button.connect('clicked', self.start)
+        outer.append(self.button)
+        scroll = Gtk.ScrolledWindow(vexpand=True)
+        scroll.set_child(outer)
+        return scroll
+
+    def build_progress(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=24, margin_bottom=24, margin_start=24, margin_end=24)
+        title = Gtk.Label(label=tr('Windows wird entfernt …', 'Removing Windows …'), xalign=0)
+        title.add_css_class('heading-large')
+        box.append(title)
+        self.bar = Gtk.ProgressBar()
+        box.append(self.bar)
+        self.step_label = Gtk.Label(xalign=0, wrap=True)
+        self.step_label.add_css_class('dim')
+        box.append(self.step_label)
+        return box
+
+    def run_backend(self, args, done, progress=None):
+        cmd = (['pkexec'] if os.geteuid() != 0 else []) + [sys.executable, str(BACKEND)] + args
+
+        def work():
+            with subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1) as process:
+                lines = []
+                for line in process.stdout:
+                    lines.append(line)
+                    if progress:
+                        try:
+                            GLib.idle_add(progress, json.loads(line))
+                        except json.JSONDecodeError:
+                            pass
+                error = process.stderr.read()
+                result = subprocess.CompletedProcess(cmd, process.wait(), ''.join(lines), error)
+            GLib.idle_add(done, result)
+        threading.Thread(target=work, daemon=True).start()
+
+    def scanned(self, result):
+        if result.returncode:
+            self.stack.add_named(self.page_message(result.stderr.strip() or tr('Die Suche wurde abgebrochen.', 'The scan was cancelled.')), 'failed')
+            self.stack.set_visible_child_name('failed')
+            return
+        self.show_found(json.loads(result.stdout))
+
+    def show_found(self, found):
+        self.found = found
+        if not found['candidates']:
+            self.stack.add_named(self.page_message(tr('Es wurde keine Windows-Installation gefunden, die sich entfernen lässt.',
+                                                      'No removable Windows installation was found.')), 'none')
+            self.stack.set_visible_child_name('none')
+            return
+        mig = found.get('migration') or {}
+        for style in ('good', 'warning'):
+            self.migration.remove_css_class(style)
+        if mig.get('success'):
+            self.migration.set_text(tr(f"Deine Daten wurden am {mig['timestamp'][:10]} übernommen ({mig['files']} Dateien). Ein Backup ist trotzdem nie falsch.",
+                                       f"Your data was moved on {mig['timestamp'][:10]} ({mig['files']} files). A backup never hurts."))
+            self.migration.add_css_class('good')
+            self.backup_check.set_visible(False)
+        else:
+            self.migration.set_text(tr('Es gibt keinen erfolgreichen Datenumzug in diesem System. Bitte sichere vorher alles, was du behalten willst.',
+                                       'No successful data move is recorded on this system. Please save everything you want to keep first.'))
+            self.migration.add_css_class('warning')
+        while (child := self.list.get_first_child()) is not None:
+            self.list.remove(child)
+        self.checks = {}
+        for item in found['candidates']:
+            kind = tr('Windows', 'Windows') if item['why'] == 'windows' else tr('Hilfspartition von Windows', 'Windows helper partition')
+            check = Gtk.CheckButton(label=f"{item['device']}  ·  {size(item['size'])}  ·  {item.get('label') or kind}", active=item.get('selected', True))
+            check.connect('toggled', self.update_button)
+            self.checks[item['device']] = check
+            self.list.append(check)
+        others = found.get('other_partitions_on_same_disk') or []
+        self.others.set_text(tr(f"Nicht angefasst, weil sie nicht zu Windows gehören: {', '.join(others)}.",
+                                f"Left alone because they do not belong to Windows: {', '.join(others)}.") if others else '')
+        if found['root'].get('fstype') != 'btrfs':
+            self.grow.set_selected(1)
+        self.stack.set_visible_child_name('select')
+        self.update_button()
+
+    def selected(self):
+        return [device for device, check in self.checks.items() if check.get_active()]
+
+    def update_button(self, *_):
+        mig = (self.found or {}).get('migration') or {}
+        ready = (bool(self.selected()) and self.phrase.get_text().strip() == PHRASE
+                 and (mig.get('success') or self.backup_check.get_active()))
+        self.button.set_sensitive(bool(ready))
+
+    def start(self, *_):
+        if PREVIEW:
+            return
+        args = ['run', '--select', ','.join(self.selected()), '--grow', ['join', 'data', 'none'][self.grow.get_selected()],
+                '--phrase', self.phrase.get_text().strip(), '--lang', 'de' if GERMAN else 'en']
+        if not self.boot_check.get_active():
+            args.append('--no-boot-cleanup')
+        if self.backup_check.get_active() or not (self.found.get('migration') or {}).get('success'):
+            args.append('--backup')
+        self.stack.set_visible_child_name('progress')
+        self.run_backend(args, self.finished, self.progress)
+
+    def progress(self, event):
+        if event.get('event') == 'step':
+            self.bar.set_fraction(event['index'] / max(1, event['total']))
+            names = {'delete': tr('Partition löschen', 'Delete partition'), 'grow': tr('Platz übernehmen', 'Take over space'),
+                     'boot-cleanup': tr('Startmenü aufräumen', 'Clean up boot menu')}
+            self.step_label.set_text(f"{names.get(event['step'], event['step'])} {event.get('device') or ''}")
+
+    def finished(self, result):
+        if result.returncode:
+            self.done_label.set_text(tr('Das Entfernen wurde abgebrochen:\n', 'Removal stopped:\n') + (result.stderr.strip() or ''))
+            self.done_label.add_css_class('error')
+        else:
+            self.done_label.set_text(tr('Fertig. Windows ist entfernt und der Platz gehört jetzt WinDoesNot. Starte den Rechner neu, damit das Startmenü aktualisiert wird.',
+                                        'Done. Windows is removed and its space now belongs to WinDoesNot. Restart so the boot menu is refreshed.'))
+            self.done_label.add_css_class('good')
+        self.stack.set_visible_child_name('done')
+
+
+class App(Adw.Application):
+    def __init__(self):
+        super().__init__(application_id='me.windoesnot.RemoveOldOs')
+
+    def do_activate(self):
+        Adw.StyleManager.get_default().set_color_scheme(Adw.ColorScheme.FORCE_DARK)
+        provider = Gtk.CssProvider()
+        provider.load_from_data(CSS)
+        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        Window(self).present()
+
+
+if __name__ == '__main__':
+    if PREVIEW:
+        sys.argv.remove('--preview')
+    raise SystemExit(App().run(sys.argv))
