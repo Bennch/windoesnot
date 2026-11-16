@@ -63,7 +63,7 @@ def fake_run(argv, **kwargs):
 m.subprocess.run = fake_run
 assert m.command_runner(['sgdisk', '-d', '3', '/dev/sda']) == 'ok'
 assert calls == [(['sgdisk', '-d', '3', '/dev/sda'],
-                  {'check': True, 'text': True, 'capture_output': True, 'timeout': 900})]
+                  {'check': True, 'text': True, 'capture_output': True, 'timeout': 900, 'input': None})]
 print('PASS deletion preview and fake runner')
 
 assert m.windows_boot_entries('Boot0001* Windows Boot Manager\tHD(1,GPT,...)\n'

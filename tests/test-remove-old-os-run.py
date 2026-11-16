@@ -39,10 +39,12 @@ class FakeSystem:
         self.windows = set(windows)
         self.calls = []
         self.mounted_check = None
-        self.removed, self.made, self.appended = [], [], []
+        self.removed, self.made, self.appended, self.inputs = [], [], [], []
 
-    def run(self, argv):
+    def run(self, argv, input=None):
         self.calls.append(list(argv))
+        if input is not None:
+            self.inputs.append(input)
         out = ''
         if argv[0] == 'lsblk':
             out = json.dumps(self.tree)
@@ -50,6 +52,8 @@ class FakeSystem:
             self.mounted_check = argv[-2]
         elif argv[0] == 'umount':
             self.mounted_check = None
+        elif argv[0] == 'blkid':
+            out = '11111111-2222-3333-4444-555555555555\n'
         elif argv[0] == 'findmnt':
             out = '/dev/nvme0n1p5 btrfs\n'
         elif argv[0] == 'efibootmgr' and len(argv) == 1:
@@ -186,5 +190,22 @@ with tempfile.TemporaryDirectory() as tmp:
                                           part(3, '0x83', 'ext4', 'Linux', 100 * 2**30, ['/'])]
     mbr_system = FakeSystem(mbr, windows=('/dev/nvme0n1p2',))
     mbr_plan = roo.build_plan(mbr_system.env(tmp), ['/dev/nvme0n1p2'])
-    assert mbr_plan['steps'][0]['argv'][:2] == ['sfdisk', '--delete'] and mbr_plan['effective_growth'] == 'none'
+    assert mbr_plan['steps'][0]['argv'][:2] == ['sfdisk', '--delete'] and mbr_plan['effective_growth'] == 'join'
+    # MBR growth: an extra primary partition from the freed region via sfdisk --append (layout on stdin)
+    real_mbr = FakeSystem(mbr, windows=('/dev/nvme0n1p2',))
+    orig_run = real_mbr.run
+    def mbr_run(argv, input=None):
+        if argv[0] == 'sfdisk' and argv[1] == '--delete':
+            real_mbr.tree['blockdevices'][0]['children'] = [p for p in real_mbr.tree['blockdevices'][0]['children'] if p['partn'] != int(argv[3])]
+            real_mbr.calls.append(list(argv)); return SimpleNamespace(stdout='', returncode=0)
+        if argv[0] == 'sfdisk' and argv[1] == '--append':
+            real_mbr.calls.append(list(argv)); real_mbr.inputs.append(input)
+            real_mbr.tree['blockdevices'][0]['children'].append(part(4, '0x83', None, None, 9 * 2**30)); return SimpleNamespace(stdout='', returncode=0)
+        return orig_run(argv, input)
+    env_mbr = real_mbr.env(tmp)
+    env_mbr.run = mbr_run
+    mbr_plan2 = roo.build_plan(env_mbr, ['/dev/nvme0n1p2'], grow='data')
+    roo.execute(mbr_plan2, env_mbr, phrase='WINDOWS LOESCHEN', backup=True)
+    assert real_mbr.inputs and real_mbr.inputs[0].startswith('start=1050624, size=18949377, type=83'), real_mbr.inputs
+    assert ['sfdisk', '--append', '/dev/nvme0n1'] in real_mbr.calls
 print('PASS remove old OS: scan, plan, execution order, confirmations, stale-state abort, dry run, MBR')

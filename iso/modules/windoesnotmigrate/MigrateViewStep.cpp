@@ -153,47 +153,53 @@ public:
         const QString names = folders.size() > 4 ? folders.mid(0, 4).join(QStringLiteral(", ")) + QStringLiteral(" …") : folders.join(QStringLiteral(", "));
         return names + QStringLiteral(" · ") + amount;
     }
+    // The result page shows what the copy job reported, so it is built when the page is shown (the job runs after
+    // the widget is created) and again on every activation.
+    void buildResult() {
+        auto* layout = new QVBoxLayout(m_widget);
+        layout->setContentsMargins(28, 28, 28, 28);
+        layout->setSpacing(16);
+        const bool german = QLocale().language() == QLocale::German;
+        auto* gs = Calamares::JobQueue::instance()->globalStorage();
+        const QString warning = gs->value(QStringLiteral("windoesnotMigrateWarning")).toString();
+        QString system = gs->value(QStringLiteral("windoesnotMigrateSystem")).toString();
+        if (system.isEmpty()) system = QStringLiteral("Windows");
+        const bool migrated = gs->value(QStringLiteral("windoesnotMigrateCompleted")).toBool();
+        auto* title = new QLabel(german ? QStringLiteral("WinDoesNot wurde installiert.") : QStringLiteral("WinDoesNot has been installed."), m_widget);
+        title->setStyleSheet(QStringLiteral("color:#eeeeee;font-size:24px;font-weight:700;"));
+        layout->addWidget(title);
+        if (migrated || !warning.isEmpty()) {
+            if (migrated && warning.isEmpty()) {
+                auto* detail = new QLabel(german ? QStringLiteral("Daten aus ") + system + QStringLiteral(" wurden übernommen.") : QStringLiteral("Data from ") + system + QStringLiteral(" was transferred."), m_widget);
+                detail->setTextFormat(Qt::PlainText);
+                detail->setWordWrap(true);
+                detail->setStyleSheet(QStringLiteral("color:#eeeeee;background:#141414;border:1px solid #3a3a3a;border-radius:10px;padding:16px;"));
+                layout->addWidget(detail);
+            } else {
+                auto* detail = new QLabel((german ? QStringLiteral("Hinweis zum Datenumzug aus ") + system + QStringLiteral(":\n") : QStringLiteral("Notice about the data move from ") + system + QStringLiteral(":\n")) + warning, m_widget);
+                detail->setTextFormat(Qt::PlainText);
+                detail->setWordWrap(true);
+                detail->setStyleSheet(QStringLiteral("color:#f3c99d;background:#382d22;border:1px solid #b8804b;border-radius:10px;padding:16px;"));
+                layout->addWidget(detail);
+                auto* retry = new QLabel(german ? QStringLiteral("Nach dem Start können Sie ›Daten übernehmen‹ erneut öffnen.") : QStringLiteral("You can open ‘Bring data’ again after the first boot."), m_widget);
+                retry->setWordWrap(true);
+                retry->setStyleSheet(QStringLiteral("color:#aaaaaa;"));
+                layout->addWidget(retry);
+            }
+        }
+        layout->addStretch();
+        auto* restartBtn = new QPushButton(german ? QStringLiteral("Jetzt neu starten") : QStringLiteral("Restart now"), m_widget);
+        restartBtn->setStyleSheet(QStringLiteral("QPushButton{background:#fe6f2d;color:#ffffff;border:none;border-radius:6px;padding:10px 24px;font-size:14px;font-weight:600;}QPushButton:hover{background:#ff8040;}QPushButton:pressed{background:#e05a1a;}"));
+        QObject::connect(restartBtn, &QPushButton::clicked, [](){ QProcess::startDetached(QStringLiteral("timeout"), {QStringLiteral("10"), QStringLiteral("systemctl"), QStringLiteral("-i"), QStringLiteral("reboot")}); });
+        layout->addWidget(restartBtn, 0, Qt::AlignRight);
+        m_widget->setStyleSheet(QStringLiteral("background:#202020;"));
+    }
+
     QWidget* widget() override {
         if (!m_widget) {
             m_widget = new QWidget;
             if (m_resultMode) {
-                auto* layout = new QVBoxLayout(m_widget);
-                layout->setContentsMargins(28, 28, 28, 28);
-                layout->setSpacing(16);
-                const bool german = QLocale().language() == QLocale::German;
-                auto* gs = Calamares::JobQueue::instance()->globalStorage();
-                const QString warning = gs->value(QStringLiteral("windoesnotMigrateWarning")).toString();
-                QString system = gs->value(QStringLiteral("windoesnotMigrateSystem")).toString();
-                if (system.isEmpty()) system = QStringLiteral("Windows");
-                const bool migrated = gs->value(QStringLiteral("windoesnotMigrateCompleted")).toBool();
-                auto* title = new QLabel(german ? QStringLiteral("WinDoesNot wurde installiert.") : QStringLiteral("WinDoesNot has been installed."), m_widget);
-                title->setStyleSheet(QStringLiteral("color:#eeeeee;font-size:24px;font-weight:700;"));
-                layout->addWidget(title);
-                if (migrated || !warning.isEmpty()) {
-                    if (migrated && warning.isEmpty()) {
-                        auto* detail = new QLabel(german ? QStringLiteral("Daten aus ") + system + QStringLiteral(" wurden übernommen.") : QStringLiteral("Data from ") + system + QStringLiteral(" was transferred."), m_widget);
-                        detail->setTextFormat(Qt::PlainText);
-                        detail->setWordWrap(true);
-                        detail->setStyleSheet(QStringLiteral("color:#eeeeee;background:#141414;border:1px solid #3a3a3a;border-radius:10px;padding:16px;"));
-                        layout->addWidget(detail);
-                    } else {
-                        auto* detail = new QLabel((german ? QStringLiteral("Hinweis zum Datenumzug aus ") + system + QStringLiteral(":\n") : QStringLiteral("Notice about the data move from ") + system + QStringLiteral(":\n")) + warning, m_widget);
-                        detail->setTextFormat(Qt::PlainText);
-                        detail->setWordWrap(true);
-                        detail->setStyleSheet(QStringLiteral("color:#f3c99d;background:#382d22;border:1px solid #b8804b;border-radius:10px;padding:16px;"));
-                        layout->addWidget(detail);
-                        auto* retry = new QLabel(german ? QStringLiteral("Nach dem Start können Sie ›Daten übernehmen‹ erneut öffnen.") : QStringLiteral("You can open ‘Bring data’ again after the first boot."), m_widget);
-                        retry->setWordWrap(true);
-                        retry->setStyleSheet(QStringLiteral("color:#aaaaaa;"));
-                        layout->addWidget(retry);
-                    }
-                }
-                layout->addStretch();
-                auto* restartBtn = new QPushButton(german ? QStringLiteral("Jetzt neu starten") : QStringLiteral("Restart now"), m_widget);
-                restartBtn->setStyleSheet(QStringLiteral("QPushButton{background:#fe6f2d;color:#ffffff;border:none;border-radius:6px;padding:10px 24px;font-size:14px;font-weight:600;}QPushButton:hover{background:#ff8040;}QPushButton:pressed{background:#e05a1a;}"));
-                QObject::connect(restartBtn, &QPushButton::clicked, [](){ QProcess::startDetached(QStringLiteral("timeout"), {QStringLiteral("10"), QStringLiteral("systemctl"), QStringLiteral("-i"), QStringLiteral("reboot")}); });
-                layout->addWidget(restartBtn, 0, Qt::AlignRight);
-                m_widget->setStyleSheet(QStringLiteral("background:#202020;"));
+                buildResult();
                 return m_widget;
             }
             m_bridge = new MigrateBridge(m_widget);
@@ -208,7 +214,21 @@ public:
         return m_widget;
     }
     bool isNextEnabled() const override { return true; }
-    void onActivate() override { widget(); if (m_bridge) m_bridge->refreshChoice(); }
+    void onActivate() override {
+        widget();
+        if (m_resultMode) {
+            if (auto* old = m_widget->layout()) {
+                while (auto* item = old->takeAt(0)) {
+                    if (item->widget()) item->widget()->deleteLater();
+                    delete item;
+                }
+                delete old;
+            }
+            buildResult();
+            return;
+        }
+        if (m_bridge) m_bridge->refreshChoice();
+    }
     bool isBackEnabled() const override { return !m_resultMode; }
     bool isAtBeginning() const override { return true; }
     bool isAtEnd() const override { return true; }

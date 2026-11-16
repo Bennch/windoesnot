@@ -97,9 +97,9 @@ def confirmed(backup, phrase, language='de', system='windows'):
     return backup is True and phrase == expected
 
 
-def command_runner(argv):
+def command_runner(argv, input=None):
     """Run one fixed argument vector without a shell, stopping on failure."""
-    return subprocess.run(argv, check=True, text=True, capture_output=True, timeout=900)
+    return subprocess.run(argv, check=True, text=True, capture_output=True, timeout=900, input=input)
 
 
 def deletion_preview(lsblk, windows_verified):
@@ -394,11 +394,11 @@ def build_plan(env, selection, grow='join', boot_cleanup=True):
             steps.append({'step': 'delete', 'device': device, 'disk': disk, 'identity': identity, 'argv': argv})
     tables = {t for items in by_disk.values() for _n, _d, _i, t in items}
     effective = grow
-    if grow != 'none' and tables != {'gpt'}:
-        effective = 'none'  # free space handling is implemented for GPT disks only
+    if grow != 'none' and tables not in ({'gpt'}, {'dos'}):
+        effective = 'none'  # free space handling covers GPT and MBR disks, not mixed selections
     if effective == 'join' and found['root'].get('fstype') != 'btrfs':
         effective = 'data'
-    steps.append({'step': 'grow', 'mode': effective, 'disks': sorted(by_disk), 'root': found['root']})
+    steps.append({'step': 'grow', 'mode': effective, 'disks': sorted(by_disk), 'root': found['root'], 'table': 'dos' if tables == {'dos'} else 'gpt'})
     if boot_cleanup:
         steps.append({'step': 'boot-cleanup', 'efi_entries': found['efi_entries']})
     return {'steps': steps, 'requested_growth': grow, 'effective_growth': effective}
@@ -431,11 +431,11 @@ def execute(plan, env=None, dry_run=False, progress=None, phrase='', backup=Fals
         raise PermissionError('Root privileges are required')
     log = []
 
-    def do(argv):
+    def do(argv, input=None):
         _emit(progress, event='command', argv=argv)
         log.append(argv)
         if not dry_run:
-            return env.run(argv)
+            return env.run(argv, input) if input is not None else env.run(argv)
         return None
 
     before = env.lsblk()
@@ -481,8 +481,9 @@ def execute(plan, env=None, dry_run=False, progress=None, phrase='', backup=Fals
 
 def _grow(step, env, do, dry_run, progress):
     disk = step['disks'][0]
+    mbr = step.get('table') == 'dos'
     if dry_run:
-        do(['sgdisk', '-n', '0:<start>:<end>', '-t', '0:8300', '-c', '0:WinDoesNot-Platz', disk])
+        do(['sfdisk', '--append', disk] if mbr else ['sgdisk', '-n', '0:<start>:<end>', '-t', '0:8300', '-c', '0:WinDoesNot-Platz', disk])
         do(['btrfs', 'device', 'add', '-f', '<new partition>', '/'] if step['mode'] == 'join'
            else ['mkfs.ext4', '-L', 'Daten', '<new partition>'])
         return
@@ -491,7 +492,11 @@ def _grow(step, env, do, dry_run, progress):
         _emit(progress, event='note', text='free-space-too-small')
         return
     old = {p['path'] for _d, p in _flat(env.lsblk())}
-    do(['sgdisk', '-n', f'0:{region[0]}:{region[1]}', '-t', '0:8300', '-c', '0:WinDoesNot-Platz', disk])
+    if mbr:
+        # MBR: one more primary partition in the freed region (sfdisk reads the layout from stdin).
+        do(['sfdisk', '--append', disk], f'start={region[0]}, size={region[2]}, type=83\n')
+    else:
+        do(['sgdisk', '-n', f'0:{region[0]}:{region[1]}', '-t', '0:8300', '-c', '0:WinDoesNot-Platz', disk])
     do(['udevadm', 'settle'])
     do(['partprobe', disk])
     new = [p for d, p in _flat(env.lsblk()) if p['path'] not in old and d['path'] == disk]
