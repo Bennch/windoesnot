@@ -4,7 +4,7 @@ from pathlib import Path
 import re
 root = Path(__file__).resolve().parent.parent
 script = (root / 'windows/WinDoesNotSetup.ps1').read_text(encoding='utf-8-sig')
-patterns = [r'\b(?:ConvertTo-Json|ConvertFrom-Json|Get-CimInstance|Get-FileHash|Invoke-WebRequest|Invoke-RestMethod)\b', r'\[ordered\]', r'(?i)\s-Raw\b|\s-NoNewline\b', r'\.[ \t]*(?:Where|ForEach)[ \t]*\(', r'\b(?:IsNullOrWhiteSpace|HasFlag|EnumerateFiles|CopyTo)\s*\(', r'\[(?:Tuple|Lazy)(?:\[|\])']
+patterns = [r'\b(?:ConvertTo-Json|ConvertFrom-Json|Get-CimInstance|Get-FileHash|Invoke-WebRequest|Invoke-RestMethod)\b', r'\[ordered\]', r'(?i)\s-Raw\b|\s-NoNewline\b', r'\.[ \t]*(?:Where|ForEach)[ \t]*\(', r'\b(?:IsNullOrWhiteSpace|HasFlag|EnumerateFiles|CopyTo)\s*\(', r'\[(?:Tuple|Lazy)(?:\[|\])', r'\?\.', r'(?i)-NoNewWindow[^\n]*-WindowStyle|-WindowStyle[^\n]*-NoNewWindow']
 for pattern in patterns:
     assert not re.search(pattern, script, re.I), pattern
 assert script.startswith('# WinDoesNot')
@@ -29,5 +29,5 @@ import re as _re
 _script = (_pl.Path(__file__).resolve().parents[1] / 'windows/WinDoesNotSetup.ps1').read_bytes().decode('utf-8-sig')
 _params = [m.lower() for m in _re.findall(r'\[(?:switch|string|bool|int)\]\s*\$(\w+)', _script.split(')\n', 1)[0])]
 for _name in _params:
-    assert not _re.search(r'^\s*\$' + _name + r'\s*=', _script, _re.M | _re.I), 'parameter shadowed by variable: ' + _name
+    assert not _re.search(r'^\s*\$(?:script:)?' + _name + r'\s*=', _script, _re.M | _re.I), 'parameter shadowed by variable: ' + _name
 print('PASS no parameter is shadowed by a script variable')
