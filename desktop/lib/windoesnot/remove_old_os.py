@@ -195,7 +195,7 @@ def match_persistent_identity(lsblk, identity):
 # --------------------------------------------------------------------------------------------------------------
 # Second layer: scan, plan, execute
 # --------------------------------------------------------------------------------------------------------------
-LSBLK_COLUMNS = 'PATH,TYPE,SIZE,FSTYPE,LABEL,PARTTYPE,PARTN,PTTYPE,MOUNTPOINTS,PARTUUID,UUID,PTUUID'
+LSBLK_COLUMNS = 'NAME,PATH,TYPE,SIZE,FSTYPE,LABEL,PARTTYPE,PARTN,PTTYPE,MOUNTPOINTS,PARTUUID,UUID,PTUUID'
 REPORT_PATH = Path('/var/lib/windoesnot/migration-report.json')
 RESULT_PATH = Path('/var/lib/windoesnot/remove-old-os-report.json')
 MOUNT_ROOT = Path('/run/windoesnot-remove-old-os')
@@ -212,7 +212,7 @@ class Environment:
         self.report_path = Path(report_path)
 
     def lsblk(self):
-        return normalise_lsblk(json.loads(self.run(['lsblk', '-J', '-b', '-o', LSBLK_COLUMNS]).stdout))
+        return only_real_disks(normalise_lsblk(json.loads(self.run(['lsblk', '-J', '-b', '-o', LSBLK_COLUMNS]).stdout)))
 
     def is_dir(self, path):
         return Path(path).is_dir()
@@ -258,6 +258,25 @@ def normalise_lsblk(tree):
             visit(child)
     for node in tree.get('blockdevices', []):
         visit(node)
+    return tree
+
+
+def only_real_disks(tree):
+    """Keep physical-looking disks only (no loop, optical or zram devices). A partition that holds something
+    (LUKS, LVM, RAID) is marked as in use so that it can never become a deletion target."""
+    disks = []
+    for disk in tree.get('blockdevices', []):
+        if disk.get('type') != 'disk' or not valid_device(disk.get('path')):
+            continue
+        parts = disk.get('children') or []
+        if any(p.get('type') != 'part' or not valid_device(p.get('path')) for p in parts):
+            continue  # unusual topology: this disk is not considered at all
+        for part in parts:
+            if part.get('children'):
+                part['children'] = []
+                part['mountpoints'] = list(part.get('mountpoints') or []) + ['<in use by another device>']
+        disks.append(disk)
+    tree['blockdevices'] = disks
     return tree
 
 
