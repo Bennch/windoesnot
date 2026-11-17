@@ -5882,7 +5882,8 @@ FloatingWindow {
     Timer { interval: 60000; repeat: true; running: true; triggeredOnStart: true; onTriggered: trayNetworkDebounce.restart() }
     Process {
         id: trayNetworkMonitor
-        command: ["nmcli", "monitor"]
+        // pdeathsig: the monitor must not outlive the shell (a restart used to leave the old one running)
+        command: ["setpriv", "--pdeathsig", "SIGTERM", "nmcli", "monitor"]
         running: true
         stdout: SplitParser { onRead: trayNetworkDebounce.restart() }
     }
