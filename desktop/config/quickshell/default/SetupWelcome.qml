@@ -85,8 +85,8 @@ ShellRoot {
                             anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12
                             CheckBox {
                                 checked: !!welcome.checklistState[step.modelData]
-                                text: Lang.get("shortcuts.done", welcome.uiLanguage)
-                                Accessible.name: text + ": " + Lang.get("shortcuts." + step.modelData, welcome.uiLanguage)
+                                // no visible label: the default CheckBox text was near-black on the dark card
+                                Accessible.name: Lang.get("shortcuts.done", welcome.uiLanguage) + ": " + Lang.get("shortcuts." + step.modelData, welcome.uiLanguage)
                                 onClicked: { save.command = ["windoesnot-welcome-state", step.modelData, checked ? "true" : "false"]; save.running = true }
                             }
                             Text {
