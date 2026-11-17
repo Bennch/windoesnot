@@ -546,12 +546,14 @@ static void draw_card(cairo_t *cr, WindowInfo *win, double x, double y,
    * therefore the cards never recursively capture the switcher itself. */
   bool has_preview = draw_window_preview(cr, win, x + 7, y + 31, w - 14,
                                          h - 42, r > 7 ? r - 5 : r);
+  int marker_shift = 0; /* the workspace badge moves right of the small app icon */
   if (!has_preview) {
     draw_icon(cr, win->class_name, x + w / 2.0,
               y + 10 + 20 + 10 + (cfg ? cfg->icon_size / 2.0 : 32));
   } else {
     /* Small app identity marker stays useful for similar-looking windows. */
     int marker = 22;
+    marker_shift = marker + 6;
     cairo_set_source_rgba(cr, bg_r, bg_g, bg_b, 0.94);
     draw_rounded_rect(cr, x + 12, y + h - marker - 7, marker, marker, 6);
     cairo_fill(cr);
@@ -616,7 +618,7 @@ static void draw_card(cairo_t *cr, WindowInfo *win, double x, double y,
     int ws_pad_y = 4;
     int badge_w = ww + ws_pad_x * 2;
     int badge_h = wh + ws_pad_y * 2;
-    double wx = x + 10;
+    double wx = x + 10 + marker_shift;
     double wy = y + h - badge_h - 10;
 
     /* Badge background — sharp rounded square */
