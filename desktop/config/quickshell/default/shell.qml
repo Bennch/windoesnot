@@ -5851,7 +5851,37 @@ FloatingWindow {
         return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
     }
 
+    // The taskbar icon must be right from the start and after the panel was closed, so the connection type is
+    // tracked here, independent of the lazily created panel: one check at start, one per network event
+    // (nmcli monitor prints only on changes) and a slow safety check.
     property string connectionType: "none"
+    Process {
+        id: trayNetworkProbe
+        command: ["windoesnot-bounded", "6", "bash", "-c", "systemctl is-active --quiet NetworkManager.service && { dev=$(ip -4 route show default 2>/dev/null | awk '{for (i = 1; i < NF; i++) if ($i == \"dev\") { print $(i + 1); exit }}'); nmcli -t -f NAME,TYPE,DEVICE connection show --active | awk -F: -v d=\"$dev\" 'd != \"\" && $NF == d { print; found = 1; exit } END { if (!found) exit 1 }' || nmcli -t -f NAME,TYPE,DEVICE connection show --active | head -1; }"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var line = this.text.trim()
+                if (line.length === 0) { networkWindow.connectionType = "none"; return }
+                var parts = line.split(":")
+                var type = parts.length >= 2 ? parts[1] : ""
+                networkWindow.connectionType = (type === "802-11-wireless" || type === "wifi") ? "wifi"
+                    : (type === "802-3-ethernet" || type === "ethernet") ? "ethernet" : "other"
+            }
+        }
+    }
+    Timer {
+        id: trayNetworkDebounce
+        interval: 600; repeat: false; running: false
+        onTriggered: if (!trayNetworkProbe.running) trayNetworkProbe.running = true
+    }
+    Timer { interval: 60000; repeat: true; running: true; triggeredOnStart: true; onTriggered: trayNetworkDebounce.restart() }
+    Process {
+        id: trayNetworkMonitor
+        command: ["nmcli", "monitor"]
+        running: true
+        stdout: SplitParser { onRead: trayNetworkDebounce.restart() }
+    }
 
     HyprlandFocusGrab {
         id: networkFocusGrab
@@ -5878,7 +5908,6 @@ FloatingWindow {
             item.windowVisible = Qt.binding(function() { return networkWindow.visible })
             item.darkMode = Qt.binding(function() { return settingsMenu.darkMode })
             item.uiLanguage = Qt.binding(function() { return settingsMenu.uiLanguage })
-            networkWindow.connectionType = Qt.binding(function() { return item.connectionType })
         }
     }
 }
