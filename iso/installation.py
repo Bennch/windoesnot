@@ -356,11 +356,52 @@ def apply_selected_locale(root, selected_locale):
                     greeter.write_text(re.sub(r'(?m)^GreeterEnvironment=.*$', 'GreeterEnvironment=LANG=' + values[0], greeter.read_text()))
 
 
+def remove_versioned_boot_entries(root):
+    """Keep one boot entry per kernel: the one sdboot-manage writes (linux-*.conf).
+
+    Calamares' bootloader job runs `kernel-install add`, which creates a versioned entry
+    (<machine-id>-<kernel version>.conf) with its own copy of kernel and initramfs under
+    /boot/<machine-id>/<version>/. Package updates never refresh those copies, and `default @saved` keeps
+    selecting them: after the first kernel update the old kernel boots without its modules and systemd drops
+    to the rescue shell (reproduced 2026-11-17). Entries and copies of this installation's machine id are
+    removed only when sdboot-manage's own entry exists and its kernel and initramfs are on the ESP.
+    """
+    root = Path(root)
+    try:
+        machine_id = (root / 'etc/machine-id').read_text().strip()
+    except OSError:
+        return []
+    if not re.fullmatch(r'[0-9a-f]{32}', machine_id):
+        return []
+    entries = root / 'boot/loader/entries'
+    generic = sorted(entries.glob('linux-*.conf'))
+    if not generic:
+        return []
+    for entry in generic:
+        text = entry.read_text()
+        for key in ('linux', 'initrd'):
+            found = re.search(r'(?m)^' + key + r'\s+(\S+)', text)
+            if not found or not (root / 'boot' / found[1].lstrip('/')).is_file():
+                return []
+    removed = []
+    for entry in sorted(entries.glob(machine_id + '-*.conf')):
+        entry.unlink()
+        removed.append(entry.name)
+    copies = root / 'boot' / machine_id
+    if copies.is_dir() and not copies.is_symlink():
+        shutil.rmtree(copies)
+        removed.append(machine_id + '/')
+    return removed
+
+
 def finish(bootloader, firmware, mode, root=Path('/'), selected_locale=None):
     validate_choice(bootloader, firmware, mode)
     apply_selected_locale(root, selected_locale)
     if bootloader == 'systemd-boot':
         subprocess.run(['sdboot-manage', 'gen'], check=True)
+        removed = remove_versioned_boot_entries(root)
+        if removed:
+            print('Removed versioned kernel-install boot entries: ' + ', '.join(removed), file=sys.stderr)
         subprocess.run(['/usr/bin/python3', str(BASE / 'iso/bootnames/bootnames.py'), 'sdboot'], check=True)
     elif bootloader == 'limine':
         config = root / 'boot/limine.conf'
