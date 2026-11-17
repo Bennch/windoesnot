@@ -1822,6 +1822,9 @@ PanelWindow {
                             fillMode: Image.PreserveAspectFit
                             smooth: true; antialiasing: true; mipmap: true
                             opacity: trayDragArea.containsMouse ? 0.7 : 1.0
+                            // the icon is light grey; on the light taskbar it needs the same dark tint as the other tray icons
+                            layer.enabled: !settingsMenu.darkMode
+                            layer.effect: MultiEffect { colorization: 1.0; colorizationColor: "#333333" }
                             Behavior on opacity { NumberAnimation { duration: 150 } }
                         }
 
