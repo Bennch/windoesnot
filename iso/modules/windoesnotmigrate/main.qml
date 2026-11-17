@@ -45,6 +45,21 @@ Rectangle {
         return german ? de : en;
     }
 
+    function warningText(code) {
+        var key = String(code).split(":")[0];
+        var texts = {
+            "separate_filesystems_not_scanned": tr("Eigene Partitionen für /home oder andere Ordner wurden nicht durchsucht.", "Separate partitions for /home or other folders were not scanned."),
+            "unreadable": tr("Einige Dateien waren nicht lesbar und werden übersprungen.", "Some files were not readable and will be skipped."),
+            "special_file": tr("Besondere Dateien (Sockets, Geräte) werden übersprungen.", "Special files (sockets, devices) will be skipped."),
+            "home_missing": tr("Für einen Benutzer wurde kein Home-Ordner gefunden.", "No home folder was found for a user."),
+            "home_unsafe": tr("Ein Home-Ordner wurde aus Sicherheitsgründen übersprungen.", "A home folder was skipped for safety."),
+            "package_database_unsafe": tr("Die Paketliste konnte nicht sicher gelesen werden.", "The package list could not be read safely."),
+            "arch_foreign_unknown": tr("Programme von außerhalb der Paketquellen konnten nicht erkannt werden.", "Programs from outside the package sources could not be identified."),
+            "services_unreadable": tr("Dienste konnten nicht gelesen werden.", "Services could not be read.")
+        };
+        return texts[key] || String(code);
+    }
+
     function size(bytes) {
         if (bytes >= 1.07374e+09) return (bytes / 1.07374e+09).toFixed(1) + " GiB";
         if (bytes >= 1.04858e+06) return (bytes / 1.04858e+06).toFixed(1) + " MiB";
@@ -115,7 +130,12 @@ Rectangle {
 
                 Layout.fillWidth: true
                 enabled: !(page.bridge && page.bridge.busy)
-                currentIndex: Math.max(0, page.disks.findIndex(function(d) { return d.device === page.plan.device; }))
+                // A Binding keeps following the plan after the user picked an entry (a plain binding is dropped on the first click).
+                Binding {
+                    target: diskBox
+                    property: "currentIndex"
+                    value: Math.max(0, page.disks.findIndex(function(d) { return d.device === page.plan.device; }))
+                }
                 textRole: "display"
                 model: page.disks.map(function(d) { return { device: d.device, display: (d.system || (d.filesystem === "ntfs" || d.filesystem === "bitlocker" ? "Windows" : "Linux")) + " — " + d.device + (d.label ? " (" + d.label + ")" : "") }; })
                 onActivated: {
@@ -331,7 +351,7 @@ Rectangle {
                     CheckBox { checked: true; enabled: false; text: page.tr("/etc als Referenzkopie (immer)", "/etc as reference copy (always)")
                         contentItem: Text { text: parent.text; font: parent.font; color: "#aaaaaa"; leftPadding: parent.indicator.width + parent.spacing; verticalAlignment: Text.AlignVCenter }
                     }
-                    Label { visible: (page.plan.warnings || []).length > 0; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: "#f3c99d"; text: page.tr("Hinweise: ", "Notes: ") + (page.plan.warnings || []).join(", ") }
+                    Label { visible: (page.plan.warnings || []).length > 0; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: "#f3c99d"; text: page.tr("Hinweise: ", "Notes: ") + (page.plan.warnings || []).map(function(w) { return page.warningText(w); }).join("; ") }
                 }
 
                 Repeater {

@@ -220,9 +220,21 @@ public:
         QString system = gs->value(QStringLiteral("windoesnotMigrateSystem")).toString();
         if (system.isEmpty()) system = QStringLiteral("Windows");
         const bool migrated = gs->value(QStringLiteral("windoesnotMigrateCompleted")).toBool();
-        auto* title = new QLabel(german ? QStringLiteral("WinDoesNot wurde installiert.") : QStringLiteral("WinDoesNot has been installed."), m_widget);
+        auto* title = new QLabel(m_failed ? (german ? QStringLiteral("Die Installation ist fehlgeschlagen.") : QStringLiteral("The installation failed."))
+                                          : (german ? QStringLiteral("WinDoesNot wurde installiert.") : QStringLiteral("WinDoesNot has been installed.")), m_widget);
+        title->setWordWrap(true);
         title->setStyleSheet(QStringLiteral("color:#eeeeee;font-size:24px;font-weight:700;"));
         layout->addWidget(title);
+        if (m_failed) {
+            auto* hint = new QLabel(german ? QStringLiteral("Die Einzelheiten stehen im Fehlerfenster. Schließe es, um das Installationsprogramm zu beenden.")
+                                           : QStringLiteral("Details are in the error window. Close it to quit the installer."), m_widget);
+            hint->setWordWrap(true);
+            hint->setStyleSheet(QStringLiteral("color:#aaaaaa;"));
+            layout->addWidget(hint);
+            layout->addStretch();
+            m_widget->setStyleSheet(QStringLiteral("background:#202020;"));
+            return;
+        }
         if (migrated || !warning.isEmpty()) {
             if (migrated && warning.isEmpty()) {
                 auto* detail = new QLabel(german ? QStringLiteral("Daten aus ") + system + QStringLiteral(" wurden übernommen.") : QStringLiteral("Data from ") + system + QStringLiteral(" was transferred."), m_widget);
@@ -295,11 +307,18 @@ public:
         storage->insert("windoesnotMigrateEnvelopeSecret", m_bridge->skipped() ? QString() : m_bridge->envelopeSecret());
     }
     Calamares::JobList jobs() const override { return {}; }
-    void setConfigurationMap(const QVariantMap& config) override { m_resultMode = config.value(QStringLiteral("mode")).toString() == QStringLiteral("result"); }
+    void setConfigurationMap(const QVariantMap& config) override {
+        m_resultMode = config.value(QStringLiteral("mode")).toString() == QStringLiteral("result");
+        // The job queue emits failed() before it moves on to this page; remember it so the page does not claim success.
+        if (m_resultMode)
+            if (auto* queue = Calamares::JobQueue::instance())
+                connect(queue, &Calamares::JobQueue::failed, this, [this](const QString&, const QString&) { m_failed = true; });
+    }
 private:
     QWidget* m_widget = nullptr;
     MigrateBridge* m_bridge = nullptr;
     bool m_resultMode = false;
+    bool m_failed = false;
 };
 CALAMARES_PLUGIN_FACTORY_DECLARATION(MigrateViewStepFactory)
 CALAMARES_PLUGIN_FACTORY_DEFINITION(MigrateViewStepFactory, registerPlugin<MigrateViewStep>();)

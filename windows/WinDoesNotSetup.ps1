@@ -350,6 +350,15 @@ try {
     $temporaryIcon.Dispose()
 } finally { [void][SetupNative]::DestroyIcon($iconHandle); $iconBitmap.Dispose() }
 $script:logoBitmap = Read-EmbeddedImage $logoPng
+# The embedded artwork uses dark lettering; brighten it for the dark sidebar.
+for ($y = 0; $y -lt $script:logoBitmap.Height; $y++) {
+    for ($x = 0; $x -lt $script:logoBitmap.Width; $x++) {
+        $pixel = $script:logoBitmap.GetPixel($x, $y)
+        if ($pixel.A -gt 0 -and $pixel.R -lt 80 -and $pixel.G -lt 80 -and $pixel.B -lt 80) {
+            $script:logoBitmap.SetPixel($x, $y, [System.Drawing.Color]::FromArgb($pixel.A, 238, 238, 238))
+        }
+    }
+}
 $script:form = New-Object System.Windows.Forms.Form
 $script:form.Text = 'WinDoesNot Setup'
 $script:form.Icon = $script:appIcon
