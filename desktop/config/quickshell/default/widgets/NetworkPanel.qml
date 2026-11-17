@@ -23,6 +23,7 @@ Item {
     property string ethernetState: "none"
     property string ethernetMessage: ""
     property bool ethernetWanted: false
+    property bool ethernetNeedsReset: false   // after a failed connect: the next click resets the network card (asks for the password)
     property string connectionType: "none"  // "wifi", "ethernet", "none"
     property bool windowVisible: false
     property string currentConnection: ""
@@ -118,7 +119,7 @@ Item {
     // Get current connection
     Process {
         id: getCurrentConnectionProc
-        command: ["windoesnot-bounded", "6", "bash", "-c", "systemctl is-active --quiet NetworkManager.service && nmcli -t -f NAME,TYPE,DEVICE connection show --active | head -1"]
+        command: ["windoesnot-bounded", "6", "bash", "-c", "systemctl is-active --quiet NetworkManager.service && { dev=$(ip -4 route show default 2>/dev/null | awk '{for (i = 1; i < NF; i++) if ($i == \"dev\") { print $(i + 1); exit }}'); nmcli -t -f NAME,TYPE,DEVICE connection show --active | awk -F: -v d=\"$dev\" 'd != \"\" && $NF == d { print; found = 1; exit } END { if (!found) exit 1 }' || nmcli -t -f NAME,TYPE,DEVICE connection show --active | head -1; }"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -169,6 +170,12 @@ Item {
     Timer { interval: 7000; repeat: false; running: getEthernetStateProc.running; onTriggered: getEthernetStateProc.running = false }
 
     // Connect or disconnect the wired device and say what happened (the tile used to do nothing at all)
+    function validDevice(name) { return /^[A-Za-z0-9_.-]{1,15}$/.test(name) }
+    function startEthernetConnect() {
+        // disconnect first so NetworkManager starts a fresh DHCP round instead of waiting on a stale one
+        toggleEthernetProc.command = ["windoesnot-bounded", "40", "bash", "-c", "nmcli device disconnect \"$1\" >/dev/null 2>&1; sleep 1; nmcli device connect \"$1\"", "_", networkPanel.ethernetDevice]
+        toggleEthernetProc.running = true
+    }
     Process {
         id: toggleEthernetProc
         command: ["true"]
@@ -177,14 +184,33 @@ Item {
         stderr: StdioCollector { id: ethernetErrors }
         onExited: (code) => {
             var detail = (ethernetErrors.text + " " + ethernetOut.text).trim()
+            networkPanel.ethernetNeedsReset = false
             if (code === 0)
                 networkPanel.ethernetMessage = Lang.get(networkPanel.ethernetWanted ? "network.ethernetNowOn" : "network.ethernetNowOff", uiLanguage)
-            else if (code === 124 || detail.indexOf("IP configuration") >= 0 || detail.indexOf("Timeout") >= 0 || detail.indexOf("timeout") >= 0)
-                networkPanel.ethernetMessage = Lang.get("network.ethernetNoIp", uiLanguage)
-            else
+            else if (code === 124 || detail.indexOf("IP configuration") >= 0 || detail.indexOf("Timeout") >= 0 || detail.indexOf("timeout") >= 0) {
+                networkPanel.ethernetNeedsReset = true
+                networkPanel.ethernetMessage = Lang.get("network.ethernetNoIp", uiLanguage) + " " + Lang.get("network.ethernetResetHint", uiLanguage)
+            } else
                 networkPanel.ethernetMessage = Lang.get("network.ethernetFailed", uiLanguage) + (detail.length > 0 ? " " + detail : "")
             ethernetMessageTimer.restart()
             Qt.callLater(function() { updateNetworkState(false) })
+        }
+    }
+    // Reset the network card (link down and up). Needs root, so it goes through the system's graphical password prompt.
+    Process {
+        id: resetEthernetProc
+        command: ["true"]
+        running: false
+        onExited: (code) => {
+            if (code === 0) {
+                networkPanel.ethernetMessage = Lang.get("network.ethernetConnecting", uiLanguage)
+                networkPanel.ethernetWanted = true
+                networkPanel.startEthernetConnect()
+            } else {
+                networkPanel.ethernetNeedsReset = true
+                networkPanel.ethernetMessage = Lang.get("network.ethernetResetCancelled", uiLanguage)
+                ethernetMessageTimer.restart()
+            }
         }
     }
     Timer { id: ethernetMessageTimer; interval: 12000; repeat: false; onTriggered: networkPanel.ethernetMessage = "" }
@@ -542,7 +568,7 @@ Item {
                         spacing: 4
 
                         Image {
-                            source: Qt.resolvedUrl("../img/Win11-dark/status/symbolic/network-idle-symbolic.svg")
+                            source: Qt.resolvedUrl("../img/Win11-dark/status/symbolic/network-wired-symbolic.svg")
                             width: 20
                             height: 20
                             smooth: true
@@ -573,17 +599,25 @@ Item {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            if (toggleEthernetProc.running) return
-                            if (networkPanel.ethernetDevice === "") {
+                            if (toggleEthernetProc.running || resetEthernetProc.running) return
+                            if (networkPanel.ethernetDevice === "" || !networkPanel.validDevice(networkPanel.ethernetDevice)) {
                                 networkPanel.ethernetMessage = Lang.get("network.ethernetNoDevice", uiLanguage)
                             } else if (networkPanel.ethernetState === "unavailable") {
                                 networkPanel.ethernetMessage = Lang.get("network.ethernetNoCableHint", uiLanguage)
-                            } else {
-                                var on = networkPanel.ethernetState !== "connected" && networkPanel.ethernetState !== "connecting"
-                                networkPanel.ethernetWanted = on
+                            } else if (networkPanel.ethernetNeedsReset) {
+                                networkPanel.ethernetNeedsReset = false
+                                networkPanel.ethernetMessage = Lang.get("network.ethernetResetting", uiLanguage)
+                                resetEthernetProc.command = ["pkexec", "sh", "-c", "ip link set \"$1\" down; sleep 3; ip link set \"$1\" up", "_", networkPanel.ethernetDevice]
+                                resetEthernetProc.running = true
+                            } else if (networkPanel.ethernetState === "connected") {
+                                networkPanel.ethernetWanted = false
                                 networkPanel.ethernetMessage = ""
-                                toggleEthernetProc.command = ["windoesnot-bounded", "30", "nmcli", "device", on ? "connect" : "disconnect", networkPanel.ethernetDevice]
+                                toggleEthernetProc.command = ["windoesnot-bounded", "30", "nmcli", "device", "disconnect", networkPanel.ethernetDevice]
                                 toggleEthernetProc.running = true
+                            } else {
+                                networkPanel.ethernetWanted = true
+                                networkPanel.ethernetMessage = ""
+                                networkPanel.startEthernetConnect()
                             }
                             ethernetMessageTimer.restart()
                         }

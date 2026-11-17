@@ -1850,7 +1850,7 @@ PanelWindow {
                                 if (networkWindow.connectionType === "wifi")
                                     return "img/Win11-dark/status/symbolic/network-wireless-connected-symbolic.svg"
                                 else if (networkWindow.connectionType === "ethernet")
-                                    return "img/Win11-dark/status/symbolic/network-idle-symbolic.svg"
+                                    return "img/Win11-dark/status/symbolic/network-wired-symbolic.svg"
                                 else
                                     return "img/Win11-dark/status/symbolic/network-offline-symbolic.svg"
                             }
