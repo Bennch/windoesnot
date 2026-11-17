@@ -130,11 +130,19 @@ Rectangle {
 
                 Layout.fillWidth: true
                 enabled: !(page.bridge && page.bridge.busy)
-                // A Binding keeps following the plan after the user picked an entry (a plain binding is dropped on the first click).
-                Binding {
-                    target: diskBox
-                    property: "currentIndex"
-                    value: Math.max(0, page.disks.findIndex(function(d) { return d.device === page.plan.device; }))
+                // The entry must follow the scanned source. Setting the model resets the index, so the index is
+                // restored one event-loop turn later, after every property this combo depends on has settled.
+                function syncIndex() {
+                    var wanted = page.disks.findIndex(function(d) { return d.device === page.plan.device; })
+                    if (wanted >= 0 && currentIndex !== wanted) currentIndex = wanted
+                }
+                onModelChanged: Qt.callLater(syncIndex)
+                onCountChanged: Qt.callLater(syncIndex)
+                Component.onCompleted: Qt.callLater(syncIndex)
+                Connections {
+                    target: page
+                    function onPlanChanged() { Qt.callLater(diskBox.syncIndex) }
+                    function onDisksChanged() { Qt.callLater(diskBox.syncIndex) }
                 }
                 textRole: "display"
                 model: page.disks.map(function(d) { return { device: d.device, display: (d.system || (d.filesystem === "ntfs" || d.filesystem === "bitlocker" ? "Windows" : "Linux")) + " — " + d.device + (d.label ? " (" + d.label + ")" : "") }; })
