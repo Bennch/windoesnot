@@ -23,6 +23,9 @@ STATE_PATH = CONFIG_DIR / "icons.json"
 # Debug-Logging (auf True setzen für ausführliche Logs)
 DEBUG = False
 
+# Height in logical pixels of the Quickshell taskbar at the bottom of the primary monitor (plus a small margin).
+TASKBAR_STRIP = 48
+
 def debug(msg):
     """Debug-Ausgabe nur wenn DEBUG aktiviert."""
     if DEBUG:
@@ -2509,6 +2512,14 @@ class MonitorWindow:
     def on_desktop_right_click(self, gesture, n_press, x, y):
         """Zeigt Kontextmenü für Desktop-Hintergrund (PopoverMenu)."""
         debug(f"desktop right click at ({x}, {y}) on monitor {self.monitor_id}")
+
+        # The desktop surface lies under the taskbar. A right click that reaches it from the taskbar strip
+        # (seen after a popup grab was released) must not open the desktop menu.
+        if self.monitor_id == getattr(self.app, "primary_monitor_id", self.monitor_id):
+            height = self.win.get_height() or self.overlay.get_height()
+            if height and y >= height - TASKBAR_STRIP:
+                debug("desktop right click ignored: inside the taskbar strip")
+                return Gdk.EVENT_STOP
 
         # Widget unter dem Cursor finden
         widget = self.overlay.pick(x, y, Gtk.PickFlags.DEFAULT)
