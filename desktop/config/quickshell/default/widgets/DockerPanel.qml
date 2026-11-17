@@ -204,8 +204,8 @@ Item {
                     radius: 6
                     // Audio-style hover colors
                     color: (bodyArea.containsMouse || btnStop.containsMouse || btnRestart.containsMouse || btnRemove.containsMouse)
-                        ? Qt.rgba(0.16, 0.16, 0.16, 0.6)
-                        : Qt.rgba(0.12, 0.12, 0.12, 0.4)
+                        ? (dockerPanel.darkMode ? Qt.rgba(0.16, 0.16, 0.16, 0.6) : Qt.rgba(0.82, 0.82, 0.82, 0.9))
+                        : (dockerPanel.darkMode ? Qt.rgba(0.12, 0.12, 0.12, 0.4) : Qt.rgba(0.88, 0.88, 0.88, 0.7))
                     Behavior on color { ColorAnimation { duration: 150 } }
 
                     // Left body: status dot + text

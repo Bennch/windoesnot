@@ -491,7 +491,7 @@ Item {
                             radius: 6
                             color: {
                                 if (modelData.connected) return Qt.rgba(bluetoothPanel.accentColor.r, bluetoothPanel.accentColor.g, bluetoothPanel.accentColor.b, 0.3)
-                                return deviceMouseArea.containsMouse ? Qt.rgba(0.16, 0.16, 0.16, 0.6) : Qt.rgba(0.12, 0.12, 0.12, 0.4)
+                                return darkMode ? (deviceMouseArea.containsMouse ? Qt.rgba(0.16, 0.16, 0.16, 0.6) : Qt.rgba(0.12, 0.12, 0.12, 0.4)) : (deviceMouseArea.containsMouse ? Qt.rgba(0.82, 0.82, 0.82, 0.9) : Qt.rgba(0.88, 0.88, 0.88, 0.7))
                             }
                             border.width: modelData.connected ? 1 : 0
                             border.color: bluetoothPanel.accentColor

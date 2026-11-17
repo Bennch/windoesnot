@@ -617,7 +617,8 @@ Item {
                     id: modelCard
                     width: ListView.view.width; height: 62; radius: 6
                     color: (cardArea.containsMouse || btnLoad.containsMouse || btnDelete.containsMouse)
-                        ? Qt.rgba(0.16, 0.16, 0.16, 0.6) : Qt.rgba(0.12, 0.12, 0.12, 0.4)
+                        ? (ollamaPanel.darkMode ? Qt.rgba(0.16, 0.16, 0.16, 0.6) : Qt.rgba(0.82, 0.82, 0.82, 0.9))
+                        : (ollamaPanel.darkMode ? Qt.rgba(0.12, 0.12, 0.12, 0.4) : Qt.rgba(0.88, 0.88, 0.88, 0.7))
                     Behavior on color { ColorAnimation { duration: 150 } }
 
                     Row {

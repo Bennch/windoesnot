@@ -608,7 +608,7 @@ Item {
                         radius: 6
                         color: {
                             if (modelData.name === audioPanel.defaultSink) return Qt.rgba(audioPanel.accentColor.r, audioPanel.accentColor.g, audioPanel.accentColor.b, 0.3)
-                            return deviceMouseArea.containsMouse ? Qt.rgba(0.16, 0.16, 0.16, 0.6) : Qt.rgba(0.12, 0.12, 0.12, 0.4)
+                            return darkMode ? (deviceMouseArea.containsMouse ? Qt.rgba(0.16, 0.16, 0.16, 0.6) : Qt.rgba(0.12, 0.12, 0.12, 0.4)) : (deviceMouseArea.containsMouse ? Qt.rgba(0.82, 0.82, 0.82, 0.9) : Qt.rgba(0.88, 0.88, 0.88, 0.7))
                         }
                         border.width: modelData.name === audioPanel.defaultSink ? 1 : 0
                         border.color: audioPanel.accentColor

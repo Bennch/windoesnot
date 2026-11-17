@@ -988,7 +988,7 @@ Item {
                             radius: 6
                             color: {
                                 if (modelData.active) return Qt.rgba(networkPanel.accentColor.r, networkPanel.accentColor.g, networkPanel.accentColor.b, 0.3)
-                                return networkMouseArea.containsMouse ? Qt.rgba(0.16, 0.16, 0.16, 0.6) : Qt.rgba(0.12, 0.12, 0.12, 0.4)
+                                return darkMode ? (networkMouseArea.containsMouse ? Qt.rgba(0.16, 0.16, 0.16, 0.6) : Qt.rgba(0.12, 0.12, 0.12, 0.4)) : (networkMouseArea.containsMouse ? Qt.rgba(0.82, 0.82, 0.82, 0.9) : Qt.rgba(0.88, 0.88, 0.88, 0.7))
                             }
                             border.width: modelData.active ? 1 : 0
                             border.color: networkPanel.accentColor

@@ -1817,14 +1817,15 @@ PanelWindow {
                             visible: model.iconType === "docker"
                             anchors.centerIn: parent
                             source: "img/Win11-dark/places/24/folder-docker.svg"
-                            width: 26; height: 26
-                            sourceSize.width: 52; sourceSize.height: 52
+                            width: 22; height: 22
+                            sourceSize.width: 44; sourceSize.height: 44
                             fillMode: Image.PreserveAspectFit
                             smooth: true; antialiasing: true; mipmap: true
                             opacity: trayDragArea.containsMouse ? 0.7 : 1.0
-                            // the icon is light grey; on the light taskbar it needs the same dark tint as the other tray icons
+                            // the icon is light grey; on the light taskbar it needs a dark tint. It is a filled shape, so a lighter
+                            // tint and a smaller size keep it as light as the line icons next to it.
                             layer.enabled: !settingsMenu.darkMode
-                            layer.effect: MultiEffect { colorization: 1.0; colorizationColor: "#333333" }
+                            layer.effect: MultiEffect { colorization: 1.0; colorizationColor: "#5a5a5a" }
                             Behavior on opacity { NumberAnimation { duration: 150 } }
                         }
 
