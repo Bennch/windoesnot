@@ -18,6 +18,11 @@ Item {
     property string uiLanguage: "de"  // Bound from shell.qml
     property bool wifiEnabled: false
     property bool ethernetEnabled: true
+    // Ethernet tile: state of the wired device ("connected", "connecting", "disconnected", "unavailable" = no cable, "none")
+    property string ethernetDevice: ""
+    property string ethernetState: "none"
+    property string ethernetMessage: ""
+    property bool ethernetWanted: false
     property string connectionType: "none"  // "wifi", "ethernet", "none"
     property bool windowVisible: false
     property string currentConnection: ""
@@ -66,7 +71,7 @@ Item {
         if (!getWifiStatusProc.running) getWifiStatusProc.running = true
         if (!getCurrentConnectionProc.running) getCurrentConnectionProc.running = true
         if (!getActiveWifiProc.running) getActiveWifiProc.running = true
-
+        if (!getEthernetStateProc.running) getEthernetStateProc.running = true
     }
 
     property bool scanWifiAfterStatus: false
@@ -139,6 +144,50 @@ Item {
             }
         }
     }
+
+    // State of the wired device, for the Ethernet tile
+    Process {
+        id: getEthernetStateProc
+        command: ["windoesnot-bounded", "6", "bash", "-c", "systemctl is-active --quiet NetworkManager.service && nmcli -t -f DEVICE,TYPE,STATE device"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var device = "", state = "none"
+                var lines = this.text.trim().split("\n")
+                for (var i = 0; i < lines.length; i++) {
+                    var parts = lines[i].split(":")
+                    if (parts.length >= 3 && parts[1] === "ethernet") {
+                        var st = parts.slice(2).join(":").split(" ")[0]
+                        if (device === "" || st === "connected") { device = parts[0]; state = st }
+                    }
+                }
+                networkPanel.ethernetDevice = device
+                networkPanel.ethernetState = device === "" ? "none" : state
+            }
+        }
+    }
+    Timer { interval: 7000; repeat: false; running: getEthernetStateProc.running; onTriggered: getEthernetStateProc.running = false }
+
+    // Connect or disconnect the wired device and say what happened (the tile used to do nothing at all)
+    Process {
+        id: toggleEthernetProc
+        command: ["true"]
+        running: false
+        stdout: StdioCollector { id: ethernetOut }
+        stderr: StdioCollector { id: ethernetErrors }
+        onExited: (code) => {
+            var detail = (ethernetErrors.text + " " + ethernetOut.text).trim()
+            if (code === 0)
+                networkPanel.ethernetMessage = Lang.get(networkPanel.ethernetWanted ? "network.ethernetNowOn" : "network.ethernetNowOff", uiLanguage)
+            else if (code === 124 || detail.indexOf("IP configuration") >= 0 || detail.indexOf("Timeout") >= 0 || detail.indexOf("timeout") >= 0)
+                networkPanel.ethernetMessage = Lang.get("network.ethernetNoIp", uiLanguage)
+            else
+                networkPanel.ethernetMessage = Lang.get("network.ethernetFailed", uiLanguage) + (detail.length > 0 ? " " + detail : "")
+            ethernetMessageTimer.restart()
+            Qt.callLater(function() { updateNetworkState(false) })
+        }
+    }
+    Timer { id: ethernetMessageTimer; interval: 12000; repeat: false; onTriggered: networkPanel.ethernetMessage = "" }
 
     // Get active WiFi connection SSID
     property string activeWifiSSID: ""
@@ -480,8 +529,9 @@ Item {
                     color: darkMode
                         ? (ethernetButtonMouseArea.containsMouse ? Qt.rgba(0.16, 0.16, 0.16, 0.6) : Qt.rgba(0.12, 0.12, 0.12, 0.4))
                         : (ethernetButtonMouseArea.containsMouse ? Qt.rgba(0.85, 0.85, 0.85, 0.8) : Qt.rgba(0.88, 0.88, 0.88, 0.7))
-                    border.width: networkPanel.connectionType === "ethernet" ? 2 : 1
-                    border.color: networkPanel.connectionType === "ethernet" ? networkPanel.accentColor : (darkMode ? Qt.rgba(0.23, 0.23, 0.23, 0.5) : Qt.rgba(0.7, 0.7, 0.7, 0.8))
+                    border.width: networkPanel.ethernetState === "connected" ? 2 : 1
+                    opacity: (networkPanel.ethernetState === "unavailable" || networkPanel.ethernetState === "none") ? 0.6 : 1
+                    border.color: networkPanel.ethernetState === "connected" ? networkPanel.accentColor : (darkMode ? Qt.rgba(0.23, 0.23, 0.23, 0.5) : Qt.rgba(0.7, 0.7, 0.7, 0.8))
 
                     Behavior on color { ColorAnimation { duration: 150 } }
                     Behavior on border.color { ColorAnimation { duration: 150 } }
@@ -506,9 +556,13 @@ Item {
                         }
 
                         Text {
-                            text: networkPanel.connectionType === "ethernet" ? "Ethernet" : "Ethernet"
+                            text: toggleEthernetProc.running || networkPanel.ethernetState === "connecting" ? Lang.get("network.ethernetConnecting", uiLanguage)
+                                : networkPanel.ethernetState === "connected" ? Lang.get("network.ethernetOn", uiLanguage)
+                                : networkPanel.ethernetState === "unavailable" ? Lang.get("network.ethernetNoCable", uiLanguage)
+                                : networkPanel.ethernetState === "none" ? Lang.get("network.ethernetNoDevice", uiLanguage)
+                                : Lang.get("network.ethernetOff", uiLanguage)
                             font.pixelSize: 11
-                            color: networkPanel.connectionType === "ethernet" ? networkPanel.accentColor : (darkMode ? "#999999" : "#666666")
+                            color: networkPanel.ethernetState === "connected" ? networkPanel.accentColor : (darkMode ? "#999999" : "#666666")
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
                     }
@@ -519,10 +573,31 @@ Item {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            console.log("Ethernet status:", networkPanel.connectionType)
+                            if (toggleEthernetProc.running) return
+                            if (networkPanel.ethernetDevice === "") {
+                                networkPanel.ethernetMessage = Lang.get("network.ethernetNoDevice", uiLanguage)
+                            } else if (networkPanel.ethernetState === "unavailable") {
+                                networkPanel.ethernetMessage = Lang.get("network.ethernetNoCableHint", uiLanguage)
+                            } else {
+                                var on = networkPanel.ethernetState !== "connected" && networkPanel.ethernetState !== "connecting"
+                                networkPanel.ethernetWanted = on
+                                networkPanel.ethernetMessage = ""
+                                toggleEthernetProc.command = ["windoesnot-bounded", "30", "nmcli", "device", on ? "connect" : "disconnect", networkPanel.ethernetDevice]
+                                toggleEthernetProc.running = true
+                            }
+                            ethernetMessageTimer.restart()
                         }
                     }
                 }
+            }
+
+            Text {
+                visible: networkPanel.ethernetMessage !== ""
+                width: parent.width
+                wrapMode: Text.WordWrap
+                text: networkPanel.ethernetMessage
+                font.pixelSize: 11
+                color: networkPanel.accentColor
             }
 
             Rectangle {
