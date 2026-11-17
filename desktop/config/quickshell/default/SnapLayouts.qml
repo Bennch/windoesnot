@@ -66,7 +66,12 @@ Scope {
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
 
-            Keys.onEscapePressed: root.close()
+            // PanelWindow is not an Item, so the Escape handler lives on a focused item inside it.
+            Item {
+                anchors.fill: parent
+                focus: true
+                Keys.onEscapePressed: root.close()
+            }
 
             MouseArea {
                 anchors.fill: parent

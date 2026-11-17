@@ -3,8 +3,7 @@
   "releases": [
     {
       "version": "0.1.0-31",
-      "date": "2026-11-16",
-      "unreleased": true,
+      "date": "2026-11-17",
       "de": [
         "Umzug von Windows: Mehrere Windows-Konten landen nicht mehr in einem Ordner, jedes weitere Konto bekommt einen eigenen Unterordner. Die Seite zeigt, von welchem System die Daten kommen.",
         "Umzug: Thunderbird-Profile, Windows Live Mail und Outlook-Postfächer (PST) kommen als E-Mail mit. Gespeicherte Browser-Passwörter lassen sich mit einem eigenen Passwort schützen und als Datei zum Import in den Browser ablegen.",
