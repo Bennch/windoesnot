@@ -179,9 +179,8 @@ Item {
             radius: settingsMenu ? settingsMenu.borderRadius : 8
             clip: true
             color: page.dark ? "#17191b" : "#f7f7f7"
-            border.width: 1
-            border.color: page.dark ? "#454a4d" : "#c8c8c8"
-            readonly property real chooseWidth: 58
+            border.width: 0
+            readonly property real chooseWidth: 78
             readonly property real packageWidth: Math.max(180, width * 0.46)
             readonly property real versionWidth: Math.max(104, width * 0.22)
             readonly property real categoryWidth: width - chooseWidth - packageWidth - versionWidth
@@ -190,8 +189,11 @@ Item {
                 width: parent.width
                 spacing: 0
                 Rectangle {
-                    width: parent.width; height: 38
+                    width: parent.width; height: 40
+                    radius: kernelTable.radius
                     color: page.dark ? "#2c3034" : "#e7e7e7"
+                    // square off the lower corners so only the top ones follow the table's rounding
+                    Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: parent.radius; color: parent.color }
                     Row {
                         anchors.fill: parent
                         Text { width: kernelTable.chooseWidth; text: page.tr("kernel.choose"); color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
@@ -233,6 +235,12 @@ Item {
                         Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: page.dark ? "#303438" : "#dddddd" }
                     }
                 }
+            }
+            // the border is drawn last so the header fill cannot cover it at the rounded corners
+            Rectangle {
+                anchors.fill: parent; z: 5
+                radius: kernelTable.radius; color: "transparent"
+                border.width: 1; border.color: page.dark ? "#454a4d" : "#c8c8c8"
             }
         }
         Row {

@@ -45,7 +45,15 @@ Column {
     }
 
     property bool storeMissing: false
-    readonly property var updates: status ? status.updates : []
+    // CachyOS' optimized repositories (x86-64-v3, v4, Zen 4) carry the same version with a ".N" release suffix.
+    // pacman lists hundreds of those after the first sync; they are shown as one note, not as updates.
+    function isOptimizedVariant(u) {
+        var o = String(u.old), n = String(u.new)
+        return o !== "" && n.indexOf(o + ".") === 0 && /^\.\d+$/.test(n.slice(o.length))
+    }
+    readonly property var allUpdates: status ? status.updates : []
+    readonly property var updates: allUpdates.filter(function(u) { return !isOptimizedVariant(u) })
+    readonly property int optimizedCount: allUpdates.length - updates.length
     readonly property int updateCount: updates.length
     // Without any downloaded package database, "no updates" means "not checked".
     readonly property bool neverChecked: status !== null && !status.databases_checked
@@ -237,6 +245,12 @@ Column {
                         : Lang.get("updates.heroCurrent", _lang)
                     font.pixelSize: 17; font.bold: true
                     color: textColor
+                }
+                Text {
+                    visible: optimizedCount > 0
+                    width: parent.width; wrapMode: Text.WordWrap
+                    text: Lang.get("updates.optimizedNote", _lang).replace("{}", optimizedCount)
+                    font.pixelSize: 12; color: subColor
                 }
                 Text {
                     visible: neverChecked && updateCount === 0

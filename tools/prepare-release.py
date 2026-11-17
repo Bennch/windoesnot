@@ -103,6 +103,7 @@ def main():
     parser.add_argument("--iso-de", required=True, type=Path)
     parser.add_argument("--date", default=date.today().strftime("%Y.%m.%d"))
     parser.add_argument("--desktop-commit")
+    parser.add_argument("--previous", help="version whose out/release-<version> folder supplies README and license notes (default: release number minus one)")
     parser.add_argument("--apply", action="store_true", help="write local release files")
     args = parser.parse_args()
     match = re.fullmatch(r"(\d+(?:\.\d+)+)-(\d+)", args.version)
@@ -112,7 +113,7 @@ def main():
         release_date = datetime.strptime(args.date, "%Y.%m.%d").date()
     except ValueError:
         parser.error("Date must be YYYY.MM.DD")
-    old_version = f"{match.group(1)}-{int(match.group(2)) - 1}"
+    old_version = args.previous or f"{match.group(1)}-{int(match.group(2)) - 1}"
     previous = ROOT / "out" / f"release-{old_version}"
     output = ROOT / "out" / f"release-{args.version}"
     if output.exists():

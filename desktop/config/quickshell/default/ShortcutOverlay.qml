@@ -17,8 +17,10 @@ FloatingWindow {
     visible: false
     onVisibleChanged: {
         panelWindow.syncFocusGrab(grab, visible)
-        if (visible) { bindings.reload(); Qt.callLater(function() { search.forceActiveFocus() }) }
+        if (visible) { bindings.reload(); markViewed.running = true; Qt.callLater(function() { search.forceActiveFocus() }) }
     }
+    // opening the overlay ticks "look at the shortcuts" in the welcome checklist
+    Process { id: markViewed; command: ["windoesnot-welcome-state", "view", "true"] }
     Shortcut { sequence: "Escape"; onActivated: root.visible = false }
     HyprlandFocusGrab {
         id: grab
@@ -76,6 +78,26 @@ FloatingWindow {
         }
         root.entries = result
     }
+    // "SUPER + Q" becomes [Win, Q]: one key cap per key, readable names instead of raw Hyprland identifiers
+    function keycaps(raw) {
+        var german = root.settingsMenu.uiLanguage === "de"
+        var names = {
+            "SUPER": "Win", "CTRL": german ? "Strg" : "Ctrl", "ALT": "Alt", "SHIFT": german ? "Umschalt" : "Shift",
+            "PRINT": german ? "Druck" : "Print", "Escape": "Esc", "Delete": german ? "Entf" : "Del", "Return": german ? "Eingabe" : "Enter",
+            "mouse:272": german ? "Linke Maustaste" : "Left button", "mouse:273": german ? "Rechte Maustaste" : "Right button",
+            "mouse_down": german ? "Mausrad ↓" : "Wheel ↓", "mouse_up": german ? "Mausrad ↑" : "Wheel ↑",
+            "XF86AudioRaiseVolume": german ? "Lauter" : "Volume up", "XF86AudioLowerVolume": german ? "Leiser" : "Volume down",
+            "XF86AudioMute": german ? "Stumm" : "Mute", "XF86AudioMicMute": german ? "Mikro aus" : "Mic mute",
+            "XF86MonBrightnessUp": german ? "Heller" : "Brighter", "XF86MonBrightnessDown": german ? "Dunkler" : "Darker",
+            "XF86AudioNext": german ? "Nächster Titel" : "Next track", "XF86AudioPrev": german ? "Vorheriger Titel" : "Previous track",
+            "XF86AudioPause": german ? "Pause" : "Pause", "XF86AudioPlay": german ? "Wiedergabe" : "Play"
+        }
+        return String(raw).split(" + ").map(function(part) {
+            var key = part.trim()
+            if (names[key]) return names[key]
+            return key.length === 1 ? key.toUpperCase() : key
+        })
+    }
     Rectangle {
         anchors.fill: parent
         radius: root.settingsMenu.borderRadius
@@ -88,7 +110,20 @@ FloatingWindow {
             Row {
                 width: parent.width
                 Text { width: parent.width - closeButton.width; text: Lang.get("shortcuts.title", root.settingsMenu.uiLanguage); color: root.settingsMenu.darkMode ? "white" : "#202020"; font.pixelSize: 22; font.bold: true }
-                Button { id: closeButton; text: "×"; Accessible.name: Lang.get("shortcuts.close", root.settingsMenu.uiLanguage); onClicked: root.visible = false }
+                Item {
+                    id: closeButton
+                    width: 32; height: 32
+                    Accessible.role: Accessible.Button
+                    Accessible.name: Lang.get("shortcuts.close", root.settingsMenu.uiLanguage)
+                    Rectangle {
+                        anchors.fill: parent; radius: 8
+                        color: closeArea.containsMouse ? (root.settingsMenu.darkMode ? "#3a3e42" : "#e2e2e2") : "transparent"
+                    }
+                    // two strokes instead of a text glyph: crisp at every scale and centred
+                    Rectangle { anchors.centerIn: parent; width: 14; height: 2; radius: 1; rotation: 45; color: root.settingsMenu.darkMode ? "#d8d8d8" : "#333333" }
+                    Rectangle { anchors.centerIn: parent; width: 14; height: 2; radius: 1; rotation: -45; color: root.settingsMenu.darkMode ? "#d8d8d8" : "#333333" }
+                    MouseArea { id: closeArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.visible = false }
+                }
             }
             TextField {
                 id: search
@@ -118,8 +153,31 @@ FloatingWindow {
                                     required property var modelData
                                     width: parent.width
                                     spacing: 12
-                                    Text { width: 180; text: parent.modelData.keys; color: root.settingsMenu.accentColor; font.bold: true; wrapMode: Text.Wrap }
-                                    Text { width: parent.width - 192; text: parent.modelData.description; color: root.settingsMenu.darkMode ? "#eeeeee" : "#222222"; wrapMode: Text.WrapAnywhere }
+                                    bottomPadding: 6
+                                    Flow {
+                                        width: 230; spacing: 5
+                                        Repeater {
+                                            model: root.keycaps(parent.parent.modelData.keys)
+                                            delegate: Row {
+                                                required property int index
+                                                required property string modelData
+                                                spacing: 5
+                                                Text { visible: index > 0; text: "+"; color: root.settingsMenu.darkMode ? "#8a8f94" : "#8a8a8a"; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
+                                                Item {
+                                                    width: capLabel.implicitWidth + 18; height: 26
+                                                    // darker underlay offset by 2 px gives the key its raised edge
+                                                    Rectangle { x: 0; y: 2; width: parent.width; height: 24; radius: 6; color: root.settingsMenu.darkMode ? "#101214" : "#bdbdbd" }
+                                                    Rectangle {
+                                                        x: 0; y: 0; width: parent.width; height: 24; radius: 6
+                                                        color: root.settingsMenu.darkMode ? "#33373b" : "#ffffff"
+                                                        border.width: 1; border.color: root.settingsMenu.darkMode ? "#4b5157" : "#d2d2d2"
+                                                        Text { id: capLabel; anchors.centerIn: parent; text: modelData; font.pixelSize: 12; font.bold: true; color: root.settingsMenu.darkMode ? "#f1f1f1" : "#202020" }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Text { width: parent.width - 242; anchors.verticalCenter: undefined; text: parent.modelData.description; color: root.settingsMenu.darkMode ? "#eeeeee" : "#222222"; wrapMode: Text.WrapAnywhere; topPadding: 4 }
                                     Accessible.role: Accessible.StaticText
                                     Accessible.name: modelData.keys + ": " + modelData.description
                                 }

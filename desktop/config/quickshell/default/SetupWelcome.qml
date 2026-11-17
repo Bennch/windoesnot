@@ -22,12 +22,17 @@ ShellRoot {
         Process {
             id: checklistLoad
             running: true
-            command: ["windoesnot-welcome-state"]
+            command: ["windoesnot-welcome-state", "detect"]
             stdout: StdioCollector {
                 onStreamFinished: {
                     try { var data = JSON.parse(text); welcome.checklistState = data.state; welcome.windowsPresent = data.windows } catch (error) {}
                 }
             }
+        }
+        // steps the system can see (network connected, package databases synced) tick themselves
+        Timer {
+            interval: 4000; repeat: true; running: welcome.visible
+            onTriggered: if (!checklistLoad.running) checklistLoad.running = true
         }
         title: "WinDoesNot"
         visible: true
@@ -77,21 +82,40 @@ ShellRoot {
                     delegate: Rectangle {
                         id: step
                         required property string modelData
+                        readonly property bool done: !!welcome.checklistState[modelData]
                         visible: modelData !== "migrate" || welcome.windowsPresent
-                        width: parent.width; height: visible ? 58 : 0; radius: 8
-                        color: welcome.darkMode ? "#141414" : "#f5f5f5"
-                        border.color: welcome.darkMode ? "#3a3a3a" : "#d0d0d0"
+                        width: parent.width; height: visible ? 64 : 0; radius: 12
+                        color: done ? Qt.rgba(welcome.accentColor.r, welcome.accentColor.g, welcome.accentColor.b, welcome.darkMode ? 0.14 : 0.10)
+                                    : (welcome.darkMode ? "#141414" : "#f5f5f5")
+                        border.color: done ? Qt.rgba(welcome.accentColor.r, welcome.accentColor.g, welcome.accentColor.b, 0.55) : (welcome.darkMode ? "#3a3a3a" : "#d0d0d0")
+                        Behavior on color { ColorAnimation { duration: 220 } }
+                        Behavior on border.color { ColorAnimation { duration: 220 } }
                         RowLayout {
-                            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12
-                            CheckBox {
-                                checked: !!welcome.checklistState[step.modelData]
-                                // no visible label: the default CheckBox text was near-black on the dark card
+                            anchors.fill: parent; anchors.leftMargin: 16; anchors.rightMargin: 14; spacing: 14
+                            // round tick: filled with the accent colour once the step is done
+                            Rectangle {
+                                id: tick
+                                Layout.preferredWidth: 30; Layout.preferredHeight: 30; radius: 15
+                                color: step.done ? welcome.accentColor : "transparent"
+                                border.width: 2; border.color: step.done ? welcome.accentColor : (welcome.darkMode ? "#6a6a6a" : "#9a9a9a")
+                                Behavior on color { ColorAnimation { duration: 220 } }
+                                Text { anchors.centerIn: parent; visible: step.done; text: "✓"; color: "#ffffff"; font.pixelSize: 17; font.bold: true }
+                                Accessible.role: Accessible.CheckBox
+                                Accessible.checked: step.done
                                 Accessible.name: Lang.get("shortcuts.done", welcome.uiLanguage) + ": " + Lang.get("shortcuts." + step.modelData, welcome.uiLanguage)
-                                onClicked: { save.command = ["windoesnot-welcome-state", step.modelData, checked ? "true" : "false"]; save.running = true }
+                                MouseArea {
+                                    anchors.fill: parent; anchors.margins: -6; cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        var next = !step.done
+                                        var state = Object.assign({}, welcome.checklistState); state[step.modelData] = next; welcome.checklistState = state
+                                        save.command = ["windoesnot-welcome-state", step.modelData, next ? "true" : "false"]; save.running = true
+                                    }
+                                }
                             }
                             Text {
                                 Layout.fillWidth: true; text: Lang.get("shortcuts." + step.modelData, welcome.uiLanguage)
-                                color: welcome.foreground; elide: Text.ElideRight
+                                color: step.done ? welcome.secondary : welcome.foreground
+                                font.pixelSize: 16; font.bold: !step.done; elide: Text.ElideRight
                             }
                             Tools.SystemToolsButton {
                                 settingsMenu: welcome; text: welcome.payload.open || "Open"

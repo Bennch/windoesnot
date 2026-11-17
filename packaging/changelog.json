@@ -14,7 +14,9 @@
         "Neu: App-Berechtigungen für Flatpak-Programme in den Einstellungen. Du siehst, worauf eine App zugreifen darf.",
         "Neu: Medienformate-Prüfung und Hilfe für Windows-Programme (mit Bottles).",
         "Neu: Looks unter Einstellungen, Aussehen. Sechs fertige Kombinationen aus Hell oder Dunkel, Akzentfarbe, Rundung und Hintergrund, mit Zurück zu deinen Einstellungen.",
-        "Der Exporter für Windows 7 und 8.1 hat jetzt drei Schritte mit Seitenleiste und passt zum Aussehen der großen Windows-App."
+        "Der Exporter für Windows 7 und 8.1 hat jetzt drei Schritte mit Seitenleiste und passt zum Aussehen der großen Windows-App.",
+        "Tastenkürzel-Übersicht mit Tastenfeldern. Die Willkommens-Checkliste hakt WLAN, Updates und Tastenkürzel selbst ab.",
+        "Optimierte Paketvarianten für deinen Prozessor zählen nicht mehr als hunderte Updates. Der Energieplan Höchstleistung bleibt sichtbar, auch wenn dein Gerät ihn nicht anbietet."
       ],
       "en": [
         "Moving from Windows: several Windows accounts no longer end up in one folder; each further account gets its own subfolder. The page shows which system the data comes from.",
@@ -26,7 +28,9 @@
         "New: app permissions for Flatpak programs in the settings. You see what an app may access.",
         "New: media format check and help for Windows programs (with Bottles).",
         "New: Looks under Settings, Appearance. Six ready-made combinations of light or dark, accent colour, corner radius and background, with a way back to your own settings.",
-        "The exporter for Windows 7 and 8.1 now has three steps with a sidebar and matches the look of the large Windows app."
+        "The exporter for Windows 7 and 8.1 now has three steps with a sidebar and matches the look of the large Windows app.",
+        "Shortcut overview with key caps. The welcome checklist ticks Wi-Fi, updates and shortcuts by itself.",
+        "Optimized package builds for your processor no longer count as hundreds of updates. The Performance power plan stays visible even when your device does not offer it."
       ]
     },
     {

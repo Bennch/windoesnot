@@ -131,17 +131,19 @@ Item {
             spacing: 10
             visible: page.ready && page.state.profilesAvailable
             Repeater {
-                model: page.state.profiles
+                model: ["power-saver", "balanced", "performance"]
                 delegate: Rectangle {
                     required property string modelData
-                    readonly property bool active: page.state.currentProfile === modelData
+                    // a plan the hardware driver does not offer stays visible but greyed out
+                    readonly property bool supported: page.state.profiles.indexOf(modelData) >= 0
+                    readonly property bool active: supported && page.state.currentProfile === modelData
                     width: 140
                     height: 35
                     radius: 6
                     color: active ? (settingsMenu ? settingsMenu.accentColor : "#fe6f2d") : (page.dark ? "#2a2a2a" : "#f0f0f0")
                     border.width: 1
                     border.color: page.dark ? "#3a3a3a" : "#d0d0d0"
-                    opacity: profileWorker.running ? 0.5 : 1
+                    opacity: !supported ? 0.4 : (profileWorker.running ? 0.5 : 1)
                     Behavior on color { ColorAnimation { duration: 150 } }
                     Text {
                         anchors.centerIn: parent
@@ -151,13 +153,14 @@ Item {
                     }
                     MouseArea {
                         anchors.fill: parent
-                        enabled: !profileWorker.running
-                        cursorShape: Qt.PointingHandCursor
+                        enabled: supported && !profileWorker.running
+                        cursorShape: supported ? Qt.PointingHandCursor : Qt.ArrowCursor
                         onClicked: page.setProfile(modelData)
                     }
                 }
             }
         }
+        Note { visible: page.ready && page.state.profilesAvailable && page.state.profiles.indexOf("performance") < 0; text: page.tr("power.performanceMissing") }
         Note { visible: page.profileError.length > 0; text: page.profileError; color: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
     }
 }
