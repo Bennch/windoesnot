@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+"""Install an AUR package built in an isolated container (called by the store).
+
+  windoesnot-aur-isolated-install PACKAGE [--noconfirm]
+
+Steps, all visible in the store log: look the package up in the AUR, fetch its git repository as the
+current user, build it with windoesnot-isolated-build (root, throw-away container), then install only the
+finished archives through the store helper. Missing AUR dependencies or build errors stop the run; there is
+no fallback to a build on this system.
+"""
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+NAME = re.compile(r'^[A-Za-z0-9@._+][A-Za-z0-9@._+-]{0,127}$')
+
+
+def fail(message, code=1):
+    print('ERROR: %s' % message, flush=True)
+    sys.exit(code)
+
+
+def find(name):
+    for directory in (os.path.dirname(os.path.realpath(__file__)), '/usr/bin', '/usr/local/bin'):
+        path = os.path.join(directory, name)
+        if os.access(path, os.X_OK):
+            return path
+    return shutil.which(name)
+
+
+def package_base(package):
+    url = 'https://aur.archlinux.org/rpc/v5/info?arg[]=' + urllib.parse.quote(package)
+    with urllib.request.urlopen(url, timeout=15) as response:
+        data = json.load(response)
+    results = data.get('results') or []
+    if not results:
+        fail('%s was not found in the AUR' % package)
+    base = results[0].get('PackageBase') or package
+    if not NAME.match(base):
+        fail('unexpected package base name')
+    return base
+
+
+def main(argv):
+    args = [a for a in argv if not a.startswith('--')]
+    flags = {a for a in argv if a.startswith('--')}
+    if len(args) != 1 or not NAME.match(args[0]) or not flags <= {'--noconfirm'}:
+        fail('usage: windoesnot-aur-isolated-install PACKAGE [--noconfirm]', 2)
+    package = args[0]
+    builder = find('windoesnot-isolated-build')
+    helper = os.environ.get('WINDOESNOT_STORE_HELPER') or find('windoesnot-store-helper')
+    if not builder or not helper:
+        fail('the isolated build tools are not installed')
+    work = Path(tempfile.mkdtemp(prefix='windoesnot-aur-'))
+    try:
+        base = package_base(package)
+        print('Fetching %s from the AUR ...' % base, flush=True)
+        subprocess.run(['git', 'clone', '--quiet', '--depth', '1', 'https://aur.archlinux.org/%s.git' % base, str(work / 'src')], check=True)
+        digest = subprocess.run([builder, 'digest', '--src', str(work / 'src')], capture_output=True, text=True, check=True).stdout.strip()
+        print('Source digest: %s' % digest, flush=True)
+        (work / 'out').mkdir()
+        subprocess.run(['pkexec', builder, 'build', '--src', str(work / 'src'), '--out', str(work / 'out'),
+                        '--uid', str(os.getuid()), '--gid', str(os.getgid()), '--expect-digest', digest], check=True)
+        archives = sorted(p for p in (work / 'out').iterdir() if '.pkg.tar' in p.name and not p.name.endswith('.sig'))
+        wanted = [p for p in archives if p.name.startswith(package + '-')] or archives
+        if not wanted:
+            fail('the build produced no package')
+        command = ['pkexec', helper, 'pacman', '-U'] + (['--noconfirm'] if '--noconfirm' in flags else []) + [str(p) for p in wanted]
+        print('Installing %s ...' % ', '.join(p.name for p in wanted), flush=True)
+        subprocess.run(command, check=True)
+    except subprocess.CalledProcessError as exc:
+        fail('a step failed (%s)' % Path(exc.cmd[0]).name, exc.returncode or 1)
+    except OSError as exc:
+        fail(str(exc))
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
