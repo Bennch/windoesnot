@@ -1171,9 +1171,9 @@ FloatingWindow {
             return category
         }
         function setSection(section: string): string {
-            // Tab of the Maintenance & Kernel page: 0 account, 1 maintenance, 2 kernel and performance.
+            // Tab of the Maintenance & Kernel page: 0 account, 1 maintenance, 2 kernel and performance, 3 diagnosis.
             var index = parseInt(section)
-            if (isNaN(index) || index < 0 || index > 2) return "unsupported"
+            if (isNaN(index) || index < 0 || index > 3) return "unsupported"
             if (!maintenanceLoader.item) return "not loaded"
             maintenanceLoader.item.section = index
             return String(index)

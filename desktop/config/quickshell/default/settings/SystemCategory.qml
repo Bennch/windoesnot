@@ -15,12 +15,12 @@ Column {
         width: parent.width
         spacing: 8
         Repeater {
-            model: [page.tr("system.account"), page.tr("system.maintenance"), page.tr("system.kernel")]
+            model: [page.tr("system.account"), page.tr("system.maintenance"), page.tr("system.kernel"), page.tr("system.diagnose")]
             delegate: Tools.SystemToolsButton {
                 required property int index
                 required property string modelData
                 settingsMenu: page.settingsMenu
-                width: (page.width - 16) / 3
+                width: (page.width - 24) / 4
                 text: modelData
                 primary: page.section === index
                 onClicked: page.section = index
@@ -33,7 +33,7 @@ Column {
         width: parent.width
         // No explicit height: a Loader with a set size resizes its page to that size, and the page's own
         // height (content.height) then stays stuck at the first tab's value. Without it the Loader follows the page.
-        sourceComponent: page.section === 0 ? accountPage : page.section === 1 ? maintenancePage : kernelPage
+        sourceComponent: page.section === 0 ? accountPage : page.section === 1 ? maintenancePage : page.section === 2 ? kernelPage : diagnosePage
     }
 
     readonly property bool busy: sectionLoader.item && sectionLoader.item.busy === true
@@ -41,6 +41,7 @@ Column {
 
     Component { id: accountPage; Tools.AccountCategory { width: page.width; settingsMenu: page.settingsMenu } }
     Component { id: maintenancePage; Tools.MaintenanceCategory { width: page.width; settingsMenu: page.settingsMenu } }
+    Component { id: diagnosePage; Tools.DiagnoseCategory { width: page.width; settingsMenu: page.settingsMenu } }
     Component { id: kernelPage; Tools.KernelCategory { width: page.width; settingsMenu: page.settingsMenu } }
 
     function tr(key) { return Lang.get(key, settingsMenu ? settingsMenu.uiLanguage : "de") }

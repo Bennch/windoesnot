@@ -4,6 +4,7 @@ import QtQuick.Controls
 import QtQuick.Effects
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
+import "." as Tools
 
 Column {
     id: alignmentRoot
@@ -650,5 +651,13 @@ Column {
             }
         }
     }
+
+    Rectangle {
+        width: parent.width
+        height: 1
+        color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
+    }
+
+    Tools.NotificationSettings { width: parent.width; settingsMenu: alignmentRoot.settingsMenu }
 
 }

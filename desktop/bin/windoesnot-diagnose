@@ -1,0 +1,190 @@
+#!/usr/bin/python3 -I
+"""WinDoesNot diagnosis: failed services, errors since the last boot, package changes before them, Hyprland problems.
+
+Read-only and unprivileged. `--json` prints the structured result for the Settings page, `--report` prints a plain text
+report with personal data removed (user name, host name, home path, IP and MAC addresses), ready for a bug report.
+Time proximity between a package change and an error is shown as proximity, never as a cause.
+"""
+import json
+import os
+import re
+import shutil
+import socket
+import subprocess
+import sys
+import time
+
+PACMAN_LOG = '/var/log/pacman.log'
+LIMIT_ERRORS = 40
+# Messages that look alarming but are known to be harmless (shown dimmed, with the reason, in the Settings page).
+KNOWN_HARMLESS = [
+    (re.compile(r'ignored rdmsr|ignored wrmsr'), 'vm-cpu'),
+    (re.compile(r'QLocalSocket::connectToServer: Invalid name'), 'greeter'),
+    (re.compile(r'a password is required'), 'sudo'),
+    (re.compile(r'Steam is not running'), 'steam'),
+]
+LIMIT_PACKAGES = 30
+_PACMAN_LINE = re.compile(r'^\[(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})([+-]\d{2}:?\d{2})?\] \[ALPM\] (installed|upgraded|removed|downgraded|reinstalled) (\S+) \((.*)\)$')
+
+
+def run(*args, timeout=15):
+    try:
+        result = subprocess.run(args, capture_output=True, text=True, timeout=timeout, check=False)
+        return result.returncode, result.stdout
+    except (OSError, subprocess.SubprocessError):
+        return 127, ''
+
+
+def failed_units():
+    units = []
+    for scope in (('--system',), ('--user',)):
+        code, out = run('systemctl', *scope, '--failed', '--no-legend', '--plain', '--no-pager')
+        if code not in (0, 1):
+            continue
+        for line in out.splitlines():
+            parts = line.split(None, 4)
+            if parts and parts[0].endswith(('.service', '.mount', '.socket', '.timer', '.target')):
+                units.append({'unit': parts[0], 'scope': scope[0][2:], 'description': parts[4] if len(parts) > 4 else ''})
+    return units
+
+
+def boot_errors():
+    """Priority err and worse since this boot, de-duplicated by message (counts kept), newest first."""
+    code, out = run('journalctl', '-b', '-p', 'err', '-o', 'json', '--no-pager', '-n', '400', timeout=20)
+    if code != 0:
+        return {'available': False, 'entries': []}
+    seen, entries = {}, []
+    for line in out.splitlines():
+        try:
+            record = json.loads(line)
+        except ValueError:
+            continue
+        message = record.get('MESSAGE')
+        if isinstance(message, list):
+            message = bytes(message).decode('utf-8', 'replace')
+        if not isinstance(message, str):
+            continue
+        message = message.strip().splitlines()[0] if message.strip() else ''
+        ident = record.get('SYSLOG_IDENTIFIER') or record.get('_COMM') or ''
+        key = (ident, re.sub(r'\d+', '#', message)[:160])
+        stamp = int(record.get('__REALTIME_TIMESTAMP', '0')) // 1000000
+        if key in seen:
+            seen[key]['count'] += 1
+            seen[key]['time'] = max(seen[key]['time'], stamp)
+            continue
+        known = next((tag for pattern, tag in KNOWN_HARMLESS if pattern.search(message)), '')
+        seen[key] = {'source': ident, 'message': message[:300], 'time': stamp, 'count': 1, 'known': known}
+        entries.append(seen[key])
+    entries.sort(key=lambda e: e['time'], reverse=True)
+    return {'available': True, 'entries': entries[:LIMIT_ERRORS]}
+
+
+def uptime_start():
+    try:
+        with open('/proc/uptime') as stream:
+            return int(time.time() - float(stream.read().split()[0]))
+    except (OSError, ValueError, IndexError):
+        return 0
+
+
+def package_changes(before=None):
+    """Latest package changes from pacman.log (newest first); `before` is a unix time bound."""
+    try:
+        with open(PACMAN_LOG, errors='replace') as stream:
+            lines = stream.readlines()[-6000:]
+    except OSError:
+        return {'available': False, 'entries': []}
+    changes = []
+    for line in lines:
+        match = _PACMAN_LINE.match(line.strip())
+        if not match:
+            continue
+        stamp = int(time.mktime(time.strptime(match.group(1) + ' ' + match.group(2), '%Y-%m-%d %H:%M:%S')))
+        if before is not None and stamp > before:
+            continue
+        changes.append({'time': stamp, 'action': match.group(4), 'package': match.group(5), 'version': match.group(6)})
+    changes.sort(key=lambda c: c['time'], reverse=True)
+    return {'available': True, 'entries': changes[:LIMIT_PACKAGES]}
+
+
+def hyprland():
+    result = {'available': False, 'errors': [], 'plugins': []}
+    if not shutil.which('hyprctl') or not os.environ.get('HYPRLAND_INSTANCE_SIGNATURE'):
+        return result
+    code, out = run('hyprctl', 'configerrors')
+    if code == 0:
+        result['available'] = True
+        result['errors'] = [line.strip() for line in out.splitlines() if line.strip() and 'no errors' not in line.lower()][:20]
+    code, out = run('hyprctl', 'plugin', 'list')
+    if code == 0:
+        result['plugins'] = [line.strip() for line in out.splitlines() if line.strip().startswith('Plugin')][:20]
+    return result
+
+
+def disk():
+    entries = []
+    for path in ('/', '/home', '/boot'):
+        try:
+            usage = shutil.disk_usage(path)
+        except OSError:
+            continue
+        entries.append({'path': path, 'free': usage.free, 'total': usage.total})
+    return entries
+
+
+def collect():
+    started = uptime_start()
+    return {
+        'time': int(time.time()), 'boot': started,
+        'failed': failed_units(), 'errors': boot_errors(),
+        'packages': package_changes(), 'hyprland': hyprland(), 'disk': disk(),
+        'kernel': os.uname().release,
+    }
+
+
+def redactor():
+    user = os.environ.get('USER') or ''
+    home = os.path.expanduser('~')
+    host = socket.gethostname()
+    patterns = [(re.compile(r'\b(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}\b'), '<mac>'),
+                (re.compile(r'\b(?:\d{1,3}\.){3}\d{1,3}\b'), '<ip>'),
+                (re.compile(r'\b(?:[0-9a-fA-F]{1,4}:){3,7}[0-9a-fA-F]{1,4}\b'), '<ip6>')]
+    literals = [(home, '~')] + ([(host, '<host>')] if host and len(host) > 2 else []) + ([(user, '<user>')] if user and len(user) > 2 else [])
+
+    def clean(text):
+        for literal, replacement in literals:
+            text = text.replace(literal, replacement)
+        for pattern, replacement in patterns:
+            text = pattern.sub(replacement, text)
+        return text
+    return clean
+
+
+def report(data):
+    clean = redactor()
+    stamp = lambda t: time.strftime('%Y-%m-%d %H:%M', time.localtime(t))
+    lines = ['WinDoesNot diagnosis report', 'Created: ' + stamp(data['time']), 'Kernel: ' + data['kernel'],
+             'Booted: ' + (stamp(data['boot']) if data['boot'] else 'unknown'), '']
+    lines.append('Failed services: %d' % len(data['failed']))
+    lines += ['  %s (%s) %s' % (u['unit'], u['scope'], u['description']) for u in data['failed']]
+    lines += ['', 'Errors since boot: ' + ('' if data['errors']['available'] else 'journal not readable')]
+    lines += ['  %s [%s] x%d %s' % (stamp(e['time']), e['source'], e['count'], e['message']) for e in data['errors']['entries']]
+    lines += ['', 'Recent package changes (proximity in time is not a cause):']
+    lines += ['  %s %s %s %s' % (stamp(c['time']), c['action'], c['package'], c['version']) for c in data['packages']['entries']]
+    lines += ['', 'Hyprland: ' + ('ok' if data['hyprland']['available'] and not data['hyprland']['errors'] else ('config errors' if data['hyprland']['errors'] else 'not queried'))]
+    lines += ['  ' + e for e in data['hyprland']['errors']] + ['  ' + p for p in data['hyprland']['plugins']]
+    lines += ['', 'Disk:'] + ['  %s free %.1f GiB of %.1f GiB' % (d['path'], d['free'] / 2**30, d['total'] / 2**30) for d in data['disk']]
+    return clean('\n'.join(lines)) + '\n'
+
+
+def main(argv):
+    data = collect()
+    if '--report' in argv:
+        sys.stdout.write(report(data))
+    else:
+        print(json.dumps(data))
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))
