@@ -1456,12 +1456,7 @@ FloatingWindow {
             saveSettings()
             updateHyprbars()
         }
-        // Trigger contentHeight update
-        if (settingsFlickable) {
-            settingsFlickable.contentHeight = Qt.binding(function() {
-                return Math.max(settingsFlickable.height, settingsFlickable.getCurrentCategoryHeight())
-            })
-        }
+        // The scroll range is a live binding on the Flickable (visibleContentHeight); never re-assign it here.
     }
 
     onHyprbarsCloseButtonEnabledChanged: {

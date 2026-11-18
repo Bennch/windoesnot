@@ -31,7 +31,8 @@ Column {
     Loader {
         id: sectionLoader
         width: parent.width
-        height: item ? item.height : 0
+        // No explicit height: a Loader with a set size resizes its page to that size, and the page's own
+        // height (content.height) then stays stuck at the first tab's value. Without it the Loader follows the page.
         sourceComponent: page.section === 0 ? accountPage : page.section === 1 ? maintenancePage : kernelPage
     }
 
