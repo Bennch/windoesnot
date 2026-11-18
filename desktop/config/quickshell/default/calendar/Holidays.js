@@ -51,7 +51,17 @@ function regionFor(localeName, uiLanguage) {
     return "GLOBAL"
 }
 
-function holidays(year, region) {
+// Which German states have each regional holiday (key = "month-day" of the fixed ones or a name for the moving ones).
+var DE_STATES = {
+    "1-6": ["BW", "BY", "ST"], "3-8": ["BE", "MV"], "corpus": ["BW", "BY", "HE", "NW", "RP", "SL"],
+    "8-15": ["SL", "BY"], "9-20": ["TH"], "10-31": ["BB", "HB", "HH", "MV", "NI", "SN", "SH", "ST", "TH"],
+    "11-1": ["BW", "BY", "NW", "RP", "SL"], "repentance": ["SN"]
+}
+var DE_STATE_CODES = ["BW", "BY", "BE", "BB", "HB", "HH", "HE", "MV", "NI", "NW", "RP", "SL", "SN", "ST", "SH", "TH"]
+
+// opts: { state: "ALL" | German state code, regional: bool, observances: bool }
+function holidays(year, region, opts) {
+    var o = opts || {}
     var m = {}
     var e = easter(year)
     var f = function (mo, d, de, en, kind) { fixed(m, mo, d, year, de, en, kind) }
@@ -168,7 +178,31 @@ function holidays(year, region) {
         f(12, 25, "Weihnachtstag", "Christmas Day", "public")
         f(12, 31, "Silvester", "New Year's Eve", "observance")
     }
-    return m
+    return filtered(m, year, region, o)
+}
+
+function filtered(m, year, region, o) {
+    var out = {}
+    var e = easter(year)
+    var corpusKey = (shift(e, 60).getMonth() + 1) + "-" + shift(e, 60).getDate()
+    var rep = shift(nthWeekday(year, 11, 3, 4), -7)
+    var repKey = (rep.getMonth() + 1) + "-" + rep.getDate()
+    for (var key in m) {
+        var entry = m[key]
+        if (entry.kind === "observance" && o.observances === false) continue
+        if (entry.kind === "regional") {
+            if (region === "DE" && o.state && o.state !== "ALL") {
+                var id = key === corpusKey && entry.de === "Fronleichnam" ? "corpus" : (key === repKey && entry.de.indexOf("Buß") === 0 ? "repentance" : key)
+                var states = DE_STATES[id] || []
+                if (states.indexOf(o.state) < 0) continue
+                out[key] = { de: entry.de, en: entry.en, kind: "public" }   // a day off in the chosen state
+                continue
+            }
+            if (o.regional === false) continue
+        }
+        out[key] = entry
+    }
+    return out
 }
 
 // Entry for one date, or null.

@@ -7,6 +7,8 @@
 #include <QFile>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QMessageBox>
+#include <QAbstractButton>
 #include <iostream>
 int main(int argc,char** argv) {
     QApplication app(argc,argv);
@@ -15,13 +17,19 @@ int main(int argc,char** argv) {
     widget.resize(760,620);widget.show();app.processEvents();
     auto require=[](bool condition,const char* message){if(!condition){std::cerr<<message<<"\n";std::exit(2);}};
     require(widget.selectedIds().contains("libreoffice"),"recommended selection missing");
-    widget.applyProfile("minimal");require(widget.selectedIds()==QStringList{"firefox"},"minimal profile wrong");
+    widget.applyProfile("minimal");require(widget.selectedIds()==QStringList({"archives", "firefox", "loupe"}),"minimal profile wrong");
     widget.applyProfile("gaming");require(widget.selectedIds().contains("steam"),"gaming profile wrong");
     auto* search=widget.findChild<QLineEdit*>("appSearch");search->setText("gimp");app.processEvents();
     require(widget.findChild<QCheckBox*>("app-gimp")->isVisible(),"matching search hidden");
     require(!widget.findChild<QCheckBox*>("app-steam")->isVisible(),"nonmatching search visible");
     require(widget.selectedIds().contains("steam"),"filter erased selection");search->clear();
-    require(!widget.findChild<QCheckBox*>("app-firefox")->isEnabled(),"required app selectable");
+    auto* firefox = widget.findChild<QCheckBox*>("app-firefox");
+    require(firefox->isEnabled(),"system app inaccessible");
+    QTimer::singleShot(0, [] { auto* dialog = qobject_cast<QMessageBox*>(QApplication::activeModalWidget()); if (dialog) dialog->button(QMessageBox::No)->click(); });
+    firefox->click(); require(firefox->isChecked(), "cancel did not restore selection");
+    QTimer::singleShot(0, [] { auto* dialog = qobject_cast<QMessageBox*>(QApplication::activeModalWidget()); if (dialog) dialog->button(QMessageBox::Yes)->click(); });
+    firefox->click(); require(!widget.selectedIds().contains("firefox"), "confirmed deselection lost");
+    widget.applyProfile("minimal"); require(!widget.selectedIds().contains("firefox"), "profile restored deselected system app");
     QString error;const auto before=widget.selectedIds();require(!widget.setSelection({"arbitrary-package"},&error),"unknown selection accepted");require(widget.selectedIds()==before,"invalid import changed selection");
     QTemporaryDir temp;QString path=temp.filePath("my profile.json");require(widget.exportProfile(path,&error),"export failed");widget.applyProfile("minimal");require(widget.importProfile(path,&error),"import failed");require(widget.selectedIds()==before,"roundtrip lost selection");
     QFile bad(temp.filePath("bad.json"));require(bad.open(QIODevice::WriteOnly),"cannot write invalid fixture");bad.write("{\"schema_version\":1,\"selected\":[\"firefox\"],\"command\":\"ignored\"}");bad.close();require(!widget.importProfile(bad.fileName(),&error),"unknown profile field accepted");

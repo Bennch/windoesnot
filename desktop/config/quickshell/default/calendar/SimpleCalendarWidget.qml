@@ -13,14 +13,26 @@ Item {
     property int monthShift: 0
     property var viewingDate: CalendarLayout.getDateInXMonthsTime(monthShift)
     property var calendarLayout: CalendarLayout.getCalendarLayout(viewingDate, monthShift === 0)
+    property var weekNumbers: CalendarLayout.getWeekNumbers(viewingDate)
     property color accentColor: "#FE6F2D"
     property int borderRadius: 10
     property bool darkMode: true
     property string uiLanguage: "de"
     property var hoveredDate: null
     // Public holidays and well-known days of the system's region (German UI without a known region: Germany).
-    property string region: Holidays.regionFor(Qt.locale().name, uiLanguage)
-    property var holidayMap: Holidays.holidays(viewingDate.getFullYear(), region)
+    property bool holidaysEnabled: true
+    property string regionSetting: "auto"
+    property string holidayState: "ALL"
+    property bool showRegional: true
+    property bool showObservances: true
+    property bool showWeekNumbers: false
+    property string region: regionSetting !== "auto" ? regionSetting : Holidays.regionFor(Qt.locale().name, uiLanguage)
+    property var holidayMap: holidaysEnabled
+        ? Holidays.holidays(viewingDate.getFullYear(), region, { state: holidayState, regional: showRegional, observances: showObservances })
+        : ({})
+    // Narrower cells make room for the week number column (KW) on the left.
+    readonly property int cellW: showWeekNumbers ? 33 : 38
+    readonly property int cols: showWeekNumbers ? 8 : 7
 
     Timer {
         id: clearHoverTimer
@@ -108,12 +120,24 @@ Item {
         Row {
             width: parent.width
             height: 30
-            spacing: (parent.width - 7 * 38) / 6
+            spacing: (parent.width - calendarWidget.cols * calendarWidget.cellW) / (calendarWidget.cols - 1)
+
+            Rectangle {
+                visible: calendarWidget.showWeekNumbers
+                width: calendarWidget.cellW; height: 30
+                color: "transparent"
+                Text {
+                    anchors.centerIn: parent
+                    text: Lang.get("calendar.weekShort", uiLanguage)
+                    font.pixelSize: 10
+                    color: darkMode ? "#777" : "#999"
+                }
+            }
 
             Repeater {
                 model: 7
                 delegate: Rectangle {
-                    width: 38; height: 30
+                    width: calendarWidget.cellW; height: 30
                     color: "transparent"
                     Text {
                         anchors.centerIn: parent
@@ -136,14 +160,26 @@ Item {
                 delegate: Row {
                     width: parent.width
                     height: 38
-                    spacing: (parent.width - 7 * 38) / 6
+                    spacing: (parent.width - calendarWidget.cols * calendarWidget.cellW) / (calendarWidget.cols - 1)
 
                     property int weekIndex: index
+
+                    // ISO week number of this row
+                    Item {
+                        visible: calendarWidget.showWeekNumbers
+                        width: calendarWidget.cellW; height: 38
+                        Text {
+                            anchors.centerIn: parent
+                            text: calendarWidget.weekNumbers[weekIndex] !== undefined ? calendarWidget.weekNumbers[weekIndex] : ""
+                            font.pixelSize: 11
+                            color: darkMode ? "#6f6f6f" : "#9a9a9a"
+                        }
+                    }
 
                     Repeater {
                         model: 7
                         delegate: Rectangle {
-                            width: 38; height: 38
+                            width: calendarWidget.cellW; height: 38
                             radius: 6
 
                             property var dayData: calendarWidget.calendarLayout && calendarWidget.calendarLayout[weekIndex]

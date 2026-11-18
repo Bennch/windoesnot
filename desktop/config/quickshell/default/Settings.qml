@@ -278,6 +278,13 @@ FloatingWindow {
     // Date & Time settings
     property string timeZone: "UTC"
     property bool use24HourFormat: true
+    // Calendar: holidays and week numbers
+    property bool calendarHolidays: true
+    property string calendarRegion: "auto"
+    property string calendarState: "ALL"
+    property bool calendarRegional: true
+    property bool calendarObservances: true
+    property bool calendarWeekNumbers: false
     property bool ntpEnabled: true
 
     // Font settings
@@ -1073,6 +1080,12 @@ FloatingWindow {
             'else if (key === "systemLocale") settingsMenu.systemLocale = value; ' +
             'else if (key === "timeZone") settingsMenu.timeZone = value; ' +
             'else if (key === "use24HourFormat") settingsMenu.use24HourFormat = (value === "true"); ' +
+            'else if (key === "calendarHolidays") settingsMenu.calendarHolidays = (value === "true"); ' +
+            'else if (key === "calendarRegion") settingsMenu.calendarRegion = value; ' +
+            'else if (key === "calendarState") settingsMenu.calendarState = value; ' +
+            'else if (key === "calendarRegional") settingsMenu.calendarRegional = (value === "true"); ' +
+            'else if (key === "calendarObservances") settingsMenu.calendarObservances = (value === "true"); ' +
+            'else if (key === "calendarWeekNumbers") settingsMenu.calendarWeekNumbers = (value === "true"); ' +
             'else if (key === "ntpEnabled") settingsMenu.ntpEnabled = (value === "true"); ' +
             'else if (key === "fontInterface") settingsMenu.fontInterface = value; ' +
             'else if (key === "fontDocument") settingsMenu.fontDocument = value; ' +
@@ -1243,6 +1256,12 @@ FloatingWindow {
                       "systemLocale=" + systemLocale + "\\n" +
                       "timeZone=" + timeZone + "\\n" +
                       "use24HourFormat=" + (use24HourFormat ? "true" : "false") + "\\n" +
+                      "calendarHolidays=" + (calendarHolidays ? "true" : "false") + "\\n" +
+                      "calendarRegion=" + calendarRegion + "\\n" +
+                      "calendarState=" + calendarState + "\\n" +
+                      "calendarRegional=" + (calendarRegional ? "true" : "false") + "\\n" +
+                      "calendarObservances=" + (calendarObservances ? "true" : "false") + "\\n" +
+                      "calendarWeekNumbers=" + (calendarWeekNumbers ? "true" : "false") + "\\n" +
                       "ntpEnabled=" + (ntpEnabled ? "true" : "false") + "\\n" +
                       "fontInterface=" + fontInterface + "\\n" +
                       "fontDocument=" + fontDocument + "\\n" +
@@ -1922,6 +1941,13 @@ FloatingWindow {
             saveSettings()
         }
     }
+
+    onCalendarHolidaysChanged: if (!isLoadingSettings) saveSettings()
+    onCalendarRegionChanged: if (!isLoadingSettings) saveSettings()
+    onCalendarStateChanged: if (!isLoadingSettings) saveSettings()
+    onCalendarRegionalChanged: if (!isLoadingSettings) saveSettings()
+    onCalendarObservancesChanged: if (!isLoadingSettings) saveSettings()
+    onCalendarWeekNumbersChanged: if (!isLoadingSettings) saveSettings()
 
     onNtpEnabledChanged: {
         if (!isLoadingSettings) {

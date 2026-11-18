@@ -411,6 +411,89 @@ Column {
         color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
     }
 
+    // === KALENDER ===
+    Column {
+        width: parent.width
+        spacing: 14
+
+        Text {
+            text: Lang.get("calendar.title", _lang)
+            font.pixelSize: 18
+            font.bold: true
+            color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
+        }
+
+        Tools.SystemToolsToggle {
+            settingsMenu: settingsMenu
+            text: Lang.get("calendar.holidays", _lang)
+            checked: settingsMenu.calendarHolidays
+            onToggled: settingsMenu.calendarHolidays = checked
+        }
+        Text {
+            width: parent.width
+            text: Lang.get("calendar.holidaysHint", _lang)
+            wrapMode: Text.WordWrap
+            font.pixelSize: 12
+            color: settingsMenu.darkMode ? "#888" : "#777"
+        }
+
+        Row {
+            width: parent.width; spacing: 15
+            visible: settingsMenu.calendarHolidays
+            Text { text: Lang.get("calendar.region", _lang); font.pixelSize: 14; color: settingsMenu.darkMode ? "#aaa" : "#555"; width: parent.width - 260 - parent.spacing; anchors.verticalCenter: parent.verticalCenter }
+            Tools.SystemToolsChoice {
+                id: calendarRegionChoice
+                settingsMenu: settingsMenu
+                width: 260
+                labelPrefix: "calendar.region"
+                model: ["auto", "DE", "AT", "CH", "US", "GB", "FR", "GLOBAL"]
+                currentIndex: Math.max(0, model.indexOf(settingsMenu.calendarRegion))
+                onActivated: settingsMenu.calendarRegion = model[currentIndex]
+            }
+        }
+
+        Row {
+            width: parent.width; spacing: 15
+            visible: settingsMenu.calendarHolidays && (settingsMenu.calendarRegion === "DE" || (settingsMenu.calendarRegion === "auto" && Qt.locale().name.indexOf("_DE") > 0))
+            Text { text: Lang.get("calendar.state", _lang); font.pixelSize: 14; color: settingsMenu.darkMode ? "#aaa" : "#555"; width: parent.width - 260 - parent.spacing; anchors.verticalCenter: parent.verticalCenter }
+            Tools.SystemToolsChoice {
+                settingsMenu: settingsMenu
+                width: 260
+                labelPrefix: "calendar.state"
+                model: ["ALL", "BW", "BY", "BE", "BB", "HB", "HH", "HE", "MV", "NI", "NW", "RP", "SL", "SN", "ST", "SH", "TH"]
+                currentIndex: Math.max(0, model.indexOf(settingsMenu.calendarState))
+                onActivated: settingsMenu.calendarState = model[currentIndex]
+            }
+        }
+
+        Tools.SystemToolsToggle {
+            settingsMenu: settingsMenu
+            visible: settingsMenu.calendarHolidays && settingsMenu.calendarState === "ALL"
+            text: Lang.get("calendar.regional", _lang)
+            checked: settingsMenu.calendarRegional
+            onToggled: settingsMenu.calendarRegional = checked
+        }
+        Tools.SystemToolsToggle {
+            settingsMenu: settingsMenu
+            visible: settingsMenu.calendarHolidays
+            text: Lang.get("calendar.observances", _lang)
+            checked: settingsMenu.calendarObservances
+            onToggled: settingsMenu.calendarObservances = checked
+        }
+        Tools.SystemToolsToggle {
+            settingsMenu: settingsMenu
+            text: Lang.get("calendar.weekNumbers", _lang)
+            checked: settingsMenu.calendarWeekNumbers
+            onToggled: settingsMenu.calendarWeekNumbers = checked
+        }
+    }
+
+    Rectangle {
+        width: parent.width
+        height: 1
+        color: settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0"
+    }
+
     // === MAUS ===
     Column {
         width: parent.width

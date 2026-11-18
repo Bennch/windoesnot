@@ -19,9 +19,12 @@ for profile in catalog['profiles']:
 packages,services=packages_for(catalog,['firefox','printing','libreoffice'],'de-DE')
 assert 'cups' in packages and 'libreoffice-fresh-de' in packages and services==['cups.service']
 assert not packages_for(catalog,['firefox','libreoffice'],'en-US')[0].__contains__('libreoffice-fresh-de')
-# Required apps come from the image, yet their language packs follow the chosen language.
+# Image apps come from the image, yet their language packs follow the chosen language.
 assert packages_for(catalog,['firefox'],'de_DE.UTF-8')==(['firefox-i18n-de'],[])
 assert packages_for(catalog,['firefox'],'en_US.UTF-8')==(['firefox-i18n-en-us'],[])
+assert packages_for(catalog, [], 'de') == ([], [])
+assert 'loupe' in packages_for(catalog, ['loupe'], 'de')[0]
+assert 'file-roller' in packages_for(catalog, ['archives'], 'de')[0]
 assert 'hunspell-de' in packages
 assert 'hunspell-en_us' in packages_for(catalog,['firefox','libreoffice'],'en-US')[0]
 # Deferred apps never reach the offline vault; they go to the wishlist with fixed references only.
@@ -39,7 +42,7 @@ for mutate in [lambda a:a.update(source='npm'),lambda a:a.update(flatpak_id='not
     try: load_catalog(Path(tmp0)/'c.json')
     except ValueError: pass
     else: raise AssertionError('Invalid deferred application accepted')
-for value in [['unknown'],['firefox','firefox'],['gimp'],'firefox']:
+for value in [['unknown'],['firefox','firefox'],'firefox']:
  try: validate_selection(catalog,value)
  except ValueError: pass
  else: raise AssertionError('Invalid selection accepted')
@@ -71,6 +74,19 @@ with tempfile.TemporaryDirectory(prefix='wdn-software-unit-') as tmp:
  assert any('-S' in c and 'gimp' in c for c in calls)
  assert any('-S' in c and 'firefox-i18n-de' in c for c in calls)
  assert not any('https://' in ' '.join(c) for c in calls)
+ # Declining the image browser removes the installed browser and language packs,
+ # while preserving the selected optional applications in the handoff.
+ (bundle/'repository').mkdir(parents=True); (bundle/'manifest.json').write_text(json.dumps(manifest)); archive.write_bytes(b'fixture'); langpack.write_bytes(b'language fixture')
+ (bundle/'pacman.conf').write_text('[windoesnot-apps]\nServer = file:///offline\n')
+ calls.clear()
+ def installed_browser(command, **kwargs):
+  calls.append(command)
+  class Result: returncode = 0 if command[:2] == ['pacman', '-Q'] and command[-1] in ('firefox', 'firefox-i18n-de') else (1 if command[:2] == ['pacman', '-Q'] else 0)
+  return Result()
+ with patch.object(installer.subprocess, 'run', side_effect=installed_browser), patch.object(installer.subprocess, 'check_output', return_value='gimp 1\n'):
+  installer.install_selection(['gimp'], 'de', base, record, pending=d/'pending.json')
+ assert json.loads(record.read_text())['selected'] == ['gimp']
+ assert ['pacman', '-R', '--noconfirm', 'firefox', 'firefox-i18n-de'] in calls
  # Checksum failure must happen before any database refresh/install.
  (bundle/'repository').mkdir(parents=True);(bundle/'manifest.json').write_text(json.dumps(manifest));archive.write_bytes(b'changed');langpack.write_bytes(b'language fixture')
  calls.clear()

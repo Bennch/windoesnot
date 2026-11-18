@@ -6047,6 +6047,12 @@ FloatingWindow {
             item.borderRadius = Qt.binding(function() { return settingsMenu.borderRadius })
             item.darkMode = Qt.binding(function() { return settingsMenu.darkMode })
             item.uiLanguage = Qt.binding(function() { return settingsMenu.uiLanguage })
+            item.holidaysEnabled = Qt.binding(function() { return settingsMenu.calendarHolidays })
+            item.regionSetting = Qt.binding(function() { return settingsMenu.calendarRegion })
+            item.holidayState = Qt.binding(function() { return settingsMenu.calendarState })
+            item.showRegional = Qt.binding(function() { return settingsMenu.calendarRegional })
+            item.showObservances = Qt.binding(function() { return settingsMenu.calendarObservances })
+            item.showWeekNumbers = Qt.binding(function() { return settingsMenu.calendarWeekNumbers })
         }
     }
 }
