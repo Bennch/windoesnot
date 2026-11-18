@@ -39,7 +39,7 @@
   "windoesnot-network": {
     "url": "https://github.com/Bennch/windoesnot-network",
     "path": "network",
-    "commit": "921e5ea18904a3020ed63f1b45d3e1f074961864",
+    "commit": "274b988c3d6500ed94bf804e16857d2bf866a0d9",
     "upstream": "https://github.com/PlayRood32/adw-network",
     "upstream_commit": "59df66eafba8a010f3302dad1923a2f6dad5abe5"
   },
