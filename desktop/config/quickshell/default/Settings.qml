@@ -285,6 +285,7 @@ FloatingWindow {
     property bool calendarRegional: true
     property bool calendarObservances: true
     property bool calendarWeekNumbers: false
+    property string calendarFirstDay: "auto"
     property bool ntpEnabled: true
 
     // Font settings
@@ -1086,6 +1087,7 @@ FloatingWindow {
             'else if (key === "calendarRegional") settingsMenu.calendarRegional = (value === "true"); ' +
             'else if (key === "calendarObservances") settingsMenu.calendarObservances = (value === "true"); ' +
             'else if (key === "calendarWeekNumbers") settingsMenu.calendarWeekNumbers = (value === "true"); ' +
+            'else if (key === "calendarFirstDay") settingsMenu.calendarFirstDay = value; ' +
             'else if (key === "ntpEnabled") settingsMenu.ntpEnabled = (value === "true"); ' +
             'else if (key === "fontInterface") settingsMenu.fontInterface = value; ' +
             'else if (key === "fontDocument") settingsMenu.fontDocument = value; ' +
@@ -1262,6 +1264,7 @@ FloatingWindow {
                       "calendarRegional=" + (calendarRegional ? "true" : "false") + "\\n" +
                       "calendarObservances=" + (calendarObservances ? "true" : "false") + "\\n" +
                       "calendarWeekNumbers=" + (calendarWeekNumbers ? "true" : "false") + "\\n" +
+                      "calendarFirstDay=" + calendarFirstDay + "\\n" +
                       "ntpEnabled=" + (ntpEnabled ? "true" : "false") + "\\n" +
                       "fontInterface=" + fontInterface + "\\n" +
                       "fontDocument=" + fontDocument + "\\n" +
@@ -1943,6 +1946,7 @@ FloatingWindow {
     onCalendarRegionalChanged: if (!isLoadingSettings) saveSettings()
     onCalendarObservancesChanged: if (!isLoadingSettings) saveSettings()
     onCalendarWeekNumbersChanged: if (!isLoadingSettings) saveSettings()
+    onCalendarFirstDayChanged: if (!isLoadingSettings) saveSettings()
 
     onNtpEnabledChanged: {
         if (!isLoadingSettings) {

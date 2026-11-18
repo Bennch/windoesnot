@@ -6061,6 +6061,7 @@ FloatingWindow {
             item.showRegional = Qt.binding(function() { return settingsMenu.calendarRegional })
             item.showObservances = Qt.binding(function() { return settingsMenu.calendarObservances })
             item.showWeekNumbers = Qt.binding(function() { return settingsMenu.calendarWeekNumbers })
+            item.firstDaySetting = Qt.binding(function() { return settingsMenu.calendarFirstDay })
         }
     }
 }

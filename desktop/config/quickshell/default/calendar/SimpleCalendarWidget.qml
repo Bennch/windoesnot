@@ -12,8 +12,8 @@ Item {
 
     property int monthShift: 0
     property var viewingDate: CalendarLayout.getDateInXMonthsTime(monthShift)
-    property var calendarLayout: CalendarLayout.getCalendarLayout(viewingDate, monthShift === 0)
-    property var weekNumbers: CalendarLayout.getWeekNumbers(viewingDate)
+    property var calendarLayout: CalendarLayout.getCalendarLayout(viewingDate, monthShift === 0, firstDay)
+    property var weekNumbers: CalendarLayout.getWeekNumbers(viewingDate, firstDay)
     property color accentColor: "#FE6F2D"
     property int borderRadius: 10
     property bool darkMode: true
@@ -26,6 +26,9 @@ Item {
     property bool showRegional: true
     property bool showObservances: true
     property bool showWeekNumbers: false
+    property string firstDaySetting: "auto"
+    // Monday-based index of the first weekday: 0 Monday, 5 Saturday, 6 Sunday. Automatic: Sunday in the US, otherwise Monday.
+    readonly property int firstDay: firstDaySetting === "sun" ? 6 : firstDaySetting === "sat" ? 5 : firstDaySetting === "mon" ? 0 : (region === "US" ? 6 : 0)
     property string region: regionSetting !== "auto" ? regionSetting : Holidays.regionFor(Qt.locale().name, uiLanguage)
     property var holidayMap: holidaysEnabled
         ? Holidays.holidays(viewingDate.getFullYear(), region, { state: holidayState, regional: showRegional, observances: showObservances })
@@ -141,7 +144,7 @@ Item {
                     color: "transparent"
                     Text {
                         anchors.centerIn: parent
-                        text: (Lang.get("calendar.weekDays", uiLanguage))[index]
+                        text: (Lang.get("calendar.weekDays", uiLanguage))[(index + calendarWidget.firstDay) % 7]
                         font.pixelSize: 11
                         font.bold: true
                         color: darkMode ? "#999" : "#666"

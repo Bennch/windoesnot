@@ -60,12 +60,14 @@ function getDateInXMonthsTime(x) {
     return targetDate;
 }
 
-function getCalendarStartDate(viewingDate) {
+// first: Monday-based index of the first weekday of the grid (0 Monday, 5 Saturday, 6 Sunday).
+function getCalendarStartDate(viewingDate, first) {
+    first = first || 0;
     if (!viewingDate) viewingDate = new Date();
     var year = viewingDate.getFullYear();
     var month = viewingDate.getMonth();
     var firstOfMonth = new Date(year, month, 1);
-    var dayOfWeek = (firstOfMonth.getDay() + 6) % 7; // Mon=0, Sun=6
+    var dayOfWeek = ((firstOfMonth.getDay() + 6) % 7 - first + 7) % 7;
     return new Date(year, month, 1 - dayOfWeek);
 }
 
@@ -77,20 +79,22 @@ function getISOWeek(date) {
     return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 }
 
-function getWeekNumbers(viewingDate) {
+function getWeekNumbers(viewingDate, first) {
+    first = first || 0;
     if (!viewingDate) viewingDate = new Date();
-    var startDate = getCalendarStartDate(viewingDate);
+    var startDate = getCalendarStartDate(viewingDate, first);
+    var toMonday = (7 - first) % 7;   // the row's Monday decides its ISO week
     var weeks = [];
     for (var i = 0; i < 6; i++) {
-        var rowDate = new Date(startDate.getTime() + i * 7 * 86400000);
+        var rowDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + i * 7 + toMonday);
         weeks.push(getISOWeek(rowDate));
     }
     return weeks;
 }
 
-function getCalendarLayout(dateObject, highlight) {
+function getCalendarLayout(dateObject, highlight, first) {
     if (!dateObject) dateObject = new Date();
-    const weekday = (dateObject.getDay() + 6) % 7; // MONDAY IS THE FIRST DAY OF THE WEEK
+    const weekday = ((dateObject.getDay() + 6) % 7 - (first || 0) + 7) % 7; // relative to the first weekday of the grid
     const day = dateObject.getDate();
     const month = dateObject.getMonth() + 1;
     const year = dateObject.getFullYear();

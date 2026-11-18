@@ -480,6 +480,18 @@ Column {
             checked: (settingsMenu ? settingsMenu.calendarObservances : false)
             onToggled: settingsMenu.calendarObservances = checked
         }
+        Row {
+            width: parent.width; spacing: 15
+            Text { text: Lang.get("calendar.firstDay", _lang); font.pixelSize: 14; color: settingsMenu.darkMode ? "#aaa" : "#555"; width: parent.width - 260 - parent.spacing; anchors.verticalCenter: parent.verticalCenter }
+            Tools.SystemToolsChoice {
+                settingsMenu: settingsMenu
+                width: 260
+                labelPrefix: "calendar.firstDay"
+                model: ["auto", "mon", "sun", "sat"]
+                currentIndex: Math.max(0, model.indexOf(settingsMenu ? settingsMenu.calendarFirstDay : "auto"))
+                onActivated: settingsMenu.calendarFirstDay = model[currentIndex]
+            }
+        }
         Tools.SystemToolsToggle {
             settingsMenu: settingsMenu
             text: Lang.get("calendar.weekNumbers", _lang)
