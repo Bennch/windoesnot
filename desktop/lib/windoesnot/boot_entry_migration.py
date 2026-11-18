@@ -188,10 +188,22 @@ def saved_default_id(run=subprocess.run):
     return None
 
 
-def preferred_replacement(generic, retire_names, boot):
-    """Generic entry of the same kernel family as the retired default; plain choice when only one family exists."""
-    # linux-main.conf is the installer's standard entry; otherwise the first generic entry in name order.
-    return 'linux-main.conf' if 'linux-main.conf' in generic else sorted(generic)[0]
+def preferred_replacement(generic, retire_names, boot, selected=None):
+    """Preserve the selected kernel family when replacing an old entry."""
+    from fnmatch import fnmatch
+    matches = [name for name in retire_names if selected and
+               (fnmatch(name, selected) or fnmatch(name[:-5], selected))]
+    if len(matches) == 1:
+        # Prefer the longest suffix: cachyos-lts must not match cachyos.
+        for candidate in sorted(generic, key=len, reverse=True):
+            family = candidate.removeprefix('linux-').removesuffix('.conf')
+            if matches[0].endswith('-' + family + '.conf'):
+                return candidate
+    # Ambiguous globs use the standard non-LTS entry where available.
+    for candidate in ('linux-main.conf', 'linux-cachyos.conf'):
+        if candidate in generic:
+            return candidate
+    return sorted(generic)[0]
 
 
 def write_atomic(path, data):
@@ -224,8 +236,10 @@ def apply(root, set_default=None, mid=None, now=None):
         if not p['retire']:
             result['state'] = 'nothing-to-do'
             return result
-        replacement = preferred_replacement(p['generic'], p['retire'], boot)
-        if default_target(boot, p['retire']) == 'repair' or (loader_default(boot) == '@saved' and saved_default_id() in [n[:-5] for n in p['retire']] + p['retire']):
+        configured_default = loader_default(boot)
+        selected = saved_default_id() if configured_default == '@saved' else configured_default
+        replacement = preferred_replacement(p['generic'], p['retire'], boot, selected)
+        if default_target(boot, p['retire']) == 'repair' or (configured_default == '@saved' and selected in [n[:-5] for n in p['retire']] + p['retire']):
             if set_default is None:
                 raise BootProblem('default points to an obsolete entry and cannot be repaired')
             try:

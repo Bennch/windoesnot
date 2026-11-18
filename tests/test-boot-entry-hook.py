@@ -114,6 +114,27 @@ class Migration(Base):
         m.apply(self.root, set_default=calls.append)
         self.assertEqual(calls, [])
 
+    def test_old_default_keeps_its_kernel_family(self):
+        generic = ['linux-cachyos-lts.conf', 'linux-cachyos.conf']
+        old = [MID + '-7.3.3-1-cachyos.conf', MID + '-6.18-1-cachyos-lts.conf']
+        self.assertEqual(m.preferred_replacement(generic, old, self.boot, old[0]), 'linux-cachyos.conf')
+        self.assertEqual(m.preferred_replacement(generic, old, self.boot, old[1][:-5]), 'linux-cachyos-lts.conf')
+        self.assertEqual(m.preferred_replacement(generic, old, self.boot, MID + '-*'), 'linux-cachyos.conf')
+
+    def test_saved_old_main_default_is_not_switched_to_lts(self):
+        from unittest.mock import patch
+        (self.entries / 'linux-main.conf').unlink()
+        self.write_entry('linux-cachyos.conf', '/vmlinuz-linux-cachyos', '/initramfs-linux-cachyos.img')
+        self.write_entry('linux-cachyos-lts.conf', '/vmlinuz-linux-cachyos', '/initramfs-linux-cachyos.img')
+        old = MID + '-7.3.3-1-cachyos.conf'
+        (self.entries / (MID + '-6.1.conf')).rename(self.entries / old)
+        (self.boot / 'loader/loader.conf').write_text('default @saved\n')
+        calls = []
+        with patch.object(m, 'saved_default_id', return_value=old[:-5]):
+            result = m.apply(self.root, set_default=calls.append)
+        self.assertEqual(calls, ['linux-cachyos.conf'])
+        self.assertEqual(result['default_repaired'], 'linux-cachyos.conf')
+
     def test_lts_default_family_is_not_replaced(self):
         (self.boot / 'vmlinuz-linux-lts').write_text('k'); (self.boot / 'initramfs-linux-lts.img').write_text('i')
         self.write_entry('linux-lts.conf', '/vmlinuz-linux-lts', '/initramfs-linux-lts.img')
