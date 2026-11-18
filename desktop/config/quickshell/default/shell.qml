@@ -24,6 +24,7 @@ ShellRoot {
         quickSettingsContextMenu.visible = false
         appContextMenu.visible = false
         taskbarBgMenu.visible = false
+        trayMenuWindow.visible = false
     }
 
 // Current Does window (null while it is being rebuilt).
@@ -1667,7 +1668,10 @@ PanelWindow {
                                 } else if (mouse.button === Qt.MiddleButton) {
                                     modelData.secondaryActivate()
                                 } else if (mouse.button === Qt.RightButton) {
-                                    if (modelData.hasMenu) {
+                                    if (modelData.hasMenu && modelData.menu) {
+                                        // Our own styled menu (same look as the other taskbar menus).
+                                        trayMenuWindow.openFor(modelData.menu, trayItemDelegate)
+                                    } else if (modelData.hasMenu) {
                                         desktopShell.closeTaskbarContextMenus()
                                         // Anchor to this icon so the menu opens directly above it.
                                         var pos = trayItemDelegate.mapToItem(panelWindow.contentItem, 0, 0)
@@ -3327,6 +3331,446 @@ FloatingWindow {
                 }
             }
         }
+    }
+}
+
+// Menu of the system tray icons (right click), drawn in the desktop's own style instead of Qt's native menu.
+// The entries come from the app (DBusMenu through QsMenuOpener). A sub menu opens by itself as a second
+// window next to the row (like the sub menu of the power menu); both windows share one focus grab.
+FloatingWindow {
+    id: trayMenuWindow
+    visible: false
+    // Same window kind and Hyprland rule (title) as the taskbar menu: a PopupWindow was
+    // dismissed by the compositor the moment it opened.
+    title: "quickshell-tbgmenu"
+    color: "transparent"
+    screen: {
+        for (var i = 0; i < Quickshell.screens.length; i++) {
+            if (Quickshell.screens[i].name === settingsMenu.primaryMonitor) return Quickshell.screens[i]
+        }
+        return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    }
+
+    property var rootMenu: null
+    property var iconItemRef: null
+    property int contentHeight: 0
+    property real menuX: 0
+    property real menuTop: 0
+    property int requestSerialAtOpen: 0
+    readonly property int itemH: 32
+    readonly property int sepH: 9
+    readonly property int menuW: 260
+    implicitWidth: menuW
+    implicitHeight: Math.max(44, Math.min(contentHeight + 12, maxHeight()))
+
+    function maxHeight() {
+        var h = 600
+        for (var s = 0; s < Quickshell.screens.length; s++)
+            if (Quickshell.screens[s].name === settingsMenu.primaryMonitor) h = Quickshell.screens[s].height - 120
+        return h
+    }
+
+    // The root opener stays alive for as long as the menu is open: sub menus are loaded through it.
+    QsMenuOpener { id: trayMenuOpener; menu: trayMenuWindow.rootMenu }
+
+    HyprlandFocusGrab {
+        id: trayMenuGrab
+        windows: [trayMenuWindow, trayMenuFlyout]
+        onCleared: { trayMenuWindow.visible = false; trayMenuFlyout.visible = false }
+    }
+
+    onVisibleChanged: {
+        if (visible) Qt.callLater(function() { trayMenuGrab.active = true })
+        else { trayMenuGrab.active = false; trayMenuFlyout.visible = false; trayMenuFlyout.entry = null }
+    }
+
+    function listOf(opener) {
+        return opener && opener.children ? opener.children.values : []
+    }
+
+    function heightOf(list) {
+        var total = 0
+        for (var i = 0; i < list.length; i++) total += list[i].isSeparator ? sepH : itemH
+        return total
+    }
+
+    function recompute() {
+        contentHeight = heightOf(listOf(trayMenuOpener))
+    }
+
+    function monitorGeometry() {
+        var w = 1280, h = 800, x = 0, y = 0
+        for (var s = 0; s < Quickshell.screens.length; s++) {
+            if (Quickshell.screens[s].name === settingsMenu.primaryMonitor) {
+                w = Quickshell.screens[s].width; h = Quickshell.screens[s].height
+                x = Quickshell.screens[s].x; y = Quickshell.screens[s].y
+            }
+        }
+        return { w: w, h: h, x: x, y: y }
+    }
+
+    function openFor(handle, iconItem) {
+        desktopShell.closeTaskbarContextMenus()
+        requestSerialAtOpen = desktopShell.contextMenuRequestSerial
+        trayMenuFlyout.visible = false
+        trayMenuFlyout.entry = null
+        rootMenu = handle
+        iconItemRef = iconItem
+        // The entries arrive asynchronously from the app: give them a moment, then size and show.
+        openTimer.restart()
+    }
+
+    Timer {
+        id: openTimer
+        interval: 140
+        repeat: false
+        onTriggered: {
+            trayMenuWindow.recompute()
+            if (trayMenuWindow.contentHeight === 0) { settleTimer.count = 0; settleTimer.restart(); return }
+            trayMenuWindow.place()
+        }
+    }
+    // Slow apps answer late: look again a few times before giving up.
+    Timer {
+        id: settleTimer
+        property int count: 0
+        interval: 200
+        repeat: true
+        onTriggered: {
+            trayMenuWindow.recompute()
+            count++
+            if (trayMenuWindow.contentHeight > 0) { stop(); trayMenuWindow.place() }
+            else if (count >= 8) stop()
+        }
+    }
+
+    function place() {
+        var serial = requestSerialAtOpen
+        var mon = monitorGeometry()
+        var iconPos = iconItemRef.mapToItem(panelWindow.contentItem, 0, 0)
+        var menuH = Math.max(44, Math.min(contentHeight + 12, maxHeight()))
+        menuX = Math.max(4, Math.min(iconPos.x + iconItemRef.width / 2 - menuW / 2, mon.w - menuW - 4))
+        menuTop = mon.h - 45 - menuH
+        var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', panelWindow)
+        proc.command = ["windoesnot-bounded", "8", "bash", "-c",
+            "windoesnot-hyprctl keyword 'windowrule[tbgmenu]:size " + menuW + " " + menuH + "' ; " +
+            "windoesnot-hyprctl keyword 'windowrule[tbgmenu]:move " + Math.round(menuX) + " " + menuTop + "'"]
+        proc.exited.connect(function() {
+            if (serial === desktopShell.contextMenuRequestSerial) trayMenuWindow.visible = true
+        })
+        proc.running = true
+    }
+
+    // Opens the sub menu of `entry` beside the menu, level with its row (never below the taskbar).
+    function showFlyout(entry, rowTop) {
+        if (!entry || !entry.hasChildren) { trayMenuFlyout.visible = false; trayMenuFlyout.entry = null; return }
+        if (trayMenuFlyout.entry === entry && trayMenuFlyout.visible) return
+        trayMenuFlyout.entry = entry
+        trayMenuFlyout.rowTop = rowTop
+        flyoutTimer.restart()
+    }
+    Timer {
+        id: flyoutTimer
+        interval: 120
+        repeat: false
+        onTriggered: trayMenuFlyout.place()
+    }
+
+    function cleanLabel(text) {
+        // DBusMenu marks mnemonics with an underscore.
+        return (text || "").replace(/_([^_])/g, "$1").replace(/__/g, "_")
+    }
+
+    Item {
+        anchors.fill: parent
+        clip: true
+        focus: true
+        Keys.onEscapePressed: { trayMenuWindow.visible = false }
+
+        Rectangle {
+            anchors.fill: parent
+            topLeftRadius: settingsMenu.borderRadius
+            topRightRadius: settingsMenu.borderRadius
+            bottomLeftRadius: 0
+            bottomRightRadius: 0
+            color: settingsMenu.darkMode ? Qt.rgba(0.125, 0.125, 0.125, 0.93) : Qt.rgba(0.95, 0.95, 0.95, 0.97)
+        }
+
+        Flickable {
+            id: menuFlick
+            anchors { fill: parent; margins: 6 }
+            contentWidth: width
+            contentHeight: menuColumn.height
+            boundsBehavior: Flickable.StopAtBounds
+            clip: true
+
+            Column {
+                id: menuColumn
+                width: parent.width
+                spacing: 0
+
+                Repeater {
+                    model: trayMenuOpener.children
+
+                    delegate: Item {
+                        id: entryRow
+                        required property var modelData
+                        width: menuColumn.width
+                        height: modelData.isSeparator ? trayMenuWindow.sepH : trayMenuWindow.itemH
+
+                        // Top of this row in monitor coordinates (6 px menu padding included).
+                        function rowTop() { return trayMenuWindow.menuTop + 6 + entryRow.y - menuFlick.contentY }
+
+                        Rectangle {
+                            visible: entryRow.modelData.isSeparator
+                            anchors { left: parent.left; right: parent.right; leftMargin: 8; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                            height: 1
+                            color: settingsMenu.darkMode ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.12)
+                        }
+
+                        Rectangle {
+                            visible: !entryRow.modelData.isSeparator
+                            anchors.fill: parent
+                            radius: 6
+                            readonly property bool open: entryRow.modelData.hasChildren && trayMenuFlyout.entry === entryRow.modelData && trayMenuFlyout.visible
+                            color: (rowArea.containsMouse || open) && entryRow.modelData.enabled ? (settingsMenu.darkMode ? "#4A4A4D" : "#e0e0e0") : "transparent"
+                            opacity: entryRow.modelData.enabled ? 1.0 : 0.45
+
+                            Text {
+                                id: markText
+                                anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
+                                width: 16
+                                text: entryRow.modelData.buttonType === QsMenuButtonType.CheckBox
+                                      ? (entryRow.modelData.checkState === Qt.Checked ? "✓" : "")
+                                      : (entryRow.modelData.buttonType === QsMenuButtonType.RadioButton
+                                         ? (entryRow.modelData.checkState === Qt.Checked ? "●" : "") : "")
+                                color: settingsMenu.accentColor
+                                font.pixelSize: 13
+                                font.bold: true
+                            }
+                            Image {
+                                id: entryIcon
+                                anchors { left: markText.right; leftMargin: 4; verticalCenter: parent.verticalCenter }
+                                visible: source != ""
+                                source: entryRow.modelData.icon
+                                width: visible ? 16 : 0
+                                height: 16
+                                sourceSize.width: 32
+                                sourceSize.height: 32
+                                fillMode: Image.PreserveAspectFit
+                            }
+                            Text {
+                                anchors {
+                                    left: entryIcon.right; leftMargin: entryIcon.visible ? 8 : 4
+                                    right: arrow.left; rightMargin: 6
+                                    verticalCenter: parent.verticalCenter
+                                }
+                                text: trayMenuWindow.cleanLabel(entryRow.modelData.text)
+                                color: settingsMenu.darkMode ? "white" : "#1a1a1a"
+                                font.pixelSize: 13
+                                elide: Text.ElideRight
+                            }
+                            Text {
+                                id: arrow
+                                anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
+                                visible: entryRow.modelData.hasChildren
+                                text: "›"
+                                color: settingsMenu.darkMode ? "#aaaaaa" : "#666666"
+                                font.pixelSize: 16
+                            }
+                            MouseArea {
+                                id: rowArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                enabled: entryRow.modelData.enabled
+                                cursorShape: Qt.PointingHandCursor
+                                // Hovering a row with a sub menu opens it; any other row closes it again.
+                                onEntered: trayMenuWindow.showFlyout(entryRow.modelData.hasChildren ? entryRow.modelData : null, entryRow.rowTop())
+                                onClicked: {
+                                    if (entryRow.modelData.hasChildren) {
+                                        trayMenuWindow.showFlyout(entryRow.modelData, entryRow.rowTop())
+                                    } else {
+                                        entryRow.modelData.triggered()
+                                        trayMenuWindow.visible = false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Sub menu window of the tray menu (opens beside the row that has a sub menu).
+FloatingWindow {
+    id: trayMenuFlyout
+    visible: false
+    // Same window kind and Hyprland rule as the sub menu of the power menu.
+    title: "quickshell-powersubmenu"
+    color: "transparent"
+    screen: trayMenuWindow.screen
+
+    property var entry: null
+    property real rowTop: 0
+    readonly property int menuW: 240
+    property int contentHeight: 0
+    implicitWidth: menuW
+    implicitHeight: Math.max(44, Math.min(contentHeight + 12, trayMenuWindow.maxHeight()))
+
+    // A separate opener for the sub menu; the root opener keeps the tree loaded.
+    QsMenuOpener { id: trayFlyoutOpener; menu: trayMenuFlyout.entry }
+
+    function recompute() { contentHeight = trayMenuWindow.heightOf(trayMenuWindow.listOf(trayFlyoutOpener)) }
+
+    function place() {
+        if (!entry) return
+        recompute()
+        if (contentHeight === 0) { flyoutSettle.count = 0; flyoutSettle.restart(); return }
+        var mon = trayMenuWindow.monitorGeometry()
+        var h = Math.max(44, Math.min(contentHeight + 12, trayMenuWindow.maxHeight()))
+        var x = trayMenuWindow.menuX + trayMenuWindow.menuW
+        if (x + menuW > mon.w) x = trayMenuWindow.menuX - menuW
+        var y = Math.min(rowTop - 6, mon.h - 45 - h)
+        var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', trayMenuWindow)
+        proc.command = ["windoesnot-bounded", "8", "bash", "-c",
+            "windoesnot-hyprctl keyword 'windowrule[powersubmenu-config]:size " + menuW + " " + h + "' ; " +
+            "windoesnot-hyprctl keyword 'windowrule[powersubmenu-config]:move " + Math.round(x) + " " + Math.round(y) + "'"]
+        var shown = entry
+        proc.exited.connect(function() { if (trayMenuFlyout.entry === shown && trayMenuWindow.visible) trayMenuFlyout.visible = true })
+        proc.running = true
+    }
+
+    Timer {
+        id: flyoutSettle
+        property int count: 0
+        interval: 150
+        repeat: true
+        onTriggered: {
+            trayMenuFlyout.recompute()
+            count++
+            if (trayMenuFlyout.contentHeight > 0) { stop(); trayMenuFlyout.place() }
+            else if (count >= 8) stop()
+        }
+    }
+
+    Item {
+        anchors.fill: parent
+        clip: true
+
+        Rectangle {
+            anchors.fill: parent
+            topLeftRadius: settingsMenu.borderRadius
+            topRightRadius: settingsMenu.borderRadius
+            bottomLeftRadius: 0
+            bottomRightRadius: 0
+            color: settingsMenu.darkMode ? Qt.rgba(0.125, 0.125, 0.125, 0.93) : Qt.rgba(0.95, 0.95, 0.95, 0.97)
+        }
+
+        Flickable {
+            anchors { fill: parent; margins: 6 }
+            contentWidth: width
+            contentHeight: flyoutColumn.height
+            boundsBehavior: Flickable.StopAtBounds
+            clip: true
+
+            Column {
+                id: flyoutColumn
+                width: parent.width
+                spacing: 0
+
+                Repeater {
+                    model: trayFlyoutOpener.children
+
+                    delegate: Item {
+                        id: subRow
+                        required property var modelData
+                        width: flyoutColumn.width
+                        height: modelData.isSeparator ? trayMenuWindow.sepH : trayMenuWindow.itemH
+
+                        Rectangle {
+                            visible: subRow.modelData.isSeparator
+                            anchors { left: parent.left; right: parent.right; leftMargin: 8; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                            height: 1
+                            color: settingsMenu.darkMode ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.12)
+                        }
+
+                        Rectangle {
+                            visible: !subRow.modelData.isSeparator
+                            anchors.fill: parent
+                            radius: 6
+                            color: subArea.containsMouse && subRow.modelData.enabled ? (settingsMenu.darkMode ? "#4A4A4D" : "#e0e0e0") : "transparent"
+                            opacity: subRow.modelData.enabled ? 1.0 : 0.45
+
+                            Text {
+                                id: subMark
+                                anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
+                                width: 16
+                                text: subRow.modelData.buttonType === QsMenuButtonType.CheckBox
+                                      ? (subRow.modelData.checkState === Qt.Checked ? "✓" : "")
+                                      : (subRow.modelData.buttonType === QsMenuButtonType.RadioButton
+                                         ? (subRow.modelData.checkState === Qt.Checked ? "●" : "") : "")
+                                color: settingsMenu.accentColor
+                                font.pixelSize: 13
+                                font.bold: true
+                            }
+                            Text {
+                                anchors { left: subMark.right; leftMargin: 4; right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                                text: trayMenuWindow.cleanLabel(subRow.modelData.text)
+                                color: settingsMenu.darkMode ? "white" : "#1a1a1a"
+                                font.pixelSize: 13
+                                elide: Text.ElideRight
+                            }
+                            MouseArea {
+                                id: subArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                enabled: subRow.modelData.enabled && !subRow.modelData.hasChildren
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    subRow.modelData.triggered()
+                                    trayMenuFlyout.visible = false
+                                    trayMenuWindow.visible = false
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Debug/automation hook for the tray menu (no mouse needed): open, open a sub menu, read the state.
+IpcHandler {
+    target: "windoesnot-traymenu"
+    function open(index: int): string {
+        var items = SystemTray.items.values
+        var n = 0
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].hasMenu && items[i].menu) {
+                if (n === index) { trayMenuWindow.openFor(items[i].menu, panelWindow.contentItem); return "opening " + (items[i].title || items[i].id) }
+                n++
+            }
+        }
+        return "no such menu"
+    }
+    function flyout(index: int): string {
+        var list = trayMenuWindow.listOf(trayMenuOpener)
+        if (index < 0 || index >= list.length) return "bad index " + list.length
+        trayMenuWindow.showFlyout(list[index], trayMenuWindow.menuTop + 6 + index * trayMenuWindow.itemH)
+        return "flyout " + list[index].text
+    }
+    function close() { trayMenuWindow.visible = false }
+    function state(): string {
+        var names = []
+        var list = trayMenuWindow.listOf(trayMenuOpener)
+        for (var i = 0; i < list.length; i++) names.push((list[i].isSeparator ? "-" : list[i].text) + (list[i].hasChildren ? " >" : ""))
+        var sub = []
+        var sl = trayMenuWindow.listOf(trayFlyoutOpener)
+        for (var j = 0; j < sl.length; j++) sub.push(sl[j].isSeparator ? "-" : sl[j].text)
+        return JSON.stringify({visible: trayMenuWindow.visible, flyoutVisible: trayMenuFlyout.visible, entries: names, flyoutEntries: sub})
     }
 }
 
