@@ -196,10 +196,10 @@ Item {
                     Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: parent.radius; color: parent.color }
                     Row {
                         anchors.fill: parent
-                        Text { width: kernelTable.chooseWidth; text: page.tr("kernel.choose"); color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
-                        Text { width: kernelTable.packageWidth; text: page.tr("kernel.package"); color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
-                        Text { width: kernelTable.versionWidth; text: page.tr("kernel.version"); color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
-                        Text { width: kernelTable.categoryWidth; text: page.tr("kernel.category"); color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+                        Text { width: kernelTable.chooseWidth; height: parent.height; text: page.tr("kernel.choose"); color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
+                        Text { width: kernelTable.packageWidth; height: parent.height; text: page.tr("kernel.package"); color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+                        Text { width: kernelTable.versionWidth; height: parent.height; text: page.tr("kernel.version"); color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+                        Text { width: kernelTable.categoryWidth; height: parent.height; text: page.tr("kernel.category"); color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
                     }
                 }
                 Repeater {

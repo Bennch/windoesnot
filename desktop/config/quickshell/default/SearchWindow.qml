@@ -427,9 +427,17 @@ FloatingWindow {
 
     // ── Processes ─────────────────────────────────────────────────────────────
     HyprlandFocusGrab {
+        id: searchGrab
         windows: [root]
-        active: root.visible
         onCleared: root.closeSearch()
+    }
+
+    // Quickshell clears a grab's `active` itself once it was dismissed, which breaks a plain
+    // `active: root.visible` binding for good: from the second opening on, a click outside no longer closed
+    // the search. Switch the grab on explicitly at every opening (same fix as the other popups).
+    onVisibleChanged: {
+        if (visible) Qt.callLater(function() { searchGrab.active = true })
+        else searchGrab.active = false
     }
 
     Process {

@@ -89,6 +89,7 @@ _TR = {
         "new_folder":       "Ordner",
         "new_document":     "Dokument",
         "rename":           "Umbenennen",
+        "share_nearby":     "Mit Gerät in der Nähe teilen",
         "new_folder_name":  "Neuer Ordner",
         "new_document_name":"Neues Dokument",
         "kino_modus":       "Kino-Modus",
@@ -115,6 +116,7 @@ _TR = {
         "new_folder":       "Folder",
         "new_document":     "Document",
         "rename":           "Rename",
+        "share_nearby":     "Share with a nearby device",
         "new_folder_name":  "New Folder",
         "new_document_name":"New Document",
         "kino_modus":       "Cinema Mode",
@@ -1340,6 +1342,19 @@ class DesktopIcon(Gtk.Box):
             debug(f"WARNING: _being_transferred was still True in on_released(), resetting flag for '{self.spec['name']}'")
             self._being_transferred = False
 
+    @staticmethod
+    def nearby_share_paths(icons):
+        """Paths of regular files among the icons (the LocalSend panel shares files, not folders), else []."""
+        paths = []
+        for icon in icons:
+            path = icon.spec.get("file_path")
+            if not path or icon.spec.get("is_trash") or not os.path.isfile(path):
+                return []
+            paths.append(str(path))
+        if not paths or shutil.which("windoesnot-nearby") is None:
+            return []
+        return paths
+
     def on_right_click(self, gesture, n_press, x, y):
         """Zeigt Kontextmenü für Icon."""
         # Prüfen ob mehrere Icons selektiert sind
@@ -1351,8 +1366,11 @@ class DesktopIcon(Gtk.Box):
         # Multi-Selection-Menü
         _lang = getattr(self.manager.app, 'current_language', 'de')
         can_copy = False
+        share_paths = self.nearby_share_paths(selected_icons if (multiple_selected and self.selected) else [self])
         if multiple_selected and self.selected:
             can_copy = True
+            if share_paths:
+                menu.append(tr("share_nearby", _lang), "icon.share_nearby")
             menu.append(tr("delete_n", _lang, n=len(selected_icons)), "icon.delete_multiple")
         # Spezial-Menü für Papierkorb
         elif self.spec.get("is_trash"):
@@ -1362,6 +1380,8 @@ class DesktopIcon(Gtk.Box):
         else:
             can_copy = True
             menu.append(tr("open", _lang), "icon.open")
+            if share_paths:
+                menu.append(tr("share_nearby", _lang), "icon.share_nearby")
             if "file_path" in self.spec:
                 menu.append(tr("rename", _lang), "icon.rename")
             menu.append(tr("delete", _lang), "icon.delete")
@@ -1377,6 +1397,12 @@ class DesktopIcon(Gtk.Box):
         open_action = Gio.SimpleAction.new("open", None)
         open_action.connect("activate", lambda *args: launch_command(self.spec["cmd"]))
         action_group.add_action(open_action)
+
+        if share_paths:
+            share_action = Gio.SimpleAction.new("share_nearby", None)
+            share_action.connect("activate", lambda *args, paths=share_paths: subprocess.Popen(
+                ["windoesnot-nearby", "share", *paths], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+            action_group.add_action(share_action)
 
         if can_copy:
             copy_action = Gio.SimpleAction.new("copy", None)

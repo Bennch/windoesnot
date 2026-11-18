@@ -336,6 +336,9 @@ PanelWindow {
                         anchors.centerIn: parent
                         spacing: 10
                         enabled: false  // Macht die Row transparent für Maus-Events
+                        // While the bar is folded away only a thin strip stays visible: bell, texts and picture must not peek out of it.
+                        opacity: (topNotificationBar.hovered || topNotificationBar.swayncOpen) ? 1 : 0
+                        Behavior on opacity { NumberAnimation { duration: 140 } }
 
                         // Notification Icon
                         Rectangle {
@@ -476,6 +479,9 @@ PanelWindow {
                          anchors.centerIn: parent
                          spacing: 10
                          enabled: false  // Macht die Row transparent für Maus-Events
+                         // While the bar is folded away only a thin strip stays visible: bell, texts and picture must not peek out of it.
+                         opacity: (topNotificationBar.hovered || topNotificationBar.swayncOpen) ? 1 : 0
+                         Behavior on opacity { NumberAnimation { duration: 140 } }
 
                          // Play/Pause Toggle Button (visuell)
                          Rectangle {

@@ -2640,7 +2640,18 @@ FloatingWindow {
                             contentWidth: width
                             // The loaded page can change height after its status arrives. Measure the
                             // actual content item so the scroll range follows it immediately.
-                            contentHeight: Math.max(height, contentContainer.childrenRect.height + 20)
+                            // Only the page that is shown counts: the background page stays loaded (and invisible), and its
+                            // tall wallpaper grid used to stretch the scroll range of every other page (empty space at the end).
+                            contentHeight: Math.max(height, visibleContentHeight() + 20)
+                            function visibleContentHeight() {
+                                var h = 0
+                                var kids = contentContainer.children
+                                for (var i = 0; i < kids.length; i++) {
+                                    var c = kids[i]
+                                    if (c.visible && c.height > 0) h = Math.max(h, c.y + c.height)
+                                }
+                                return h
+                            }
                             clip: true
                             boundsBehavior: Flickable.StopAtBounds
 

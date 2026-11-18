@@ -58,6 +58,17 @@ if home != Path('/etc/skel'):
     tool = str(tool) if tool.is_file() else shutil.which('windoesnot-user-dirs')
     if tool:
         subprocess.run([tool], check=False, stderr=subprocess.DEVNULL)
+    # Launchers on the desktop (e.g. "Install WinDoesNot" in the live system) show their icon in Nautilus
+    # only when they are marked as trusted; otherwise it lists them as plain text files.
+    try:
+        desktop = subprocess.run(['xdg-user-dir', 'DESKTOP'], capture_output=True, text=True, timeout=5).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        desktop = ''
+    for folder in {Path(desktop) if desktop else home / 'Desktop', home / 'Desktop'}:
+        if folder.is_dir():
+            for launcher in folder.glob('*.desktop'):
+                subprocess.run(['gio', 'set', str(launcher), 'metadata::trusted', 'true'], check=False,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def user_folder(key, fallback):
@@ -97,6 +108,20 @@ if home != Path('/etc/skel'):
         lines += [line + '\n' for line in existing if line and '/etc/skel/' not in line]
         bookmarks_path.parent.mkdir(parents=True, exist_ok=True)
         bookmarks_path.write_text(''.join(lines))
+    # Quick access to the screenshots folder (windoesnot-screenshot saves into Pictures/Screenshots).
+    shots = home / folders['PICTURES'] / 'Screenshots'
+    try:
+        shots.mkdir(parents=True, exist_ok=True)
+        current = bookmarks_path.read_text() if bookmarks_path.exists() else ''
+        uri = f'file://{quote(str(shots))}'
+        if uri not in current and 'Screenshots' not in current:
+            bookmarks_path.parent.mkdir(parents=True, exist_ok=True)
+            with bookmarks_path.open('a') as handle:
+                if current and not current.endswith('\n'):
+                    handle.write('\n')
+                handle.write(f'{uri} Screenshots\n')
+    except OSError:
+        pass
 
 # Clean up duplicate installer desktop files from language switching
 desktop_dir = home / 'Desktop'

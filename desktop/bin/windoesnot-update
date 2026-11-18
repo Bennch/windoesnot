@@ -4,11 +4,60 @@ import argparse
 import json
 import subprocess
 import sys
+import os
+import tempfile
+
+def windoesnot_only(noconfirm=False, config="/etc/pacman.conf", pacman_args=()):
+    """Refresh just our repository and resolve an explicit, verified transaction."""
+    try:
+        resolved = subprocess.run(["pacman-conf", "--config", config, "--verbose"], text=True, capture_output=True, check=True).stdout
+        sections = {}
+        current = None
+        for line in resolved.splitlines():
+            if line.startswith("[") and line.endswith("]"):
+                current = line[1:-1]
+                sections[current] = [line]
+            elif current is not None:
+                sections[current].append(line
+                )
+        if "windoesnot" not in sections or "options" not in sections:
+            raise ValueError("Repository [windoesnot] fehlt in der pacman-Konfiguration")
+        with tempfile.TemporaryDirectory(prefix="windoesnot-update-") as directory:
+            conf = os.path.join(directory, "pacman.conf")
+            with open(conf, "w") as f:
+                f.write("\n".join(sections["options"] + sections["windoesnot"]) + "\n")
+            prefix = ([] if os.geteuid() == 0 else ["sudo"]) + ["pacman", "--config", conf, *pacman_args]
+            if subprocess.call(prefix + ["-Sy"]) != 0:
+                return 1
+            query = subprocess.run(prefix + ["-Qu"], text=True, capture_output=True)
+            if query.returncode not in (0, 1):
+                raise RuntimeError(query.stderr)
+            targets = ["windoesnot/" + line.split()[0] for line in query.stdout.splitlines() if line.split() and line.split()[0].startswith("windoesnot-")]
+            if not targets:
+                print("Keine WinDoesNot-Updates verfügbar.")
+                return 0
+            preview = subprocess.run(prefix + ["-S", "--needed", "--print", "--print-format", "%n", "--noconfirm", *targets], text=True, capture_output=True)
+            if preview.returncode != 0:
+                print(preview.stderr, file=sys.stderr)
+                raise RuntimeError("Abhängigkeiten nicht auflösbar; bitte später ein vollständiges Systemupdate ausführen.")
+            packages = preview.stdout.splitlines()
+            if any(not name.startswith("windoesnot-") for name in packages):
+                raise RuntimeError("Update benötigt andere Pakete; bitte ein vollständiges Systemupdate ausführen.")
+            print("WinDoesNot-Update: " + ", ".join(packages), flush=True)
+            if not noconfirm and input("Nur WinDoesNot aktualisieren? [j/N] ").strip().lower() not in ("j", "ja", "y", "yes"):
+                return 1
+            return subprocess.call(prefix + ["-S", "--needed"] + (["--noconfirm"] if noconfirm else []) + targets)
+    except (OSError, subprocess.SubprocessError, ValueError, RuntimeError) as exc:
+        print("WinDoesNot-Update fehlgeschlagen:", exc, file=sys.stderr)
+        return 1
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--noconfirm', action='store_true', help='run without interactive confirmation')
+    parser.add_argument('--windoesnot-only', action='store_true', help='update only WinDoesNot packages')
     args = parser.parse_args()
+    if args.windoesnot_only:
+        return windoesnot_only(args.noconfirm)
     if subprocess.call(['sudo', 'pacman', '-Sy']) != 0:
         return 1
     try:

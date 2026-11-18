@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Effects
 import QtQuick.Dialogs
 import Quickshell.Io
 import "../settings" as Tools
@@ -103,7 +104,33 @@ Rectangle {
                 Row {
                     width: parent.width; spacing: 8
                     Label { width: parent.width - copyButton.width - 8; text: (panel.viewState.addresses || []).join(", ") || "—"; color: panel.foreground }
-                    Action { id: copyButton; text: panel.tr("nearby.copyAddresses"); enabled: (panel.viewState.addresses || []).length > 0; onClicked: copyAddresses.running = true }
+                    // A small copy icon is enough here (the whole text button was too much for one IP).
+                    Item {
+                        id: copyButton
+                        width: 28; height: 28
+                        property bool copied: false
+                        enabled: (panel.viewState.addresses || []).length > 0
+                        opacity: enabled ? 1 : 0.4
+                        Rectangle { anchors.fill: parent; radius: 6; color: copyArea.containsMouse ? (panel.darkMode ? "#ffffff22" : "#00000014") : "transparent" }
+                        Image {
+                            anchors.centerIn: parent
+                            width: 16; height: 16
+                            sourceSize.width: 32; sourceSize.height: 32
+                            source: copyButton.copied ? "../img/Win11-dark/actions/symbolic/object-select-symbolic.svg" : "../img/Win11-dark/actions/symbolic/edit-copy-symbolic.svg"
+                            layer.enabled: true
+                            layer.effect: MultiEffect { colorization: 1.0; colorizationColor: copyButton.copied ? panel.accentColor : panel.foreground }
+                        }
+                        MouseArea {
+                            id: copyArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: { copyAddresses.running = true; copyButton.copied = true; copiedTimer.restart() }
+                        }
+                        ToolTip.visible: copyArea.containsMouse
+                        ToolTip.text: panel.tr("nearby.copyAddresses")
+                        Timer { id: copiedTimer; interval: 1200; onTriggered: copyButton.copied = false }
+                    }
                 }
             }
             Row {

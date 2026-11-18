@@ -119,6 +119,10 @@ def update_bookmarks(renamed):
             target = Path(unquote(uri[7:]))
             if target in renamed and label in ('', target.name):
                 line = f'file://{quote(str(renamed[target]))} {renamed[target].name}'
+            elif target.parent in renamed and label in ('', target.name):
+                # a sub folder of a renamed standard folder (Pictures/Screenshots)
+                moved = renamed[target.parent] / target.name
+                line = f'file://{quote(str(moved))} {moved.name}'
         lines.append(line)
     path.write_text('\n'.join(lines) + '\n')
 
