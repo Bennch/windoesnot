@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""windoesnot-screenshot saves via hyprshot, copies to the clipboard and offers a clickable notification."""
+"""Screenshot capture, selection and notifications work without a live display."""
 import os
 import subprocess
 import tempfile
@@ -20,9 +20,11 @@ with tempfile.TemporaryDirectory() as directory:
         path.chmod(0o755)
 
     tool('xdg-user-dir', f'echo {temp}/Pictures')
-    # hyprshot writes the requested file unless CANCEL is set (Esc during the selection).
-    tool('hyprshot', f'echo "hyprshot $*" >> {log}\n[ -n "${{CANCEL:-}}" ] && exit 1\n'
-                     f'while [ $# -gt 0 ]; do case "$1" in -o) d=$2;; -f) f=$2;; esac; shift; done\nprintf PNG > "$d/$f"')
+    tool('grim', f'echo "grim $*" >> {log}\nprintf PNG > "$1"')
+    tool('hyprctl', """case "$1" in monitors) echo '[{"x":0,"y":0,"width":1920,"height":1080,"scale":1,"transform":0}]';; *) echo '[]';; esac""")
+    tool('slurp', f'echo "slurp $*" >> {log}\n[ -n "${{CANCEL:-}}" ] && exit 1\necho "10 20 300 200"')
+    tool('magick', f'echo "magick $*" >> {log}\nprintf PNG > "${{@: -1}}"')
+    tool('hyprpicker', 'exit 0')
     tool('wl-copy', f'echo "wl-copy $*" >> {log}\ncat > /dev/null')
     tool('notify-send', f'echo "notify-send $*" >> {log}\necho default')
     tool('xdg-open', f'echo "xdg-open $*" >> {log}')
@@ -36,7 +38,8 @@ with tempfile.TemporaryDirectory() as directory:
     calls = log.read_text()
     shots = list((temp / 'Pictures/Screenshots').glob('*.png'))
     assert len(shots) == 1, shots
-    assert '-m region' in calls and '--silent' in calls and f'-o {temp}/Pictures/Screenshots' in calls
+    assert 'grim ' in calls and 'slurp ' in calls and 'magick ' in calls
+    assert '-crop 300x200+10+20' in calls
     assert 'wl-copy --type image/png' in calls
     assert 'default=Öffnen' in calls and 'open=Öffnen' in calls and 'folder=Ordner' in calls and '--wait' in calls
     assert f'xdg-open {shots[0]}' in calls, 'a click on the notification opens the picture'
