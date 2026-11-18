@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 import "calendar_layout.js" as CalendarLayout
+import "Holidays.js" as Holidays
 import "../i18n/Lang.js" as Lang
 
 Item {
@@ -16,6 +18,9 @@ Item {
     property bool darkMode: true
     property string uiLanguage: "de"
     property var hoveredDate: null
+    // Public holidays and well-known days of the system's region (German UI without a known region: Germany).
+    property string region: Holidays.regionFor(Qt.locale().name, uiLanguage)
+    property var holidayMap: Holidays.holidays(viewingDate.getFullYear(), region)
 
     Timer {
         id: clearHoverTimer
@@ -146,11 +151,53 @@ Item {
                             property bool isToday: dayData ? dayData.today === 1 : false
                             property bool isCurrentMonth: dayData ? dayData.today >= 0 : false
                             property bool hovered: false
+                            // Holiday of this day (current month only): { de, en, kind } or null
+                            property var holiday: (dayData && isCurrentMonth)
+                                ? Holidays.lookup(calendarWidget.holidayMap, new Date(calendarWidget.viewingDate.getFullYear(), calendarWidget.viewingDate.getMonth(), dayData.day))
+                                : null
+                            readonly property color softAccent: Qt.rgba(calendarWidget.accentColor.r, calendarWidget.accentColor.g, calendarWidget.accentColor.b, 0.11)
 
                             color: {
                                 if (isToday) return calendarWidget.accentColor
                                 if (hovered && isCurrentMonth) return darkMode ? "#2a2a2a" : "#e0e0e0"
+                                if (holiday && holiday.kind === "public") return softAccent
                                 return "transparent"
+                            }
+
+                            // A small dot: filled = day off, ring = only in some regions, grey = well-known day
+                            Rectangle {
+                                visible: holiday !== null
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.bottom: parent.bottom
+                                anchors.bottomMargin: 4
+                                width: 4; height: 4; radius: 2
+                                color: !holiday ? "transparent"
+                                       : holiday.kind === "observance" ? (darkMode ? "#88888866" : "#99999966")
+                                       : holiday.kind === "regional" ? "transparent"
+                                       : (isToday ? "#ffffffcc" : calendarWidget.accentColor)
+                                border.width: holiday && holiday.kind === "regional" ? 1 : 0
+                                border.color: isToday ? "#ffffffcc" : calendarWidget.accentColor
+                                opacity: holiday && holiday.kind === "public" ? 0.9 : 0.75
+                            }
+
+                            ToolTip {
+                                id: holidayTip
+                                visible: parent.hovered && holiday !== null
+                                delay: 150
+                                text: holiday ? (uiLanguage === "de" ? holiday.de : holiday.en)
+                                                + (holiday.kind === "regional" ? (uiLanguage === "de" ? " · in einigen Regionen" : " · some regions") : "")
+                                              : ""
+                                contentItem: Text {
+                                    text: holidayTip.text
+                                    font.pixelSize: 12
+                                    color: darkMode ? "#f0f0f0" : "#1a1a1a"
+                                }
+                                background: Rectangle {
+                                    radius: 6
+                                    color: darkMode ? "#2d2d30" : "#ffffff"
+                                    border.width: 1
+                                    border.color: darkMode ? "#4a4a4f" : "#c8c8c8"
+                                }
                             }
 
                             Behavior on color { ColorAnimation { duration: 150 } }
