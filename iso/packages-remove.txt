@@ -41,7 +41,6 @@ irssi
 mc
 nmap
 tcpdump
-cava
 libpst
 intltool
 extra-cmake-modules
