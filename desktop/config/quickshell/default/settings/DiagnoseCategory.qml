@@ -20,7 +20,7 @@ Column {
     property bool busy: false
     property bool ready: false
     property bool failedToLoad: false
-    property var diag: ({failed: [], errors: {available: true, entries: []}, packages: {available: true, entries: []}, hyprland: {available: false, errors: [], plugins: []}, disk: []})
+    property var diag: ({failed: [], errors: {available: true, entries: []}, packages: {available: true, entries: []}, hyprland: {available: false, errors: [], plugins: []}, disk: [], checks: []})
     property string resultKey: ""
     width: parent ? parent.width : 650
     spacing: 16
@@ -29,7 +29,7 @@ Column {
     function stamp(t) { return Qt.formatDateTime(new Date(t * 1000), "dd.MM. hh:mm") }
     function sizeText(bytes) { return (bytes / 1073741824).toFixed(1) + " GiB" }
     readonly property var realErrors: diag.errors.entries.filter(function(e) { return e.known === "" })
-    readonly property int findings: diag.failed.length + realErrors.length + diag.hyprland.errors.length
+    readonly property int findings: diag.failed.length + realErrors.length + diag.hyprland.errors.length + diag.checks.filter(function(c) { return c.status === "warn" }).length
     function refresh() { if (busy) return; busy = true; failedToLoad = false; probe.running = true }
     function copyReport() { resultKey = ""; copyProc.running = true }
     function saveReport() { resultKey = ""; saveProc.running = true }
@@ -99,6 +99,33 @@ Column {
     Column {
         visible: page.ready
         width: parent.width; spacing: 16
+
+        Heading { text: page.tr("checks") }
+        Card {
+            Repeater {
+                model: page.diag.checks
+                Column {
+                    required property var modelData
+                    required property int index
+                    width: parent.width
+                    Line { visible: index > 0 }
+                    Item {
+                        width: parent.width; height: 44
+                        Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: page.tr("check." + modelData.id); font.pixelSize: 13; color: page.textColor }
+                        Pill {
+                            anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
+                            warn: modelData.status === "warn"
+                            label: modelData.status === "ok" ? page.tr("statusOk") : (modelData.status === "warn" ? page.tr("statusWarn") : page.tr("statusUnknown"))
+                        }
+                    }
+                    Text {
+                        visible: modelData.status === "warn"
+                        x: 14; width: parent.width - 28; bottomPadding: 10; wrapMode: Text.WordWrap; font.pixelSize: 12; color: page.warnColor
+                        text: page.tr("check." + modelData.id + "." + (modelData.detail || "warn")).replace("%1", modelData.detail)
+                    }
+                }
+            }
+        }
 
         Heading { text: page.tr("services") }
         Card {

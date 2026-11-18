@@ -47,9 +47,12 @@ def set_position(name):
     if not data:
         raise SystemExit('swaync config missing')
     data['positionY'], data['positionX'] = parts[0], parts[1]
+    # The notification centre keeps its own place (top centre); only the popups move.
+    data['control-center-positionX'] = 'center'
+    data['control-center-positionY'] = 'top'
     fd, tmp = tempfile.mkstemp(prefix='.config-', dir=CONFIG.parent)
     with os.fdopen(fd, 'w') as stream:
-        json.dump(data, stream, indent=2)
+        json.dump(data, stream, indent=2, ensure_ascii=False)
         stream.write('\n')
     os.replace(tmp, CONFIG)
     client('-R')      # reload config

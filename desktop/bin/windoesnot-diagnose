@@ -132,12 +132,118 @@ def disk():
     return entries
 
 
+def check_audio():
+    code, out = run('wpctl', 'status', timeout=8)
+    if code == 127:
+        return 'unknown', ''
+    if code != 0:
+        return 'warn', 'sound-server'          # PipeWire does not answer
+    sinks = out.split('Sinks:')[1].split('Sources:')[0] if 'Sinks:' in out and 'Sources:' in out else ''
+    if not re.search(r'\d+\.', sinks):
+        return 'warn', 'no-output'
+    code, vol = run('wpctl', 'get-volume', '@DEFAULT_AUDIO_SINK@', timeout=8)
+    if 'MUTED' in vol:
+        return 'warn', 'muted'
+    return 'ok', ''
+
+
+def check_microphone():
+    code, out = run('wpctl', 'get-volume', '@DEFAULT_AUDIO_SOURCE@', timeout=8)
+    if code == 127:
+        return 'unknown', ''
+    if code != 0:
+        return 'ok', 'none'                    # no microphone at all is not an error
+    return ('warn', 'muted') if 'MUTED' in out else ('ok', '')
+
+
+def check_bluetooth():
+    code, out = run('rfkill', 'list', 'bluetooth', timeout=8)
+    if code == 127:
+        return 'unknown', ''
+    if not out.strip():
+        return 'ok', 'none'
+    if re.search(r'Hard blocked: yes', out):
+        return 'warn', 'hard-blocked'
+    if re.search(r'Soft blocked: yes', out):
+        return 'warn', 'soft-blocked'
+    return 'ok', ''
+
+
+def check_network():
+    code, out = run('rfkill', 'list', 'wifi', timeout=8)
+    if code == 0 and re.search(r'Hard blocked: yes', out):
+        return 'warn', 'wifi-hard-blocked'
+    code, out = run('nmcli', '-t', 'networking', 'connectivity', timeout=8)
+    if code == 127:
+        return 'unknown', ''
+    state = out.strip()
+    if state in ('full', 'unknown', ''):
+        return 'ok', ''
+    return 'warn', 'limited' if state in ('limited', 'portal') else 'offline'
+
+
+def check_time():
+    code, out = run('timedatectl', 'show', '-p', 'NTPSynchronized', '--value', timeout=8)
+    if code != 0:
+        return 'unknown', ''
+    return ('ok', '') if out.strip() == 'yes' else ('warn', 'not-synced')
+
+
+def check_reboot():
+    """A kernel update replaces /usr/lib/modules/<version>: the running kernel's folder is gone until a restart."""
+    release = os.uname().release
+    if os.path.isdir('/usr/lib/modules/' + release):
+        return 'ok', ''
+    return 'warn', 'kernel-updated'
+
+
+def check_pacnew():
+    try:
+        code, out = run('find', '/etc', '-xdev', '-name', '*.pacnew', timeout=10)
+    except Exception:
+        return 'unknown', ''
+    count = len([line for line in out.splitlines() if line.strip()])
+    return ('warn', str(count)) if count else ('ok', '')
+
+
+def check_pacman_lock():
+    if os.path.exists('/var/lib/pacman/db.lck'):
+        # a running package manager is fine; a lock without one blocks every update
+        code, out = run('pgrep', '-x', 'pacman')
+        if code != 0:
+            return 'warn', 'stale-lock'
+    return 'ok', ''
+
+
+def check_disk():
+    try:
+        usage = shutil.disk_usage('/')
+    except OSError:
+        return 'unknown', ''
+    return ('warn', 'low') if usage.free < usage.total * 0.1 or usage.free < 5 * 2**30 else ('ok', '')
+
+
+CHECKS = [('audio', check_audio), ('microphone', check_microphone), ('bluetooth', check_bluetooth), ('network', check_network),
+          ('time', check_time), ('reboot', check_reboot), ('pacnew', check_pacnew), ('pacman-lock', check_pacman_lock), ('disk', check_disk)]
+
+
+def checks():
+    results = []
+    for ident, function in CHECKS:
+        try:
+            status, detail = function()
+        except Exception:
+            status, detail = 'unknown', ''
+        results.append({'id': ident, 'status': status, 'detail': detail})
+    return results
+
+
 def collect():
     started = uptime_start()
     return {
         'time': int(time.time()), 'boot': started,
         'failed': failed_units(), 'errors': boot_errors(),
-        'packages': package_changes(), 'hyprland': hyprland(), 'disk': disk(),
+        'packages': package_changes(), 'hyprland': hyprland(), 'disk': disk(), 'checks': checks(),
         'kernel': os.uname().release,
     }
 
@@ -173,6 +279,7 @@ def report(data):
     lines += ['  %s %s %s %s' % (stamp(c['time']), c['action'], c['package'], c['version']) for c in data['packages']['entries']]
     lines += ['', 'Hyprland: ' + ('ok' if data['hyprland']['available'] and not data['hyprland']['errors'] else ('config errors' if data['hyprland']['errors'] else 'not queried'))]
     lines += ['  ' + e for e in data['hyprland']['errors']] + ['  ' + p for p in data['hyprland']['plugins']]
+    lines += ['', 'Quick checks:'] + ['  %s: %s %s' % (c['id'], c['status'], c['detail']) for c in data['checks']]
     lines += ['', 'Disk:'] + ['  %s free %.1f GiB of %.1f GiB' % (d['path'], d['free'] / 2**30, d['total'] / 2**30) for d in data['disk']]
     return clean('\n'.join(lines)) + '\n'
 
