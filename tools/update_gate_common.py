@@ -26,6 +26,8 @@ def validate(directory, result_dir, now=None):
     path = Path(result_dir) / (digest + '.json')
     try:
         data = json.loads(path.read_text())
+        from update_gate_evidence import inspect_index
+        inspect_index(data, digest, now)
         stamp = datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00'))
         age = (now or datetime.now(timezone.utc)) - stamp
         if not timedelta(0) <= age < timedelta(hours=24):
@@ -34,6 +36,6 @@ def validate(directory, result_dir, now=None):
             raise ValueError('Paketsatz oder Exitcode stimmt nicht')
         if not all(data['checks'].get(name) is True for name in REQUIRED):
             raise ValueError('Prüfungen unvollständig oder fehlgeschlagen')
-    except (OSError, ValueError, KeyError, TypeError) as exc:
+    except (OSError, ValueError, KeyError, TypeError, OverflowError) as exc:
         raise ValueError(f'Update-Gate fehlt oder ist ungültig ({path}): {exc}') from exc
     return digest

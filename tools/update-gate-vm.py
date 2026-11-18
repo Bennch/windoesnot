@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Fail-closed evaluator for evidence from the isolated update-hook VM.
+"""Evaluate manual hook evidence or run an isolated 29-to-32 VM experiment.
 
-This is a hook experiment, not the signed full-update release gate. Pass a JSON
-file containing the observed transaction log and measurements; missing evidence
-is always a failure. No machine is started or modified by this evaluator.
+Neither mode grants release approval. The run mode creates and deletes its own
+VM overlay; the legacy evidence evaluator does not start a machine.
 """
 import argparse
 import json
@@ -30,6 +29,57 @@ def evaluate(e):
 
 
 def main():
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] in ('install', 'update', 'verify', 'run'):
+        from update_gate_runner import Runner
+        parser = argparse.ArgumentParser(description='Run isolated 29-to-32 update experiment')
+        parser.add_argument('stage', choices=['install', 'update', 'verify', 'run'])
+        parser.add_argument('--packages', type=Path)
+        parser.add_argument('--vm-name', help='owned VM name returned by install')
+        args = parser.parse_args()
+        if args.stage in ('install', 'run'):
+            if not args.packages or args.vm_name:
+                parser.error('install/run require --packages and do not accept --vm-name')
+            runner = Runner(args.packages)
+        else:
+            if not args.vm_name or args.packages:
+                parser.error('update/verify require --vm-name and do not accept --packages')
+            runner = Runner.attach(args.vm_name)
+        if args.stage == 'run':
+            result = runner.execute()
+            print(json.dumps(result, indent=2))
+            return 0 if result['passed'] else 1
+        try:
+            if args.stage == 'install':
+                runner.install()
+                runner.checkpoint('installed')
+            elif args.stage == 'update':
+                if runner.phase != 'installed':
+                    raise RuntimeError('update requires the installed stage')
+                try:
+                    runner.update()
+                finally:
+                    runner.stop_server()
+                runner.checkpoint('updated')
+            else:
+                if runner.phase != 'updated':
+                    raise RuntimeError('verify requires a successful update stage')
+                runner.verify()
+                runner.result['passed'] = True
+                runner.cleanup()
+                runner.checkpoint('verified')
+            print(json.dumps({'vm': runner.name, 'stage': runner.phase,
+                              'result': runner.result}, indent=2))
+            return 0
+        except Exception as exc:
+            runner.result['passed'] = False
+            runner.result['error'] = str(exc)
+            try:
+                runner.cleanup()
+            finally:
+                runner.checkpoint('failed')
+            print(json.dumps(runner.result, indent=2))
+            return 1
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('evidence', type=Path)
     p.add_argument('--output', type=Path)

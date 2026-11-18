@@ -24,7 +24,9 @@ def main():
                               ('update', ['/usr/local/bin/windoesnot-update', '--noconfirm'])]:
             log.write('\n=== ' + name + ' ===\n')
             log.flush()
+            result.setdefault('step_times', {})[name] = {'started': datetime.now(timezone.utc).isoformat()}
             result['steps'][name] = subprocess.run(command, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT).returncode
+            result['step_times'][name]['finished'] = datetime.now(timezone.utc).isoformat()
             if result['steps'][name] != 0:
                 break
     result['finished'] = datetime.now(timezone.utc).isoformat()

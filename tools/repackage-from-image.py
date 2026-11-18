@@ -43,7 +43,9 @@ for name in args.packages:
     info.append('xdata = pkgtype=pkg')
     version = one('VERSION'); arch = one('ARCH')
     target = args.output / f'{name}-{version}-{arch}.pkg.tar'
-    with tarfile.open(target, 'w', format=tarfile.PAX_FORMAT) as tar:
+    # GNU headers preserve UTF-8 path bytes even when pacman runs under LC_ALL=C.
+    # PAX path headers make libarchive's locale conversion abort extraction.
+    with tarfile.open(target, 'w', format=tarfile.GNU_FORMAT) as tar:
         def add_bytes(path, data, mode=0o644):
             ti = tarfile.TarInfo(path); ti.size = len(data); ti.mode = mode; ti.uid = ti.gid = 0; ti.uname = ti.gname = 'root'
             ti.mtime = int(one('BUILDDATE')); tar.addfile(ti, io.BytesIO(data))
