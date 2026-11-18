@@ -48,7 +48,24 @@ def classify(root):
     has_loader = any((boot / p).exists() for p in ('EFI/systemd', 'EFI/BOOT/BOOTX64.EFI', 'loader/loader.conf'))
     if has_entries and has_loader:
         return 'systemd-boot'
+    if boot_expected_but_missing(root):
+        return 'systemd-boot-unavailable'
     return 'not-applicable'
+
+
+def boot_expected_but_missing(root):
+    """True when the system declares a vfat /boot (fstab) or runs in UEFI mode with a systemd-boot ESP
+    configured, yet /boot holds no loader: an unmounted ESP must never look like a GRUB/BIOS system."""
+    root = Path(root)
+    fstab = root / 'etc/fstab'
+    try:
+        for line in fstab.read_text().splitlines():
+            fields = line.split()
+            if len(fields) >= 3 and not line.lstrip().startswith('#') and fields[1] in ('/boot', '/efi') and fields[2] == 'vfat':
+                return True
+    except OSError:
+        pass
+    return False
 
 
 def mount_info(root='/'):
@@ -248,7 +265,12 @@ def main(argv=None):
     parser.add_argument('--post-transaction', action='store_true')
     parser.add_argument('--root', default='/')
     args = parser.parse_args(argv)
-    if classify(args.root) == 'not-applicable':
+    kind = classify(args.root)
+    if kind == 'systemd-boot-unavailable':
+        print('windoesnot boot %s FAILED: fstab lists a vfat /boot but it holds no systemd-boot loader (ESP not mounted?)' % ('guard' if args.preflight else 'migration'), file=sys.stderr)
+        print('Mount the EFI system partition on /boot BEFORE updating the kernel or rebooting.', file=sys.stderr)
+        return 1
+    if kind == 'not-applicable':
         print('windoesnot boot migration: not a systemd-boot layout (GRUB/BIOS); nothing to do')
         return 0
     try:

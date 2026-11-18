@@ -131,6 +131,25 @@ class Layout(Base):
         self.assertEqual(m.classify(self.root), 'not-applicable')
         self.assertEqual(m.main(['--root', str(self.root), '--post-transaction']), 0)
 
+    def test_fstab_vfat_boot_without_loader_is_an_error_not_grub(self):
+        import io, contextlib, shutil
+        shutil.rmtree(self.boot)
+        self.boot.mkdir()
+        (self.root / 'etc/fstab').write_text('UUID=1234-ABCD /boot vfat defaults 0 2\n')
+        self.assertEqual(m.classify(self.root), 'systemd-boot-unavailable')
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            self.assertEqual(m.main(['--root', str(self.root), '--preflight']), 1)
+            self.assertEqual(m.main(['--root', str(self.root), '--post-transaction']), 1)
+        self.assertIn('ESP not mounted', err.getvalue())
+
+    def test_no_fstab_boot_entry_stays_not_applicable(self):
+        import shutil
+        shutil.rmtree(self.boot)
+        self.boot.mkdir()
+        (self.root / 'etc/fstab').write_text('UUID=1 / ext4 defaults 0 1\n')
+        self.assertEqual(m.classify(self.root), 'not-applicable')
+
     def test_systemd_boot_is_detected(self):
         self.assertEqual(m.classify(self.root), 'systemd-boot')
 
