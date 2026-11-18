@@ -90,6 +90,7 @@ archlinux-appstream-data
 pacman-contrib
 qt6-multimedia-ffmpeg
 localsend
+samba
 gtk4
 libadwaita
 polkit

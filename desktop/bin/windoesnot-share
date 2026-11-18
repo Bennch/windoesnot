@@ -1,0 +1,230 @@
+#!/usr/bin/python3
+"""Manage Samba usershares; privileged mutations are authenticated with pkexec."""
+import argparse
+import fcntl
+import json
+import os
+from pathlib import Path
+import pwd
+import re
+import shutil
+import socket
+import subprocess
+import tempfile
+import sys
+
+HOST = socket.gethostname().split('.')[0]
+NAME = re.compile(r'[\w][\w .-]{0,39}\Z', re.UNICODE)
+SHARES = Path('/var/lib/samba/usershares')
+CONF = Path('/etc/samba/smb.conf')
+MARKER = '# Managed by WinDoesNot usershares\n'
+FIREWALL = '/usr/lib/windoesnot/windoesnot-firewall'
+
+
+def valid_name(name):
+    return bool(NAME.fullmatch(name)) and not name.endswith((' ', '.')) and name.lower() not in ('global', 'homes', 'printers', 'print$')
+
+
+def path_for(path, home):
+    p = Path(path)
+    if not p.is_absolute():
+        raise ValueError('path')
+    p = p.resolve(strict=True)
+    h = Path(home).resolve(strict=True)
+    if p == h or not p.is_relative_to(h) or not p.is_dir():
+        raise ValueError('path')
+    return str(p)
+
+
+def unc(name):
+    return '\\\\' + HOST + '\\' + name
+
+
+def run(args, **kw):
+    return subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kw)
+
+
+def configured():
+    try:
+        return CONF.read_text().startswith(MARKER) and SHARES.is_dir()
+    except OSError:
+        return False
+
+
+def info():
+    result = run(['/usr/bin/net', 'usershare', 'info'])
+    if result.returncode:
+        return []
+    items, item = [], None
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if line.startswith('[') and line.endswith(']'):
+            item = {'name': line[1:-1]}; items.append(item)
+        elif item is not None and '=' in line:
+            k, v = line.split('=', 1); item[k.strip().lower()] = v.strip()
+    output = []
+    for item in items:
+        acl = item.get('usershare_acl', '')
+        output.append({'name': item['name'], 'path': item.get('path', ''),
+                       'access': 'write' if re.search(r':(?:F|D|C)(?:,|$)', acl, re.I) else 'read',
+                       'guest': item.get('guest_ok', '').lower() in ('y', 'yes', 'true', '1'), 'unc': unc(item['name'])})
+    return output
+
+
+def fake(args):
+    statefile = Path(os.environ['WINDOESNOT_SHARE_STATE'])
+    try:
+        data = json.loads(statefile.read_text())
+    except FileNotFoundError:
+        data = {'installed': True, 'configured': True, 'password': False, 'shares': []}
+    data.setdefault('shares', [])
+    if args.command == 'status':
+        return {**{k: data.get(k, False) for k in ('installed', 'configured', 'password')}, 'hostname': HOST, 'shares': data['shares']}
+    if args.command == 'setup':
+        data['configured'] = True
+    elif args.command == 'set-password':
+        if not sys.stdin.readline().rstrip('\n'):
+            return {'ok': False, 'error': 'failed'}
+        data['password'] = True
+    elif args.command == 'add':
+        if not data.get('installed'): return {'ok': False, 'error': 'not-installed'}
+        if not data.get('configured'): return {'ok': False, 'error': 'not-configured'}
+        if not valid_name(args.name): return {'ok': False, 'error': 'invalid-name'}
+        try: path = path_for(args.path, pwd.getpwuid(os.getuid()).pw_dir)
+        except (ValueError, OSError): return {'ok': False, 'error': 'invalid-path'}
+        if args.guest and args.access == 'write': return {'ok': False, 'error': 'failed'}
+        if any(s['name'].casefold() == args.name.casefold() for s in data['shares']): return {'ok': False, 'error': 'exists'}
+        if not args.guest and not data.get('password'): return {'ok': False, 'error': 'needs-password'}
+        data['shares'].append({'name': args.name, 'path': path, 'access': args.access, 'guest': args.guest, 'unc': unc(args.name)})
+    elif args.command == 'remove':
+        if not valid_name(args.name): return {'ok': False, 'error': 'invalid-name'}
+        data['shares'] = [s for s in data['shares'] if s['name'] != args.name]
+    else:
+        return {'ok': False, 'error': 'failed'}
+    statefile.parent.mkdir(parents=True, exist_ok=True)
+    tmp = statefile.with_name(statefile.name + '.tmp')
+    tmp.write_text(json.dumps(data)); os.replace(tmp, statefile)
+    return {'ok': True, **({'unc': unc(args.name)} if args.command == 'add' else {})}
+
+
+def privileged(args):
+    # Never trust an environment-supplied uid unless pkexec supplied it.
+    uid = int(os.environ['PKEXEC_UID'])
+    user = pwd.getpwuid(uid)
+    if uid == 0: raise ValueError('root cannot own a usershare')
+    if args.command == 'setup':
+        if CONF.exists() and not CONF.read_text().startswith(MARKER):
+            raise ValueError('Existing Samba configuration requires manual migration')
+        subprocess.run(['/usr/bin/groupadd', '-f', 'sambashare'], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        subprocess.run(['/usr/bin/usermod', '-a', '-G', 'sambashare', user.pw_name], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        import grp
+        SHARES.mkdir(parents=True, exist_ok=True)
+        os.chown(SHARES, 0, grp.getgrnam('sambashare').gr_gid); os.chmod(SHARES, 0o1770)
+        CONF.parent.mkdir(parents=True, exist_ok=True)
+        config = MARKER + '[global]\n   server min protocol = SMB2\n   usershare path = /var/lib/samba/usershares\n   usershare max shares = 100\n   usershare owner only = yes\n   usershare allow guests = yes\n   map to guest = Bad User\n   load printers = no\n   disable spoolss = yes\n   printing = bsd\n   printcap name = /dev/null\n'
+        fd, candidate = tempfile.mkstemp(prefix='.windoesnot-', dir=CONF.parent)
+        try:
+            with os.fdopen(fd, 'w') as out:
+                out.write(config)
+            os.chmod(candidate, 0o644)
+            subprocess.run(['/usr/bin/testparm', '-s', candidate], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            os.replace(candidate, CONF)
+        finally:
+            if os.path.exists(candidate): os.unlink(candidate)
+        return {'ok': True}
+    if not configured(): return {'ok': False, 'error': 'not-configured'}
+    if args.command == 'set-password':
+        password = sys.stdin.readline().rstrip('\n')
+        if not password or '\r' in password: raise ValueError('invalid password')
+        result = run(['/usr/bin/smbpasswd', '-s', '-a', user.pw_name], input=password + '\n' + password + '\n')
+        return {'ok': result.returncode == 0, **({'error': 'failed'} if result.returncode else {})}
+    # Root performs orchestration; net itself runs with the user's UID and the
+    # newly assigned group so setup works without a logout.
+    import grp
+    groups = os.getgrouplist(user.pw_name, user.pw_gid)
+    def demote():
+        os.setgroups(groups); os.setgid(user.pw_gid); os.setuid(uid)
+    def net(argv):
+        return run(['/usr/bin/net', 'usershare'] + argv, preexec_fn=demote, env={'PATH': '/usr/bin', 'HOME': user.pw_dir, 'USER': user.pw_name})
+    if not valid_name(args.name): return {'ok': False, 'error': 'invalid-name'}
+    with open('/run/lock/windoesnot-share.lock', 'a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if args.command == 'add':
+            try: path = path_for(args.path, user.pw_dir)
+            except (OSError, ValueError): return {'ok': False, 'error': 'invalid-path'}
+            if args.guest and args.access == 'write': return {'ok': False, 'error': 'failed'}
+            if any(p.name.casefold() == args.name.casefold() for p in SHARES.iterdir()): return {'ok': False, 'error': 'exists'}
+            if not args.guest and run(['/usr/bin/pdbedit', '-L', '-u', user.pw_name]).returncode:
+                return {'ok': False, 'error': 'needs-password'}
+            acl = 'Everyone:R' if args.guest else user.pw_name + (':F' if args.access == 'write' else ':R')
+            if net(['add', args.name, path, '', acl, 'guest_ok=y' if args.guest else 'guest_ok=n']).returncode:
+                return {'ok': False, 'error': 'failed'}
+            # Do not replace a pre-existing template owned by another feature.
+            marker = Path('/var/lib/windoesnot/share-firewall-owned')
+            state = Path('/var/lib/windoesnot/firewall/state.json')
+            try:
+                rules = json.loads(state.read_text()).get('rules', [])
+            except (OSError, ValueError):
+                net(['delete', args.name]); return {'ok': False, 'error': 'failed'}
+            if not marker.exists() and any(r.get('template') == 'smb' for r in rules):
+                net(['delete', args.name]); return {'ok': False, 'error': 'failed'}
+            existing = [r for r in rules if r.get('template') == 'smb']
+            if marker.exists():
+                try: owned = json.loads(marker.read_text())
+                except (OSError, ValueError): owned = None
+                if owned != existing:
+                    net(['delete', args.name]); return {'ok': False, 'error': 'failed'}
+                fw = subprocess.CompletedProcess([], 0)
+            else:
+                fw = run([FIREWALL, 'template', 'smb', 'on', '--profile', 'home'])
+                if not fw.returncode:
+                    owned = [r for r in json.loads(state.read_text()).get('rules', []) if r.get('template') == 'smb']
+                    marker.parent.mkdir(parents=True, exist_ok=True)
+                    marker.write_text(json.dumps(owned)); marker.chmod(0o600)
+            service = run(['/usr/bin/systemctl', 'enable', '--now', 'smb.service']) if fw.returncode == 0 else None
+            if fw.returncode or service.returncode:
+                net(['delete', args.name])
+                if not any(SHARES.iterdir()) and marker.exists():
+                    if not run([FIREWALL, 'template', 'smb', 'off', '--profile', 'home']).returncode: marker.unlink()
+                return {'ok': False, 'error': 'failed'}
+            return {'ok': True, 'unc': unc(args.name)}
+        if args.command == 'remove':
+            if net(['delete', args.name]).returncode: return {'ok': False, 'error': 'failed'}
+            if not any(SHARES.iterdir()):
+                marker = Path('/var/lib/windoesnot/share-firewall-owned')
+                if marker.exists():
+                    try:
+                        current = [r for r in json.loads(Path('/var/lib/windoesnot/firewall/state.json').read_text()).get('rules', []) if r.get('template') == 'smb']
+                        owned = json.loads(marker.read_text())
+                    except (OSError, ValueError): return {'ok': False, 'error': 'failed'}
+                    if current != owned: return {'ok': False, 'error': 'failed'}
+                    if run([FIREWALL, 'template', 'smb', 'off', '--profile', 'home']).returncode: return {'ok': False, 'error': 'failed'}
+                    marker.unlink()
+                if run(['/usr/bin/systemctl', 'disable', '--now', 'smb.service']).returncode: return {'ok': False, 'error': 'failed'}
+            return {'ok': True}
+    return {'ok': False, 'error': 'failed'}
+
+
+def main():
+    parser = argparse.ArgumentParser(exit_on_error=False)
+    sub = parser.add_subparsers(dest='command', required=True)
+    for name in ('status', 'setup', 'set-password'): sub.add_parser(name)
+    add = sub.add_parser('add'); add.add_argument('--path', required=True); add.add_argument('--name', required=True); add.add_argument('--access', required=True, choices=['read', 'write']); add.add_argument('--guest', action='store_true')
+    remove = sub.add_parser('remove'); remove.add_argument('name')
+    args = parser.parse_args()
+    if os.environ.get('WINDOESNOT_SHARE_STATE') and os.geteuid() != 0: return fake(args)
+    if os.geteuid() == 0 and 'PKEXEC_UID' in os.environ: return privileged(args)
+    installed = all(shutil.which(x) for x in ('net', 'smbpasswd', 'testparm'))
+    if args.command == 'status': return {'installed': installed, 'configured': configured(), 'hostname': HOST, 'shares': info() if installed and configured() else []}
+    if not installed: return {'ok': False, 'error': 'not-installed'}
+    if args.command != 'setup' and not configured(): return {'ok': False, 'error': 'not-configured'}
+    password = sys.stdin.readline() if args.command == 'set-password' else None
+    result = run(['/usr/bin/pkexec', '/usr/bin/windoesnot-share'] + sys.argv[1:], input=password)
+    try: return json.loads(result.stdout)
+    except ValueError: return {'ok': False, 'error': 'failed'}
+
+
+if __name__ == '__main__':
+    try: result = main()
+    except (Exception, SystemExit): result = {'ok': False, 'error': 'failed'}
+    print(json.dumps(result, ensure_ascii=False, separators=(',', ':')))
