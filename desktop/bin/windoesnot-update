@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """Synchronize repositories, preview, and perform a complete system update."""
+import argparse
 import json
 import subprocess
 import sys
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--noconfirm', action='store_true', help='run without interactive confirmation')
+    args = parser.parse_args()
     if subprocess.call(['sudo', 'pacman', '-Sy']) != 0:
         return 1
     try:
@@ -19,9 +23,9 @@ def main():
     targets = plan.get('targets', [])
     if targets:
         print('Explizit gewählte Repository-Pakete:', ', '.join(targets))
-    if input('Vollständiges Systemupdate starten? [j/N] ').strip().lower() not in ('j', 'ja', 'y', 'yes'):
+    if not args.noconfirm and input('Vollständiges Systemupdate starten? [j/N] ').strip().lower() not in ('j', 'ja', 'y', 'yes'):
         return 1
-    return subprocess.call(['sudo', 'pacman', '-Su'] + targets)
+    return subprocess.call(['sudo', 'pacman', '-Su'] + (['--noconfirm'] if args.noconfirm else []) + targets)
 
 if __name__ == '__main__':
     sys.exit(main())

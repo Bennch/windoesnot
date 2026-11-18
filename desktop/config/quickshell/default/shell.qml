@@ -130,6 +130,7 @@ GlobalShortcut {
 IpcHandler {
     target: "windoesnot-welcome"
     function shortcuts() { shortcutsWindow.visible = true }
+    function closeShortcuts() { shortcutsWindow.visible = false }
     function network() { networkWindow.visible = true }
     function settings(category: string) {
         if (category === "updates" || category === "backups") {
@@ -189,6 +190,16 @@ IpcHandler {
 // Opens or closes any taskbar panel from the command line (placement checks, screenshots).
 IpcHandler {
     target: "windoesnot-panels"
+    function state(): string {
+        return JSON.stringify({calendar: calendarWindow.visible, audio: audioWindow.visible,
+            bluetooth: bluetoothWindow.visible, graphics: graphicsWindow.visible,
+            network: networkWindow.visible, docker: dockerWindow.visible, ollama: ollamaWindow.visible,
+            start: startMenu.visible, power: powerMenu.visible, settings: settingsMenu.visible,
+            search: searchWindow.visible, battery: batteryWindow.visible || batteryWindow.batteryPreload,
+            nearby: nearbyWindow.visible, weather: weatherPopup.visible,
+            shortcuts: shortcutsWindow.visible, volume: volumeOverlay.visible,
+            snap: snapLayouts.opened})
+    }
     function toggle(name: string): string {
         if (name === "battery") {
             if (batteryWindow.visible) batteryWindow.visible = false
@@ -253,11 +264,8 @@ IpcHandler {
     target: "windoesnot-capture"
     function network() { networkWindow.visible = true }
     function volume() {
-        // Re-map the window even when an earlier call left it marked visible.
-        volumeOverlay.currentVolume = 0.42
-        volumeOverlay.isMuted = false
-        volumeOverlay.visible = false
-        Qt.callLater(function() { volumeOverlay.visible = true })
+        // Show the current volume without changing its value.
+        volumeOverlay.visible = true
     }
 }
 
@@ -7320,15 +7328,19 @@ FloatingWindow {
                 width: parent.width
                 spacing: 16
 
-                Image {
-                    width: 80; height: 80
-                    source: panelWindow.weatherCode >= 0
-                        ? panelWindow.weatherIconPath(panelWindow.weatherCode, panelWindow.weatherIsDay)
-                        : ""
-                    sourceSize.width: 160; sourceSize.height: 160
-                    fillMode: Image.PreserveAspectFit
-                    smooth: true; antialiasing: true; mipmap: true
+                Rectangle {
+                    width: 80; height: 80; radius: 8
+                    color: settingsMenu.darkMode ? "transparent" : Qt.rgba(0.65, 0.65, 0.65, 0.7)
                     anchors.verticalCenter: parent.verticalCenter
+                    Image {
+                        anchors.fill: parent
+                        source: panelWindow.weatherCode >= 0
+                            ? panelWindow.weatherIconPath(panelWindow.weatherCode, panelWindow.weatherIsDay)
+                            : ""
+                        sourceSize.width: 160; sourceSize.height: 160
+                        fillMode: Image.PreserveAspectFit
+                        smooth: true; antialiasing: true; mipmap: true
+                    }
                 }
 
                 Column {
@@ -7469,13 +7481,18 @@ FloatingWindow {
                                 font.pixelSize: 10
                                 color: settingsMenu.darkMode ? "#aaa" : "#666"
                             }
-                            Image {
+                            Rectangle {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                width: 24; height: 24
-                                source: panelWindow.weatherIconPath(modelData.code, modelData.isDay)
-                                sourceSize.width: 48; sourceSize.height: 48
-                                fillMode: Image.PreserveAspectFit
-                                smooth: true; antialiasing: true; mipmap: true
+                                width: 24; height: 24; radius: 6
+                                color: settingsMenu.darkMode ? "transparent" : Qt.rgba(0.65, 0.65, 0.65, 0.7)
+                                Image {
+                                    anchors.centerIn: parent
+                                    width: 24; height: 24
+                                    source: panelWindow.weatherIconPath(modelData.code, modelData.isDay)
+                                    sourceSize.width: 48; sourceSize.height: 48
+                                    fillMode: Image.PreserveAspectFit
+                                    smooth: true; antialiasing: true; mipmap: true
+                                }
                             }
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
@@ -7526,13 +7543,18 @@ FloatingWindow {
                             color: settingsMenu.darkMode ? "#aaa" : "#666"
                         }
 
-                        Image {
+                        Rectangle {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            width: 32; height: 32
-                            source: panelWindow.weatherIconPath(modelData.code, true)
-                            sourceSize.width: 64; sourceSize.height: 64
-                            fillMode: Image.PreserveAspectFit
-                            smooth: true; antialiasing: true; mipmap: true
+                            width: 32; height: 32; radius: 6
+                            color: settingsMenu.darkMode ? "transparent" : Qt.rgba(0.65, 0.65, 0.65, 0.7)
+                            Image {
+                                anchors.centerIn: parent
+                                width: 32; height: 32
+                                source: panelWindow.weatherIconPath(modelData.code, true)
+                                sourceSize.width: 64; sourceSize.height: 64
+                                fillMode: Image.PreserveAspectFit
+                                smooth: true; antialiasing: true; mipmap: true
+                            }
                         }
 
                         Text {

@@ -94,6 +94,8 @@ FloatingWindow {
         }
         return String(raw).split(" + ").map(function(part) {
             var key = part.trim()
+            if (["left", "right", "up", "down"].indexOf(key.toLowerCase()) >= 0)
+                return Lang.get("shortcuts." + key.toLowerCase(), root.settingsMenu.uiLanguage)
             if (names[key]) return names[key]
             return key.length === 1 ? key.toUpperCase() : key
         })
@@ -130,6 +132,16 @@ FloatingWindow {
                 width: parent.width
                 placeholderText: Lang.get("shortcuts.search", root.settingsMenu.uiLanguage)
                 Accessible.name: placeholderText
+                color: root.settingsMenu.darkMode ? "#f3f3f3" : "#202020"
+                placeholderTextColor: root.settingsMenu.darkMode ? "#aaaaaa" : "#666666"
+                selectionColor: root.settingsMenu.darkMode ? "#76513a" : "#f2bb96"
+                selectedTextColor: root.settingsMenu.darkMode ? "#ffffff" : "#202020"
+                background: Rectangle {
+                    radius: 6
+                    color: root.settingsMenu.darkMode ? "#303030" : "#ffffff"
+                    border.color: search.activeFocus ? "#fe6f2d" : (root.settingsMenu.darkMode ? "#666666" : "#aaaaaa")
+                    border.width: 1
+                }
                 Keys.onEscapePressed: root.visible = false
             }
             ScrollView {
