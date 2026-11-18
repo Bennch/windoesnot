@@ -56,3 +56,22 @@ function details(state) {
         return values.length ? group + ': ' + values.join(', ') : ''
     }).filter(function(line) { return line }).join('\n')
 }
+
+// Structured rows of the saved portal decisions of one app (table, object, app, permissions, data).
+function portalRows(text, id) {
+    return text.split(/\r?\n/).map(function(line) {
+        var parts = line.split('\t')
+        if (parts.length < 4 || parts[2].trim() !== id) return null
+        var data = (parts[4] || '').trim()
+        var path = /b'([^']*)'/.exec(data)
+        return { table: parts[0].trim(), object: parts[1].trim(), permissions: parts[3].trim().split(',').filter(function(p) { return p }),
+                 path: path ? path[1] : '', data: path ? '' : data }
+    }).filter(function(row) { return row !== null })
+}
+function baseName(path) { var i = path.lastIndexOf('/'); return i >= 0 ? path.slice(i + 1) : path }
+function detailRows(state) {
+    return Object.keys(state).map(function(group) {
+        var values = Object.keys(state[group]).filter(function(key) { return state[group][key] }).map(function(key) { return state[group][key] })
+        return values.length ? { group: group, values: values.join('\n') } : null
+    }).filter(function(row) { return row !== null })
+}

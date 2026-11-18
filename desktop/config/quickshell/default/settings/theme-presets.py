@@ -43,4 +43,14 @@ elif action == 'restore':
     state.unlink()
 else:
     raise SystemExit('Unknown action')
-subprocess.Popen(['windoesnot-wallpaper', '--restart'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+# The installed system has windoesnot-wallpaper (swaybg); a host session may only run hyprpaper, which re-reads its
+# config on restart. A missing tool must never make the whole look fail after the files were already written.
+import shutil
+try:
+    if shutil.which('windoesnot-wallpaper'):
+        subprocess.Popen(['windoesnot-wallpaper', '--restart'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    elif shutil.which('hyprpaper') and subprocess.run(['pgrep', '-x', 'hyprpaper'], stdout=subprocess.DEVNULL).returncode == 0:
+        subprocess.run(['pkill', '-x', 'hyprpaper'], stdout=subprocess.DEVNULL)
+        subprocess.Popen(['hyprpaper'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+except OSError as error:
+    print('wallpaper restart skipped:', error, file=sys.stderr)
