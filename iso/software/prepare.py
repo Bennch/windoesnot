@@ -74,7 +74,7 @@ def main():
     repository = BUNDLE / 'repository'; repository.mkdir(parents=True, exist_ok=True)
     packages = set(BOOT_EXTRA_PACKAGES)
     for app in catalog['apps']:
-        if not app.get('required'):
+        if not app.get('required') and not app.get('image_package'):
             packages.update(app['packages'])
         for names in app.get('localizations', {}).values():
             packages.update(names)

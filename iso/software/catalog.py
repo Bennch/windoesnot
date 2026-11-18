@@ -92,7 +92,7 @@ def packages_for(catalog, selected, language='en'):
             continue
         # Required apps are already in the image, but still need their language packs.
         packages.update(app.get('localizations', {}).get(language, []))
-        if not app.get('required'):
+        if not app.get('required') and not app.get('image_package'):
             packages.update(app['packages'])
             services.update(app.get('services', []))
     return sorted(packages), sorted(services)

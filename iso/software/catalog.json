@@ -155,7 +155,7 @@
         "de": "Webbrowser für Webseiten, Videos und Web-Apps.",
         "en": "Web browser for websites, videos and web apps."
       },
-      "required": true,
+      "required": false,
       "localizations": {
         "de": [
           "firefox-i18n-de"
@@ -164,7 +164,9 @@
           "firefox-i18n-en-us"
         ]
       },
-      "source": "offline"
+      "source": "offline",
+      "system": true,
+      "image_package": true
     },
     {
       "id": "thunderbird",
@@ -297,7 +299,8 @@
         "en": "View, browse and rotate images."
       },
       "required": false,
-      "source": "offline"
+      "source": "offline",
+      "system": true
     },
     {
       "id": "gimp",
@@ -417,7 +420,8 @@
         "en": "Open and create ZIP files and other archives."
       },
       "required": false,
-      "source": "offline"
+      "source": "offline",
+      "system": true
     },
     {
       "id": "usb-writer",

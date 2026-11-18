@@ -38,7 +38,7 @@ AppSelectionWidget::AppSelectionWidget(const QString& catalogPath, QWidget* pare
     m_catalog = document.object();
     if (m_catalog.value("schema_version").toInt() != 1 || m_catalog.value("apps").toArray().isEmpty()) throw std::runtime_error("Unsupported application catalogue");
     m_german = QLocale().language() == QLocale::German;
-    for (const auto& item : m_catalog.value("apps").toArray()) if (item.toObject().value("required").toBool()) m_selected.insert(item.toObject().value("id").toString());
+    for (const auto& item : m_catalog.value("apps").toArray()) if (item.toObject().value("required").toBool() || item.toObject().value("system").toBool()) m_selected.insert(item.toObject().value("id").toString());
     for (const auto& item : m_catalog.value("profiles").toArray()) if (item.toObject().value("id") == "recommended")
         for (const auto& id : item.toObject().value("selected").toArray()) m_selected.insert(id.toString());
     build();
@@ -148,11 +148,12 @@ void AppSelectionWidget::build() {
             later->setWordWrap(true); later->setObjectName("deferredNote"); column->addWidget(later);
         }
         if (app.value("required").toBool()) { auto* required = new QLabel(text("In der Grundausstattung enthalten", "Included in the essentials"), card); required->setObjectName("includedLabel"); column->addWidget(required); }
+        if (app.value("system").toBool()) { auto* lock = new QLabel(text("🔒 System-Standardprogramm", "🔒 System default app"), card); lock->setObjectName("systemLabel"); column->addWidget(lock); }
         h->addLayout(column, 1);
         auto* box = new QCheckBox(card); box->setObjectName("app-" + id); box->setChecked(m_selected.contains(id)); box->setEnabled(!app.value("required").toBool());
         box->setAccessibleName(localized(app, "name")); box->setAccessibleDescription(localized(app, "description")); m_boxes.insert(id, box); h->addWidget(box, 0, Qt::AlignVCenter);
         m_cards.append(card);
-        connect(box,&QCheckBox::toggled,this,[this,id,card](bool checked) { if (m_updating) return; if (checked) m_selected.insert(id); else m_selected.remove(id); card->setProperty("selected",checked); card->style()->unpolish(card); card->style()->polish(card); QSignalBlocker block(m_profiles); m_profiles->setCurrentIndex(m_profiles->findData("custom")); notify(); });
+        connect(box,&QCheckBox::toggled,this,[this,id,card,box,app](bool checked) { if (m_updating) return; if (!checked && app.value("system").toBool() && QMessageBox::warning(this, text("Standardprogramm abwählen", "Deselect default app"), text("Dieses Programm wird vom System als Standard verwendet. Wenn du es abwählst, musst du selbst einen Ersatz installieren und unter Standardanwendungen mit dem System verknüpfen. Vorhandene Zuordnungen und Starter können bis dahin ins Leere zeigen. Trotzdem abwählen?", "The system uses this app by default. If you deselect it, you must install a replacement and connect it in Default Applications yourself. Existing associations and launchers may not work until then. Deselect anyway?"), QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes) { QSignalBlocker block(box); box->setChecked(true); return; } if (checked) m_selected.insert(id); else m_selected.remove(id); card->setProperty("selected",checked); card->style()->unpolish(card); card->style()->polish(card); QSignalBlocker block(m_profiles); m_profiles->setCurrentIndex(m_profiles->findData("custom")); notify(); });
     }
     m_scroll->setWidget(content); outer->addWidget(m_scroll,1);
     m_count = new QLabel(page); m_count->setObjectName("countText"); m_count->setWordWrap(true);
@@ -208,7 +209,7 @@ void AppSelectionWidget::updateStyle() {
         "QFrame#divider { background:@BORDER@; border:0; }"
         "QLabel#helpText, QLabel#countText { color:@DIM@; }"
         "QLabel#appName { font-size:14px; font-weight:700; }"
-        "QLabel#appDescription, QLabel#deferredNote, QLabel#includedLabel { color:@DIM@; font-size:12px; }"
+        "QLabel#appDescription, QLabel#deferredNote, QLabel#includedLabel, QLabel#systemLabel { color:@DIM@; font-size:12px; }"
         "QLabel#groupHeading { font-size:16px; font-weight:700; padding:10px 2px 2px 2px; }"
         "QLineEdit, QComboBox { background:@CONTROL@; color:@TEXT@; border:1px solid @BORDER@; border-radius:6px; padding:7px; min-height:20px; }"
         "QPushButton { background:@CONTROL@; color:@TEXT@; border:1px solid @BORDER@; border-radius:6px; padding:8px 12px; }"
@@ -255,12 +256,15 @@ bool AppSelectionWidget::setSelection(const QStringList& selected, QString* erro
     QSet<QString> allowed, required; for (const auto& a : m_catalog.value("apps").toArray()) { allowed.insert(a.toObject().value("id").toString()); if(a.toObject().value("required").toBool()) required.insert(a.toObject().value("id").toString()); }
     QSet<QString> ids(selected.begin(),selected.end());
     if (ids.size()!=selected.size() || !allowed.contains(ids) || !ids.contains(required)) { if(error) *error=text("Das Profil enthält unbekannte Programme oder lässt die Grundausstattung aus.","The profile contains unknown apps or omits required essentials."); return false; }
+    QStringList removedSystem;
+    for (const auto& value : m_catalog.value("apps").toArray()) { const auto app = value.toObject(); const auto id = app.value("id").toString(); if (app.value("system").toBool() && m_selected.contains(id) && !ids.contains(id)) removedSystem << localized(app, "name"); }
+    if (!removedSystem.isEmpty() && QMessageBox::warning(this, text("Standardprogramme abwählen", "Deselect default apps"), text("Dieses Profil wählt System-Standardprogramme ab: %1. Du musst selbst Ersatz installieren und unter Standardanwendungen verknüpfen. Vorhandene Zuordnungen und Starter können bis dahin ins Leere zeigen. Fortfahren?", "This profile deselects system default apps: %1. You must install replacements and connect them in Default Applications yourself. Existing associations and launchers may not work until then. Continue?").arg(removedSystem.join(", ")), QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes) return false;
     m_selected = ids; m_updating=true; for(auto it=m_boxes.begin();it!=m_boxes.end();++it) { it.value()->setChecked(ids.contains(it.key())); auto* card=it.value()->parentWidget(); card->setProperty("selected",ids.contains(it.key())); card->style()->unpolish(card); card->style()->polish(card); } m_updating=false;
     { QSignalBlocker block(m_profiles); m_profiles->setCurrentIndex(m_profiles->findData("custom")); }
     notify(); return true;
 }
 void AppSelectionWidget::applyProfile(const QString& id) {
-    for (const auto& item : m_catalog.value("profiles").toArray()) if (item.toObject().value("id").toString()==id) { QStringList ids; for (const auto& value:item.toObject().value("selected").toArray()) ids<<value.toString(); setSelection(ids); QSignalBlocker block(m_profiles); m_profiles->setCurrentIndex(m_profiles->findData(id)); return; }
+    for (const auto& item : m_catalog.value("profiles").toArray()) if (item.toObject().value("id").toString()==id) { QStringList ids; for (const auto& value:item.toObject().value("selected").toArray()) ids<<value.toString(); for (const auto& value : m_catalog.value("apps").toArray()) { const auto app = value.toObject(); const auto appId = app.value("id").toString(); if (app.value("system").toBool()) { ids.removeAll(appId); if (m_selected.contains(appId)) ids << appId; } } setSelection(ids); QSignalBlocker block(m_profiles); m_profiles->setCurrentIndex(m_profiles->findData(id)); return; }
 }
 bool AppSelectionWidget::importProfile(const QString& path, QString* error) {
     QFile f(path); if(!f.open(QIODevice::ReadOnly) || f.size()>65536) { if(error)*error=text("Die Profildatei kann nicht gelesen werden oder ist zu groß.","The profile cannot be read or is too large."); return false; }

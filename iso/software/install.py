@@ -29,6 +29,15 @@ def install_selection(selected, language, base=BASE, record=Path('/var/lib/windo
     packages, services = packages_for(catalog, selected, language)
     bundle = base / 'offline-apps'
     install_packages(packages, mode, base)
+    # Firefox is part of the live image; remove it from the target if declined.
+    # Remove installed language packs in the same transaction (they depend on it).
+    for app in catalog['apps']:
+        if app.get('image_package') and app['id'] not in selected:
+            candidates = app['packages'] + sum(app.get('localizations', {}).values(), [])
+            installed = [name for name in candidates if subprocess.run(
+                ['pacman', '-Q', name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0]
+            if installed:
+                subprocess.run(['pacman', '-R', '--noconfirm', *installed], check=True, timeout=120)
     for service in services:
         subprocess.run(['systemctl', 'enable', service], check=True, timeout=30)
     record.parent.mkdir(parents=True, exist_ok=True)
