@@ -1,0 +1,205 @@
+#!/usr/bin/env python3
+"""Build an AUR package in a throw-away container (root helper, called through the store helper).
+
+The package sources are copied into a fresh overlay of a cached base system (base-devel), built there by an
+unprivileged user inside systemd-nspawn with a private UID range, and only the finished package archives are
+copied out. Nothing of the host (home directory, keys, sockets) is visible in the container. Every failure is
+an error; there is no fallback to a build on the host.
+
+  windoesnot-isolated-build build --src DIR --out DIR --uid UID --gid GID [--expect-digest SHA256]
+  windoesnot-isolated-build prepare          # create or refresh the base system
+  windoesnot-isolated-build digest --src DIR # digest that the review step shows and later verifies
+"""
+import argparse
+import hashlib
+import os
+import pwd
+import secrets
+import shutil
+import signal
+import subprocess
+import sys
+from pathlib import Path
+
+STATE = Path(os.environ.get('WDN_BUILD_STATE', '/var/lib/windoesnot/build'))
+BASE = STATE / 'base'
+RUNS = STATE / 'runs'
+MAX_FILE = 64 * 1024 * 1024
+MAX_FILES = 2000
+BUILDER_UID = 1000
+
+
+class BuildError(Exception):
+    pass
+
+
+def log(message):
+    print(message, flush=True)
+
+
+def source_files(src):
+    """Regular files below src in a stable order; links, devices and anything outside src are refused."""
+    root = Path(src).resolve()
+    if not (root / 'PKGBUILD').is_file():
+        raise BuildError('no PKGBUILD in the source directory')
+    files = []
+    for path in sorted(root.rglob('*')):
+        if '.git' in path.relative_to(root).parts:
+            continue
+        if path.is_symlink():
+            raise BuildError('links are not allowed in the build sources: %s' % path.relative_to(root))
+        if path.is_dir():
+            continue
+        if not path.is_file():
+            raise BuildError('unsupported file type: %s' % path.relative_to(root))
+        if path.stat().st_size > MAX_FILE:
+            raise BuildError('file too large: %s' % path.relative_to(root))
+        files.append(path)
+    if len(files) > MAX_FILES:
+        raise BuildError('too many files in the build sources')
+    return root, files
+
+
+def digest(src):
+    root, files = source_files(src)
+    h = hashlib.sha256()
+    for path in files:
+        h.update(str(path.relative_to(root)).encode() + b'\0')
+        h.update(hashlib.sha256(path.read_bytes()).digest())
+    return h.hexdigest()
+
+
+def run(command, **kwargs):
+    return subprocess.run(command, check=True, **kwargs)
+
+
+def need_tools():
+    for tool in ('systemd-nspawn', 'pacstrap'):
+        if shutil.which(tool) is None:
+            raise BuildError('%s is not installed (package %s)' % (tool, 'systemd' if tool == 'systemd-nspawn' else 'arch-install-scripts'))
+
+
+def prepare_base(refresh=False):
+    need_tools()
+    marker = BASE / '.wdn-base-ready'
+    if marker.exists() and not refresh:
+        return
+    STATE.mkdir(parents=True, exist_ok=True, mode=0o755)
+    if not marker.exists():
+        log('Creating the build base system (once, about 1 GB) ...')
+        if BASE.exists():
+            shutil.rmtree(BASE)
+        BASE.mkdir(parents=True, mode=0o755)
+        run(['pacstrap', '-c', '-G', str(BASE), 'base-devel'])
+        script = (
+            'pacman-key --init && pacman-key --populate archlinux && '
+            'useradd -m -u %d builder && '
+            'echo "builder ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/builder && chmod 440 /etc/sudoers.d/builder && '
+            'sed -i "s/^#MAKEFLAGS=.*/MAKEFLAGS=\\"-j$(nproc)\\"/" /etc/makepkg.conf'
+        ) % BUILDER_UID
+        run(['systemd-nspawn', '-q', '-D', str(BASE), '--as-pid2', '/usr/bin/bash', '-c', script])
+    else:
+        log('Refreshing the build base system ...')
+        run(['systemd-nspawn', '-q', '-D', str(BASE), '--as-pid2', '/usr/bin/pacman', '-Syu', '--noconfirm'])
+    marker.write_text('ready\n')
+
+
+def private_range():
+    # 65536 ids per container from a range far above real users; random so parallel builds never share one.
+    return 0x40000000 + secrets.randbelow(2 ** 14) * 65536
+
+
+def build(src, out, uid, gid, expect=None):
+    if os.geteuid() != 0:
+        raise BuildError('must run as root')
+    if uid < 1000 or gid < 1000:
+        raise BuildError('refusing to hand results to a system account')
+    out = Path(out).resolve()
+    if not out.is_dir():
+        raise BuildError('output directory does not exist')
+    root, files = source_files(src)
+    if expect and digest(src) != expect:
+        raise BuildError('the build sources changed after the review')
+    prepare_base()
+    RUNS.mkdir(parents=True, exist_ok=True, mode=0o700)
+    run_dir = RUNS / secrets.token_hex(8)
+    run_dir.mkdir(mode=0o700)
+    base_id = private_range()
+    process = None
+
+    def cleanup():
+        shutil.rmtree(run_dir, ignore_errors=True)
+
+    def on_signal(signum, _frame):
+        if process and process.poll() is None:
+            process.terminate()
+        raise BuildError('cancelled')
+
+    signal.signal(signal.SIGTERM, on_signal)
+    signal.signal(signal.SIGINT, on_signal)
+    try:
+        work = run_dir / 'work'
+        (work / 'src').mkdir(parents=True)
+        (work / 'out').mkdir()
+        for path in files:
+            target = work / 'src' / path.relative_to(root)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path, target)
+        # The container's builder user (uid 1000) is host uid base_id + 1000.
+        for item in [work, *work.rglob('*')]:
+            os.chown(item, base_id + BUILDER_UID, base_id + BUILDER_UID, follow_symlinks=False)
+        inner = ('pacman -Sy --noconfirm >/dev/null && '
+                 'su builder -c "cd /build/src && PKGDEST=/build/out makepkg -s --noconfirm --needed -f"')
+        command = ['systemd-nspawn', '-q', '-D', str(BASE), '--volatile=overlay',
+                   '--private-users=%d:65536' % base_id, '--private-users-ownership=auto',
+                   '--bind=%s:/build' % work, '--as-pid2', '/usr/bin/bash', '-c', inner]
+        log('Building in an isolated container ...')
+        process = subprocess.Popen(command)
+        if process.wait() != 0:
+            raise BuildError('the build failed (exit %d)' % process.returncode)
+        archives = sorted(p for p in (work / 'out').iterdir() if p.is_file() and '.pkg.tar' in p.name and not p.name.endswith('.sig'))
+        if not archives:
+            raise BuildError('the build produced no package')
+        for archive in archives:
+            target = out / archive.name
+            if target.exists():
+                raise BuildError('refusing to overwrite %s' % target.name)
+            shutil.copyfile(archive, target)
+            os.chown(target, uid, gid)
+            os.chmod(target, 0o644)
+            log('PACKAGE %s' % target)
+    finally:
+        cleanup()
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = parser.add_subparsers(dest='command', required=True)
+    b = sub.add_parser('build')
+    b.add_argument('--src', required=True)
+    b.add_argument('--out', required=True)
+    b.add_argument('--uid', required=True, type=int)
+    b.add_argument('--gid', required=True, type=int)
+    b.add_argument('--expect-digest')
+    sub.add_parser('prepare')
+    d = sub.add_parser('digest')
+    d.add_argument('--src', required=True)
+    args = parser.parse_args(argv)
+    try:
+        if args.command == 'digest':
+            print(digest(args.src))
+        elif args.command == 'prepare':
+            prepare_base(refresh=True)
+        else:
+            build(args.src, args.out, args.uid, args.gid, args.expect_digest)
+        return 0
+    except BuildError as exc:
+        print('windoesnot-isolated-build: %s' % exc, file=sys.stderr)
+        return 1
+    except subprocess.CalledProcessError as exc:
+        print('windoesnot-isolated-build: command failed: %s' % ' '.join(map(str, exc.cmd))[:200], file=sys.stderr)
+        return 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())
