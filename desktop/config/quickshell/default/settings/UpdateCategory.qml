@@ -329,23 +329,6 @@ Column {
                         }
                     }
                 }
-                Rectangle {
-                    width: onlyUpdateLabel.implicitWidth + 32; height: 36
-                    radius: settingsMenu.borderRadius
-                    color: "transparent"; border.color: accent; border.width: 1
-                    Text {
-                        id: onlyUpdateLabel
-                        anchors.centerIn: parent
-                        text: Lang.get("updates.onlyWdn", _lang)
-                        font.pixelSize: 13; color: textColor
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        enabled: !storeMissing
-                        cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                        onClicked: { onlyUpgradeProc.running = true; settingsMenu.visible = false }
-                    }
-                }
                 Text {
                     visible: updateCount > 0
                     width: parent.width; wrapMode: Text.WordWrap
@@ -521,6 +504,26 @@ Column {
                     }
                 }
             }
+        }
+    }
+
+    // === Install only the WinDoesNot updates: shown under the WinDoesNot lists, and only when there are some ===
+    Rectangle {
+        visible: !storeMissing && ((status && status.windoesnot && status.windoesnot.update === true) || wdnRows.length > 0)
+        width: onlyUpdateLabel.implicitWidth + 32; height: visible ? 36 : 0
+        radius: settingsMenu.borderRadius
+        color: "transparent"; border.color: accent; border.width: 1
+        Text {
+            id: onlyUpdateLabel
+            anchors.centerIn: parent
+            text: Lang.get("updates.onlyWdn", _lang)
+            font.pixelSize: 13; color: textColor
+        }
+        MouseArea {
+            anchors.fill: parent
+            enabled: !storeMissing
+            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+            onClicked: { onlyUpgradeProc.running = true; settingsMenu.visible = false }
         }
     }
 

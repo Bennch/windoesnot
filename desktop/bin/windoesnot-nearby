@@ -142,6 +142,28 @@ VIRTUAL_INTERFACES = ('lo', 'docker', 'br-', 'virbr', 'vmnet', 'veth', 'vboxnet'
 PHYSICAL_INTERFACES = ('en', 'eth', 'wl', 'ww')
 
 
+def default_route_address():
+    """IPv4 address of the interface with the lowest-metric default route, or None."""
+    best = None
+    try:
+        with open('/proc/net/route') as table:
+            next(table)
+            for line in table:
+                fields = line.split()
+                if len(fields) > 6 and fields[1] == '00000000' and int(fields[3], 16) & 2 and (best is None or int(fields[6]) < best[0]):
+                    best = (int(fields[6]), fields[0])
+        if best is None:
+            return None
+        probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            raw = fcntl.ioctl(probe.fileno(), 0x8915, struct.pack('256s', best[1].encode()[:15]))
+            return socket.inet_ntoa(raw[20:24])
+        finally:
+            probe.close()
+    except Exception:  # best effort only: never break the address list
+        return None
+
+
 def local_ipv4_addresses():
     """Addresses other devices can reach this computer on, read from the kernel (no packets sent).
 
@@ -166,6 +188,10 @@ def local_ipv4_addresses():
     finally:
         probe.close()
     result = by_kind['physical'] or by_kind['other']
+    # Wired and wireless can both be connected: show the address of the interface that carries the default route.
+    primary = default_route_address()
+    if primary in result:
+        result = {primary}
     return sorted(result, key=lambda value: (int(ipaddress.IPv4Address(value))))
 
 
