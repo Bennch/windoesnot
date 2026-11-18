@@ -1,0 +1,103 @@
+{
+  "notice": "All gate-* names and 1/2/3 versions below are synthetic test fixtures, not upstream version claims. Build empty payload packages only in an isolated test container.",
+  "installed": [
+    {
+      "name": "gate-libffi",
+      "version": "1-1",
+      "depends": []
+    },
+    {
+      "name": "gate-lib32-libffi",
+      "version": "1-1",
+      "depends": [
+        "gate-libffi=1"
+      ]
+    }
+  ],
+  "negative_priority_case": {
+    "repositories_in_order": [
+      {
+        "name": "gate-optimized",
+        "packages": [
+          {
+            "name": "gate-libffi",
+            "version": "1-1.1",
+            "depends": []
+          }
+        ]
+      },
+      {
+        "name": "gate-core",
+        "packages": [
+          {
+            "name": "gate-libffi",
+            "version": "2-1",
+            "depends": []
+          },
+          {
+            "name": "gate-lib32-libffi",
+            "version": "2-1",
+            "depends": [
+              "gate-libffi=2-1"
+            ]
+          }
+        ]
+      }
+    ],
+    "expected": {
+      "exit_code_nonzero": true,
+      "category": "UNSATISFIABLE_DEPENDENCY",
+      "dependency": "gate-libffi=2-1",
+      "required_by": "gate-lib32-libffi",
+      "local_database_unchanged": true
+    }
+  },
+  "positive_bridge_case": {
+    "prepend_repository": {
+      "name": "gate-windoesnot",
+      "packages": [
+        {
+          "name": "gate-libffi",
+          "version": "2-1",
+          "depends": []
+        },
+        {
+          "name": "gate-lib32-libffi",
+          "version": "2-1",
+          "depends": [
+            "gate-libffi=2"
+          ]
+        }
+      ]
+    },
+    "expected": {
+      "exit_code": 0,
+      "selected_repository_for_pair": "gate-windoesnot"
+    }
+  },
+  "retirement_case": {
+    "description": "Move optimized libffi to 2-2; remove bridge DB entries. Test from installed v1 and installed bridge v2. Perform complete upgrade and dependency check.",
+    "expected": {
+      "exit_code": 0,
+      "no_bridge_repo_needed": true
+    }
+  },
+  "later_generation_case": {
+    "description": "Move all upstream fixture packages to version 3 with paired dependency gate-libffi=3. Leave bridge at 2: its first-repo priority hides newer upstream versions and must trigger the stale-bridge monitor even if dependency resolution succeeds. Removing bridge must expose and upgrade both to 3.",
+    "expected": {
+      "stale_bridge_detected": true,
+      "retirement_full_upgrade_exit_code": 0
+    }
+  },
+  "equal_version_control": {
+    "first_repo_version": "1-1",
+    "expected_exit_code": 0
+  },
+  "firefox_case": {
+    "installed": "160.0-1",
+    "first_repo": "160.0-1.1",
+    "later_repo": "160.0.1-1",
+    "dependency": "gate-firefox>=160.0.1",
+    "expected_category": "UNSATISFIABLE_DEPENDENCY"
+  }
+}

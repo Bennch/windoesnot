@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from update_gate_common import validate as validate_update_gate
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -410,6 +411,8 @@ def main():
     parser.add_argument('--offline', action='store_true', help='Netzwerkprüfungen überspringen')
     parser.add_argument('--only', help='Prüfnummern, z. B. 1,3,5')
     parser.add_argument('--markdown', type=Path, help='Bericht zusätzlich als Markdown schreiben')
+    parser.add_argument('--no-channel', action='store_true', help='Nur ISO-Release, kein Update-Kanal')
+    parser.add_argument('--packages', type=Path, help='Exakter Paketordner für den Update-Kanal')
     args = parser.parse_args()
     try:
         selected = set(range(1, 10)) if not args.only else {int(x) for x in args.only.split(',')}
@@ -432,6 +435,17 @@ def main():
         lines.append(f'## {number}. {title}: {state}')
         lines.extend(f'- {status}: {message}' for status, message in entries)
         lines.append('')
+    if args.no_channel:
+        lines += ['## Update-Kanal-Gate: SKIP', '- SKIP: reiner ISO-Release (--no-channel)', '']
+    else:
+        try:
+            if args.packages is None:
+                raise ValueError('--packages mit dem exakten Paketordner angeben')
+            digest = validate_update_gate(args.packages, ROOT / 'out/update-gate')
+            lines += ['## Update-Kanal-Gate: PASS', f'- PASS: Paketsatz {digest}', '']
+        except (ValueError, OSError) as exc:
+            failed = True
+            lines += ['## Update-Kanal-Gate: FAIL', f'- FAIL: {exc}', '']
     lines += ['## 10. Testlücken',
               '- HINWEIS: Vollständige Installationsmatrix zuletzt mit 0.1.0-18. AMD ungetestet. Update-Weg in einer VM testen.', '']
     report = '\n'.join(lines)

@@ -1,0 +1,5 @@
+# Build with an explicitly selected, verified base digest; never use a floating tag.
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+# The base image must already contain a pacman version compatible with the guest DB.
+ENTRYPOINT []
