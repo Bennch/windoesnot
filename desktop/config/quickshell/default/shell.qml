@@ -3268,8 +3268,9 @@ FloatingWindow {
             visible = false
             bluetoothWindow.visible = true
         } else if (kind === "openNetwork") {
+            // Opens the Network app itself, not the quick panel.
             visible = false
-            networkWindow.visible = true
+            run("windoesnot-open-network")
         } else if (kind === "openGraphics") {
             visible = false
             panelWindow.openGraphics()
@@ -6322,7 +6323,7 @@ FloatingWindow {
     property string connectionType: "none"
     Process {
         id: trayNetworkProbe
-        command: ["windoesnot-bounded", "6", "bash", "-c", "systemctl is-active --quiet NetworkManager.service && { dev=$(ip -4 route show default 2>/dev/null | awk '{for (i = 1; i < NF; i++) if ($i == \"dev\") { print $(i + 1); exit }}'); nmcli -t -f NAME,TYPE,DEVICE connection show --active | awk -F: -v d=\"$dev\" 'd != \"\" && $NF == d { print; found = 1; exit } END { if (!found) exit 1 }' || nmcli -t -f NAME,TYPE,DEVICE connection show --active | head -1; }"]
+        command: ["windoesnot-bounded", "6", "bash", "-c", "systemctl is-active --quiet NetworkManager.service && { nmcli -t -f NAME,TYPE,DEVICE connection show --active | awk -F: '$2 == \"802-3-ethernet\" { print; found = 1; exit } END { if (!found) exit 1 }' || { dev=$(ip -4 route show default 2>/dev/null | awk '{for (i = 1; i < NF; i++) if ($i == \"dev\") { print $(i + 1); exit }}'); nmcli -t -f NAME,TYPE,DEVICE connection show --active | awk -F: -v d=\"$dev\" 'd != \"\" && $NF == d { print; found = 1; exit } END { if (!found) exit 1 }' || nmcli -t -f NAME,TYPE,DEVICE connection show --active | head -1; }; }"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
