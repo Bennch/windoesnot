@@ -472,6 +472,17 @@ $doneLabel = New-Label $doneText 18 16 470 270 10 $false $white
 $doneLabel.Anchor = 'Top,Left,Right'
 $doneCard.Controls.Add($doneLabel)
 $script:pages[2].Controls.Add($doneCard)
+# Optional: create the installer USB stick (download or choose the ISO, write, verify) - needs WinDoesNotStick.ps1 next to this script.
+$stickScript = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) 'WinDoesNotStick.ps1'
+if (Test-Path $stickScript) {
+    . $stickScript
+    if ($isGerman) { $stickText = 'USB-Stick erstellen...' } else { $stickText = 'Create USB stick...' }
+    $stickButton = New-SetupButton $stickText $false
+    $stickButton.SetBounds(0,392,230,36)
+    $stickButton.Anchor = 'Top,Left'
+    $stickButton.Add_Click({ try { Show-WdnStickDialog $script:isGerman $script:form } catch { [System.Windows.Forms.MessageBox]::Show($_.Exception.Message, 'WinDoesNot Setup', 'OK', 'Error') | Out-Null } })
+    $script:pages[2].Controls.Add($stickButton)
+}
 $script:back = New-SetupButton '' $false
 $script:back.SetBounds(225,485,120,36)
 $script:back.Anchor = 'Bottom,Left'

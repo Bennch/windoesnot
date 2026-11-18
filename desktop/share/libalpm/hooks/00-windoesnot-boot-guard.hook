@@ -1,0 +1,17 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Path
+Target = usr/lib/modules/*/vmlinuz
+
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = windoesnot-tools
+
+[Action]
+Description = Checking WinDoesNot boot filesystem before update...
+When = PreTransaction
+Exec = /usr/bin/python3 /usr/lib/windoesnot/boot_entry_migration.py --preflight
+AbortOnFail

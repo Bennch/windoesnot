@@ -147,7 +147,7 @@ def make_iso(src, out, label):
     run('genisoimage', '-quiet', '-o', out, '-J', '-r', '-V', label, src)
 
 
-def build_payload(version, job=None, gui=False, app=None, english=False, light=False):
+def build_payload(version, job=None, gui=False, app=None, english=False, light=False, stickgui=False):
     d = vmdir(version)
     tmp = d / 'payload-src'
     if tmp.exists():
@@ -167,6 +167,8 @@ def build_payload(version, job=None, gui=False, app=None, english=False, light=F
         (tmp / 'WDN_LIGHT.txt').write_text('light\r\n')
     if gui:
         (tmp / 'WDN_GUI.txt').write_text('gui\r\n')
+    if stickgui:
+        (tmp / 'WDN_STICKGUI.txt').write_text('stick\r\n')
     make_iso(tmp, d / 'payload.iso', 'WDNPAYLOAD')
     shutil.rmtree(tmp)
 
@@ -270,6 +272,7 @@ def main():
     p.add_argument('--app', help='folder with the published WinDoesNot Setup app (win-x64, self-contained); the GUI job starts it instead of the PowerShell exporter')
     p.add_argument('--english', action='store_true', help='start the Setup app in English (WINDOESNOT_SETUP_LANG=en)')
     p.add_argument('--light', action='store_true', help='use the light Windows app theme')
+    p.add_argument('--stick-gui', action='store_true', help='the GUI job opens the USB stick dialog instead of the exporter')
     p.add_argument('--gui', action='store_true', help='payload starts the exporter window at logon (needs the WdnGui task)')
     a = p.parse_args()
     if a.action == 'status':
@@ -296,7 +299,7 @@ def main():
     elif a.action == 'run':
         start(v, False)
     elif a.action == 'payload':
-        build_payload(v, a.job, a.gui, a.app, a.english, a.light)
+        build_payload(v, a.job, a.gui, a.app, a.english, a.light, a.stick_gui)
     elif a.action == 'shot':
         out = Path(a.arg or vmdir(v) / 'screen.png').resolve()
         print(qmp(v, 'screendump', filename=str(out), format='png'))

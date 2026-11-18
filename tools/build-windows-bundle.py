@@ -79,7 +79,7 @@ def main():
         publish = Path(tmp)
         subprocess.run([str(SDK / 'dotnet'), 'publish', str(PROJECT / 'src/Igloo.App/Igloo.App.csproj'), '-c', 'Release', '-r', 'win-x64', '--self-contained', 'true', '--no-restore', '-p:EnableWindowsTargeting=true', '-p:DebugType=None', '-p:DebugSymbols=false', '-o', str(publish)], cwd=ROOT, env=env, check=True)
         files = {'Umzug starten.cmd': START.replace('\n', '\r\n').encode('ascii'), 'README.txt': README.replace('\n', '\r\n').encode('ascii')}
-        for name in ('WinDoesNotSetup.cmd', 'WinDoesNotSetup.ps1'):
+        for name in ('WinDoesNotSetup.cmd', 'WinDoesNotSetup.ps1', 'WinDoesNotStick.ps1', 'WinDoesNotStick.cs'):
             files['legacy/' + name] = (ROOT / 'windows' / name).read_bytes()
         for p in sorted(publish.rglob('*')):
             if p.is_symlink():
