@@ -64,8 +64,8 @@ Column {
     Tools.SystemToolsChoice {
         settingsMenu: page.settingsMenu
         width: Math.min(parent.width, 400); visible: page.appList.length > 0; enabled: page.ready
-        model: page.appList; textRole: "name"
-        onActivated: page.load(page.appList[index].id)
+        model: page.appList.map(function(app) { return app.name })
+        onActivated: function(index) { page.load(page.appList[index].id) }
     }
 
     // Reusable table card: rows separated by thin lines
@@ -184,7 +184,7 @@ Column {
             Rectangle {
                 width: parent.width; height: 32; color: page.dark ? "#2c2c2c" : "#e9e9e9"
                 Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: page.tr("col.area"); font.pixelSize: 12; font.bold: true; color: page.mutedColor }
-                Text { x: 190; anchors.verticalCenter: parent.verticalCenter; text: page.tr("col.what"); font.pixelSize: 12; font.bold: true; color: page.mutedColor }
+                Text { x: 170; anchors.verticalCenter: parent.verticalCenter; text: page.tr("col.what"); font.pixelSize: 12; font.bold: true; color: page.mutedColor }
                 Text { anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; text: page.tr("col.access"); font.pixelSize: 12; font.bold: true; color: page.mutedColor }
             }
             Text { visible: page.portalRows.length === 0; x: 14; height: 44; verticalAlignment: Text.AlignVCenter; text: page.tr("noRows"); font.pixelSize: 13; color: page.mutedColor }
@@ -195,18 +195,22 @@ Column {
                     width: parent.width
                     Line {}
                     Item {
-                        width: parent.width; height: 46
-                        Text { x: 14; width: 166; anchors.verticalCenter: parent.verticalCenter; text: page.tableName(modelData.table); font.pixelSize: 13; color: page.textColor; elide: Text.ElideRight }
+                        width: parent.width; height: Math.max(46, accessFlow.height + 16)
+                        Text { x: 14; width: 150; anchors.verticalCenter: parent.verticalCenter; text: page.tableName(modelData.table); font.pixelSize: 13; color: page.textColor; elide: Text.ElideRight }
                         Column {
-                            x: 190; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 190 - 190; spacing: 1
-                            Text { width: parent.width; visible: text !== ""; text: modelData.path ? Permissions.baseName(modelData.path) : (modelData.data === "yes" || modelData.data === "no" ? "" : modelData.data)
+                            x: 170; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 170 - 190; spacing: 1
+                            Text { width: parent.width; visible: text !== ""; text: modelData.path ? Permissions.baseName(modelData.path) : (/^(yes|no|0x[0-9a-fA-F]+)$/.test(modelData.data) ? "" : modelData.data)
                                    font.pixelSize: 13; color: page.textColor; elide: Text.ElideMiddle }
                             Text { width: parent.width; visible: modelData.path !== ""; text: modelData.path; font.pixelSize: 11; color: page.mutedColor; elide: Text.ElideMiddle }
                         }
-                        Pill {
+                        Flow {
+                            id: accessFlow
+                            width: 176; spacing: 4; layoutDirection: Qt.RightToLeft
                             anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
-                            good: modelData.permissions.indexOf("no") < 0
-                            label: page.permText(modelData.permissions.length ? modelData.permissions : [modelData.data === "no" ? "no" : "yes"])
+                            Repeater {
+                                model: modelData.permissions.length ? modelData.permissions : [modelData.data === "no" ? "no" : "yes"]
+                                Pill { required property string modelData; good: modelData !== "no"; label: page.permText([modelData]) }
+                            }
                         }
                     }
                 }
