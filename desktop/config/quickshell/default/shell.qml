@@ -3217,6 +3217,7 @@ FloatingWindow {
         } else if (kind === "network") {
             items.push({ kind: "toggleWifi", label: en ? "Toggle Wi-Fi" : "WLAN umschalten" })
             items.push({ kind: "openNetwork", label: en ? "Open Network" : "Netzwerk öffnen" })
+            items.push({ kind: "openFirewall", label: en ? "Open Firewall" : "Firewall öffnen" })
         } else if (kind === "graphics") {
             items.push({ kind: "openGraphics", label: en ? "Open Graphics" : "Grafik öffnen" })
         }
@@ -3267,6 +3268,10 @@ FloatingWindow {
         } else if (kind === "openBluetooth") {
             visible = false
             bluetoothWindow.visible = true
+        } else if (kind === "openFirewall") {
+            // Network app, directly on its Firewall page.
+            visible = false
+            run("windoesnot-open-network --page firewall")
         } else if (kind === "openNetwork") {
             // Opens the Network app itself, not the quick panel.
             visible = false

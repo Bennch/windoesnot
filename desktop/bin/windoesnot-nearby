@@ -41,10 +41,23 @@ UFW_CONF = Path('/etc/ufw/ufw.conf')
 _ports = {'stamp': None, 'open': None}
 
 
+def firewall_helper_state():
+    """State of the WinDoesNot firewall (world readable, no password), or None when it is not installed."""
+    try:
+        return json.loads(Path('/var/lib/windoesnot/firewall/state.json').read_text())
+    except (OSError, ValueError):
+        return None
+
+
 def ports_open():
     """True when LocalSend's port accepts connections; None when ufw is absent.
     user.rules and ufw.conf are readable without a password, so the status needs no prompt.
     A disabled firewall accepts everything, so it counts as open."""
+    state = firewall_helper_state()
+    if state is not None:
+        if state.get('enabled') is not True:
+            return True
+        return any(rule.get('template') == 'localsend' and rule.get('enabled', True) for rule in state.get('rules', []))
     try:
         stamp = (UFW_RULES.stat().st_mtime_ns, UFW_CONF.stat().st_mtime_ns)
     except OSError:

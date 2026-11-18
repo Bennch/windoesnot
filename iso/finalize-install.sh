@@ -46,7 +46,14 @@ find "$user_home" -maxdepth 2 -name windoesnot-installer.desktop -delete
 # Installed systems start with the firewall on. Order matters: ufw only touches the netfilter
 # state when ENABLED=yes, so rules are written first with ENABLED=no, and ENABLED is switched
 # on last. Nothing here may stop the installation, so every step only warns on failure.
-if [[ -f /etc/ufw/ufw.conf ]]; then
+if [[ -x /usr/lib/windoesnot/windoesnot-firewall ]]; then
+  # WinDoesNot firewall (nftables table inet windoesnot): defaults are written without kernel access and the
+  # service applies them at boot. ufw stays off so two firewalls never disagree. LocalSend (53317) stays closed
+  # until the user switches nearby sharing on.
+  /usr/lib/windoesnot/windoesnot-firewall init >/dev/null 2>&1 || echo 'Firewall defaults were not written' >&2
+  timeout --kill-after=2 30 systemctl disable ufw.service 2>/dev/null || true
+  timeout --kill-after=2 30 systemctl enable windoesnot-firewall.service 2>/dev/null || echo 'windoesnot-firewall.service could not be enabled' >&2
+elif [[ -f /etc/ufw/ufw.conf ]]; then
   sed -i 's/^ENABLED=.*/ENABLED=no/' /etc/ufw/ufw.conf
   # 5353/udp: mDNS, needed for network printer discovery. LocalSend (53317) is not opened yet.
   for rule in 5353/udp; do

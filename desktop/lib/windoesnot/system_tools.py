@@ -305,6 +305,12 @@ PRINTER_NAME = re.compile(r'[A-Za-z0-9_-]{1,64}')
 PRINTER_URI = re.compile(r'[a-z][a-z0-9+.-]{1,20}://[\x21-\x7e]{1,400}')
 # LocalSend's port (53317) is opened only by the explicit nearby-ports-set action.
 NEARBY_PORT = 53317
+FIREWALL_HELPER = '/usr/lib/windoesnot/windoesnot-firewall'
+
+
+def firewall_helper():
+    """The WinDoesNot firewall helper when installed; ufw is only the fallback for older installations."""
+    return os.path.exists(FIREWALL_HELPER)
 
 
 def parse_printers(queues, default, found):
@@ -349,6 +355,12 @@ def printer_candidates():
 
 
 def firewall_status():
+    if firewall_helper():
+        try:
+            state = json.loads(Path('/var/lib/windoesnot/firewall/state.json').read_text())
+            return {'enabled': state.get('enabled') is True}
+        except (OSError, ValueError):
+            return {'enabled': False}
     if not available('ufw'):
         return None
     try:
@@ -1164,6 +1176,9 @@ def apply(action, payload):
         command('/usr/bin/lpadmin', '-d', payload['name'], timeout=60)
         return {'reboot': False}
     if action == 'nearby-ports-set':
+        if firewall_helper():
+            command(FIREWALL_HELPER, 'template', 'localsend', 'on' if payload['open'] else 'off', '--profile', 'home,public', timeout=60)
+            return {'reboot': False}
         if not available('ufw'):
             raise ValueError('ufw is not installed')
         for proto in ('tcp', 'udp'):
@@ -1174,6 +1189,9 @@ def apply(action, payload):
                 command('/usr/bin/ufw', '--force', 'delete', 'allow', rule, timeout=60, allowed=(0, 1))
         return {'reboot': False}
     if action == 'firewall-set':
+        if firewall_helper():
+            command(FIREWALL_HELPER, 'enable' if payload['enabled'] else 'disable', timeout=60)
+            return {'reboot': False}
         if not available('ufw'):
             raise ValueError('ufw is not installed')
         if payload['enabled']:
