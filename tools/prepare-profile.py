@@ -106,8 +106,8 @@ def stage_store(pin, target, package='windoesnot-store', version_file='Cargo.tom
             raise SystemExit(f'Store PKGBUILD lacks: {old}')
         pkgbuild = pkgbuild.replace(old, f'{remap} cargo {step} --release --frozen')
     write(target / 'PKGBUILD', pkgbuild)
-    if package == 'windoesnot-store':
-        write(target / 'windoesnot-store.install', show('windoesnot-store.install'))
+    if package in ('windoesnot-store', 'windoesnot-network'):   # packages with an install script
+        write(target / f'{package}.install', show(f'{package}.install'))
     return {'version': version, 'commit': commit, 'archive_sha256': digests[0], 'vendor_sha256': digests[1]}
 
 def stage_audio(pin, target, package='windoesnot-audio'):
