@@ -156,38 +156,52 @@ def privileged(args):
             if any(p.name.casefold() == args.name.casefold() for p in SHARES.iterdir()): return {'ok': False, 'error': 'exists'}
             if not args.guest and run(['/usr/bin/pdbedit', '-L', '-u', user.pw_name]).returncode:
                 return {'ok': False, 'error': 'needs-password'}
-            acl = 'Everyone:R' if args.guest else user.pw_name + (':F' if args.access == 'write' else ':R')
-            if net(['add', args.name, path, '', acl, 'guest_ok=y' if args.guest else 'guest_ok=n']).returncode:
+            # Samba resolves account names through its running daemon. Start it
+            # transiently before creating the first usershare, then enable only
+            # after the share and firewall have both succeeded.
+            was_active = run(['/usr/bin/systemctl', 'is-active', '--quiet', 'smb.service']).returncode == 0
+            if not was_active and run(['/usr/bin/systemctl', 'start', 'smb.service']).returncode:
                 return {'ok': False, 'error': 'failed'}
-            # Do not replace a pre-existing template owned by another feature.
-            marker = Path('/var/lib/windoesnot/share-firewall-owned')
-            state = Path('/var/lib/windoesnot/firewall/state.json')
+            success = False
             try:
-                rules = json.loads(state.read_text()).get('rules', [])
-            except (OSError, ValueError):
-                net(['delete', args.name]); return {'ok': False, 'error': 'failed'}
-            if not marker.exists() and any(r.get('template') == 'smb' for r in rules):
-                net(['delete', args.name]); return {'ok': False, 'error': 'failed'}
-            existing = [r for r in rules if r.get('template') == 'smb']
-            if marker.exists():
-                try: owned = json.loads(marker.read_text())
-                except (OSError, ValueError): owned = None
-                if owned != existing:
+                acl = 'Everyone:R' if args.guest else user.pw_name + (':F' if args.access == 'write' else ':R')
+                if net(['add', args.name, path, '', acl, 'guest_ok=y' if args.guest else 'guest_ok=n']).returncode:
+                    return {'ok': False, 'error': 'failed'}
+                # Do not replace a pre-existing template owned by another feature.
+                marker = Path('/var/lib/windoesnot/share-firewall-owned')
+                state = Path('/var/lib/windoesnot/firewall/state.json')
+                try:
+                    rules = json.loads(state.read_text()).get('rules', [])
+                except FileNotFoundError:
+                    rules = []
+                except (OSError, ValueError):
                     net(['delete', args.name]); return {'ok': False, 'error': 'failed'}
-                fw = subprocess.CompletedProcess([], 0)
-            else:
-                fw = run([FIREWALL, 'template', 'smb', 'on', '--profile', 'home'])
-                if not fw.returncode:
-                    owned = [r for r in json.loads(state.read_text()).get('rules', []) if r.get('template') == 'smb']
-                    marker.parent.mkdir(parents=True, exist_ok=True)
-                    marker.write_text(json.dumps(owned)); marker.chmod(0o600)
-            service = run(['/usr/bin/systemctl', 'enable', '--now', 'smb.service']) if fw.returncode == 0 else None
-            if fw.returncode or service.returncode:
-                net(['delete', args.name])
-                if not any(SHARES.iterdir()) and marker.exists():
-                    if not run([FIREWALL, 'template', 'smb', 'off', '--profile', 'home']).returncode: marker.unlink()
-                return {'ok': False, 'error': 'failed'}
-            return {'ok': True, 'unc': unc(args.name)}
+                if not marker.exists() and any(r.get('template') == 'smb' for r in rules):
+                    net(['delete', args.name]); return {'ok': False, 'error': 'failed'}
+                existing = [r for r in rules if r.get('template') == 'smb']
+                if marker.exists():
+                    try: owned = json.loads(marker.read_text())
+                    except (OSError, ValueError): owned = None
+                    if owned != existing:
+                        net(['delete', args.name]); return {'ok': False, 'error': 'failed'}
+                    fw = subprocess.CompletedProcess([], 0)
+                else:
+                    fw = run([FIREWALL, 'template', 'smb', 'on', '--profile', 'home'])
+                    if not fw.returncode:
+                        owned = [r for r in json.loads(state.read_text()).get('rules', []) if r.get('template') == 'smb']
+                        marker.parent.mkdir(parents=True, exist_ok=True)
+                        marker.write_text(json.dumps(owned)); marker.chmod(0o600)
+                service = run(['/usr/bin/systemctl', 'enable', '--now', 'smb.service']) if fw.returncode == 0 else None
+                if fw.returncode or service.returncode:
+                    net(['delete', args.name])
+                    if not any(SHARES.iterdir()) and marker.exists():
+                        if not run([FIREWALL, 'template', 'smb', 'off', '--profile', 'home']).returncode: marker.unlink()
+                    return {'ok': False, 'error': 'failed'}
+                success = True
+                return {'ok': True, 'unc': unc(args.name)}
+            finally:
+                if not success and not was_active:
+                    run(['/usr/bin/systemctl', 'stop', 'smb.service'])
         if args.command == 'remove':
             if net(['delete', args.name]).returncode: return {'ok': False, 'error': 'failed'}
             if not any(SHARES.iterdir()):
