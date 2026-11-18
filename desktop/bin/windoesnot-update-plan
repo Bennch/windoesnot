@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+"""Plan explicit repository targets for a synchronized pacman full upgrade."""
+import argparse
+import json
+import os
+import re
+import subprocess
+
+ENV = dict(os.environ, LC_ALL="C")
+DEPENDENCY = re.compile(r"unable to satisfy dependency '([^']+)' required by ([^\s]+)")
+SPEC = re.compile(r'^([a-zA-Z0-9@._+][a-zA-Z0-9@._+-]*)(>=|<=|=|>|<)([^\s]+)$')
+
+def run(args):
+    return subprocess.run(args, env=ENV, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', default='/etc/pacman.conf')
+    parser.add_argument('--root')
+    parser.add_argument('--dbpath')
+    parser.add_argument('--cachedir')
+    parser.add_argument('--logfile')
+    args = parser.parse_args()
+    base = ['pacman', '--config', args.config]
+    for key in ('root', 'dbpath', 'cachedir', 'logfile'):
+        value = getattr(args, key)
+        if value:
+            base += ['--' + key, value]
+    targets, unresolved = [], []
+    try:
+        repos_result = run(['pacman-conf', '--config', args.config, '--repo-list'])
+        if repos_result.returncode:
+            raise RuntimeError('cannot read repository configuration')
+        repos = repos_result.stdout.splitlines()
+        for round_number in range(4):
+            preview = run(base + ['-Su', '--print', '--noconfirm'] + targets)
+            if preview.returncode == 0:
+                print(json.dumps({'status': 'fixed' if targets else 'ok', 'targets': targets, 'unresolved': []}))
+                return
+            failures = DEPENDENCY.findall(preview.stderr + '\n' + preview.stdout)
+            if not failures:
+                unresolved = [preview.stderr.strip() or preview.stdout.strip() or 'pacman preview failed']
+                break
+            unresolved = []
+            additions = []
+            for expression in dict.fromkeys(expression for expression, _ in failures):
+                match = SPEC.fullmatch(expression)
+                if not match:
+                    unresolved.append(expression)
+                    continue
+                name, op, wanted = match.groups()
+                candidate = None
+                for repo in repos:
+                    info = run(base + ['-Si', repo + '/' + name])
+                    version = re.search(r'^Version\s*:\s*(\S+)', info.stdout, re.M)
+                    if info.returncode or not version:
+                        continue
+                    comparison = run(['vercmp', version.group(1), wanted])
+                    if comparison.returncode:
+                        continue
+                    cmp = int(comparison.stdout.strip())
+                    if {'>=': cmp >= 0, '<=': cmp <= 0, '=': cmp == 0, '>': cmp > 0, '<': cmp < 0}[op]:
+                        candidate = repo + '/' + name
+                        break
+                if candidate and candidate not in targets and candidate not in additions:
+                    additions.append(candidate)
+                else:
+                    unresolved.append(expression)
+            if unresolved or not additions or round_number == 3:
+                if round_number == 3:
+                    unresolved += [expression for expression, _ in failures if expression not in unresolved]
+                break
+            targets.extend(additions)
+    except (OSError, ValueError, RuntimeError) as exc:
+        unresolved = [str(exc)]
+    print(json.dumps({'status': 'unresolvable', 'targets': targets, 'unresolved': list(dict.fromkeys(unresolved))}))
+
+if __name__ == '__main__':
+    main()

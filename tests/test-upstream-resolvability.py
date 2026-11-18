@@ -73,6 +73,18 @@ class ResolverTests(unittest.TestCase):
         pos=self.preview([('bridge',bridge),('first',first),('later',later)])
         self.assertEqual(pos.returncode,0,pos.stdout+pos.stderr)
 
+    def test_explicit_repo_target_resolves_shadowing(self):
+        installed(self.db,'gate-firefox','160.0-1')
+        installed(self.db,'gate-firefox-i18n-de','160.0-1',['gate-firefox>=160.0'])
+        first=self.repo('first',[('gate-firefox','160.0-1.1',[],[])])
+        later=self.repo('later',[('gate-firefox','160.0.1-1',[],[]),('gate-firefox-i18n-de','160.0.1-1',['gate-firefox>=160.0.1'],[])])
+        config=self.p/'pacman.conf'; config.write_text('[options]\nArchitecture = x86_64\nSigLevel = Never\nDisableSandbox\n[first]\nServer = file://%s\n[later]\nServer = file://%s\n'%(first,later))
+        args=['unshare','-Ur','pacman','--config',str(config),'--root',str(self.p/'root'),'--dbpath',str(self.db),'--cachedir',str(self.p),'--logfile',str(self.p/'pacman.log')]
+        run(args+['-Sy','--noconfirm'],env={**os.environ,'LC_ALL':'C'})
+        r=run(args+['-Su','--print','--noconfirm','later/gate-firefox'],env={**os.environ,'LC_ALL':'C'})
+        self.assertEqual(r.returncode,0,r.stdout+r.stderr)
+        self.assertIn('later/gate-firefox-160.0.1-1',r.stdout)
+
     def test_shadowing_real_databases(self):
         first=self.repo('first',[('gate-libffi','1-1.1',[],[]),('gate-epoch','1:1-1',[],[])])
         later=self.repo('later',[('gate-libffi','2-1',[],[]),('gate-epoch','2-1',[],[]),('gate-only','1-1',[],[])])

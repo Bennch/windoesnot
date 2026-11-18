@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+"""Synchronize repositories, preview, and perform a complete system update."""
+import json
+import subprocess
+import sys
+
+def main():
+    if subprocess.call(['sudo', 'pacman', '-Sy']) != 0:
+        return 1
+    try:
+        result = subprocess.run(['windoesnot-update-plan'], text=True, capture_output=True, check=True)
+        plan = json.loads(result.stdout)
+    except (OSError, subprocess.SubprocessError, ValueError) as exc:
+        print('Updateplanung fehlgeschlagen:', exc, file=sys.stderr)
+        return 1
+    if plan.get('status') not in ('ok', 'fixed'):
+        print('Update nicht auflösbar:', '; '.join(plan.get('unresolved', [])), file=sys.stderr)
+        return 1
+    targets = plan.get('targets', [])
+    if targets:
+        print('Explizit gewählte Repository-Pakete:', ', '.join(targets))
+    if input('Vollständiges Systemupdate starten? [j/N] ').strip().lower() not in ('j', 'ja', 'y', 'yes'):
+        return 1
+    return subprocess.call(['sudo', 'pacman', '-Su'] + targets)
+
+if __name__ == '__main__':
+    sys.exit(main())

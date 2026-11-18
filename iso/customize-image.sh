@@ -20,6 +20,10 @@ if [[ $(strip_rebuild_suffix "$hyprland_installed") != $(strip_rebuild_suffix "$
     printf 'Update sources.json once this build is confirmed good.\n'
     printf '================================================================\n\n'
 fi
+# archiso removes sync DBs during cleanup: retain their age and package origins
+# before that cleanup, so the finished build can be checked without guessing.
+python3 /usr/share/windoesnot/tools/check-iso-freshness.py --snapshot \
+    /var/lib/pacman/sync /var/lib/pacman/local /usr/share/windoesnot/build-sync.json
 python3 -c 'import sys; sys.path.insert(0,"/usr/share/windoesnot/iso"); from boot_splash import finish_theme; finish_theme("/")'
 # Produce archiso initramfs for both boot-menu kernels, without changing host tools.
 for kernel in linux-cachyos linux-cachyos-lts; do
