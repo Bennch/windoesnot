@@ -26,6 +26,25 @@ DEBUG = False
 # Height in logical pixels of the Quickshell taskbar at the bottom of the primary monitor (plus a small margin).
 TASKBAR_STRIP = 48
 
+def taskbar_monitor_name(app):
+    """Connector of the monitor that carries the Quickshell taskbar (from Hyprland's layer list, cached briefly)."""
+    import time as _time
+    cache = getattr(app, "_taskbar_monitor_cache", None)
+    if cache and _time.monotonic() - cache[0] < 5:
+        return cache[1]
+    name = getattr(app, "primary_monitor_id", None)
+    try:
+        out = subprocess.run(["hyprctl", "layers", "-j"], capture_output=True, text=True, timeout=2).stdout
+        for monitor, data in json.loads(out).items():
+            for items in data.get("levels", {}).values():
+                if any(item.get("namespace") == "quickshell" and item.get("h", 0) <= 60 and item.get("w", 0) > 1000 for item in items):
+                    name = monitor
+    except Exception:
+        pass
+    app._taskbar_monitor_cache = (_time.monotonic(), name)
+    return name
+
+
 def debug(msg):
     """Debug-Ausgabe nur wenn DEBUG aktiviert."""
     if DEBUG:
@@ -2515,7 +2534,7 @@ class MonitorWindow:
 
         # The desktop surface lies under the taskbar. A right click that reaches it from the taskbar strip
         # (seen after a popup grab was released) must not open the desktop menu.
-        if self.monitor_id == getattr(self.app, "primary_monitor_id", self.monitor_id):
+        if self.monitor_id == taskbar_monitor_name(self.app):
             height = self.win.get_height() or self.overlay.get_height()
             if height and y >= height - TASKBAR_STRIP:
                 debug("desktop right click ignored: inside the taskbar strip")

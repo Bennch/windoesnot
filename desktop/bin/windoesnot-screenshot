@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Screenshot with a clickable notification: hyprshot saves the image and copies it to the clipboard,
+# Screenshot with a clickable notification: the screen is captured at the key press (open popups stay visible),
+# the selection only crops it; the image is saved and copied to the clipboard,
 # then a notification opens the picture with a click on the card or on the "Open" button, or its folder.
 #   windoesnot-screenshot [region|window|output|active]
 set -uo pipefail
@@ -11,10 +12,53 @@ dir+=/Screenshots
 mkdir -p -- "$dir"
 name=$(date +%Y-%m-%d_%H-%M-%S).png
 file=$dir/$name
-args=(-m "$mode")
-[[ $mode == active ]] && args=(-m window -m active)
-# Esc during the selection cancels: nothing was saved, nothing to announce.
-hyprshot "${args[@]}" --silent -o "$dir" -f "$name" || exit 0
+# Grab the whole desktop FIRST. Choosing a region opens a selection overlay, and that closes open popups
+# (context menus, taskbar panels, widgets) before the picture is taken; cropping a capture made at the key
+# press keeps them in the image.
+full=$(mktemp --suffix=.png)
+trap 'rm -f -- "$full"' EXIT
+grim "$full" || exit 1
+# Top-left corner of the combined capture in layout coordinates.
+read -r ox oy < <(hyprctl monitors -j | python3 -c '
+import json, sys
+m = json.load(sys.stdin)
+print(min(x["x"] for x in m), min(x["y"] for x in m))')
+geometry=""
+# Show the captured screen frozen while choosing, so the popup stays visible during the selection too.
+freeze_pid=""
+if [[ $mode != active ]] && command -v hyprpicker >/dev/null; then
+    hyprpicker -r -z >/dev/null 2>&1 &
+    freeze_pid=$!
+    sleep 0.35
+fi
+stop_freeze() { [[ -n $freeze_pid ]] && kill "$freeze_pid" 2>/dev/null; freeze_pid=""; }
+trap 'stop_freeze; rm -f -- "$full"' EXIT
+case $mode in
+    region)
+        geometry=$(slurp -d -b '#00000066' -c '#fe6f2dff' -w 2 -f '%x %y %w %h') || exit 0 ;;
+    window)
+        geometry=$(hyprctl clients -j | python3 -c '
+import json, sys
+for w in json.load(sys.stdin):
+    if w["mapped"] and not w["hidden"] and w["workspace"]["id"] > 0:
+        print("%d %d %d %d" % (w["at"][0], w["at"][1], w["size"][0], w["size"][1]))' | slurp -r -f '%x %y %w %h') || exit 0 ;;
+    output)
+        geometry=$(hyprctl monitors -j | python3 -c '
+import json, sys
+for m in json.load(sys.stdin):
+    w, h = (m["height"], m["width"]) if m["transform"] % 2 else (m["width"], m["height"])
+    print("%d %d %d %d" % (m["x"], m["y"], round(w / m["scale"]), round(h / m["scale"])))' | slurp -r -f '%x %y %w %h') || exit 0 ;;
+    active)
+        geometry=$(hyprctl activewindow -j | python3 -c '
+import json, sys
+w = json.load(sys.stdin)
+print("%d %d %d %d" % (w["at"][0], w["at"][1], w["size"][0], w["size"][1]) if w else "")') ;;
+esac
+stop_freeze
+[[ -n $geometry ]] || exit 0
+read -r gx gy gw gh <<<"$geometry"
+(( gw > 0 && gh > 0 )) || exit 0
+magick "$full" -crop "${gw}x${gh}+$((gx - ox))+$((gy - oy))" +repage "$file" 2>/dev/null || exit 1
 [[ -s $file ]] || exit 0
 wl-copy --type image/png <"$file" 2>/dev/null || true
 if [[ ${LC_ALL:-${LANG:-}} == de* ]]; then
