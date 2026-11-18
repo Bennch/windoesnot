@@ -2668,13 +2668,17 @@ FloatingWindow {
                             // actual content item so the scroll range follows it immediately.
                             // Only the page that is shown counts: the background page stays loaded (and invisible), and its
                             // tall wallpaper grid used to stretch the scroll range of every other page (empty space at the end).
-                            contentHeight: Math.max(height, visibleContentHeight() + 20)
+                            contentHeight: Math.max(height, visibleContentHeight() + 40)
                             function visibleContentHeight() {
                                 var h = 0
                                 var kids = contentContainer.children
                                 for (var i = 0; i < kids.length; i++) {
                                     var c = kids[i]
-                                    if (c.visible && c.height > 0) h = Math.max(h, c.y + c.height)
+                                    if (!c.visible) continue
+                                    // The Loader's own height can lag behind its page (async content, late growth): also trust the page itself.
+                                    var ph = c.height
+                                    if (c.item) ph = Math.max(ph, c.item.height, c.item.childrenRect ? c.item.childrenRect.y + c.item.childrenRect.height : 0)
+                                    if (ph > 0) h = Math.max(h, c.y + ph)
                                 }
                                 return h
                             }
@@ -2736,6 +2740,7 @@ FloatingWindow {
                         // Background Settings
                         Loader {
                             id: backgroundSettingsLoader
+                            active: (settingsMenu.currentCategory === "background" && settingsMenu.visible) || item !== null
                             visible: settingsMenu.currentCategory === "background"
                             width: parent.width
                             source: "settings/BackgroundCategory.qml"

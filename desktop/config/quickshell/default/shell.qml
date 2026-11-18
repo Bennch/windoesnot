@@ -852,6 +852,7 @@ PanelWindow {
     }
 
     function openCopilotPopup(iconItem) {
+        if (!copilotWindowLoader.active) copilotWindowLoader.active = true
         if (!copilotWindow) return
         console.log("[Copilot] openCopilotPopup called, currently visible:", copilotWindow.visible)
         var host = copilotWindow.host
@@ -6039,6 +6040,7 @@ FloatingWindow {
 
     Loader {
         id: batteryPanelLoader
+        active: calendarWindow.visible || item !== null
         anchors.fill: parent
         source: "calendar/SimpleCalendarWidget.qml"
 
@@ -6086,6 +6088,7 @@ FloatingWindow {
 
     Loader {
         id: audioLoader
+        active: audioWindow.visible || item !== null
         anchors.fill: parent
         source: "widgets/AudioPanel.qml"
         asynchronous: false  // Load immediately, not async
@@ -6454,6 +6457,7 @@ FloatingWindow {
     // to the window height, which is itself derived from the panel.
     Loader {
         id: nearbyLoader
+        active: nearbyWindow.visible || item !== null
         // Hyprland can keep the window taller than the panel; pin the panel to the
         // window's bottom edge so it always sits on the taskbar. Only the bottom is
         // anchored, so the height still comes from the panel (no binding loop).
@@ -8154,7 +8158,7 @@ Connections {
 // shown again, so the loader builds a fresh one; chats are stored on disk.
 LazyLoader {
     id: copilotWindowLoader
-    active: true
+    active: false
 
 FloatingWindow {
     id: copilotFloating
