@@ -3,16 +3,31 @@
   "releases": [
     {
       "version": "0.1.0-32",
-      "date": "2026-11-18",
+      "date": "2026-11-19",
       "de": [
         "Updates prüfen Paketabhängigkeiten und schützen die Starteinträge bei Kernelwechseln.",
-        "Der Store zeigt Probleme bei Systemupdates verständlicher an."
+        "Der Store zeigt Probleme bei Systemupdates verständlicher an.",
+        "Neue Firewall in der Netzwerk-App: offene Ports live mit Erklärung, Profile pro Netzwerk (Zuhause, Öffentlich, Strikt), Regeln und Vorlagen. Sie ersetzt ufw beim Update automatisch; wer sie ausschaltet, bleibt ausgeschaltet.",
+        "Neue Diagnose unter Einstellungen, Wartung & Kernel: Schnelltests (Ton, Bluetooth, Netzwerk, Speicherplatz, Grafik, Firewall und mehr), Fehler seit dem Start und ein Bericht ohne persönliche Daten zum Kopieren oder Speichern.",
+        "Ordner im Netzwerk freigeben: Rechtsklick im Dateimanager, eigener Dialog, Zugriff von Windows und Mac (Samba). Gast nur lesend und nur auf Wunsch.",
+        "Kalender mit Feiertagen für Deutschland, Österreich, die Schweiz, die USA, Großbritannien und Frankreich, Kalenderwochen und wählbarem Wochenbeginn. Alles in den Einstellungen abschaltbar.",
+        "Benachrichtigungen: Position und Anzeige auf dem Bildschirm sind einstellbar; das Meldungszentrum bleibt oben in der Mitte.",
+        "Einstellungen: Berechtigungen für Flatpak-Apps als übersichtliche Tabellen, Scrollen reicht auf allen Seiten bis ganz nach unten, neue Karte Mein System exportieren.",
+        "Store: Nur WinDoesNot aktualisieren unter der Liste der Updates, wenn es welche gibt.",
+        "Das Netzwerk-Symbol zeigt bei einem Kabel das Kabel-Symbol; Netzwerk öffnen im Rechtsklick-Menü öffnet die Netzwerk-App, dazu Firewall öffnen."
       ],
       "en": [
         "Updates check package dependencies and protect boot entries when kernels change.",
-        "The Store explains system update problems more clearly."
-      ],
-      "unreleased": true
+        "The Store explains system update problems more clearly.",
+        "New firewall in the Network app: open ports live with explanations, a profile per network (Home, Public, Strict), rules and templates. It replaces ufw on update automatically; if you switch it off, it stays off.",
+        "New Diagnosis under Settings, Maintenance & Kernel: quick checks (sound, Bluetooth, network, disk space, graphics, firewall and more), errors since boot and a report without personal data to copy or save.",
+        "Share folders in the network: right-click in the file manager, own dialog, access from Windows and Mac (Samba). Guests read-only and only on request.",
+        "Calendar with holidays for Germany, Austria, Switzerland, the US, the UK and France, week numbers and a selectable first day of the week. Everything can be switched off in Settings.",
+        "Notifications: position and on-screen display are adjustable; the notification centre stays at the top centre.",
+        "Settings: Flatpak app permissions as clear tables, every page scrolls all the way down, new card Export my system.",
+        "Store: Update WinDoesNot only below the list of updates, shown when there are some.",
+        "The network icon shows the cable symbol on a wired connection; Open Network in the right-click menu opens the Network app, plus Open Firewall."
+      ]
     },
     {
       "version": "0.1.0-31",

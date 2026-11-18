@@ -26,3 +26,8 @@ VmClipboardSettings 1.0 VmClipboardSettings.qml
 FlatpakPermissions 1.0 FlatpakPermissions.qml
 
 ThemePresets 1.0 ThemePresets.qml
+DiagnoseCategory 1.0 DiagnoseCategory.qml
+ExportSystem 1.0 ExportSystem.qml
+NotificationSettings 1.0 NotificationSettings.qml
+PrinterCategory 1.0 PrinterCategory.qml
+SharedFolders 1.0 SharedFolders.qml
