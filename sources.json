@@ -20,7 +20,7 @@
   "windoesnot-store": {
     "url": "https://github.com/Bennch/windoesnot-store",
     "path": "store",
-    "commit": "fb548cba815129b90e64b8e3b9c54fee05d0dd58"
+    "commit": "e5f05d990057a940b9175d5612b3ac3785439eca"
   },
   "windoesnot-device-manager": {
     "url": "https://github.com/Bennch/windoesnot-device-manager",
