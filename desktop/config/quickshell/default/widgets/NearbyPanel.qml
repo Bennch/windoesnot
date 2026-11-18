@@ -107,6 +107,7 @@ Rectangle {
                     // A small copy icon is enough here (the whole text button was too much for one IP).
                     Item {
                         id: copyButton
+                        objectName: "copyAddresses"
                         width: 28; height: 28
                         property bool copied: false
                         enabled: (panel.viewState.addresses || []).length > 0

@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "dgSpecHash": "DEdew4DXSGM=",
+  "success": true,
+  "projectFilePath": "/home/benni/Projekte/WinDoesNot/tests/UsbWriterHarness/UsbWriterHarness.csproj",
+  "expectedPackageFiles": [
+    "/home/benni/Projekte/WinDoesNot/igloo-windoesnot/.nuget/packages/cryptsharpstandard/1.0.0/cryptsharpstandard.1.0.0.nupkg.sha512",
+    "/home/benni/Projekte/WinDoesNot/igloo-windoesnot/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/8.0.0/microsoft.extensions.dependencyinjection.abstractions.8.0.0.nupkg.sha512",
+    "/home/benni/Projekte/WinDoesNot/igloo-windoesnot/.nuget/packages/microsoft.extensions.logging.abstractions/8.0.0/microsoft.extensions.logging.abstractions.8.0.0.nupkg.sha512",
+    "/home/benni/Projekte/WinDoesNot/igloo-windoesnot/.nuget/packages/system.codedom/8.0.0/system.codedom.8.0.0.nupkg.sha512",
+    "/home/benni/Projekte/WinDoesNot/igloo-windoesnot/.nuget/packages/system.management/8.0.0/system.management.8.0.0.nupkg.sha512",
+    "/home/benni/Projekte/WinDoesNot/igloo-windoesnot/.nuget/packages/microsoft.netcore.app.ref/8.0.34/microsoft.netcore.app.ref.8.0.34.nupkg.sha512",
+    "/home/benni/Projekte/WinDoesNot/igloo-windoesnot/.nuget/packages/microsoft.netcore.app.runtime.win-x64/8.0.34/microsoft.netcore.app.runtime.win-x64.8.0.34.nupkg.sha512",
+    "/home/benni/Projekte/WinDoesNot/igloo-windoesnot/.nuget/packages/microsoft.windowsdesktop.app.ref/8.0.34/microsoft.windowsdesktop.app.ref.8.0.34.nupkg.sha512",
+    "/home/benni/Projekte/WinDoesNot/igloo-windoesnot/.nuget/packages/microsoft.windowsdesktop.app.runtime.win-x64/8.0.34/microsoft.windowsdesktop.app.runtime.win-x64.8.0.34.nupkg.sha512",
+    "/home/benni/Projekte/WinDoesNot/igloo-windoesnot/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.34/microsoft.aspnetcore.app.ref.8.0.34.nupkg.sha512",
+    "/home/benni/Projekte/WinDoesNot/igloo-windoesnot/.nuget/packages/microsoft.aspnetcore.app.runtime.win-x64/8.0.34/microsoft.aspnetcore.app.runtime.win-x64.8.0.34.nupkg.sha512",
+    "/home/benni/Projekte/WinDoesNot/igloo-windoesnot/.nuget/packages/microsoft.netcore.app.host.win-x64/8.0.34/microsoft.netcore.app.host.win-x64.8.0.34.nupkg.sha512",
+    "/home/benni/Projekte/WinDoesNot/igloo-windoesnot/.nuget/packages/microsoft.windows.sdk.net.ref/10.0.19041.57/microsoft.windows.sdk.net.ref.10.0.19041.57.nupkg.sha512"
+  ],
+  "logs": []
+}

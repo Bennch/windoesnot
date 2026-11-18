@@ -8,7 +8,7 @@ import "../i18n/Lang.js" as Lang
 // update brings — WinDoesNot, programs, system — and technical details last.
 // Data comes from the WinDoesNot Store (`--status-json`), which reads a
 // user-owned copy of the package databases and never changes the system.
-// Installing is always one full upgrade, reviewed in the Store (`--upgrade`).
+// Updates are reviewed in the Store.
 Column {
     id: updatesPage
     property var settingsMenu: null
@@ -186,6 +186,11 @@ Column {
         command: ["windoesnot-store", "--upgrade"]
     }
 
+    Process {
+        id: onlyUpgradeProc
+        command: ["windoesnot-store", "--windoesnot-updates"]
+    }
+
     // `pacman -Q` reads only /var/lib/pacman/local; missing packages are skipped.
     Process {
         id: wdnPkgProc
@@ -322,6 +327,23 @@ Column {
                             cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                             onClicked: updatesPage.check(true)
                         }
+                    }
+                }
+                Rectangle {
+                    width: onlyUpdateLabel.implicitWidth + 32; height: 36
+                    radius: settingsMenu.borderRadius
+                    color: "transparent"; border.color: accent; border.width: 1
+                    Text {
+                        id: onlyUpdateLabel
+                        anchors.centerIn: parent
+                        text: Lang.get("updates.onlyWdn", _lang)
+                        font.pixelSize: 13; color: textColor
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: !storeMissing
+                        cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onClicked: { onlyUpgradeProc.running = true; settingsMenu.visible = false }
                     }
                 }
                 Text {

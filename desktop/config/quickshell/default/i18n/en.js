@@ -577,6 +577,7 @@ var strings = {
     "updates.heroAvailableOne": "1 update ready",
     "updates.heroNever": "Not checked for updates yet",
     "updates.heroNeverHint": "Connect to the internet and check for updates.",
+    "updates.onlyWdn": "Update WinDoesNot only",
     "updates.updateNow": "Update now",
     "updates.afterReboot": "A restart is needed afterwards.",
     "updates.afterRelogin": "Log out and back in afterwards.",

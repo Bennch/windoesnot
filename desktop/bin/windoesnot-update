@@ -18,8 +18,7 @@ def windoesnot_only(noconfirm=False, config="/etc/pacman.conf", pacman_args=()):
                 current = line[1:-1]
                 sections[current] = [line]
             elif current is not None:
-                sections[current].append(line
-                )
+                sections[current].append(line)
         if "windoesnot" not in sections or "options" not in sections:
             raise ValueError("Repository [windoesnot] fehlt in der pacman-Konfiguration")
         with tempfile.TemporaryDirectory(prefix="windoesnot-update-") as directory:
@@ -30,7 +29,7 @@ def windoesnot_only(noconfirm=False, config="/etc/pacman.conf", pacman_args=()):
             if subprocess.call(prefix + ["-Sy"]) != 0:
                 return 1
             query = subprocess.run(prefix + ["-Qu"], text=True, capture_output=True)
-            if query.returncode not in (0, 1):
+            if query.returncode not in (0, 1) or (query.returncode == 1 and query.stderr.strip()):
                 raise RuntimeError(query.stderr)
             targets = ["windoesnot/" + line.split()[0] for line in query.stdout.splitlines() if line.split() and line.split()[0].startswith("windoesnot-")]
             if not targets:
@@ -46,7 +45,7 @@ def windoesnot_only(noconfirm=False, config="/etc/pacman.conf", pacman_args=()):
             print("WinDoesNot-Update: " + ", ".join(packages), flush=True)
             if not noconfirm and input("Nur WinDoesNot aktualisieren? [j/N] ").strip().lower() not in ("j", "ja", "y", "yes"):
                 return 1
-            return subprocess.call(prefix + ["-S", "--needed"] + (["--noconfirm"] if noconfirm else []) + targets)
+            return subprocess.call(prefix + ["-S", "--needed", "--noconfirm"] + targets)
     except (OSError, subprocess.SubprocessError, ValueError, RuntimeError) as exc:
         print("WinDoesNot-Update fehlgeschlagen:", exc, file=sys.stderr)
         return 1

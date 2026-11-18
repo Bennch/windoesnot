@@ -63,7 +63,7 @@ ShellRoot {
     testWindow.check(testWindow.incomingCount===1,"progress does not steal focus repeatedly")
     testWindow.check(panel.tr("nearby.title")==="In der Nähe teilen","German")
     testWindow.check(testWindow.find(panel,o=>o.text==="Eigene IP-Adressen") && testWindow.find(panel,o=>o.text==="192.168.77.10, 192.168.77.12"),"local addresses shown")
-    testWindow.check(testWindow.find(panel,o=>o.text==="Kopieren"),"copy button shown")
+    testWindow.check(testWindow.find(panel,o=>o.objectName==="copyAddresses"),"copy icon button shown")
     testWindow.check(testWindow.find(panel,o=>o.text==="Other computer") && testWindow.find(panel,o=>o.text==="WinDoesNot Live-System  ·  192.168.77.11"),"peer alias, model and IP shown on two lines")
     const accept=testWindow.find(panel,o=>o.text==="Annehmen")
     testWindow.check(accept && accept.visible,"explicit approval offered")
@@ -72,7 +72,7 @@ ShellRoot {
     testWindow.check(nearbyService.pendingCommands[0].action==="reject","reject command routed")
     panel.uiLanguage="en"; panel.darkMode=false
     testWindow.check(panel.tr("nearby.title")==="Nearby sharing","English")
-    testWindow.check(testWindow.find(panel,o=>o.text==="Your IP addresses") && testWindow.find(panel,o=>o.text==="Copy"),"English IP labels")
+    testWindow.check(testWindow.find(panel,o=>o.text==="Your IP addresses") && testWindow.find(panel,o=>o.objectName==="copyAddresses"),"English IP labels")
     testWindow.check(accept.text==="Accept","buttons follow language")
     panelWindow.rebuildTrayModel()
     let count=0; for(let i=0;i<trayIconModel.count;i++) if(trayIconModel.get(i).iconType==="nearby")count++

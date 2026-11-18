@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0-windows10.0.19041.0</TargetFramework><EnableWindowsTargeting>true</EnableWindowsTargeting><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../../igloo-windoesnot/src/Igloo.Core/Igloo.Core.csproj"/><ProjectReference Include="../../igloo-windoesnot/src/Igloo.UsbWriter/Igloo.UsbWriter.csproj"/></ItemGroup>
+</Project>

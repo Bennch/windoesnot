@@ -577,6 +577,7 @@ var strings = {
     "updates.heroAvailableOne": "1 Update bereit",
     "updates.heroNever": "Noch nicht nach Updates gesucht",
     "updates.heroNeverHint": "Verbinde den Computer mit dem Internet und suche nach Updates.",
+    "updates.onlyWdn": "Nur WinDoesNot aktualisieren",
     "updates.updateNow": "Jetzt aktualisieren",
     "updates.afterReboot": "Danach ist ein Neustart nötig.",
     "updates.afterRelogin": "Danach einmal ab- und wieder anmelden.",
