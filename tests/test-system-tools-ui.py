@@ -104,8 +104,8 @@ ShellRoot {
     liteState.liteMode=false; maintenance.acceptStatus(liteState); preferences.uiLanguage="de"
     maintenance.selectedGroup="security"
     const firewallCard = testWindow.find(maintenance, o => o.objectName === "firewallCard")
-    const firewallToggle = testWindow.find(maintenance, o => o.objectName === "firewallToggle")
-    testWindow.check(firewallCard && firewallCard.visible && firewallToggle && firewallToggle.visible && firewallToggle.checked && firewallToggle.enabled, "active firewall is visible and controllable")
+    const firewallToggle = testWindow.find(maintenance, o => o.objectName === "firewallOpen")
+    testWindow.check(firewallCard && firewallCard.visible && firewallToggle && firewallToggle.visible && firewallToggle.enabled, "firewall card links to the Network app")
     maintenance.selectedGroup="repair"
     maintenanceLoader.visible=false
     maintenance.showOrphans=true; maintenance.showFailed=true

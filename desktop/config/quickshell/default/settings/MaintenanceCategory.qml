@@ -470,20 +470,19 @@ Item {
                 id: firewallContent; x: 16; y: 16; width: parent.width - 32; spacing: 10
                 Text { width: parent.width; text: page.tr("maintenance.firewall"); color: page.foreground; font.pixelSize: 15; font.bold: true; wrapMode: Text.WordWrap }
                 Note { text: page.tr("maintenance.firewallHint") }
-                Tools.SystemToolsToggle {
-                    id: firewallToggle
-                    objectName: "firewallToggle"
-                    settingsMenu: page.settingsMenu
-                    text: page.tr("maintenance.firewallActive")
-                    enabled: page.ready && !page.busy && !page.state.live && page.state.firewall !== null && page.state.firewall !== undefined
-                    checked: page.state.firewall ? page.state.firewall.enabled === true : false
-                    onToggled: {
-                        page.requestAction("firewall-set", {enabled: checked},
-                            page.tr(checked ? "maintenance.confirmFirewallOn" : "maintenance.confirmFirewallOff"))
-                        // Show the confirmed state only after the next status read.
-                        checked = Qt.binding(function() { return page.state.firewall ? page.state.firewall.enabled === true : false })
-                    }
+                Text {
+                    width: parent.width; wrapMode: Text.WordWrap; font.pixelSize: 13; color: page.foreground
+                    text: page.state.firewall && page.state.firewall.enabled ? page.tr("maintenance.firewallOnNow") : page.tr("maintenance.firewallOffNow")
                 }
+                Tools.SystemToolsButton {
+                    id: firewallOpen
+                    objectName: "firewallOpen"
+                    settingsMenu: page.settingsMenu
+                    primary: true
+                    text: page.tr("maintenance.firewallOpenApp")
+                    onClicked: openFirewallApp.running = true
+                }
+                Process { id: openFirewallApp; command: ["windoesnot-open-network", "--page", "firewall"] }
                 Note { visible: page.ready && (page.state.firewall === null || page.state.firewall === undefined); text: page.tr("maintenance.firewallUnavailable") }
             }
         }
