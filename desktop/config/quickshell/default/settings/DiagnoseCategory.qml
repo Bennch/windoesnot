@@ -45,6 +45,19 @@ Column {
             if (code !== 0) page.failedToLoad = true
         }
     }
+    // Our own apps open from the hint: no detour through generic tools.
+    readonly property var openers: ({
+        "audio": ["windoesnot-audio"], "microphone": ["windoesnot-audio"], "bluetooth": ["windoesnot-bluetooth"],
+        "network": ["windoesnot-network"]
+    })
+    function opener(id) { return openers[id] ? openers[id] : null }
+    Process { id: openApp }
+    function openCheck(id) {
+        if (id === "time") { settingsMenu.currentCategory = "input"; return }
+        if (id === "disk") { settingsMenu.currentCategory = "maintenance"; return }
+        var command = opener(id)
+        if (command) { openApp.command = command; openApp.running = true }
+    }
     Process {
         id: copyProc
         command: ["bash", "-c", "windoesnot-diagnose --report | wl-copy"]
@@ -120,8 +133,18 @@ Column {
                     }
                     Text {
                         visible: modelData.status === "warn"
-                        x: 14; width: parent.width - 28; bottomPadding: 10; wrapMode: Text.WordWrap; font.pixelSize: 12; color: page.warnColor
+                        x: 14; width: parent.width - 28; bottomPadding: openButton.visible ? 6 : 10; wrapMode: Text.WordWrap; font.pixelSize: 12; color: page.warnColor
                         text: page.tr("check." + modelData.id + "." + (modelData.detail || "warn")).replace("%1", modelData.detail)
+                    }
+                    Item {
+                        id: openButton
+                        visible: modelData.status === "warn" && (page.opener(modelData.id) !== null || modelData.id === "time" || modelData.id === "disk")
+                        width: parent.width; height: visible ? 46 : 0
+                        Tools.SystemToolsButton {
+                            x: 14; y: 0; settingsMenu: page.settingsMenu
+                            text: page.tr("open." + modelData.id)
+                            onClicked: page.openCheck(modelData.id)
+                        }
                     }
                 }
             }
