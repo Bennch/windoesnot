@@ -339,9 +339,9 @@ PanelWindow {
 
                         // Notification Icon
                         Rectangle {
-                            width: 25
-                            height: 25
-                            radius: 14
+                            width: 26
+                            height: 26
+                            radius: 13
                             color: topNotificationBar.hasNotifications ? topNotificationBar.accentColor : "transparent"
                             anchors.verticalCenter: parent.verticalCenter
 
@@ -360,30 +360,6 @@ PanelWindow {
                                 mipmap: true
                                 layer.enabled: true
                                 layer.smooth: true
-                            }
-
-                            // Badge mit Anzahl
-                            Rectangle {
-                                visible: topNotificationBar.notificationCount > 0
-                                anchors.right: parent.right
-                                anchors.top: parent.top
-                                anchors.rightMargin: -4
-                                anchors.topMargin: -4
-                                width: Math.max(16, countText.width + 8)  // etwas mehr Padding für zentrierte Zahl
-                                height: 16
-                                radius: 8
-                                color: topNotificationBar.darkMode ? "#3a3a3f" : "#333333"
-                                border.color: topNotificationBar.accentColor
-                                border.width: 1
-
-                                Text {
-                                    id: countText
-                                    anchors.centerIn: parent
-                                    text: topNotificationBar.notificationCount > 9 ? "9+" : topNotificationBar.notificationCount
-                                    color: "#ffffff"
-                                    font.pixelSize: 10
-                                    font.bold: true
-                                }
                             }
                         }
 
