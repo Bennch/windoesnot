@@ -2,6 +2,19 @@
   "comment": "WinDoesNot changes per desktop package release, newest first. Shown in Settings > Updates; entries marked unreleased are never offered as an update.",
   "releases": [
     {
+      "version": "0.1.0-32",
+      "date": "2026-11-18",
+      "de": [
+        "Updates prüfen Paketabhängigkeiten und schützen die Starteinträge bei Kernelwechseln.",
+        "Der Store zeigt Probleme bei Systemupdates verständlicher an."
+      ],
+      "en": [
+        "Updates check package dependencies and protect boot entries when kernels change.",
+        "The Store explains system update problems more clearly."
+      ],
+      "unreleased": true
+    },
+    {
       "version": "0.1.0-31",
       "date": "2026-11-17",
       "de": [
