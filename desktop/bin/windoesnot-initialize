@@ -44,7 +44,7 @@ if share_defaults.is_dir():
 # The extension stays linked to managed code; preserve an existing user extension.
 extensions = config / 'quickshell/default/extras/nautilus'
 extension_dir = Path(os.environ.get('XDG_DATA_HOME', home / '.local/share')) / 'nautilus-python/extensions'
-for name in ('windoesnot-nearby.py', 'windoesnot-admin.py'):
+for name in ('windoesnot-nearby.py', 'windoesnot-admin.py', 'windoesnot-share.py'):
     extension = extensions / name
     target = extension_dir / name
     if extension.is_file() and not target.exists() and not target.is_symlink():

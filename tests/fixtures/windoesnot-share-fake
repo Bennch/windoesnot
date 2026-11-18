@@ -1,0 +1,63 @@
+#!/usr/bin/python3
+"""Fake windoesnot-share for UI tests: same CLI contract, works only on the JSON file in WINDOESNOT_SHARE_STATE."""
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+STATE = Path(os.environ.get('WINDOESNOT_SHARE_STATE', '/tmp/windoesnot-share-fake.json'))
+HOST = 'pc-benni'
+
+
+def load():
+    try:
+        return json.loads(STATE.read_text())
+    except (OSError, ValueError):
+        return {'installed': True, 'configured': True, 'password': False, 'shares': []}
+
+
+def save(data):
+    STATE.write_text(json.dumps(data))
+
+
+def out(value):
+    print(json.dumps(value))
+
+
+def main(argv):
+    data = load()
+    cmd = argv[0] if argv else ''
+    if cmd == 'status':
+        out({'installed': data['installed'], 'configured': data['configured'], 'password': data.get('password', False),
+             'hostname': HOST, 'shares': data['shares']})
+    elif cmd == 'setup':
+        data['configured'] = True; save(data); out({'ok': True})
+    elif cmd == 'set-password':
+        if not sys.stdin.readline().strip():
+            return out({'ok': False, 'error': 'failed'})
+        data['password'] = True; save(data); out({'ok': True})
+    elif cmd == 'add':
+        opts = dict(zip(argv[1::2], argv[2::2])) if '--guest' not in argv else dict(zip([a for a in argv[1:] if a != '--guest'][0::2], [a for a in argv[1:] if a != '--guest'][1::2]))
+        name = opts.get('--name', '')
+        if not data['configured']:
+            return out({'ok': False, 'error': 'not-configured'})
+        if not re.fullmatch(r'[\w .-]{1,40}', name):
+            return out({'ok': False, 'error': 'invalid-name'})
+        if any(s['name'] == name for s in data['shares']):
+            return out({'ok': False, 'error': 'exists'})
+        if not data.get('password') and '--guest' not in argv:
+            return out({'ok': False, 'error': 'needs-password'})
+        data['shares'].append({'name': name, 'path': opts.get('--path', ''), 'access': opts.get('--access', 'read'), 'guest': '--guest' in argv,
+                               'unc': '\\\\' + HOST + '\\' + name})
+        save(data); out({'ok': True, 'unc': '\\\\' + HOST + '\\' + name})
+    elif cmd == 'remove':
+        data['shares'] = [s for s in data['shares'] if s['name'] != (argv[1] if len(argv) > 1 else '')]
+        save(data); out({'ok': True})
+    else:
+        out({'ok': False, 'error': 'failed'})
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

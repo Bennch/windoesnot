@@ -188,6 +188,22 @@ IpcHandler {
     }
 }
 
+// Folder sharing dialog (Samba usershare): created on first use only. `qs ipc call windoesnot-share open <folder>`.
+LazyLoader {
+    id: shareDialogLoader
+    active: false
+    ShareDialog { id: shareDialog; settingsMenu: settingsMenu }
+}
+IpcHandler {
+    target: "windoesnot-share"
+    function open(path: string): string {
+        shareDialogLoader.active = true
+        if (!shareDialogLoader.item) return "not ready"
+        shareDialogLoader.item.openFor(path)
+        return "open"
+    }
+}
+
 // Opens or closes any taskbar panel from the command line (placement checks, screenshots).
 IpcHandler {
     target: "windoesnot-panels"
