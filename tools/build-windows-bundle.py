@@ -41,7 +41,8 @@ Systemlaufwerk; ein vorhandenes Handoff wird ersetzt. Windows-Quelldateien
 werden dabei nicht geloescht. WLAN-Schluessel koennen im Export im Klartext
 stehen. Zugang schuetzen, Handoff nach erfolgreichem Umzug loeschen. Browser-
 Passwoerter sind nicht garantiert; Chrome/Edge v20 werden nicht uebernommen.
-Die App (Windows 10/11) laedt auf Wunsch die aktuelle WinDoesNot-ISO, prueft
+Die App (Windows 10/11) und der Exporter (Windows 7/8.1, Schaltflaeche "USB-Stick
+erstellen..." auf der letzten Seite) laden auf Wunsch die aktuelle WinDoesNot-ISO, pruefen
 sie per SHA-256 und schreibt sie auf einen USB-Stick. ACHTUNG: Der gewaehlte
 Stick wird vollstaendig GELOESCHT; nur USB-Wechselmedien mit 512-Byte-Sektoren
 werden angeboten, zur Bestaetigung muss LOESCHEN getippt werden. Windows
@@ -60,7 +61,8 @@ Saving writes C:\\WinDoesNotHandoff on the system drive and replaces any prior
 handoff; Windows source files are not deleted by this operation. Exported Wi-Fi
 keys can be plaintext; protect the folder and remove it after migration.
 Browser passwords are not guaranteed; Chrome/Edge v20 cannot be migrated.
-On request the app (Windows 10/11) downloads the current WinDoesNot ISO,
+On request the app (Windows 10/11) and the exporter (Windows 7/8.1, button "Create USB
+stick..." on the last page) download the current WinDoesNot ISO,
 verifies it with SHA-256 and writes it to a USB stick. WARNING: the chosen
 stick is completely ERASED; only removable USB drives with 512-byte sectors
 are offered, and you must type ERASE to confirm. Windows itself is not changed.
