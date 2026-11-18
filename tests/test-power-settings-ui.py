@@ -20,6 +20,7 @@ with tempfile.TemporaryDirectory(prefix='wdn-power-ui-') as temp:
     shutil.copytree(SOURCE / 'i18n', profile / 'i18n')
     shutil.copy2(SOURCE / 'settings/PowerCategory.qml', profile / 'settings')
     shutil.copy2(SOURCE / 'settings/SystemCategory.qml', profile / 'settings')
+    shutil.copy2(SOURCE / 'settings/DiagnoseCategory.qml', profile / 'settings')
     shutil.copy2(SOURCE / 'settings/KernelCategory.qml', profile / 'settings')
     shutil.copy2(SOURCE / 'settings/MaintenanceCategory.qml', profile / 'settings')
     shutil.copy2(SOURCE / 'settings/AccountCategory.qml', profile / 'settings')

@@ -57,6 +57,42 @@ class Diagnose(unittest.TestCase):
         with mock.patch.object(diag, 'run', return_value=(0, '0: hci0: Bluetooth\n\tSoft blocked: yes\n\tHard blocked: no\n')):
             self.assertEqual(diag.check_bluetooth(), ('warn', 'soft-blocked'))
 
+    def test_new_checks(self):
+        with mock.patch.object(diag, 'run', return_value=(0, '00:02.0 VGA compatible controller: Intel Corporation GPU\n')):
+            self.assertEqual(diag.check_gpu(), ('ok', 'none'))
+        with mock.patch.object(diag, 'run', side_effect=[(0, '01:00.0 VGA compatible controller: NVIDIA GPU\n'), (0, 'Module Size Used by\n')]), mock.patch('os.path.isdir', return_value=False):
+            self.assertEqual(diag.check_gpu(), ('warn', 'no-driver'))
+        with mock.patch.object(diag, 'run', return_value=(0, '01:00.0 VGA compatible controller: NVIDIA GPU\n\tKernel driver in use: nouveau\n')):
+            self.assertEqual(diag.check_gpu(), ('unknown', ''))
+        with mock.patch.dict(os.environ, {'HYPRLAND_INSTANCE_SIGNATURE': 'test'}), mock.patch.object(diag, 'run', return_value=(0, '[{"disabled": true}]')):
+            self.assertEqual(diag.check_display(), ('warn', 'disabled'))
+        with mock.patch.object(diag, 'run', return_value=(1, '')):
+            self.assertEqual(diag.check_suspend(), ('unknown', ''))
+        with mock.patch.object(diag, 'run', return_value=(0, 'Failed to suspend')):
+            self.assertEqual(diag.check_suspend(), ('warn', 'failed'))
+        with mock.patch('os.path.isfile', return_value=True), mock.patch.object(diag, 'run', return_value=(0, 'number,type\n' + ''.join('%d,single\n' % i for i in range(1, 51)))):
+            self.assertEqual(diag.check_snapshots(), ('warn', 'many'))
+        boot = 'BootOrder: 0001,0002\nBoot0001* Windows Boot Manager\tHD(...)\nBoot0002* Linux\tHD(...)\n'
+        with mock.patch('os.path.isdir', return_value=True), mock.patch.object(diag, 'run', return_value=(0, boot)):
+            self.assertEqual(diag.check_boot(), ('warn', 'windows-first'))
+        with mock.patch('builtins.open', mock.mock_open(read_data='{"enabled": false}')):
+            self.assertEqual(diag.check_firewall(), ('warn', 'off'))
+        with mock.patch('builtins.open', mock.mock_open(read_data='{"enabled": true}')), mock.patch.object(diag, 'run', return_value=(3, 'inactive\n')):
+            self.assertEqual(diag.check_firewall(), ('warn', 'inactive'))
+        with tempfile.TemporaryDirectory() as folder:
+            log = Path(folder) / 'pacman.log'
+            log.write_text('[2020-01-01T00:00:00+0000] [ALPM] upgraded foo (1 -> 2)\n')
+            with mock.patch.object(diag, 'PACMAN_LOG', str(log)):
+                self.assertEqual(diag.check_updates(), ('warn', 'old'))
+                log.write_text('')
+                self.assertEqual(diag.check_updates(), ('unknown', ''))
+
+    def test_new_checks_are_in_report_and_redacted(self):
+        data = {'time': 1, 'boot': 0, 'kernel': 'test', 'failed': [], 'errors': {'available': False, 'entries': []},
+                'packages': {'entries': []}, 'hyprland': {'available': False, 'errors': [], 'plugins': []},
+                'disk': [], 'checks': [{'id': 'boot', 'status': 'warn', 'detail': 'windows-first'}]}
+        self.assertIn('boot: warn windows-first', diag.report(data))
+
 
 if __name__ == '__main__':
     unittest.main()

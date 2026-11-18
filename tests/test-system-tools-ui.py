@@ -20,6 +20,7 @@ with tempfile.TemporaryDirectory(prefix='wdn-system-ui-') as temp:
     base=Path(temp); profile=base/'profile'; (profile/'settings').mkdir(parents=True)
     shutil.copytree(SOURCE/'i18n',profile/'i18n')
     shutil.copy2(SOURCE/'settings/KernelCategory.qml',profile/'settings')
+    shutil.copy2(SOURCE/'settings/ExportSystem.qml',profile/'settings')
     shutil.copy2(SOURCE/'settings/DiagnoseCategory.qml',profile/'settings')
     shutil.copy2(SOURCE/'settings/SystemCategory.qml',profile/'settings')
     shutil.copy2(SOURCE/'settings/AccountCategory.qml',profile/'settings')

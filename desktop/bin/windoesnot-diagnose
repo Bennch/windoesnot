@@ -6,6 +6,9 @@ report with personal data removed (user name, host name, home path, IP and MAC a
 Time proximity between a package change and an error is shown as proximity, never as a cause.
 """
 import json
+import csv
+import datetime
+import io
 import os
 import re
 import shutil
@@ -223,8 +226,125 @@ def check_disk():
     return ('warn', 'low') if usage.free < usage.total * 0.1 or usage.free < 5 * 2**30 else ('ok', '')
 
 
+
+def check_gpu():
+    code, out = run('lspci', '-nnk', timeout=8)
+    if code != 0:
+        return 'unknown', ''
+    blocks = re.split(r'\n(?=\S)', out)
+    cards = [b for b in blocks if re.search(r'(VGA compatible|3D controller|Display controller).*NVIDIA', b, re.I)]
+    if not cards:
+        return 'ok', 'none'
+    drivers = [re.search(r'Kernel driver in use:\s*(\S+)', b, re.I) for b in cards]
+    if any(m and m.group(1) == 'nvidia' for m in drivers):
+        return 'ok', ''
+    if any(m and m.group(1) == 'nouveau' for m in drivers):
+        # Hardware generation cannot reliably be inferred from lspci's descriptive name.
+        return 'unknown', ''
+    if all(not m for m in drivers):
+        code, modules = run('lsmod', timeout=8)
+        if code != 0 or os.path.isdir('/proc/driver/nvidia') or re.search(r'^nvidia\s', modules, re.M):
+            return 'unknown', ''
+        return 'warn', 'no-driver'
+    return 'unknown', ''
+
+
+def check_display():
+    if not os.environ.get('HYPRLAND_INSTANCE_SIGNATURE'):
+        return 'unknown', ''
+    code, out = run('hyprctl', '-j', 'monitors', 'all', timeout=8)
+    if code != 0:
+        return 'unknown', ''
+    monitors = json.loads(out)
+    if not isinstance(monitors, list) or not monitors:
+        return 'unknown', ''
+    if any(m.get('disabled') is True for m in monitors):
+        return 'warn', 'disabled'
+    return ('ok', '') if all(isinstance(m.get('disabled'), bool) for m in monitors) else ('unknown', '')
+
+
+def check_suspend():
+    code, out = run('journalctl', '-b', '-g', 'Failed to suspend|Failed to resume', '-n', '100', '--no-pager', '-o', 'cat', timeout=8)
+    if code != 0:
+        return 'unknown', ''
+    return ('warn', 'failed') if out.strip() else ('ok', '')
+
+
+def check_snapshots():
+    if not os.path.isfile('/etc/snapper/configs/root'):
+        return 'unknown', ''
+    code, out = run('snapper', '-c', 'root', '--csvout', 'list', timeout=8)
+    if code != 0:
+        return 'unknown', ''
+    rows = list(csv.DictReader(io.StringIO(out)))
+    if not rows or 'number' not in rows[0]:
+        return 'unknown', ''
+    count = sum(1 for row in rows if row.get('number', '').isdigit() and row['number'] != '0')
+    return ('warn', 'many') if count >= 50 else ('ok', str(count))
+
+
+def check_boot():
+    if not os.path.isdir('/sys/firmware/efi'):
+        return 'unknown', ''
+    code, out = run('efibootmgr', '-v', timeout=8)
+    if code != 0:
+        return 'unknown', ''
+    order = re.search(r'^BootOrder:\s*([0-9A-Fa-f,]+)', out, re.M)
+    if not order:
+        return 'unknown', ''
+    entries = {}
+    for line in out.splitlines():
+        match = re.match(r'^Boot([0-9A-Fa-f]{4})\*\s+([^\t]+)', line)
+        if match:
+            label = match.group(2).lower()
+            if 'windows boot manager' in label:
+                entries[match.group(1).upper()] = 'windows'
+            elif re.search(r'\b(linux|windoesnot|cachyos|arch|grub|systemd-boot)\b', label):
+                entries[match.group(1).upper()] = 'linux'
+    known = [entries[x.upper()] for x in order.group(1).split(',') if x.upper() in entries]
+    if 'windows' not in known or 'linux' not in known:
+        return 'unknown', ''
+    return ('warn', 'windows-first') if known.index('windows') < known.index('linux') else ('ok', '')
+
+
+def check_firewall():
+    try:
+        with open('/var/lib/windoesnot/firewall/state.json') as stream:
+            enabled = json.load(stream).get('enabled')
+    except (OSError, ValueError, AttributeError):
+        return 'unknown', ''
+    if enabled is False:
+        return 'warn', 'off'
+    if enabled is not True:
+        return 'unknown', ''
+    code, out = run('systemctl', 'is-active', 'windoesnot-firewall.service', timeout=8)
+    if code == 0 and out.strip() == 'active':
+        return 'ok', ''
+    if out.strip() in ('inactive', 'failed'):
+        return 'warn', 'inactive'
+    return 'unknown', ''
+
+
+def check_updates():
+    try:
+        with open(PACMAN_LOG, errors='replace') as stream:
+            last = None
+            for line in stream:
+                match = _PACMAN_LINE.match(line.strip())
+                if match and match.group(4) == 'upgraded':
+                    last = match
+        if not last:
+            return 'unknown', ''
+        stamp = datetime.datetime.fromisoformat(last.group(1) + 'T' + last.group(2) + (last.group(3) or '+00:00')).timestamp()
+        if stamp > time.time():
+            return 'unknown', ''
+        return ('warn', 'old') if time.time() - stamp > 30 * 86400 else ('ok', '')
+    except (OSError, ValueError, OverflowError):
+        return 'unknown', ''
+
 CHECKS = [('audio', check_audio), ('microphone', check_microphone), ('bluetooth', check_bluetooth), ('network', check_network),
-          ('time', check_time), ('reboot', check_reboot), ('pacnew', check_pacnew), ('pacman-lock', check_pacman_lock), ('disk', check_disk)]
+          ('time', check_time), ('reboot', check_reboot), ('pacnew', check_pacnew), ('pacman-lock', check_pacman_lock), ('disk', check_disk), ('gpu', check_gpu), ('display', check_display), ('suspend', check_suspend),
+          ('snapshots', check_snapshots), ('boot', check_boot), ('firewall', check_firewall), ('updates', check_updates)]
 
 
 def checks():

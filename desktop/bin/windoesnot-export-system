@@ -1,0 +1,107 @@
+#!/usr/bin/python3 -I
+"""Export "my system" as a small folder you can take to another WinDoesNot installation.
+
+Writes (default: ~/Downloads/windoesnot-system-YYYYMMDD):
+  software-profile.json   installer profile (schema_version 1, catalogue app IDs) - "Load profile" in the installer
+  other-packages.txt      explicitly installed repository packages that no catalogue app covers
+  aur-packages.txt        packages from the AUR / outside the repositories
+  flatpak-apps.txt        installed Flatpak apps
+  desktop-settings.txt    WinDoesNot desktop preferences (no passwords, keys, tokens, chats or histories)
+  README.txt              how to restore everything
+Never exported: passwords, keys, browser profiles, chat/history files, machine IDs.
+"""
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+CATALOGS = [Path('/usr/share/windoesnot/iso/software/catalog.json'), Path(__file__).resolve().parents[2] / 'iso/software/catalog.json']
+SETTINGS = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config') / 'quickshell/default/settings.txt'
+# Base system and desktop: part of every WinDoesNot installation, not worth listing as "your" packages.
+BASE_PREFIXES = ('linux', 'windoesnot-', 'cachyos-', 'base', 'mesa', 'nvidia', 'amd-ucode', 'intel-ucode', 'grub', 'refind', 'systemd',
+                 'pipewire', 'wireplumber', 'networkmanager', 'xdg-', 'qt6-', 'gtk', 'noto-fonts', 'ttf-', 'hyprland', 'quickshell')
+SECRET_KEY = re.compile(r'(key|token|secret|pass|chat|history|api|cookie|credential)', re.I)
+
+
+def run(*args):
+    try:
+        result = subprocess.run(args, capture_output=True, text=True, timeout=60, check=False)
+        return result.stdout if result.returncode == 0 else ''
+    except (OSError, subprocess.SubprocessError):
+        return ''
+
+
+def lines(text):
+    return sorted({line.strip() for line in text.splitlines() if line.strip()})
+
+
+def load_catalog():
+    for path in CATALOGS:
+        try:
+            return json.loads(path.read_text())
+        except (OSError, ValueError):
+            continue
+    return {'apps': []}
+
+
+def covered_profile(catalog, installed, flatpaks):
+    selected = []
+    for app in catalog.get('apps', []):
+        packages = app.get('packages') or []
+        by_package = bool(packages) and all(p in installed for p in packages)
+        by_flatpak = app.get('flatpak') in flatpaks if app.get('flatpak') else False
+        if by_package or by_flatpak or (app.get('required') and app['id'] not in selected):
+            selected.append(app['id'])
+    return selected
+
+
+def filtered_settings():
+    try:
+        text = SETTINGS.read_text()
+    except OSError:
+        return ''
+    return '\n'.join(line for line in text.splitlines() if '=' in line and not SECRET_KEY.search(line.split('=', 1)[0])) + '\n'
+
+
+def export(target):
+    target.mkdir(parents=True, exist_ok=True)
+    explicit = set(lines(run('pacman', '-Qqe')))
+    foreign = set(lines(run('pacman', '-Qqm')))
+    flatpaks = set(lines(run('flatpak', 'list', '--app', '--columns=application')))
+    catalog = load_catalog()
+    installed = explicit | set(lines(run('pacman', '-Qq')))
+    selected = covered_profile(catalog, installed, flatpaks)
+    covered = {p for app in catalog.get('apps', []) if app['id'] in selected for p in (app.get('packages') or [])}
+    other = sorted(p for p in explicit - foreign - covered if not p.startswith(BASE_PREFIXES))
+    (target / 'software-profile.json').write_text(json.dumps({'schema_version': 1, 'selected': selected}, indent=1) + '\n')
+    (target / 'other-packages.txt').write_text('\n'.join(other) + '\n')
+    (target / 'aur-packages.txt').write_text('\n'.join(sorted(foreign)) + '\n')
+    (target / 'flatpak-apps.txt').write_text('\n'.join(sorted(flatpaks)) + '\n')
+    (target / 'desktop-settings.txt').write_text(filtered_settings())
+    (target / 'README.txt').write_text(
+        'WinDoesNot system export\n\n'
+        '1. Installer: "Software" page -> Load profile -> software-profile.json (apps that are part of the installer catalogue).\n'
+        '2. Afterwards: open the Store and install the entries from other-packages.txt, aur-packages.txt and flatpak-apps.txt.\n'
+        '3. desktop-settings.txt holds your desktop preferences (language, colours, taskbar ...). Copy it to\n'
+        '   ~/.config/quickshell/default/settings.txt on the new system to bring the look and layout over.\n\n'
+        'Not exported on purpose: passwords, keys, browser profiles, chats, histories, machine IDs.\n')
+    return {'ok': True, 'path': str(target), 'apps': len(selected), 'other': len(other), 'aur': len(foreign), 'flatpak': len(flatpaks)}
+
+
+def main(argv):
+    base = Path(argv[0]) if argv else Path(subprocess.run(['xdg-user-dir', 'DOWNLOAD'], capture_output=True, text=True).stdout.strip() or str(Path.home()))
+    target = base / ('windoesnot-system-' + time.strftime('%Y%m%d-%H%M'))
+    try:
+        print(json.dumps(export(target)))
+    except OSError as error:
+        print(json.dumps({'ok': False, 'error': str(error)}))
+        return 1
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

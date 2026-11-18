@@ -48,13 +48,16 @@ Column {
     // Our own apps open from the hint: no detour through generic tools.
     readonly property var openers: ({
         "audio": ["windoesnot-audio"], "microphone": ["windoesnot-audio"], "bluetooth": ["windoesnot-bluetooth"],
-        "network": ["windoesnot-network"]
+        "network": ["windoesnot-network"], "gpu": ["windoesnot-device-manager"],
+        "firewall": ["windoesnot-open-network", "--page", "firewall"], "updates": ["windoesnot-store", "--windoesnot-updates"]
     })
     function opener(id) { return openers[id] ? openers[id] : null }
     Process { id: openApp }
     function openCheck(id) {
         if (id === "time") { settingsMenu.currentCategory = "input"; return }
         if (id === "disk") { settingsMenu.currentCategory = "maintenance"; return }
+        var categories = { display: "monitors", suspend: "power", snapshots: "backups" }
+        if (categories[id]) { settingsMenu.currentCategory = categories[id]; return }
         var command = opener(id)
         if (command) { openApp.command = command; openApp.running = true }
     }
@@ -138,7 +141,7 @@ Column {
                     }
                     Item {
                         id: openButton
-                        visible: modelData.status === "warn" && (page.opener(modelData.id) !== null || modelData.id === "time" || modelData.id === "disk")
+                        visible: modelData.status === "warn" && (page.opener(modelData.id) !== null || modelData.id === "time" || modelData.id === "disk" || modelData.id === "display" || modelData.id === "suspend" || modelData.id === "snapshots")
                         width: parent.width; height: visible ? 46 : 0
                         Tools.SystemToolsButton {
                             x: 14; y: 0; settingsMenu: page.settingsMenu
