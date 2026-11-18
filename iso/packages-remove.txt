@@ -33,8 +33,6 @@ partclone
 ddrescue
 testdisk
 gpart
-nbd
-open-iscsi
 ndisc6
 wvdial
 xl2tpd
@@ -43,7 +41,6 @@ irssi
 mc
 nmap
 tcpdump
-mkinitcpio-nfs-utils
 cava
 libpst
 intltool
