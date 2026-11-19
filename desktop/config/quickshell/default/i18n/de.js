@@ -1115,7 +1115,7 @@ var strings = {
     "search.runPlaceholder":    "Befehl eingeben...",
     "search.open": "Öffnen",
     "search.keys": "↑↓ wählen   ↑ ganz oben: Typ wechseln   ↵ öffnen   Strg+↵ im Ordner zeigen   Esc schließen   ·   /pdf /bilder /apps filtern",
-    "search.keysEmoji": "Pfeiltasten wählen   ↵ kopieren   Esc schließen",
+    "search.keysEmoji": "Pfeiltasten wählen   ↵ einfügen   Esc schließen",
     "search.chip.all": "Alle",
     "search.chip.apps": "Apps",
     "search.chip.folders": "Ordner",

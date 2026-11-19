@@ -417,9 +417,12 @@ FloatingWindow {
         p.running = true
     }
 
+    // Types the emoji into the window that had the focus before the search (wtype) and also keeps it in the clipboard.
     function activateEmoji(em) {
         closeSearch()
-        copyText(em.e)
+        var p = Qt.createQmlObject('import Quickshell.Io; Process {}', root)
+        p.command = ["bash", "-c", 'printf %s "$1" | wl-copy; sleep 0.3; command -v wtype >/dev/null 2>&1 && wtype -- "$1"', "emoji", em.e]
+        p.running = true
     }
 
     function activateRunCmd(cmd) {

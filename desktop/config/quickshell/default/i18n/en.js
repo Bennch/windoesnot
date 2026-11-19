@@ -1115,7 +1115,7 @@ var strings = {
     "search.runPlaceholder":    "Enter command...",
     "search.open": "Open",
     "search.keys": "↑↓ select   ↑ at the top: change type   ↵ open   Ctrl+↵ show in folder   Esc close   ·   /pdf /images /apps filter",
-    "search.keysEmoji": "Arrow keys select   ↵ copy   Esc close",
+    "search.keysEmoji": "Arrow keys select   ↵ insert   Esc close",
     "search.chip.all": "All",
     "search.chip.apps": "Apps",
     "search.chip.folders": "Folders",
