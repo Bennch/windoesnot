@@ -1669,6 +1669,7 @@ PanelWindow {
                         MouseArea {
                             id: trayIconMouseArea
                             anchors.fill: parent
+                            property real lastActivate: 0
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
@@ -1681,7 +1682,17 @@ PanelWindow {
                                 trayTooltipTimer.stop()
                                 unifiedTooltip.hide()
                                 if (mouse.button === Qt.LeftButton) {
-                                    modelData.activate()
+                                    // A double click sends two Activate calls. Apps like Steam toggle their window on
+                                    // every Activate, so the second one hid it again: only the first counts.
+                                    var now = Date.now()
+                                    if (now - trayIconMouseArea.lastActivate < 700) return
+                                    trayIconMouseArea.lastActivate = now
+                                    // Steam's tray item (old Ayatana flavour) has no Activate method at all, so a click
+                                    // never did anything; its own URL scheme opens the main window.
+                                    if ((modelData.id || "").toLowerCase() === "steam")
+                                        Quickshell.execDetached(["steam", "steam://open/main"])
+                                    else
+                                        modelData.activate()
                                 } else if (mouse.button === Qt.MiddleButton) {
                                     modelData.secondaryActivate()
                                 } else if (mouse.button === Qt.RightButton) {

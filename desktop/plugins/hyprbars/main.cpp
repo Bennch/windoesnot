@@ -16,6 +16,13 @@
 #include <hyprland/src/state/MonitorState.hpp>
 
 #include <algorithm>
+#include <format>
+#include <hyprland/src/plugins/PluginAPI.hpp>
+#include <unordered_map>
+#include <hyprland/src/desktop/state/FocusState.hpp>
+#include <hyprland/src/helpers/MiscFunctions.hpp>
+#include <hyprland/src/config/supplementary/executor/Executor.hpp>
+#include <hyprland/src/desktop/view/window/WindowBackend.hpp>
 
 #include "barDeco.hpp"
 #include "globals.hpp"
@@ -30,7 +37,33 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
     return HYPRLAND_API_VERSION;
 }
 
+// Clients with their own title bar (Steam, Discord, GTK/Electron CSD ...) ask the compositor to maximize or minimize
+// them. Hyprland's own handling is unreliable for that: X11 clients always send "maximize" because the state is never
+// mirrored into _NET_WM_STATE (the button is one-way), and minimize requests are ignored. Listen to the backend's state
+// requests and do what our own bar buttons do: toggle the same pseudo-maximize, park minimized windows in
+// special:minimized. The core must not act on the same maximize request (suppress_event maximize rule). Maximize
+// requests only ever act on the focused window, the one the user just clicked.
+static std::unordered_map<uintptr_t, Hyprutils::Signal::CHyprSignalListener> g_stateRequestListeners;
+
+static void hookStateRequests(PHLWINDOW window) {
+    const uintptr_t key = reinterpret_cast<uintptr_t>(window.get());
+    if (g_stateRequestListeners.contains(key))
+        return;
+    PHLWINDOWREF wref = window;
+    g_stateRequestListeners[key] = window->backend().m_events.stateRequest.listen([wref](Desktop::View::SBackendStateRequest request) {
+        const auto W = wref.lock();
+        if (!W || !validMapped(W))
+            return;
+        if (request.minimized.value_or(false))
+            Config::Supplementary::executor()->spawn(
+                std::format("windoesnot-hyprctl dispatch movetoworkspacesilent special:minimized,address:0x{:x}", reinterpret_cast<uintptr_t>(W.get())));
+        if (request.maximized.has_value() && W->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->nobarRuleIdx) && Desktop::focusState()->window() == W)
+            Config::Supplementary::executor()->spawn("~/.config/hypr/toggle-maximize.sh");
+    });
+}
+
 static void onNewWindow(PHLWINDOW window) {
+    hookStateRequests(window);
     if (std::ranges::any_of(window->presentation().decorations(), [](const auto& d) { return d->getDisplayName() == "Hyprbar"; }))
         return;
 
@@ -169,8 +202,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     g_pGlobalState->titleColorRuleIdx = Desktop::Rule::windowEffects()->registerEffect("hyprbars:title_color");
     g_pGlobalState->dragGripRuleIdx   = Desktop::Rule::windowEffects()->registerEffect("hyprbars:drag_grip");
 
+
     static auto P  = Event::bus()->m_events.window.open.listen([&](PHLWINDOW w) { onNewWindow(w); });
     static auto P3 = Event::bus()->m_events.window.updateRules.listen([&](PHLWINDOW w) { onUpdateWindowRules(w); });
+    static auto PCLOSE = Event::bus()->m_events.window.close.listen([&](PHLWINDOW w) { g_stateRequestListeners.erase(reinterpret_cast<uintptr_t>(w.get())); });
 
     g_pGlobalState->config.barColor            = makeShared<Config::Values::CColorValue>("plugin:hyprbars:bar_color", "Change the bar color", 0x88333333);
     g_pGlobalState->config.barColorInactive   = makeShared<Config::Values::CColorValue>(
