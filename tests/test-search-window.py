@@ -34,10 +34,13 @@ ShellRoot {
       s.stepChip(-9); var chip3 = s.filterKind + ":" + s.activeChip
       s.query = "/pdf x"; s.stepChip(1); var chip4 = s.filterKind + ":" + s.searchText + ":" + s.query
       s.chipIndex = 0
-      s.query = ""; var empty = s.showHints
+      s.query = ""; s.selIdx = -1; s.navUp(); var up1 = s.filterKind
+      s.navUp(); s.navUp(); var up3 = s.filterKind
+      s.chipIndex = 0
+      var empty = s.showHints
       s.usage = {"Files": {c: 4, t: Date.now()}}
       var recent = s.allApps().length
-      console.log("SEARCH_RESULT " + [initials, calc, unit, filter, empty, recent, chip1, chip2, chip3, chip4].join(" ; "))
+      console.log("SEARCH_RESULT " + [initials, calc, unit, filter, empty, recent, chip1, chip2, chip3, chip4, up1, up3].join(" ; "))
     } catch (e) { console.log("SEARCH_ERROR " + e) }
     Qt.quit() } }
 }''')
@@ -48,7 +51,7 @@ ShellRoot {
     out = subprocess.run(['quickshell', '--no-color', '-p', str(base / 'shell.qml')], env=env, text=True,
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=30).stdout
     line = next((l for l in out.splitlines() if 'SEARCH_' in l), '')
-    assert 'SEARCH_RESULT Visual Studio Code ; 8 ; 3.1068559612 mi ; pdf|bill|0|true ; true ; 3 ; apps ; pdf:5 ; :0 ; video:x:x' in line, line + out[-1500:]
+    assert 'SEARCH_RESULT Visual Studio Code ; 8 ; 3.1068559612 mi ; pdf|bill|0|true ; true ; 3 ; apps ; pdf:5 ; :0 ; video:x:x ; apps ; docs' in line, line + out[-1500:]
     for bad in ('WARN scene', 'TypeError', 'ReferenceError', 'Failed to load configuration'):
         assert bad not in out, bad + '\n' + out[-1500:]
 print('PASS: search window ranks, answers and filters without QML warnings')

@@ -227,6 +227,7 @@ FloatingWindow {
             var cmd = query.substring(1).trim()
             if (cmd.length > 0) {
                 flatModel.append({type:"run", label:cmd, hintKey:"", filePath:"", clipText:"", appName:"", appCmd:cmd, appIcon:"", appCustomIcon:false, value:""})
+                flatModel.append({type:"term", label:cmd, hintKey:"", filePath:"", clipText:"", appName:"", appCmd:cmd, appIcon:"", appCustomIcon:false, value:""})
             }
             selIdx = flatModel.count > 0 ? 0 : -1
             return
@@ -285,6 +286,7 @@ FloatingWindow {
         // Web search (always shown when query >= 2 chars)
         if (query.length >= 2 && filterKind === "") {
             flatModel.append({type:"webSearch", label:query, hintKey:"", filePath:"", clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:""})
+            flatModel.append({type:"term", label:query, hintKey:"", filePath:"", clipText:"", appName:"", appCmd:query, appIcon:"", appCustomIcon:false, value:""})
         }
 
         // Empty state
@@ -322,10 +324,18 @@ FloatingWindow {
     }
 
     // ── Keyboard nav ─────────────────────────────────────────────────────────
+    // Up on the first row (nothing above it, as right after opening) changes the search type instead.
     function navUp() {
         var next = selIdx - 1
         while (next >= 0 && flatModel.get(next).type === "header") next--
         if (next >= 0) selIdx = next
+        else if (!showClip && !modeRun) cycleChip()
+    }
+
+    function cycleChip() {
+        var next = (activeChip + 1) % chipKinds.length
+        if (parsed.kind !== "") searchField.text = parsed.text
+        chipIndex = next
     }
 
     function navDown() {
@@ -349,6 +359,7 @@ FloatingWindow {
         if (item.type === "clip")      { activateClipText(item.clipText); return }
         if (item.type === "hint")      { activateHint(item.hintKey); return }
         if (item.type === "run")       { activateRunCmd(item.appCmd); return }
+        if (item.type === "term")      { activateRunTerminal(item.appCmd); return }
         if (item.type === "webSearch") { activateWebSearch(item.label); return }
     }
 
@@ -415,6 +426,14 @@ FloatingWindow {
         closeSearch()
         var p = Qt.createQmlObject('import Quickshell.Io; Process {}', root)
         p.command = ["bash", "-c", cmd + " & disown"]
+        p.running = true
+    }
+
+    // Runs the text in a terminal window that stays open afterwards.
+    function activateRunTerminal(cmd) {
+        closeSearch()
+        var p = Qt.createQmlObject('import Quickshell.Io; Process {}', root)
+        p.command = ["bash", "-c", 'T=ghostty; command -v "$T" >/dev/null 2>&1 || T=foot; setsid "$T" -e bash -lc "$1; exec bash" >/dev/null 2>&1 &', "terminal", cmd]
         p.running = true
     }
 
@@ -670,16 +689,8 @@ FloatingWindow {
                     if (root.modeEmoji) emojiGrid.moveCurrentIndexDown()
                     else root.navDown()
                 }
-                Keys.onLeftPressed: function(event) {
-                    if (root.modeEmoji) emojiGrid.moveCurrentIndexLeft()
-                    else if (!root.showClip && !root.modeRun && searchField.cursorPosition === searchField.text.length) root.stepChip(-1)
-                    else event.accepted = false
-                }
-                Keys.onRightPressed: function(event) {
-                    if (root.modeEmoji) emojiGrid.moveCurrentIndexRight()
-                    else if (!root.showClip && !root.modeRun && searchField.cursorPosition === searchField.text.length) root.stepChip(1)
-                    else event.accepted = false
-                }
+                Keys.onLeftPressed:  function(event) { if (root.modeEmoji) emojiGrid.moveCurrentIndexLeft(); else event.accepted = false }
+                Keys.onRightPressed: function(event) { if (root.modeEmoji) emojiGrid.moveCurrentIndexRight(); else event.accepted = false }
 
                 onTextChanged: {
                     root.query = text
@@ -1134,7 +1145,7 @@ FloatingWindow {
 
                 // ── RUN ────────────────────────────────────────────────────
                 Rectangle {
-                    visible: model.type === "run"
+                    visible: model.type === "run" || model.type === "term"
                     anchors {
                         fill: parent
                         leftMargin: 4; rightMargin: 8; topMargin: 3; bottomMargin: 3
@@ -1150,14 +1161,14 @@ FloatingWindow {
                         anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                         spacing: 10
                         Text {
-                            text: "▶"
+                            text: model.type === "term" ? ">_" : "▶"
                             color: root.accentColor; font.pixelSize: 14; font.bold: true
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         Column {
                             anchors.verticalCenter: parent.verticalCenter; spacing: 2
                             Text {
-                                text: Lang.get("search.runCommand", root.uiLanguage)
+                                text: Lang.get(model.type === "term" ? "search.runInTerminal" : "search.runCommand", root.uiLanguage)
                                 color: root.fgSub; font.pixelSize: 11
                             }
                             Text {
@@ -1175,7 +1186,7 @@ FloatingWindow {
                         id: runMouse
                         anchors.fill: parent; hoverEnabled: true
                         onEntered: root.selIdx = index
-                        onClicked: root.activateRunCmd(model.appCmd || "")
+                        onClicked: model.type === "term" ? root.activateRunTerminal(model.appCmd || "") : root.activateRunCmd(model.appCmd || "")
                     }
                 }
 
