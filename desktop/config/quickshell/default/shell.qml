@@ -4025,6 +4025,12 @@ FloatingWindow {
         updateFilteredApps()
     }
 
+    // A search matches the name or the keywords (German and English names, "screenshot" finds Bildschirmfoto).
+    function searchMatches(name, terms) {
+        var query = searchText.toLowerCase()
+        return ("" + name).toLowerCase().indexOf(query) >= 0 || ("" + (terms || "")).toLowerCase().indexOf(query) >= 0
+    }
+
     function updateFilteredApps() {
         filteredApps = []
 
@@ -4096,7 +4102,7 @@ FloatingWindow {
         if (searchText.length > 0) {
             for (var i = 0; i < selectedAppIndex; i++) {
                 var a = allAppsModel.get(i)
-                if (a && (searchText.length > 0 || showTechnicalApps || !a.technical || a.pinned) && a.name.toLowerCase().includes(searchText.toLowerCase())) {
+                if (a && (searchText.length > 0 || showTechnicalApps || !a.technical || a.pinned) && searchMatches(a.name, a.terms)) {
                     visualIndex++
                 }
             }
@@ -4208,7 +4214,7 @@ FloatingWindow {
             var visibleIndices = []
             for (var i = 0; i < allAppsModel.count; i++) {
                 var app = allAppsModel.get(i)
-                if ((startMenu.searchText.length > 0 || startMenu.showTechnicalApps || !app.technical || app.pinned) && (startMenu.searchText.length === 0 || app.name.toLowerCase().includes(startMenu.searchText.toLowerCase()))) {
+                if ((startMenu.searchText.length > 0 || startMenu.showTechnicalApps || !app.technical || app.pinned) && (startMenu.searchText.length === 0 || startMenu.searchMatches(app.name, app.terms))) {
                     visibleIndices.push(i)
                 }
             }
@@ -4688,7 +4694,7 @@ FloatingWindow {
                         var visible = 0
                         for (var i = 0; i < allAppsModel.count; i++) {
                             var app = allAppsModel.get(i)
-                            if ((startMenu.searchText.length > 0 || startMenu.showTechnicalApps || !app.technical || app.pinned) && (startMenu.searchText.length === 0 || app.name.toLowerCase().includes(startMenu.searchText.toLowerCase()))) {
+                            if ((startMenu.searchText.length > 0 || startMenu.showTechnicalApps || !app.technical || app.pinned) && (startMenu.searchText.length === 0 || startMenu.searchMatches(app.name, app.terms))) {
                                 visible++
                             }
                         }
@@ -4791,7 +4797,7 @@ FloatingWindow {
                                 var visibleIndices = []
                                 for (var i = 0; i < allAppsModel.count; i++) {
                                     var app = allAppsModel.get(i)
-                                    if ((startMenu.searchText.length > 0 || startMenu.showTechnicalApps || !app.technical || app.pinned) && (startMenu.searchText.length === 0 || app.name.toLowerCase().includes(startMenu.searchText.toLowerCase()))) {
+                                    if ((startMenu.searchText.length > 0 || startMenu.showTechnicalApps || !app.technical || app.pinned) && (startMenu.searchText.length === 0 || startMenu.searchMatches(app.name, app.terms))) {
                                         visibleIndices.push(i)
                                     }
                                 }
@@ -5150,7 +5156,7 @@ FloatingWindow {
                                 if (startMenu.searchText.length > 0) {
                                     for (var i = 0; i < allAppsModel.count; i++) {
                                         var app = allAppsModel.get(i)
-                                        if (app.pinned && app.name.toLowerCase().includes(startMenu.searchText.toLowerCase())) {
+                                        if (app.pinned && startMenu.searchMatches(app.name, app.terms)) {
                                             return true
                                         }
                                     }
@@ -5177,7 +5183,7 @@ FloatingWindow {
                                     // Bei Suche: Alle matchenden, ohne Suche: Nur unpinned
                                     visible: {
                                         if (startMenu.searchText.length > 0) {
-                                            return name.toLowerCase().includes(startMenu.searchText.toLowerCase())
+                                            return startMenu.searchMatches(name, model.terms)
                                         }
                                         return !pinned && (startMenu.showTechnicalApps || model.technical !== true)
                                     }

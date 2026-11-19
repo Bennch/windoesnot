@@ -15,7 +15,7 @@ import threading
 import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
-from gi.repository import Adw, Gdk, Gio, GLib, Gtk
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango
 
 HERE = Path(__file__).resolve().parent
 FINDER_PATH = None
@@ -63,71 +63,151 @@ button.suggested-action { background: #fe6f2d; color: #202020; }
 '''
 
 
+def open_path(path):
+    """Open a folder (or the folder of a file) in the file manager so the user can look inside."""
+    target = Path(path)
+    if target.is_file() or (target.exists() and not target.is_dir()):
+        target = target.parent
+    try:
+        Gio.AppInfo.launch_default_for_uri(target.as_uri(), None)
+    except GLib.Error:
+        subprocess.Popen(['xdg-open', str(target)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 class Window(Adw.ApplicationWindow):
     def __init__(self, app):
-        super().__init__(application=app, title=tr('Mitnehmen', 'Take along'), default_width=820, default_height=760)
+        super().__init__(application=app, title=tr('Mitnehmen', 'Take along'), default_width=860, default_height=780)
         self.manifest = None
-        self.checks = []
+        self.target = None
+        self.order = []          # page names in step order
+        self.titles = {}
+        self.current = 'start'
+        self.pulse = None
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=18, margin_bottom=18, margin_start=24, margin_end=24)
         toolbar = Adw.ToolbarView()
         toolbar.add_top_bar(Adw.HeaderBar())
         toolbar.set_content(outer)
         self.set_content(toolbar)
-        intro = Gtk.Label(label=tr('Ich sehe das System durch und finde Profile, Passwörter, Schlüssel, Einstellungen, Projekte und große Daten. Du bestätigst, was mitkommt. Das alte System bleibt unverändert.',
-                                   'I look through the system and find profiles, passwords, keys, settings, projects and large data. You confirm what comes along. The old system stays unchanged.'), xalign=0, wrap=True)
-        intro.add_css_class('dim'); outer.append(intro)
-        sources = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        for label, handler in ((tr('Dieses System neu durchsuchen', 'Search this system again'), lambda *_: self.begin(Path('/'))),
-                               (tr('Anderes System wählen …', 'Choose another system …'), self.choose_root),
-                               (tr('Liste öffnen …', 'Open list …'), self.open_manifest)):
-            button = Gtk.Button(label=label)
-            button.connect('clicked', handler)
-            sources.append(button)
-        outer.append(sources)
+        self.step_label = Gtk.Label(xalign=0)
+        self.step_label.add_css_class('accent')
+        outer.append(self.step_label)
+        self.step_progress = Gtk.ProgressBar()
+        outer.append(self.step_progress)
+        self.heading = Gtk.Label(xalign=0, wrap=True)
+        self.heading.add_css_class('title-2'); self.heading.add_css_class('wdn-heading')
+        outer.append(self.heading)
         self.status = Gtk.Label(xalign=0, wrap=True)
         outer.append(self.status)
-        summary = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        summary.add_css_class('card'); outer.append(summary)
-        self.total = Gtk.Label(xalign=0); self.total.add_css_class('accent'); summary.append(self.total)
-        self.free = Gtk.Label(xalign=1, hexpand=True); self.free.add_css_class('dim'); summary.append(self.free)
-        scroll = Gtk.ScrolledWindow(vexpand=True)
-        self.items = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        scroll.set_child(self.items); outer.append(scroll)
-        self.progress = Gtk.ProgressBar(); outer.append(self.progress)
-        buttons = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        save = Gtk.Button(label=tr('Liste speichern …', 'Save list …'), hexpand=True)
-        save.connect('clicked', self.save_manifest)
-        self.copy_button = Gtk.Button(label=tr('Ausgewählte Daten kopieren …', 'Copy selected data …'), hexpand=True)
-        self.copy_button.add_css_class('suggested-action')
-        self.copy_button.connect('clicked', self.choose_target)
-        buttons.append(save); buttons.append(self.copy_button)
-        outer.append(buttons)
-        self.update_total()
+        self.stack = Gtk.Stack(vexpand=True, transition_type=Gtk.StackTransitionType.SLIDE_LEFT_RIGHT, transition_duration=180)
+        outer.append(self.stack)
+        nav = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        self.back = Gtk.Button(label=tr('Zurück', 'Back'))
+        self.back.connect('clicked', lambda *_: self.go(-1))
+        self.total = Gtk.Label(xalign=0.5, hexpand=True)
+        self.total.add_css_class('accent')
+        self.next = Gtk.Button(label=tr('Weiter', 'Next'))
+        self.next.add_css_class('suggested-action')
+        self.next.connect('clicked', lambda *_: self.go(1))
+        nav.append(self.back); nav.append(self.total); nav.append(self.next)
+        outer.append(nav)
+        self.add_page('start', tr('Was möchtest du mitnehmen?', 'What do you want to take along?'), self.start_page())
+        self.add_page('scan', tr('Ich sehe nach …', 'Looking …'), self.scan_page())
+        self.order = ['start']
+        self.show_page('start')
         if PREVIEW:
             path = next((a.split('=', 1)[1] for a in sys.argv if a.startswith('--manifest=')), None)
             if path:
-                self.show_result(json.loads(Path(path).read_text())); return
-        GLib.idle_add(self.begin, Path('/'))
+                self.show_result(json.loads(Path(path).read_text()))
+
+    # --- pages ----------------------------------------------------------------------------------------
+    def add_page(self, name, title, widget):
+        self.titles[name] = title
+        self.stack.add_named(widget, name)
+
+    def start_page(self):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        intro = Gtk.Label(label=tr('Ich sehe das System durch und finde Profile, Passwörter, Schlüssel, Einstellungen, Projekte und große Daten. '
+                                   'Danach gehst du Schritt für Schritt durch die Funde und bestätigst, was mitkommt. Das alte System bleibt unverändert.',
+                                   'I look through the system and find profiles, passwords, keys, settings, projects and large data. '
+                                   'Then you go through the findings step by step and confirm what comes along. The old system stays unchanged.'), xalign=0, wrap=True)
+        intro.add_css_class('dim'); page.append(intro)
+        for label, handler, style in ((tr('Dieses System durchsuchen', 'Search this system'), lambda *_: self.begin(Path('/')), 'suggested-action'),
+                                      (tr('Anderes (eingehängtes) System wählen …', 'Choose another (mounted) system …'), self.choose_root, None),
+                                      (tr('Gespeicherte Liste öffnen …', 'Open a saved list …'), self.open_manifest, None)):
+            card = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+            card.add_css_class('card')
+            button = Gtk.Button(label=label, hexpand=True)
+            if style: button.add_css_class(style)
+            button.connect('clicked', handler)
+            card.append(button)
+            page.append(card)
+        return page
+
+    def scan_page(self):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, valign=Gtk.Align.CENTER)
+        self.scan_label = Gtk.Label(label='', wrap=True)
+        self.scan_label.add_css_class('dim')
+        spinner = Gtk.Spinner(spinning=True, width_request=40, height_request=40)
+        page.append(spinner); page.append(self.scan_label)
+        return page
+
+    def show_page(self, name):
+        if name in self.order:
+            index = self.order.index(name)
+            self.step_label.set_text(tr(f'Schritt {index + 1} von {len(self.order)}', f'Step {index + 1} of {len(self.order)}') if len(self.order) > 1 else '')
+            self.step_progress.set_fraction((index + 1) / len(self.order) if len(self.order) > 1 else 0)
+        self.current = name
+        self.heading.set_text(self.titles.get(name, ''))
+        self.stack.set_visible_child_name(name)
+        self.update_nav()
+
+    def update_nav(self):
+        index = self.order.index(self.current) if self.current in self.order else 0
+        on_start, scanning = self.current == 'start', self.current == 'scan'
+        self.back.set_visible(not (on_start or scanning) and index > 0)
+        self.next.set_visible(not (on_start or scanning))
+        last = self.current == 'copy'
+        self.next.set_visible(not on_start and not scanning and not last)
+        if self.current == 'overview':
+            self.next.set_label(tr('Mitnehmen …', 'Take along …'))
+        else:
+            self.next.set_label(tr('Weiter', 'Next'))
+        selected = [f for f in (self.manifest or {}).get('findings', []) if f.get('selected')]
+        need = sum(f['bytes'] for f in selected)
+        self.total.set_text('' if not self.manifest or on_start or scanning else tr(f'{len(selected)} ausgewählt · {size(need)}', f'{len(selected)} selected · {size(need)}'))
+        if self.current == 'overview':
+            self.next.set_sensitive(bool(selected))
+        else:
+            self.next.set_sensitive(True)
+
+    def go(self, delta):
+        if self.current == 'overview' and delta > 0:
+            self.choose_target()
+            return
+        index = self.order.index(self.current) + delta
+        if 0 <= index < len(self.order):
+            self.show_page(self.order[index])
 
     def message(self, value, style='warning'):
         self.status.set_text(value)
-        self.status.remove_css_class('warning'); self.status.remove_css_class('error')
+        for css in ('warning', 'error', 'dim'):
+            self.status.remove_css_class(css)
         if value: self.status.add_css_class(style)
 
     # --- scanning -------------------------------------------------------------------------------------
     def begin(self, root):
-        self.copy_button.set_sensitive(False)
-        self.progress.set_fraction(0)
-        while child := self.items.get_first_child(): self.items.remove(child)
-        self.message(tr('Ich sehe nach …', 'Looking …'))
-        self.progress.pulse()
-        self.pulse = GLib.timeout_add(120, lambda: (self.progress.pulse(), True)[1])
+        self.message('')
+        self.manifest = None
+        self.order = ['start', 'scan']
+        self.show_page('scan')
+        self.step_label.set_text(''); self.step_progress.set_fraction(0)
+        self.pulse = GLib.timeout_add(120, lambda: (self.step_progress.pulse(), True)[1])
         threading.Thread(target=self.scan_worker, args=(root,), daemon=True).start()
         return False
 
     def scan_worker(self, root):
         def progress(text):
-            GLib.idle_add(self.message, tr('Ich sehe nach: ', 'Looking at: ') + text)
+            GLib.idle_add(self.scan_label.set_label, tr('Ich sehe nach: ', 'Looking at: ') + text)
         try:
             manifest = finder.scan(root, None, progress)
         except (OSError, ValueError) as error:
@@ -136,12 +216,13 @@ class Window(Adw.ApplicationWindow):
         GLib.idle_add(self.show_result, manifest)
 
     def stop_pulse(self):
-        if getattr(self, 'pulse', None):
+        if self.pulse:
             GLib.source_remove(self.pulse); self.pulse = None
-        self.progress.set_fraction(0)
 
     def scan_failed(self, message):
         self.stop_pulse()
+        self.order = ['start']
+        self.show_page('start')
         self.message(message or tr('Nichts gefunden.', 'Nothing found.'), 'error')
 
     def choose_root(self, *_):
@@ -171,49 +252,68 @@ class Window(Adw.ApplicationWindow):
             self.message(str(error), 'error'); return
         self.show_result(manifest)
 
-    # --- result ---------------------------------------------------------------------------------------
+    # --- one step per group ---------------------------------------------------------------------------
     def show_result(self, manifest):
         self.stop_pulse()
         self.manifest = manifest
-        self.checks = []
-        while child := self.items.get_first_child(): self.items.remove(child)
+        for name in list(self.order):
+            if name not in ('start', 'scan'):
+                child = self.stack.get_child_by_name(name)
+                if child: self.stack.remove(child)
         findings = manifest['findings']
-        user = manifest['user']['name']
-        self.message(tr(f'{len(findings)} Funde bei {user}. Haken gesetzt = kommt mit. Neu Ladbares ist abgewählt.', f'{len(findings)} findings for {user}. Ticked = comes along. Rebuildable things are unticked.'), 'dim')
+        names = ['start']
+        self.message(tr(f'{len(findings)} Funde bei {manifest["user"]["name"]}. Haken gesetzt = kommt mit. Neu Ladbares ist abgewählt.',
+                        f'{len(findings)} findings for {manifest["user"]["name"]}. Ticked = comes along. Rebuildable things are unticked.'), 'dim')
         for group in manifest['groups']:
             items = [f for f in findings if f['group'] == group['id']]
             if not items:
                 continue
-            card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-            card.add_css_class('card'); self.items.append(card)
-            head = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-            heading = Gtk.Label(label=pick(group['title']) + '   ·   ' + size(sum(i['bytes'] for i in items)), xalign=0, hexpand=True)
-            heading.add_css_class('title-3'); heading.add_css_class('wdn-heading')
-            head.append(heading)
-            group_checks = []
-            for text, value in ((tr('alle', 'all'), True), (tr('keine', 'none'), False)):
-                button = Gtk.Button(label=text)
-                button.add_css_class('flat')
-                button.connect('clicked', lambda _b, v=value, cs=group_checks: [c.set_active(v) for c in cs])
-                head.append(button)
-            card.append(head)
-            for item in items:
-                group_checks.append(self.finding_row(card, item))
-        self.update_total()
+            name = 'group:' + group['id']
+            self.add_page(name, pick(group['title']), self.group_page(group, items))
+            names.append(name)
+        self.add_page('overview', tr('Überblick', 'Overview'), self.overview_page())
+        self.add_page('copy', tr('Ich nehme es mit', 'Taking it along'), self.copy_page())
+        self.order = names + ['overview', 'copy']
+        self.show_page(names[1] if len(names) > 1 else 'overview')
 
-    def finding_row(self, card, item):
+    def group_page(self, group, items):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        head = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        total = Gtk.Label(label=tr(f'{len(items)} Funde · {size(sum(i["bytes"] for i in items))}', f'{len(items)} findings · {size(sum(i["bytes"] for i in items))}'), xalign=0, hexpand=True)
+        total.add_css_class('dim')
+        head.append(total)
+        checks = []
+        for text, value in ((tr('alle', 'all'), True), (tr('keine', 'none'), False)):
+            button = Gtk.Button(label=text)
+            button.add_css_class('flat')
+            button.connect('clicked', lambda _b, v=value, cs=checks: [c.set_active(v) for c in cs])
+            head.append(button)
+        page.append(head)
+        scroll = Gtk.ScrolledWindow(vexpand=True)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        scroll.set_child(box)
+        for item in items:
+            checks.append(self.finding_row(box, item))
+        page.append(scroll)
+        return page
+
+    def absolute(self, item, rel):
+        root = Path(self.manifest['source_root'])
+        if rel.startswith('/'):
+            return root / rel.lstrip('/')
+        return root / self.manifest['user']['home'].lstrip('/') / rel
+
+    def finding_row(self, box, item):
         row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        row.add_css_class('folder'); card.append(row)
+        row.add_css_class('folder'); box.append(row)
         line = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         row.append(line)
         check = Gtk.CheckButton()
         check.set_active(bool(item.get('selected')))
-        check.connect('toggled', lambda button, entry=item: (entry.__setitem__('selected', button.get_active()), self.update_total()))
+        check.connect('toggled', lambda button, entry=item: (entry.__setitem__('selected', button.get_active()), self.update_nav()))
         line.append(check)
-        self.checks.append(check)
         name = Gtk.Label(label=pick(item['title']), xalign=0, hexpand=True)
         name.add_css_class('wdn-text')
-        name.set_tooltip_text('\n'.join(item['paths'][:25]) + ('\n…' if len(item['paths']) > 25 else ''))
         click = Gtk.GestureClick()
         click.connect('released', lambda *_a, button=check: button.set_active(not button.get_active()))
         name.add_controller(click)
@@ -238,22 +338,78 @@ class Window(Adw.ApplicationWindow):
         detail = Gtk.Label(label=pick(item['detail']), xalign=0, wrap=True, margin_start=28)
         detail.add_css_class('dim')
         row.append(detail)
+        # Look inside: every path can be opened in the file manager.
+        expander = Gtk.Expander(label=tr(f'Orte ansehen ({len(item["paths"])})', f'Show locations ({len(item["paths"])})'), margin_start=28)
+        paths = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        for rel in item['paths'][:60]:
+            entry = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            label = Gtk.Label(label=rel, xalign=0, hexpand=True, ellipsize=Pango.EllipsizeMode.MIDDLE)
+            label.add_css_class('dim')
+            opener = Gtk.Button(label=tr('Öffnen', 'Open'))
+            opener.add_css_class('flat')
+            opener.connect('clicked', lambda _b, r=rel: open_path(self.absolute(item, r)))
+            entry.append(label); entry.append(opener)
+            paths.append(entry)
+        if len(item['paths']) > 60:
+            more = Gtk.Label(label=tr(f'… und {len(item["paths"]) - 60} weitere', f'… and {len(item["paths"]) - 60} more'), xalign=0)
+            more.add_css_class('dim'); paths.append(more)
+        expander.set_child(paths)
+        row.append(expander)
         return check
 
-    def update_total(self):
-        selected = [f for f in (self.manifest or {}).get('findings', []) if f.get('selected')]
+    # --- overview, saving, copying --------------------------------------------------------------------
+    def overview_page(self):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        summary = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        summary.add_css_class('card'); page.append(summary)
+        self.sum_total = Gtk.Label(xalign=0); self.sum_total.add_css_class('accent'); summary.append(self.sum_total)
+        self.sum_free = Gtk.Label(xalign=1, hexpand=True); self.sum_free.add_css_class('dim'); summary.append(self.sum_free)
+        scroll = Gtk.ScrolledWindow(vexpand=True)
+        self.overview_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        scroll.set_child(self.overview_box)
+        page.append(scroll)
+        save = Gtk.Button(label=tr('Liste speichern …', 'Save list …'))
+        save.connect('clicked', self.save_manifest)
+        page.append(save)
+        self.stack.connect('notify::visible-child-name', lambda *_: self.refresh_overview() if self.current == 'overview' else None)
+        return page
+
+    def refresh_overview(self):
+        while child := self.overview_box.get_first_child(): self.overview_box.remove(child)
+        selected = [f for f in self.manifest['findings'] if f.get('selected')]
         need = sum(f['bytes'] for f in selected)
-        self.total.set_text(tr(f'{len(selected)} ausgewählt · {size(need)}', f'{len(selected)} selected · {size(need)}'))
+        self.sum_total.set_text(tr(f'{len(selected)} ausgewählt · {size(need)}', f'{len(selected)} selected · {size(need)}'))
         try:
             st = os.statvfs(Path.home())
-            self.free.set_text(tr('Frei im Home: ', 'Free in home: ') + size(st.f_bavail * st.f_frsize))
+            self.sum_free.set_text(tr('Frei im Home: ', 'Free in home: ') + size(st.f_bavail * st.f_frsize))
         except OSError:
-            self.free.set_text('')
-        self.copy_button.set_sensitive(bool(selected))
+            self.sum_free.set_text('')
+        for group in self.manifest['groups']:
+            items = [f for f in selected if f['group'] == group['id']]
+            if not items:
+                continue
+            card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            card.add_css_class('card'); self.overview_box.append(card)
+            heading = Gtk.Label(label=pick(group['title']) + '   ·   ' + size(sum(i['bytes'] for i in items)), xalign=0)
+            heading.add_css_class('title-3'); heading.add_css_class('wdn-heading'); card.append(heading)
+            for item in items:
+                text = Gtk.Label(label=pick(item['title']) + ' · ' + size(item['bytes']), xalign=0, wrap=True)
+                text.add_css_class('dim'); card.append(text)
+        if any(f.get('secrets') for f in selected):
+            note = Gtk.Label(label=tr('Die Auswahl enthält Zugangsdaten. Bewahre die Kopie sicher auf und verschlüssele sie, wenn sie auf einem Speicher liegt, den andere erreichen.',
+                                      'The selection contains credentials. Keep the copy safe and encrypt it if it lies on storage others can reach.'), xalign=0, wrap=True)
+            note.add_css_class('warning'); self.overview_box.append(note)
+        self.update_nav()
+
+    def copy_page(self):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, valign=Gtk.Align.CENTER)
+        self.copy_bar = Gtk.ProgressBar()
+        self.copy_label = Gtk.Label(label='', wrap=True)
+        self.copy_label.add_css_class('dim')
+        page.append(self.copy_bar); page.append(self.copy_label)
+        return page
 
     def save_manifest(self, *_):
-        if not self.manifest:
-            return
         dialog = Gtk.FileDialog(title=tr('Liste speichern', 'Save list'), initial_name='mitnehmen.json')
         dialog.save(self, None, self.manifest_saved)
 
@@ -263,10 +419,9 @@ class Window(Adw.ApplicationWindow):
         except GLib.Error:
             return
         Path(path).write_text(json.dumps(self.manifest, ensure_ascii=False, indent=1))
-        self.message(tr('Liste gespeichert: ', 'List saved: ') + path)
+        self.message(tr('Liste gespeichert: ', 'List saved: ') + path, 'dim')
 
-    # --- copying --------------------------------------------------------------------------------------
-    def choose_target(self, *_):
+    def choose_target(self):
         dialog = Gtk.FileDialog(title=tr('Ziel: Home-Ordner des neuen Systems', 'Target: home folder of the new system'))
         dialog.select_folder(self, None, self.target_chosen)
 
@@ -275,7 +430,7 @@ class Window(Adw.ApplicationWindow):
             target = dialog.select_folder_finish(result).get_path()
         except GLib.Error:
             return
-        if Path(target).resolve() == Path(self.manifest['source_root'], self.manifest['user']['home'].lstrip('/')).resolve():
+        if Path(target).resolve() == self.absolute(None, self.manifest['user']['home']).resolve():
             self.message(tr('Quelle und Ziel sind derselbe Ordner.', 'Source and target are the same folder.'), 'error'); return
         st = os.statvfs(target)
         free = st.f_bavail * st.f_frsize
@@ -283,9 +438,10 @@ class Window(Adw.ApplicationWindow):
         if need > free:
             self.message(tr(f'Dort ist zu wenig Platz: {size(need)} nötig, {size(free)} frei. Wähle weniger aus oder ein anderes Ziel.',
                             f'Not enough space there: {size(need)} needed, {size(free)} free. Choose less or another target.'), 'error'); return
-        self.copy_button.set_sensitive(False)
-        self.progress.set_fraction(0)
-        self.message(tr('Ich kopiere …', 'Copying …'))
+        self.message('')
+        self.copy_bar.set_fraction(0)
+        self.copy_label.set_text('')
+        self.show_page('copy')
         threading.Thread(target=self.copy_worker, args=(target, need), daemon=True).start()
 
     def copy_worker(self, target, need):
@@ -317,19 +473,20 @@ class Window(Adw.ApplicationWindow):
         GLib.idle_add(self.copy_finished, result, error)
 
     def copy_progress(self, fraction, label):
-        self.progress.set_fraction(fraction)
-        self.message(tr('Ich kopiere: ', 'Copying: ') + label)
+        self.copy_bar.set_fraction(fraction)
+        self.copy_label.set_text(tr('Ich kopiere: ', 'Copying: ') + label)
 
     def copy_finished(self, result, error):
-        self.copy_button.set_sensitive(True)
         if result is None:
-            self.message(error or tr('Das hat nicht geklappt.', 'That did not work.'), 'error'); return
-        self.progress.set_fraction(1)
+            self.copy_label.set_text(error or tr('Das hat nicht geklappt.', 'That did not work.'))
+            self.back.set_visible(True)
+            return
+        self.copy_bar.set_fraction(1)
         problems = result.get('problems', [])
         text = tr(f'Fertig: {len(result["copied"])} Funde kopiert.', f'Done: {len(result["copied"])} findings copied.')
         if problems:
             text += ' ' + tr(f'{len(problems)} Pfade mit Problemen: ', f'{len(problems)} paths with problems: ') + ', '.join(p['path'] for p in problems[:5])
-        self.message(text, 'warning' if problems else 'dim')
+        self.copy_label.set_text(text)
 
 
 class App(Adw.Application):
