@@ -52,7 +52,11 @@ FloatingWindow {
     readonly property bool showHints: query.length === 0 && !showClip
     // "/pdf bill" narrows the search to one kind; searchText is what is searched for.
     readonly property var    parsed:     Logic.parseFilter(query)
-    readonly property string filterKind: parsed.kind
+    // Type filter chips under the results (Left/Right choose, live while searching); "" = everything.
+    readonly property var    chipKinds:  ["", "apps", "folders", "docs", "images", "pdf", "video", "audio"]
+    property int             chipIndex:  0
+    readonly property string filterKind: chipIndex > 0 ? chipKinds[chipIndex] : parsed.kind
+    readonly property int    activeChip: Math.max(0, chipKinds.indexOf(filterKind))
     readonly property string searchText: parsed.text
     // An answer line is shown whenever the text is a calculation or a unit conversion (see SearchLogic.js).
     readonly property bool modeMath: calcResult.length > 0
@@ -303,6 +307,7 @@ FloatingWindow {
     onClipResultsChanged: Qt.callLater(rebuildModel)
     onUiLanguageChanged:  Qt.callLater(rebuildModel)
     onUsageChanged:       Qt.callLater(function() { updateApps(); rebuildModel() })
+    onChipIndexChanged:   { updateApps(); updateCalc(); debounce.restart(); Qt.callLater(rebuildModel) }
     // Clipboard filter: rebuild when query changes in clip mode
     onQueryChanged: {
         if (showClip) { Qt.callLater(rebuildModel); return }
@@ -421,6 +426,16 @@ FloatingWindow {
         p.running = true
     }
 
+    function effectiveKind() { return chipIndex > 0 ? chipKinds[chipIndex] : Logic.parseFilter(query).kind }
+
+    // Left/Right: another type filter. A typed "/pdf" prefix is removed from the field: the chip takes over from it.
+    function stepChip(delta) {
+        var next = Math.max(0, Math.min(chipKinds.length - 1, activeChip + delta))
+        if (next === activeChip) return
+        if (parsed.kind !== "") searchField.text = parsed.text
+        chipIndex = next
+    }
+
     function allApps() {
         var list = []
         if (!appsModel) return list
@@ -435,24 +450,25 @@ FloatingWindow {
     // they parse the text themselves.
     function updateApps() {
         var f = Logic.parseFilter(query)
+        var kind = effectiveKind()
         if (!appsModel || query.length === 0 || modeEmoji || modeRun || showClip) { appResults = []; return }
-        if (f.kind !== "" && f.kind !== "apps") { appResults = []; return }
+        if (kind !== "" && kind !== "apps") { appResults = []; return }
         if (f.text.length === 0) {
-            appResults = f.kind === "apps" ? Logic.recentApps(allApps(), usage, 8, Date.now()) : []
+            appResults = kind === "apps" ? Logic.recentApps(allApps(), usage, 8, Date.now()) : []
             return
         }
         appResults = Logic.rankApps(allApps(), f.text, usage, 6, Date.now())
     }
 
     function updateCalc() {
-        if (modeEmoji || modeRun || showClip || Logic.parseFilter(query).kind !== "" || query.length < 2) { calcResult = ""; calcError = false; return }
+        if (modeEmoji || modeRun || showClip || effectiveKind() !== "" || query.length < 2) { calcResult = ""; calcError = false; return }
         calcResult = Logic.answer(query)
         calcError = false
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
     function openSearch() {
-        query = ""; selIdx = -1; calcResult = ""; calcError = false
+        query = ""; chipIndex = 0; selIdx = -1; calcResult = ""; calcError = false
         fileResults = []; appResults = []; clipResults = []; showClip = false
         searchField.text = ""
         usageLoad.running = false
@@ -539,10 +555,10 @@ FloatingWindow {
         onTriggered: {
             var q = root.searchText
             var extensions = Logic.extensionsFor(root.filterKind).map(function(e) { return "-e " + e }).join(" ")
-            if (q.length >= (extensions ? 1 : 2) && root.filterKind !== "apps" && !root.modeEmoji && !root.modeRun && !root.showClip) {
+            if (q.length >= (extensions || root.filterKind === "folders" ? 1 : 2) && root.filterKind !== "apps" && !root.modeEmoji && !root.modeRun && !root.showClip) {
                 fileProc.running = false
                 fileProc.command = ["bash", "-c",
-                    "(fd --max-results 80 " + (extensions ? "--type f " : "--type f --type d ") + "--ignore-case " + extensions + " --exclude .cache --exclude node_modules --exclude .git --exclude .local/share -0 -- " + JSON.stringify(q) + " \"$HOME\" 2>/dev/null | xargs -0 -r stat -c '%Y|%F|%n' 2>/dev/null) || " +
+                    "(fd --max-results 80 " + (root.filterKind === "folders" ? "--type d " : extensions ? "--type f " : "--type f --type d ") + "--ignore-case " + extensions + " --exclude .cache --exclude node_modules --exclude .git --exclude .local/share -0 -- " + JSON.stringify(q) + " \"$HOME\" 2>/dev/null | xargs -0 -r stat -c '%Y|%F|%n' 2>/dev/null) || " +
                     "find \"$HOME\" -maxdepth 6 \\( -type f -o -type d \\) -iname " + JSON.stringify("*" + q + "*") + " -not -path '*/.cache/*' -not -path '*/node_modules/*' -printf '%T@|%y|%p\\n' 2>/dev/null | head -80"]
                 fileProc.running = true
             } else {
@@ -644,8 +660,16 @@ FloatingWindow {
                     if (root.modeEmoji) emojiGrid.moveCurrentIndexDown()
                     else root.navDown()
                 }
-                Keys.onLeftPressed:  { if (root.modeEmoji) emojiGrid.moveCurrentIndexLeft() }
-                Keys.onRightPressed: { if (root.modeEmoji) emojiGrid.moveCurrentIndexRight() }
+                Keys.onLeftPressed: function(event) {
+                    if (root.modeEmoji) emojiGrid.moveCurrentIndexLeft()
+                    else if (!root.showClip && !root.modeRun && searchField.cursorPosition === searchField.text.length) root.stepChip(-1)
+                    else event.accepted = false
+                }
+                Keys.onRightPressed: function(event) {
+                    if (root.modeEmoji) emojiGrid.moveCurrentIndexRight()
+                    else if (!root.showClip && !root.modeRun && searchField.cursorPosition === searchField.text.length) root.stepChip(1)
+                    else event.accepted = false
+                }
 
                 onTextChanged: {
                     root.query = text
@@ -751,6 +775,46 @@ FloatingWindow {
             }
         }
 
+        // ── Type filter chips ────────────────────────────────────────────────
+        Item {
+            id: chipBar
+            visible: !root.modeEmoji && !root.showClip && !root.modeRun
+            anchors { left: parent.left; right: parent.right; bottom: keyBar.top }
+            height: visible ? 38 : 0
+            Row {
+                anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                spacing: 6
+                Repeater {
+                    model: root.chipKinds
+                    delegate: Rectangle {
+                        required property string modelData
+                        required property int index
+                        readonly property bool active: root.activeChip === index
+                        height: 26; width: chipText.implicitWidth + 22; radius: 13
+                        color: active ? root.acSel : (chipMouse.containsMouse ? root.hover : "transparent")
+                        border.width: 1
+                        border.color: active ? root.accentColor : root.sep
+                        Text {
+                            id: chipText
+                            anchors.centerIn: parent
+                            text: Lang.get("search.chip." + (parent.modelData === "" ? "all" : parent.modelData), root.uiLanguage)
+                            color: parent.active ? root.fg : root.fgSub
+                            font.pixelSize: 12; font.bold: parent.active
+                        }
+                        MouseArea {
+                            id: chipMouse
+                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (index === 0 && root.parsed.kind !== "") searchField.text = root.parsed.text
+                                root.chipIndex = index
+                                searchField.forceActiveFocus()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // ── Key hints ────────────────────────────────────────────────────────
         Item {
             id: keyBar
@@ -772,7 +836,7 @@ FloatingWindow {
                 top: searchBar.bottom
                 left: parent.left
                 right: parent.right
-                bottom: keyBar.top
+                bottom: chipBar.top
                 topMargin: 4
             }
             visible: !root.modeEmoji

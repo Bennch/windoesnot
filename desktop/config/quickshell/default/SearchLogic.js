@@ -251,7 +251,7 @@ function answer(query) {
 // "/pdf rechnung" -> {kind: "pdf", text: "rechnung"}; text without a known filter is returned unchanged.
 var FILTERS = {
     apps: "apps", app: "apps", programme: "apps",
-    files: "files", dateien: "files", datei: "files",
+    files: "files", dateien: "files", datei: "files", ordner: "folders", folders: "folders", folder: "folders",
     pdf: "pdf", bilder: "images", images: "images", img: "images",
     docs: "docs", dokumente: "docs", doc: "docs",
     video: "video", videos: "video", musik: "audio", audio: "audio"

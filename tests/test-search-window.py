@@ -29,10 +29,15 @@ ShellRoot {
       s.query = "2+2*3"; var calc = s.calcResult
       s.query = "5 km in mi"; var unit = s.calcResult
       s.query = "/pdf bill"; var filter = s.filterKind + "|" + s.searchText + "|" + s.appResults.length + "|" + (s.calcResult === "")
+      s.query = "bill"; s.stepChip(1); var chip1 = s.filterKind
+      s.stepChip(4); var chip2 = s.filterKind + ":" + s.activeChip
+      s.stepChip(-9); var chip3 = s.filterKind + ":" + s.activeChip
+      s.query = "/pdf x"; s.stepChip(1); var chip4 = s.filterKind + ":" + s.searchText + ":" + s.query
+      s.chipIndex = 0
       s.query = ""; var empty = s.showHints
       s.usage = {"Files": {c: 4, t: Date.now()}}
       var recent = s.allApps().length
-      console.log("SEARCH_RESULT " + [initials, calc, unit, filter, empty, recent].join(" ; "))
+      console.log("SEARCH_RESULT " + [initials, calc, unit, filter, empty, recent, chip1, chip2, chip3, chip4].join(" ; "))
     } catch (e) { console.log("SEARCH_ERROR " + e) }
     Qt.quit() } }
 }''')
@@ -43,7 +48,7 @@ ShellRoot {
     out = subprocess.run(['quickshell', '--no-color', '-p', str(base / 'shell.qml')], env=env, text=True,
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=30).stdout
     line = next((l for l in out.splitlines() if 'SEARCH_' in l), '')
-    assert 'SEARCH_RESULT Visual Studio Code ; 8 ; 3.1068559612 mi ; pdf|bill|0|true ; true ; 3' in line, line + out[-1500:]
+    assert 'SEARCH_RESULT Visual Studio Code ; 8 ; 3.1068559612 mi ; pdf|bill|0|true ; true ; 3 ; apps ; pdf:5 ; :0 ; video:x:x' in line, line + out[-1500:]
     for bad in ('WARN scene', 'TypeError', 'ReferenceError', 'Failed to load configuration'):
         assert bad not in out, bad + '\n' + out[-1500:]
 print('PASS: search window ranks, answers and filters without QML warnings')
