@@ -245,3 +245,41 @@ function answer(query) {
     if (unit) return unit
     return evaluate(query)
 }
+
+// ---- filters and highlighting ----------------------------------------------------------------------
+
+// "/pdf rechnung" -> {kind: "pdf", text: "rechnung"}; text without a known filter is returned unchanged.
+var FILTERS = {
+    apps: "apps", app: "apps", programme: "apps",
+    files: "files", dateien: "files", datei: "files",
+    pdf: "pdf", bilder: "images", images: "images", img: "images",
+    docs: "docs", dokumente: "docs", doc: "docs",
+    video: "video", videos: "video", musik: "audio", audio: "audio"
+}
+var EXTENSIONS = {
+    pdf: ["pdf"], images: ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif", "heic"],
+    docs: ["odt", "ods", "odp", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "md", "csv"],
+    video: ["mp4", "mkv", "avi", "mov", "webm"], audio: ["mp3", "flac", "ogg", "wav", "opus", "m4a"]
+}
+
+function parseFilter(query) {
+    var match = /^\/([a-zA-ZäöüÄÖÜ]+)(?:\s+(.*))?$/.exec(query)
+    if (!match) return {kind: "", text: query}
+    var kind = FILTERS[match[1].toLowerCase()]
+    if (!kind) return {kind: "", text: query}
+    return {kind: kind, text: (match[2] || "").trim()}
+}
+
+function extensionsFor(kind) { return EXTENSIONS[kind] || [] }
+
+function escapeHtml(text) {
+    return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+}
+
+// Name as StyledText with the typed letters in the accent colour (first occurrence; plain when it matched otherwise).
+function highlight(name, query, color) {
+    var q = String(query || "").trim().toLowerCase(), n = String(name)
+    var at = q.length > 0 ? n.toLowerCase().indexOf(q) : -1
+    if (at < 0) return escapeHtml(n)
+    return escapeHtml(n.slice(0, at)) + "<font color=\"" + color + "\"><b>" + escapeHtml(n.slice(at, at + q.length)) + "</b></font>" + escapeHtml(n.slice(at + q.length))
+}

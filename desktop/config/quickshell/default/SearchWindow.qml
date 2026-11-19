@@ -50,6 +50,10 @@ FloatingWindow {
     readonly property bool modeEmoji: query.startsWith(":")
     readonly property bool modeRun:   query.startsWith(">")
     readonly property bool showHints: query.length === 0 && !showClip
+    // "/pdf bill" narrows the search to one kind; searchText is what is searched for.
+    readonly property var    parsed:     Logic.parseFilter(query)
+    readonly property string filterKind: parsed.kind
+    readonly property string searchText: parsed.text
     // An answer line is shown whenever the text is a calculation or a unit conversion (see SearchLogic.js).
     readonly property bool modeMath: calcResult.length > 0
 
@@ -267,7 +271,7 @@ FloatingWindow {
         }
 
         // Web search (always shown when query >= 2 chars)
-        if (query.length >= 2) {
+        if (query.length >= 2 && filterKind === "") {
             flatModel.append({type:"webSearch", label:query, hintKey:"", filePath:"", clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:""})
         }
 
@@ -424,13 +428,21 @@ FloatingWindow {
         return list
     }
 
+    // The handlers below run from onQueryChanged, before the bindings that derive from `query` have updated:
+    // they parse the text themselves.
     function updateApps() {
+        var f = Logic.parseFilter(query)
         if (!appsModel || query.length === 0 || modeEmoji || modeRun || showClip) { appResults = []; return }
-        appResults = Logic.rankApps(allApps(), query, usage, 6, Date.now())
+        if (f.kind !== "" && f.kind !== "apps") { appResults = []; return }
+        if (f.text.length === 0) {
+            appResults = f.kind === "apps" ? Logic.recentApps(allApps(), usage, 8, Date.now()) : []
+            return
+        }
+        appResults = Logic.rankApps(allApps(), f.text, usage, 6, Date.now())
     }
 
     function updateCalc() {
-        if (modeEmoji || modeRun || showClip || query.length < 2) { calcResult = ""; calcError = false; return }
+        if (modeEmoji || modeRun || showClip || Logic.parseFilter(query).kind !== "" || query.length < 2) { calcResult = ""; calcError = false; return }
         calcResult = Logic.answer(query)
         calcError = false
     }
@@ -521,11 +533,12 @@ FloatingWindow {
         id: debounce
         interval: 150
         onTriggered: {
-            var q = root.query
-            if (q.length >= 2 && !root.modeEmoji && !root.modeRun && !root.showClip) {
+            var q = root.searchText
+            var extensions = Logic.extensionsFor(root.filterKind).map(function(e) { return "-e " + e }).join(" ")
+            if (q.length >= (extensions ? 1 : 2) && root.filterKind !== "apps" && !root.modeEmoji && !root.modeRun && !root.showClip) {
                 fileProc.running = false
                 fileProc.command = ["bash", "-c",
-                    "(fd --max-results 8 --type f --ignore-case --exclude .cache --exclude node_modules --exclude .git --exclude .local/share -- " + JSON.stringify(q) + " \"$HOME\" 2>/dev/null || " +
+                    "(fd --max-results 8 --type f --ignore-case " + extensions + " --exclude .cache --exclude node_modules --exclude .git --exclude .local/share -- " + JSON.stringify(q) + " \"$HOME\" 2>/dev/null || " +
                     "find \"$HOME\" -maxdepth 5 -iname " + JSON.stringify("*" + q + "*") + " -type f -not -path '*/.cache/*' -not -path '*/node_modules/*' 2>/dev/null | head -8) | head -8"]
                 fileProc.running = true
             } else {
@@ -704,7 +717,7 @@ FloatingWindow {
                 top: searchBar.bottom
                 left: parent.left
                 right: parent.right
-                bottom: parent.bottom
+                bottom: keyBar.top
                 margins: 6
             }
             visible: root.modeEmoji
@@ -734,6 +747,20 @@ FloatingWindow {
             }
         }
 
+        // ── Key hints ────────────────────────────────────────────────────────
+        Item {
+            id: keyBar
+            anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+            height: 30
+            Rectangle { anchors { left: parent.left; right: parent.right; top: parent.top; leftMargin: 12; rightMargin: 12 } height: 1; color: root.sep }
+            Text {
+                anchors { verticalCenter: parent.verticalCenter; left: parent.left; leftMargin: 16; right: parent.right; rightMargin: 16 }
+                elide: Text.ElideRight
+                text: root.modeEmoji ? Lang.get("search.keysEmoji", root.uiLanguage) : Lang.get("search.keys", root.uiLanguage)
+                color: root.fgSub; font.pixelSize: 11
+            }
+        }
+
         // ── Results ListView ─────────────────────────────────────────────────
         ListView {
             id: resultsList
@@ -741,7 +768,7 @@ FloatingWindow {
                 top: searchBar.bottom
                 left: parent.left
                 right: parent.right
-                bottom: parent.bottom
+                bottom: keyBar.top
                 topMargin: 4
             }
             visible: !root.modeEmoji
@@ -761,10 +788,11 @@ FloatingWindow {
                 width: resultsList.width
                 height: model.type === "header"    ? 28
                       : model.type === "calc"      ? 66
-                      : model.type === "file"      ? 50
+                      : model.type === "file"      ? 54
                       : model.type === "empty"     ? 110
                       : model.type === "webSearch" ? 44
-                      : 46  // hint, app, clip, run
+                      : model.type === "app"       ? 50
+                      : 46  // hint, clip, run
 
                 // ── HEADER ─────────────────────────────────────────────────
                 Text {
@@ -879,9 +907,10 @@ FloatingWindow {
                             left: parent.left; leftMargin: 12
                             verticalCenter: parent.verticalCenter
                         }
-                        spacing: 10
+                        spacing: 12
                         Image {
-                            width: 22; height: 22
+                            width: 28; height: 28
+                            sourceSize.width: 56; sourceSize.height: 56
                             anchors.verticalCenter: parent.verticalCenter
                             source: model.type === "app"
                                 ? (model.appCustomIcon
@@ -889,12 +918,21 @@ FloatingWindow {
                                     : "image://icon/" + (model.appIcon || ""))
                                 : ""
                             fillMode: Image.PreserveAspectFit
+                            smooth: true
                         }
                         Text {
-                            text: model.appName || ""
-                            color: root.fg; font.pixelSize: 14
+                            textFormat: Text.StyledText
+                            text: Logic.highlight(model.appName || "", root.searchText, root.accentColor)
+                            color: root.fg; font.pixelSize: 15
                             anchors.verticalCenter: parent.verticalCenter
                         }
+                    }
+                    // The row Enter would start gets a small key hint.
+                    Text {
+                        visible: root.selIdx === index
+                        anchors { right: parent.right; rightMargin: 14; verticalCenter: parent.verticalCenter }
+                        text: "↵  " + Lang.get("search.open", root.uiLanguage)
+                        color: root.fgSub; font.pixelSize: 11
                     }
                     MouseArea {
                         id: appMouse
@@ -915,14 +953,30 @@ FloatingWindow {
                     color: root.selIdx === index ? root.acSel
                          : fileMouse.containsMouse ? root.hover : "transparent"
 
-                    ProjectIcon {
+                    Item {
                         id: fileEmoIcon
+                        width: 34; height: 34
                         anchors {
                             left: parent.left; leftMargin: 12
                             verticalCenter: parent.verticalCenter
                         }
-                        name: model.type === "file" ? root.fileIcon(model.filePath || "") : "info"
-                        font.pixelSize: 20
+                        readonly property bool isImage: model.type === "file" && Logic.extensionsFor("images").indexOf((model.filePath || "").split(".").pop().toLowerCase()) >= 0
+                        // Pictures show a small preview of themselves.
+                        Image {
+                            anchors.fill: parent
+                            visible: fileEmoIcon.isImage && status === Image.Ready
+                            source: fileEmoIcon.isImage ? "file://" + model.filePath : ""
+                            sourceSize.width: 68; sourceSize.height: 68
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            layer.enabled: true
+                        }
+                        ProjectIcon {
+                            anchors.centerIn: parent
+                            visible: !fileEmoIcon.isImage
+                            name: model.type === "file" ? root.fileIcon(model.filePath || "") : "info"
+                            font.pixelSize: 20
+                        }
                     }
                     Column {
                         anchors {
@@ -932,8 +986,9 @@ FloatingWindow {
                         }
                         spacing: 2
                         Text {
-                            text: model.type === "file" ? root.basename(model.filePath || "") : ""
-                            color: root.fg; font.pixelSize: 13
+                            textFormat: Text.StyledText
+                            text: model.type === "file" ? Logic.highlight(root.basename(model.filePath || ""), root.searchText, root.accentColor) : ""
+                            color: root.fg; font.pixelSize: 14
                             elide: Text.ElideRight; width: parent.width
                         }
                         Text {

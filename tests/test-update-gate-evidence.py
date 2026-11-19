@@ -64,6 +64,8 @@ class Evidence(unittest.TestCase):
             missing = dict(index, matrix={k: v for k, v in matrix.items() if k != 'C'})
             with self.assertRaises(ValueError): inspect_index(missing, digest, now)
             with self.assertRaises(ValueError): inspect_index(dict(index, schema=2), digest, now)
+            wrong = dict(matrix, B=matrix['A'])
+            with self.assertRaises(ValueError): inspect_index(dict(index, matrix=wrong), digest, now)
             with self.assertRaises(ValueError): inspect_index(index, 'different', now)
             with self.assertRaises(ValueError): inspect_index(index, digest, now + timedelta(hours=25))
             (paths['A'].parent / 'update.log').write_text('network error')
