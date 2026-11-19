@@ -31,6 +31,8 @@ class Evidence(unittest.TestCase):
                 log = ('Checking WinDoesNot boot filesystem before update\nUpdating linux initcpios\n'
                        'Validating WinDoesNot boot entries')
                 if kind == 'positive':
+                    data['configuration'] = 'A'
+                    data['checks']['pacman_install_remove'] = True
                     data['baseline_manifest'] = {'files': {'old.iso': sha256(iso)}}
                 else:
                     data.update(mutation=kind, mutation_active=True)
@@ -42,13 +44,26 @@ class Evidence(unittest.TestCase):
                 path = directory / 'result.json'; path.write_text(json.dumps(data))
                 (directory / 'update.log').write_text(log)
                 paths[kind] = path
-            index = {'schema': 2, 'timestamp': now.isoformat(), 'package_set_sha256': digest,
+            matrix = {}
+            for config in 'ABC':
+                directory = base / ('positive-' + config); directory.mkdir()
+                data = json.loads(paths['positive'].read_text()); data['configuration'] = config
+                path = directory / 'result.json'; path.write_text(json.dumps(data))
+                (directory / 'update.log').write_text((paths['positive'].parent / 'update.log').read_text())
+                probe = directory / 'pacman-probe.log'; probe.write_text('installed and removed')
+                matrix[config] = {'positive': inspect(path, digest, 'positive', now), 'iso': str(iso),
+                                  'iso_sha256': sha256(iso), 'pacman_probe': str(probe), 'pacman_probe_sha256': sha256(probe)}
+            paths['positive'] = base / 'positive-A' / 'result.json'
+            index = {'schema': 3, 'timestamp': now.isoformat(), 'package_set_sha256': digest,
                      'exit_code': 0, 'iso': str(iso), 'iso_sha256': sha256(iso),
                      'checks': {x: True for x in POSITIVE_CHECKS},
-                     'evidence': {k: inspect(v, digest, k, now) for k, v in paths.items()}}
+                     'evidence': {k: inspect(v, digest, k, now) for k, v in paths.items()}, 'matrix': matrix}
             inspect_index(index, digest, now)
             (base / (digest + '.json')).write_text(json.dumps(index))
             self.assertEqual(validate(packages, base, now), digest)
+            missing = dict(index, matrix={k: v for k, v in matrix.items() if k != 'C'})
+            with self.assertRaises(ValueError): inspect_index(missing, digest, now)
+            with self.assertRaises(ValueError): inspect_index(dict(index, schema=2), digest, now)
             with self.assertRaises(ValueError): inspect_index(index, 'different', now)
             with self.assertRaises(ValueError): inspect_index(index, digest, now + timedelta(hours=25))
             (paths['A'].parent / 'update.log').write_text('network error')

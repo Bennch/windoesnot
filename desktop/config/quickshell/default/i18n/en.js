@@ -1113,6 +1113,7 @@ var strings = {
     "search.clipPlaceholder":   "Filter clipboard...",
     "search.emojiPlaceholder":  "Search emoji...",
     "search.runPlaceholder":    "Enter command...",
+    "search.recent":            "RECENT",
     "search.apps":              "APPS",
     "search.files":             "FILES",
     "search.clipboard":         "CLIPBOARD",

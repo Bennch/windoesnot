@@ -1113,6 +1113,7 @@ var strings = {
     "search.clipPlaceholder":   "Zwischenablage durchsuchen...",
     "search.emojiPlaceholder":  ":emoji suchen...",
     "search.runPlaceholder":    "Befehl eingeben...",
+    "search.recent":            "ZULETZT VERWENDET",
     "search.apps":              "APPS",
     "search.files":             "DATEIEN",
     "search.clipboard":         "ZWISCHENABLAGE",

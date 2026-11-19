@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 import "i18n/Lang.js" as Lang
+import "SearchLogic.js" as Logic
 
 FloatingWindow {
     id: root
@@ -41,16 +42,16 @@ FloatingWindow {
     property bool   calcError:   false
     property int    selIdx:      -1   // index into flatModel (-1 = none)
     property bool   showClip:    false // user explicitly opened clipboard
+    // How often and when each app was started from here: ranks results, fills the empty search field.
+    property var    usage:       ({})
+    readonly property string usageFile: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/windoesnot/search-usage.json"
 
     // Derived modes
     readonly property bool modeEmoji: query.startsWith(":")
     readonly property bool modeRun:   query.startsWith(">")
     readonly property bool showHints: query.length === 0 && !showClip
-    readonly property bool modeMath: {
-        if (modeEmoji || modeRun || query.length < 2) return false
-        var q = query.replace(/\b(sqrt|sin|cos|tan|log|ln|pi|abs|pow|round|floor|ceil|exp)\b/g, "0")
-        return /^[\d\s\+\-\*\/\.\(\)\^%eE]+$/.test(q)
-    }
+    // An answer line is shown whenever the text is a calculation or a unit conversion (see SearchLogic.js).
+    readonly property bool modeMath: calcResult.length > 0
 
     // ── Emoji data ───────────────────────────────────────────────────────────
     readonly property var emojiData: [
@@ -191,11 +192,18 @@ FloatingWindow {
 
         // ─ Hint screen (empty, no clipboard mode) ─
         if (showHints) {
+            var recents = Logic.recentApps(allApps(), usage, 5, Date.now())
+            if (recents.length > 0) {
+                flatModel.append({type:"header", label:Lang.get("search.recent", uiLanguage), hintKey:"", filePath:"", clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:""})
+                for (var r = 0; r < recents.length; r++)
+                    flatModel.append({type:"app", label:"", hintKey:"", filePath:"", clipText:"",
+                        appName:recents[r].name, appCmd:recents[r].cmd, appIcon:recents[r].icon, appCustomIcon:recents[r].customIcon, value:""})
+            }
             flatModel.append({type:"hint", hintKey:"calc",  label:"= "   + Lang.get("search.hintCalc",  uiLanguage), filePath:"", clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:""})
             flatModel.append({type:"hint", hintKey:"emoji", label: Lang.get("search.hintEmoji", uiLanguage), filePath:"", clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:""})
             flatModel.append({type:"hint", hintKey:"clip",  label: Lang.get("search.hintClip",  uiLanguage), filePath:"", clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:""})
             flatModel.append({type:"hint", hintKey:"run",   label:"> "   + Lang.get("search.hintRun",   uiLanguage), filePath:"", clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:""})
-            selIdx = -1
+            selIdx = recents.length > 0 ? 1 : -1   // the most used app is ready: Enter starts it
             return
         }
 
@@ -287,8 +295,14 @@ FloatingWindow {
     onFileResultsChanged: Qt.callLater(rebuildModel)
     onClipResultsChanged: Qt.callLater(rebuildModel)
     onUiLanguageChanged:  Qt.callLater(rebuildModel)
+    onUsageChanged:       Qt.callLater(function() { updateApps(); rebuildModel() })
     // Clipboard filter: rebuild when query changes in clip mode
-    onQueryChanged: { if (showClip) Qt.callLater(rebuildModel) }
+    onQueryChanged: {
+        if (showClip) { Qt.callLater(rebuildModel); return }
+        // Everything computed here answers at once on every key; only the file search waits a moment.
+        updateApps()
+        updateCalc()
+    }
 
     // ── Keyboard nav ─────────────────────────────────────────────────────────
     function navUp() {
@@ -321,6 +335,20 @@ FloatingWindow {
         if (item.type === "webSearch") { activateWebSearch(item.label); return }
     }
 
+    // Ctrl+Enter on a file: show it in its folder instead of opening it.
+    function revealSelected() {
+        if (selIdx < 0 || selIdx >= flatModel.count) return false
+        var item = flatModel.get(selIdx)
+        if (item.type !== "file") return false
+        closeSearch()
+        var p = Qt.createQmlObject('import Quickshell.Io; Process {}', root)
+        var uri = "file://" + item.filePath.split("/").map(encodeURIComponent).join("/").replace(/'/g, "%27")
+        p.command = ["gdbus", "call", "--session", "--dest", "org.freedesktop.FileManager1", "--object-path",
+                     "/org/freedesktop/FileManager1", "--method", "org.freedesktop.FileManager1.ShowItems", "['" + uri + "']", ""]
+        p.running = true
+        return true
+    }
+
     function activateHint(key) {
         if (key === "emoji") {
             searchField.text = ":"
@@ -338,6 +366,9 @@ FloatingWindow {
     }
 
     function activateAppItem(item) {
+        usage = Logic.recordUse(usage, item.appName, Date.now())
+        usageSave.stdinText = JSON.stringify(usage)
+        usageSave.running = true
         closeSearch()
         var p = Qt.createQmlObject('import Quickshell.Io; Process {}', root)
         p.command = ["bash", "-c", item.appCmd + " & disown"]
@@ -383,16 +414,25 @@ FloatingWindow {
         p.running = true
     }
 
+    function allApps() {
+        var list = []
+        if (!appsModel) return list
+        for (var i = 0; i < appsModel.count; i++) {
+            var a = appsModel.get(i)
+            list.push({name:a.name, cmd:a.cmd, icon:a.icon, customIcon:a.customIcon})
+        }
+        return list
+    }
+
     function updateApps() {
         if (!appsModel || query.length === 0 || modeEmoji || modeRun || showClip) { appResults = []; return }
-        var q = query.toLowerCase()
-        var res = []
-        for (var i = 0; i < appsModel.count && res.length < 5; i++) {
-            var a = appsModel.get(i)
-            if (a.name.toLowerCase().indexOf(q) !== -1 || (a.cmd && a.cmd.toLowerCase().indexOf(q) !== -1))
-                res.push({name:a.name, cmd:a.cmd, icon:a.icon, customIcon:a.customIcon})
-        }
-        appResults = res
+        appResults = Logic.rankApps(allApps(), query, usage, 6, Date.now())
+    }
+
+    function updateCalc() {
+        if (modeEmoji || modeRun || showClip || query.length < 2) { calcResult = ""; calcError = false; return }
+        calcResult = Logic.answer(query)
+        calcError = false
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -400,6 +440,8 @@ FloatingWindow {
         query = ""; selIdx = -1; calcResult = ""; calcError = false
         fileResults = []; appResults = []; clipResults = []; showClip = false
         searchField.text = ""
+        usageLoad.running = false
+        usageLoad.running = true
         visible = true
         Qt.callLater(function() { searchField.forceActiveFocus() })
     }
@@ -449,18 +491,20 @@ FloatingWindow {
     }
 
     Process {
-        id: calcProc
+        id: usageLoad
+        command: ["bash", "-c", "cat \"$1\" 2>/dev/null", "usage", root.usageFile]
         stdout: StdioCollector {
-            onStreamFinished: {
-                var r = text.trim()
-                if (r.length > 0) { root.calcResult = r; root.calcError = false }
-            }
+            onStreamFinished: { try { var data = JSON.parse(text); if (data && typeof data === "object") root.usage = data } catch (e) {} }
         }
-        stderr: StdioCollector {
-            onStreamFinished: {
-                if (text.trim().length > 0) { root.calcError = true; root.calcResult = "" }
-            }
-        }
+    }
+
+    Process {
+        id: usageSave
+        property string stdinText: ""
+        command: ["bash", "-c", "mkdir -p \"$(dirname \"$1\")\" && cat > \"$1.tmp\" && mv \"$1.tmp\" \"$1\"", "usage", root.usageFile]
+        stdinEnabled: true
+        onStarted: { write(stdinText + "\n"); stdinEnabled = false }
+        onExited: stdinEnabled = true
     }
 
     Process {
@@ -472,32 +516,20 @@ FloatingWindow {
         }
     }
 
+    // Only the file search waits for a pause in typing (it starts a program); apps and answers update on every key.
     Timer {
         id: debounce
-        interval: 200
+        interval: 150
         onTriggered: {
-            root.updateApps()
             var q = root.query
             if (q.length >= 2 && !root.modeEmoji && !root.modeRun && !root.showClip) {
                 fileProc.running = false
                 fileProc.command = ["bash", "-c",
-                    "(fd --max-results 8 --type f --ignore-case -- " + JSON.stringify(q) + " \"$HOME\" 2>/dev/null || " +
-                    "find \"$HOME\" -maxdepth 5 -iname " + JSON.stringify("*" + q + "*") + " -type f 2>/dev/null | head -8) | head -8"]
+                    "(fd --max-results 8 --type f --ignore-case --exclude .cache --exclude node_modules --exclude .git --exclude .local/share -- " + JSON.stringify(q) + " \"$HOME\" 2>/dev/null || " +
+                    "find \"$HOME\" -maxdepth 5 -iname " + JSON.stringify("*" + q + "*") + " -type f -not -path '*/.cache/*' -not -path '*/node_modules/*' 2>/dev/null | head -8) | head -8"]
                 fileProc.running = true
             } else {
                 root.fileResults = []
-            }
-            if (root.modeMath) {
-                var expr = q.replace(/\^/g, "**").replace(/\bln\b/g, "log")
-                calcProc.running = false
-                calcProc.command = ["python3", "-c",
-                    "import math\ntry:\n" +
-                    " r=eval('" + expr.replace(/\\/g, "\\\\").replace(/'/g, "\\'") + "',{'__builtins__':{}},{k:getattr(math,k) for k in dir(math) if not k.startswith('_')})\n" +
-                    " print(round(r,10) if isinstance(r,float) else r)\n" +
-                    "except: pass"]
-                calcProc.running = true
-            } else {
-                root.calcResult = ""
             }
         }
     }
@@ -582,7 +614,10 @@ FloatingWindow {
                     if (root.showClip) root.showClip = false
                     else root.closeSearch()
                 }
-                Keys.onReturnPressed: root.launchSelected()
+                Keys.onReturnPressed: function(event) {
+                    if ((event.modifiers & Qt.ControlModifier) && root.revealSelected()) return
+                    root.launchSelected()
+                }
                 Keys.onTabPressed:    root.launchSelected()
                 Keys.onUpPressed: {
                     if (root.modeEmoji) emojiGrid.moveCurrentIndexUp()
@@ -601,7 +636,7 @@ FloatingWindow {
                         if (text.length === 0) {
                             root.fileResults = []; root.calcResult = ""; root.calcError = false
                         }
-                        debounce.restart()
+                        debounce.restart()   // files only; apps and answers follow in onQueryChanged
                     }
                     // In clip mode: rebuild model to filter (onQueryChanged handles this)
                 }
