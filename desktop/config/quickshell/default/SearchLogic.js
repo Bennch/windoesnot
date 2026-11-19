@@ -254,7 +254,8 @@ var FILTERS = {
     files: "files", dateien: "files", datei: "files", ordner: "folders", folders: "folders", folder: "folders",
     pdf: "pdf", bilder: "images", images: "images", img: "images",
     docs: "docs", dokumente: "docs", doc: "docs",
-    video: "video", videos: "video", musik: "audio", audio: "audio"
+    video: "video", videos: "video", musik: "audio", audio: "audio",
+    special: "special", sonderzeichen: "special", zeichen: "special", symbole: "special", symbols: "special"
 }
 var EXTENSIONS = {
     pdf: ["pdf"], images: ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif", "heic"],
@@ -263,6 +264,8 @@ var EXTENSIONS = {
 }
 
 function parseFilter(query) {
+    // ";" opens the special characters, like ":" opens the emoji.
+    if (query.charAt(0) === ";") return {kind: "special", text: query.slice(1).trim()}
     var match = /^\/([a-zA-ZäöüÄÖÜ]+)(?:\s+(.*))?$/.exec(query)
     if (!match) return {kind: "", text: query}
     var kind = FILTERS[match[1].toLowerCase()]

@@ -55,7 +55,7 @@ FloatingWindow {
     // "/pdf bill" narrows the search to one kind; searchText is what is searched for.
     readonly property var    parsed:     Logic.parseFilter(query)
     // Type filter chips under the results (Left/Right choose, live while searching); "" = everything.
-    readonly property var    chipKinds:  ["", "apps", "folders", "docs", "images", "pdf", "video", "audio"]
+    readonly property var    chipKinds:  ["", "apps", "folders", "docs", "images", "pdf", "video", "audio", "special"]
     property int             chipIndex:  0
     readonly property string filterKind: chipIndex > 0 ? chipKinds[chipIndex] : parsed.kind
     readonly property int    activeChip: Math.max(0, chipKinds.indexOf(filterKind))
@@ -63,7 +63,8 @@ FloatingWindow {
     readonly property var    chipIcons: ["actions/symbolic/edit-find-symbolic.svg", "actions/symbolic/view-app-grid-symbolic.svg",
                                          "places/symbolic/folder-symbolic.svg", "mimes/symbolic/x-office-document-symbolic.svg",
                                          "mimes/symbolic/image-x-generic-symbolic.svg", "mimes/symbolic/text-x-generic-symbolic.svg",
-                                         "mimes/symbolic/media-video-symbolic.svg", "mimes/symbolic/audio-x-generic-symbolic.svg"]
+                                         "mimes/symbolic/media-video-symbolic.svg", "mimes/symbolic/audio-x-generic-symbolic.svg",
+                                         "apps/symbolic/accessories-character-map-symbolic.svg"]
     readonly property string searchText: parsed.text
     // An answer line is shown whenever the text is a calculation or a unit conversion (see SearchLogic.js).
     readonly property bool modeMath: calcResult.length > 0
@@ -198,12 +199,23 @@ FloatingWindow {
     }
     readonly property var emojiAll:   parseSymbols(EmojiDb.emoji, emojiHints)
     readonly property var specialAll: parseSymbols(SpecialDb.chars, null)
-    // 0 = emoji, 1 = special characters (Tab switches while ":" is active)
-    property int emojiTab: 0
+    // Special characters are their own search type (chip "Special characters" or the ";" prefix), shown as a list.
+    readonly property var filteredSpecial: {
+        if (filterKind !== "special") return []
+        var q = Logic.normalize(searchText).trim()
+        if (q.length === 0) return specialAll
+        var starts = [], contains = []
+        for (var i = 0; i < specialAll.length; i++) {
+            var at = specialAll[i].w.indexOf(q)
+            if (at === 0 || specialAll[i].w.indexOf(" " + q) >= 0 || specialAll[i].e === searchText.trim()) starts.push(specialAll[i])
+            else if (at > 0) contains.push(specialAll[i])
+        }
+        return starts.concat(contains)
+    }
 
     readonly property var filteredEmoji: {
         if (!modeEmoji) return []
-        var list = emojiTab === 0 ? emojiAll : specialAll
+        var list = emojiAll
         var q = Logic.normalize(query.substring(1)).trim()
         if (q.length === 0) return list
         var starts = [], contains = []
@@ -232,6 +244,7 @@ FloatingWindow {
             }
             flatModel.append({type:"hint", hintKey:"calc",  label:"= "   + Lang.get("search.hintCalc",  uiLanguage), filePath:"", clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:""})
             flatModel.append({type:"hint", hintKey:"emoji", label: Lang.get("search.hintEmoji", uiLanguage), filePath:"", clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:""})
+            flatModel.append({type:"hint", hintKey:"special", label: Lang.get("search.hintSpecial", uiLanguage), filePath:"", clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:""})
             flatModel.append({type:"hint", hintKey:"clip",  label: Lang.get("search.hintClip",  uiLanguage), filePath:"", clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:""})
             flatModel.append({type:"hint", hintKey:"run",   label:"> "   + Lang.get("search.hintRun",   uiLanguage), filePath:"", clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:""})
             selIdx = recents.length > 0 ? 1 : -1   // the most used app is ready: Enter starts it
@@ -271,6 +284,15 @@ FloatingWindow {
                 flatModel.append({type:"empty", label:"", hintKey:"", filePath:"", clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:""})
             }
             selIdx = flatModel.count > 1 ? 1 : -1  // skip header
+            return
+        }
+
+        // ─ Special characters: one list, name and character ─
+        if (filterKind === "special") {
+            var specials = filteredSpecial
+            for (var sp = 0; sp < specials.length && sp < 300; sp++)
+                flatModel.append({type:"special", label:specials[sp].e, hintKey:"", filePath:"", clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:specials[sp].n})
+            selIdx = flatModel.count > 0 ? 0 : -1
             return
         }
 
@@ -332,6 +354,7 @@ FloatingWindow {
     onClipResultsChanged: Qt.callLater(rebuildModel)
     onUiLanguageChanged:  Qt.callLater(rebuildModel)
     onUsageChanged:       Qt.callLater(function() { updateApps(); rebuildModel() })
+    onFilteredSpecialChanged: Qt.callLater(rebuildModel)
     onChipIndexChanged:   { updateApps(); updateCalc(); debounce.restart(); Qt.callLater(rebuildModel) }
     // Clipboard filter: rebuild when query changes in clip mode
     onQueryChanged: {
@@ -359,7 +382,7 @@ FloatingWindow {
 
     // Tab / Shift+Tab: the next / previous search type (or emoji <-> special characters while ":" is active).
     function cycleChip(delta) {
-        if (modeEmoji) { emojiTab = (emojiTab + 1) % 2; emojiGrid.currentIndex = 0; return }
+        if (modeEmoji) return
         if (showClip || modeRun) return
         var next = (activeChip + (delta || 1) + chipKinds.length) % chipKinds.length
         if (parsed.kind !== "") searchField.text = parsed.text
@@ -389,6 +412,7 @@ FloatingWindow {
         if (item.type === "hint")      { activateHint(item.hintKey); return }
         if (item.type === "run")       { activateRunCmd(item.appCmd); return }
         if (item.type === "term")      { activateRunTerminal(item.appCmd); return }
+        if (item.type === "special")   { activateEmoji({e: item.label}); return }
         if (item.type === "webSearch") { activateWebSearch(item.label); return }
     }
 
@@ -409,6 +433,9 @@ FloatingWindow {
     function activateHint(key) {
         if (key === "emoji") {
             searchField.text = ":"
+            searchField.forceActiveFocus()
+        } else if (key === "special") {
+            searchField.text = ";"
             searchField.forceActiveFocus()
         } else if (key === "clip") {
             showClip = true
@@ -524,7 +551,7 @@ FloatingWindow {
 
     // ── Public API ────────────────────────────────────────────────────────────
     function openSearch() {
-        query = ""; chipIndex = 0; emojiTab = 0; selIdx = -1; calcResult = ""; calcError = false
+        query = ""; chipIndex = 0; selIdx = -1; calcResult = ""; calcError = false
         fileResults = []; appResults = []; clipResults = []; showClip = false
         searchField.text = ""
         usageLoad.running = false
@@ -611,9 +638,9 @@ FloatingWindow {
         onTriggered: {
             var q = root.searchText
             var extensions = Logic.extensionsFor(root.filterKind).map(function(e) { return "-e " + e }).join(" ")
-            var fileChip = root.filterKind !== "" && root.filterKind !== "apps"
+            var fileChip = root.filterKind !== "" && root.filterKind !== "apps" && root.filterKind !== "special"
             if ((q.length >= (extensions || root.filterKind === "folders" ? 1 : 2) || (fileChip && q.length === 0))
-                    && root.filterKind !== "apps" && !root.modeEmoji && !root.modeRun && !root.showClip) {
+                    && root.filterKind !== "apps" && root.filterKind !== "special" && !root.modeEmoji && !root.modeRun && !root.showClip) {
                 // No text yet but a type chosen: the newest items of that type.
                 var recent = q.length === 0 ? "--changed-within 120d " : ""
                 if (q.length === 0) q = "."
@@ -722,8 +749,18 @@ FloatingWindow {
                     if (root.modeEmoji) emojiGrid.moveCurrentIndexDown()
                     else root.navDown()
                 }
-                Keys.onLeftPressed:  function(event) { if (root.modeEmoji) emojiGrid.moveCurrentIndexLeft(); else event.accepted = false }
-                Keys.onRightPressed: function(event) { if (root.modeEmoji) emojiGrid.moveCurrentIndexRight(); else event.accepted = false }
+                // Left/Right choose the search type (also while typing). The text cursor keeps Ctrl+Left/Right (by word),
+                // Home/End and the mouse; with Shift or Alt held the keys edit the text as usual.
+                Keys.onLeftPressed: function(event) {
+                    if (root.modeEmoji) emojiGrid.moveCurrentIndexLeft()
+                    else if (root.showClip || root.modeRun || (event.modifiers & (Qt.ControlModifier | Qt.ShiftModifier | Qt.AltModifier))) event.accepted = false
+                    else root.cycleChip(-1)
+                }
+                Keys.onRightPressed: function(event) {
+                    if (root.modeEmoji) emojiGrid.moveCurrentIndexRight()
+                    else if (root.showClip || root.modeRun || (event.modifiers & (Qt.ControlModifier | Qt.ShiftModifier | Qt.AltModifier))) event.accepted = false
+                    else root.cycleChip(1)
+                }
 
                 onTextChanged: {
                     root.query = text
@@ -797,7 +834,7 @@ FloatingWindow {
         GridView {
             id: emojiGrid
             anchors {
-                top: emojiTabs.bottom
+                top: searchBar.bottom
                 left: parent.left
                 right: parent.right
                 bottom: keyBar.top
@@ -826,41 +863,6 @@ FloatingWindow {
                     anchors.fill: parent; hoverEnabled: true
                     onEntered: emojiGrid.currentIndex = index
                     onClicked: root.activateEmoji(modelData)
-                }
-            }
-        }
-
-        // ── Emoji / special characters tabs (Tab switches) ─────────────────────
-        Item {
-            id: emojiTabs
-            visible: root.modeEmoji
-            anchors { top: searchBar.bottom; left: parent.left; right: parent.right }
-            height: visible ? 38 : 0
-            Row {
-                anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                spacing: 6
-                Repeater {
-                    model: ["emoji", "special"]
-                    delegate: Rectangle {
-                        required property string modelData
-                        required property int index
-                        readonly property bool active: root.emojiTab === index
-                        height: 26; width: tabText.implicitWidth + 24; radius: 13
-                        color: active ? root.acSel : (tabMouse.containsMouse ? root.hover : "transparent")
-                        border.width: 1; border.color: active ? root.accentColor : root.sep
-                        Text {
-                            id: tabText
-                            anchors.centerIn: parent
-                            text: Lang.get("search.tab." + parent.modelData, root.uiLanguage)
-                            color: parent.active ? root.fg : root.fgSub
-                            font.pixelSize: 12; font.bold: parent.active
-                        }
-                        MouseArea {
-                            id: tabMouse
-                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: { root.emojiTab = index; emojiGrid.currentIndex = 0; searchField.forceActiveFocus() }
-                        }
-                    }
                 }
             }
         }
@@ -950,6 +952,7 @@ FloatingWindow {
                       : model.type === "empty"     ? 110
                       : model.type === "webSearch" ? 44
                       : model.type === "app"       ? 50
+                      : model.type === "special"   ? 42
                       : 46  // hint, clip, run
 
                 // ── HEADER ─────────────────────────────────────────────────
@@ -1097,6 +1100,33 @@ FloatingWindow {
                         anchors.fill: parent; hoverEnabled: true
                         onEntered: root.selIdx = index
                         onClicked: root.activateAppItem(model)
+                    }
+                }
+
+                // ── SPECIAL CHARACTER ──────────────────────────────────────
+                Rectangle {
+                    visible: model.type === "special"
+                    anchors { fill: parent; leftMargin: 4; rightMargin: 8; topMargin: 2; bottomMargin: 2 }
+                    radius: root.borderRadius
+                    color: root.selIdx === index ? root.acSel : specialMouse.containsMouse ? root.hover : "transparent"
+                    Text {
+                        id: specialGlyph
+                        width: 44
+                        anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+                        horizontalAlignment: Text.AlignHCenter
+                        text: model.type === "special" ? model.label : ""
+                        color: root.fg; font.pixelSize: 24
+                    }
+                    Text {
+                        anchors { left: specialGlyph.right; leftMargin: 6; right: parent.right; rightMargin: 14; verticalCenter: parent.verticalCenter }
+                        text: model.value || ""
+                        color: root.fgSub; font.pixelSize: 13; elide: Text.ElideRight
+                    }
+                    MouseArea {
+                        id: specialMouse
+                        anchors.fill: parent; hoverEnabled: true
+                        onEntered: root.selIdx = index
+                        onClicked: root.activateEmoji({e: model.label})
                     }
                 }
 

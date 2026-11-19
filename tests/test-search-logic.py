@@ -28,6 +28,7 @@ const out = {
     (now/1000-86400*400)+'|directory|/home/u/Rechnung',
     (now/1000-86400*400)+'|regular file|/home/u/a/b/c/d/e/f/rechnung.txt|with-pipe',
     'garbage line'].join('\\n')), 'rechnung', '/home/u', 10, now).map(e => e.path + (e.isDir ? '/' : '')),
+  special: [parseFilter(';euro'), parseFilter('/sonderzeichen pfeil'), parseFilter(';')].map(f => f.kind + '|' + f.text),
   parsed: parseFileLines('5|d|/x/y\\n6|regular file|/x/z').map(e => [e.path, e.isDir]),
   units: ['5 km in mi','100 c to f','1 gib in mb','2 h in min','10 kg to lb','3 foo to bar'].map(answer),
 };
@@ -43,6 +44,7 @@ assert got['recorded']['Files']['c'] == 1 and got['many'] == 200
 assert got['calc'] == ['4', '4', '1024', '110', '30', '9', '3', '2.5', '2', '9', '', '', '', '', '', '', ''], got['calc']
 assert got['files'][0] == '/home/u/Rechnung/' and '/home/u/Dokumente/Rechnung 2026.pdf' in got['files'], got['files']
 assert got['files'][-1] == '/home/u/.cache/rechnung-old.pdf', 'hidden cache folders rank last'
+assert got['special'] == ['special|euro', 'special|pfeil', 'special|'], got['special']
 assert got['parsed'] == [['/x/y', True], ['/x/z', False]]
 assert got['units'][:5] == ['3.1068559612 mi', '212 °F', '1073.741824 mb', '120 min', '22.0462262185 lb'] and got['units'][5] == '', got['units']
 print('PASS: search ranking, calculator and units')
