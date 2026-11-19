@@ -4076,6 +4076,14 @@ FloatingWindow {
         // Index auf erste sichtbare App setzen und Keyboard-Navigation aktivieren
         if (filteredApps.length > 0) {
             selectedAppIndex = filteredApps[0]
+            if (searchText.length > 0) {
+                // The grids show hits in list order, unpinned section first: highlight the first one that is actually shown first.
+                var shownFirst = -1
+                for (var s = 0; s < filteredApps.length && shownFirst < 0; s++)
+                    if (!allAppsModel.get(filteredApps[s]).pinned) shownFirst = Math.min(...filteredApps.filter(function(i) { return !allAppsModel.get(i).pinned }))
+                if (shownFirst < 0) shownFirst = Math.min(...filteredApps)
+                selectedAppIndex = shownFirst
+            }
             keyboardNavigation = true
         } else {
             selectedAppIndex = 0

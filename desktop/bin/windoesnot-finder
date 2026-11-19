@@ -60,7 +60,37 @@ checkbutton check:checked { background: #fe6f2d; border-color: #fe6f2d; color: #
 progressbar trough { background: #3a3a3a; min-height: 8px; border-radius: 4px; }
 progressbar progress { background: #fe6f2d; min-height: 8px; border-radius: 4px; }
 button.suggested-action { background: #fe6f2d; color: #202020; }
+.rail { background: #1a1a1a; border-right: 1px solid #3a3a3a; }
+.rail-row { border-radius: 6px; padding: 0 6px; min-height: 36px; }
+.rail-row.current { background: #141414; }
+.rail-pill { background: #fe6f2d; border-radius: 2px; min-width: 3px; min-height: 18px; }
+.rail-title { color: #777777; font-size: 11pt; }
+.rail-title.done { color: #aaaaaa; }
+.rail-title.current { color: #eeeeee; font-weight: 700; }
+.rail-glyph { color: #777777; min-width: 22px; }
+.rail-glyph.done { color: #fe6f2d; }
+.rail-glyph.current { color: #eeeeee; }
+.greeting { font-size: 15pt; font-weight: 800; color: #eeeeee; }
+.joke { color: #aaaaaa; font-size: 10pt; }
+.page-title { font-size: 22pt; font-weight: 700; color: #eeeeee; }
 '''
+
+
+JOKES = (
+    ('Neue Distro, neues Glück? Wir tragen die Kisten.', 'New distro, new luck? We carry the boxes.'),
+    ('Auf der Suche nach der besseren Seite? Deine Daten ziehen schon mal mit.', 'Looking for the better side? Your data is already coming along.'),
+    ('Distro-Hopping mit Möbelwagen.', 'Distro hopping with a moving van.'),
+    ('Wir lassen nichts zurück. Außer dem Staub.', 'We leave nothing behind. Except the dust.'),
+    ('Umziehen, ohne Kisten zu schleppen.', 'Moving house without carrying boxes.'),
+    ('Dein altes System bekommt einen Abschiedsbrief, deine Daten ein neues Zuhause.', 'Your old system gets a farewell note, your data a new home.'),
+)
+
+
+def greeting_name(manifest=None):
+    name = GLib.get_real_name()
+    if not name or name == 'Unknown':
+        name = (manifest or {}).get('user', {}).get('name') or GLib.get_user_name()
+    return name.split()[0].capitalize() if name else ''
 
 
 def open_path(path):
@@ -83,18 +113,39 @@ class Window(Adw.ApplicationWindow):
         self.titles = {}
         self.current = 'start'
         self.pulse = None
-        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=18, margin_bottom=18, margin_start=24, margin_end=24)
+        import random
+        root = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         toolbar = Adw.ToolbarView()
         toolbar.add_top_bar(Adw.HeaderBar())
-        toolbar.set_content(outer)
+        toolbar.set_content(root)
         self.set_content(toolbar)
-        self.step_label = Gtk.Label(xalign=0)
-        self.step_label.add_css_class('accent')
-        outer.append(self.step_label)
-        self.step_progress = Gtk.ProgressBar()
-        outer.append(self.step_progress)
+        # Left rail like the Windows tool: greeting, then every step by name (done / current / upcoming).
+        rail = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, width_request=232, margin_top=0)
+        rail.add_css_class('rail')
+        header = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, margin_top=18, margin_bottom=14, margin_start=16, margin_end=14)
+        self.greeting = Gtk.Label(label=tr('Hallo ', 'Hello ') + greeting_name(), xalign=0)
+        self.greeting.add_css_class('greeting')
+        joke = random.choice(JOKES)
+        self.joke = Gtk.Label(label=tr(*joke), xalign=0, wrap=True)
+        self.joke.add_css_class('joke')
+        logo_file = next((c for c in (Path('/usr/share/windoesnot/branding/windoesnot-logo-hell.png'),
+                                      HERE.parent / 'config/quickshell/default/img/brand/windoesnot-logo-hell.png') if c.is_file()), None)
+        if logo_file:
+            logo = Gtk.Picture.new_for_filename(str(logo_file))
+            logo.set_content_fit(Gtk.ContentFit.CONTAIN)
+            logo.set_size_request(190, 36)
+            logo.set_halign(Gtk.Align.START)
+            logo.set_margin_bottom(14)
+            header.append(logo)
+        header.append(self.greeting); header.append(self.joke)
+        rail.append(header)
+        self.rail_rows = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1, margin_start=8, margin_end=8)
+        rail.append(self.rail_rows)
+        root.append(rail)
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=18, margin_bottom=18, margin_start=24, margin_end=24, hexpand=True)
+        root.append(outer)
         self.heading = Gtk.Label(xalign=0, wrap=True)
-        self.heading.add_css_class('title-2'); self.heading.add_css_class('wdn-heading')
+        self.heading.add_css_class('page-title')
         outer.append(self.heading)
         self.status = Gtk.Label(xalign=0, wrap=True)
         outer.append(self.status)
@@ -151,14 +202,38 @@ class Window(Adw.ApplicationWindow):
         page.append(spinner); page.append(self.scan_label)
         return page
 
+    RAIL_SHORT = {'start': ('Start', 'Start'), 'scan': ('Suchen', 'Search')}
+
+    def rail_names(self):
+        names = ['start', 'scan'] + [n for n in self.order if n not in ('start', 'scan')]
+        return names
+
+    def refresh_rail(self):
+        while child := self.rail_rows.get_first_child(): self.rail_rows.remove(child)
+        names = self.rail_names()
+        position = names.index(self.current) if self.current in names else 0
+        for index, name in enumerate(names):
+            state = 'done' if index < position else 'current' if index == position else 'todo'
+            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            row.add_css_class('rail-row')
+            if state == 'current': row.add_css_class('current')
+            pill = Gtk.Box(valign=Gtk.Align.CENTER, width_request=3)
+            if state == 'current': pill.add_css_class('rail-pill')
+            glyph = Gtk.Label(label='✓' if state == 'done' else str(index + 1), width_chars=2)
+            glyph.add_css_class('rail-glyph')
+            if state != 'todo': glyph.add_css_class(state)
+            title = self.RAIL_SHORT.get(name)
+            label = Gtk.Label(label=tr(*title) if title else self.titles.get(name, name), xalign=0, hexpand=True, ellipsize=Pango.EllipsizeMode.END)
+            label.add_css_class('rail-title')
+            if state != 'todo': label.add_css_class(state)
+            row.append(pill); row.append(glyph); row.append(label)
+            self.rail_rows.append(row)
+
     def show_page(self, name):
-        if name in self.order:
-            index = self.order.index(name)
-            self.step_label.set_text(tr(f'Schritt {index + 1} von {len(self.order)}', f'Step {index + 1} of {len(self.order)}') if len(self.order) > 1 else '')
-            self.step_progress.set_fraction((index + 1) / len(self.order) if len(self.order) > 1 else 0)
         self.current = name
         self.heading.set_text(self.titles.get(name, ''))
         self.stack.set_visible_child_name(name)
+        self.refresh_rail()
         self.update_nav()
 
     def update_nav(self):
@@ -200,8 +275,7 @@ class Window(Adw.ApplicationWindow):
         self.manifest = None
         self.order = ['start', 'scan']
         self.show_page('scan')
-        self.step_label.set_text(''); self.step_progress.set_fraction(0)
-        self.pulse = GLib.timeout_add(120, lambda: (self.step_progress.pulse(), True)[1])
+        self.pulse = None
         threading.Thread(target=self.scan_worker, args=(root,), daemon=True).start()
         return False
 
@@ -256,6 +330,7 @@ class Window(Adw.ApplicationWindow):
     def show_result(self, manifest):
         self.stop_pulse()
         self.manifest = manifest
+        self.greeting.set_label(tr('Hallo ', 'Hello ') + greeting_name(manifest))
         for name in list(self.order):
             if name not in ('start', 'scan'):
                 child = self.stack.get_child_by_name(name)
