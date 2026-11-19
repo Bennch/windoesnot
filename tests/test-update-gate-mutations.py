@@ -11,7 +11,8 @@ sys.path.insert(0, str(ROOT / 'tools'))
 from update_gate_common import package_set
 from update_gate_runner import Runner
 
-PACKAGES = ROOT / 'build/release-packages-32'
+PACKAGES = Path(os.environ.get('WINDOESNOT_GATE_PACKAGES', ROOT / 'build/release-packages-32'))
+CONFIGURATION = os.environ.get('WINDOESNOT_GATE_CONFIGURATION', 'A')
 
 @unittest.skipUnless(os.environ.get('WINDOESNOT_RUN_GATE_MUTATIONS') == '1', 'requires real VM mutations and network')
 class Mutations(unittest.TestCase):
@@ -21,10 +22,12 @@ class Mutations(unittest.TestCase):
         evidence = json.loads(positive.read_text())
         self.assertTrue(evidence.get('passed'))
         self.assertEqual(evidence.get('package_set_sha256'), expected)
+        self.assertIn(CONFIGURATION, ('A', 'B', 'C'))
+        self.assertEqual(evidence.get('configuration', 'A'), CONFIGURATION)
         for mutation in ('A', 'B', 'C'):
             with self.subTest(mutation=mutation):
                 print('Starting real mutation', mutation, flush=True)
-                runner = Runner(PACKAGES, mutation=mutation)
+                runner = Runner(PACKAGES, mutation=mutation, configuration=CONFIGURATION)
                 result = runner.execute()
                 self.assertTrue(result.get('mutation_active'), result)
                 self.assertEqual(result.get('package_set_sha256'), expected)
