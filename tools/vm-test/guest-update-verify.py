@@ -7,13 +7,14 @@ import os
 import re
 from pathlib import Path
 import subprocess
+import sys
 
 
 def run(*args):
     return subprocess.run(args, capture_output=True, text=True, env={**os.environ, 'LC_ALL': 'C'})
 
 
-def observe():
+def observe(configuration='A'):
     kernel = os.uname().release
     boot = Path('/proc/sys/kernel/random/boot_id').read_text().strip()
     packages = run('pacman', '-Q', 'windoesnot-desktop', 'windoesnot-tools', 'windoesnot-plugins', 'windoesnot-components')
@@ -44,13 +45,25 @@ def observe():
     default_valid = (bootctl.returncode == 0 and 'id: linux-cachyos.conf' in default_section
                      and len(paths) >= 2 and all(p.startswith('/boot/') and Path(p).is_file() for p in paths)
                      and Path('/boot/loader/entries/linux-cachyos.conf').is_file())
+    mount_fields = mount.stdout.split()
+    boot_mounted = mount.returncode == 0 and mount_fields[:2] == ['/boot', 'vfat'] and 'rw' in mount_fields[-1].split(',')
+    old_entries_removed = bool(machine_id) and not any(p.name.startswith(machine_id + '-') for p in entries)
+    if configuration in ('B', 'C'):
+        grub = Path('/boot/grub/grub.cfg')
+        grub_text = grub.read_text(errors='replace') if grub.is_file() else ''
+        efi = Path('/sys/firmware/efi').is_dir()
+        expected_efi = configuration == 'B'
+        default_valid = bool(grub_text and 'menuentry ' in grub_text and re.search(r'^\s*linux\s', grub_text, re.M))
+        boot_mounted = (mount.returncode == 0 and len(mount_fields) >= 3 and 'rw' in mount_fields[-1].split(',')
+                        and efi == expected_efi and ((mount_fields[:2] == ['/boot', 'vfat'] and Path('/boot/EFI/WinDoesNot/grubx64.efi').is_file()) if expected_efi else mount_fields[1] != 'vfat'))
+        old_entries_removed = True  # systemd-boot entries do not apply to GRUB
     checks = {
         'package_files_intact': package_files.returncode == 0,
         'target_versions': packages.returncode == 0 and len(parsed) == 4 and all(v == '0.1.0-32' for v in parsed.values()),
         'newest_kernel': bool(newest) and kernel == newest and 'lts' not in kernel and (Path('/usr/lib/modules') / kernel).is_dir(),
-        'boot_mounted': mount.returncode == 0 and mount.stdout.split()[:2] == ['/boot', 'vfat'] and 'rw' in mount.stdout.split()[-1].split(','),
+        'boot_mounted': boot_mounted,
         'default_valid': default_valid,
-        'old_entries_removed': bool(machine_id) and not any(p.name.startswith(machine_id + '-') for p in entries),
+        'old_entries_removed': old_entries_removed,
         'failed_units': units.returncode == 0 and not units.stdout.strip(),
         'personal_sha256': personal.is_file() and hashlib.sha256(personal.read_bytes()).hexdigest() == 'c8de8152d7324d9c4dd0139dc190d6632b0b8ddf6ae98be16270f99ca98ef58e',
         'desktop_plugins': bool(plugins and plugins.returncode == 0 and 'Plugin hyprbars' in plugins.stdout and 'Plugin hyprdrag' in plugins.stdout),
@@ -64,4 +77,7 @@ def observe():
             'entries': [p.name for p in entries]}
 
 if __name__ == '__main__':
-    print(json.dumps(observe(), indent=2))
+    configuration = sys.argv[1] if len(sys.argv) > 1 else 'A'
+    if configuration not in ('A', 'B', 'C'):
+        raise SystemExit('invalid configuration')
+    print(json.dumps(observe(configuration), indent=2))

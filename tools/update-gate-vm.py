@@ -35,12 +35,13 @@ def main():
         parser = argparse.ArgumentParser(description='Run isolated 29-to-32 update experiment')
         parser.add_argument('stage', choices=['install', 'update', 'verify', 'run'])
         parser.add_argument('--packages', type=Path)
+        parser.add_argument('--configuration', choices=['A', 'B', 'C'], default='A')
         parser.add_argument('--vm-name', help='owned VM name returned by install')
         args = parser.parse_args()
         if args.stage in ('install', 'run'):
             if not args.packages or args.vm_name:
                 parser.error('install/run require --packages and do not accept --vm-name')
-            runner = Runner(args.packages)
+            runner = Runner(args.packages, configuration=args.configuration)
         else:
             if not args.vm_name or args.packages:
                 parser.error('update/verify require --vm-name and do not accept --packages')

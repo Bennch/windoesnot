@@ -76,8 +76,8 @@ def inspect(result_path, digest, kind, now=None):
 
 def inspect_index(data, digest, now=None):
     now = now or datetime.now(timezone.utc)
-    if data.get('schema') != 2 or not fresh(data['timestamp'], now):
-        raise ValueError('missing schema or expired gate result')
+    if data.get('schema') != 3 or not fresh(data['timestamp'], now):
+        raise ValueError('missing matrix schema or expired gate result')
     if data.get('package_set_sha256') != digest or data.get('exit_code') != 0:
         raise ValueError('package hash or exit code mismatch')
     for kind in ('positive', 'A', 'B', 'C'):
@@ -91,3 +91,22 @@ def inspect_index(data, digest, now=None):
             Path(name).name == iso.name and value == data['iso_sha256']
             for name, value in positive['baseline_manifest']['files'].items()):
         raise ValueError('predecessor ISO does not match the baseline')
+    matrix = data['matrix']
+    if set(matrix) != {'A', 'B', 'C'}:
+        raise ValueError('all three boot configurations are required')
+    for config, item in matrix.items():
+        stored = item['positive']
+        if inspect(stored['result'], digest, 'positive', now) != stored:
+            raise ValueError(f'{config}: evidence bytes or paths changed')
+        result = json.loads(Path(stored['result']).read_text())
+        if result.get('configuration') != config or result.get('checks', {}).get('pacman_install_remove') is not True:
+            raise ValueError(f'{config}: boot configuration or package transaction missing')
+        probe = Path(item['pacman_probe']).resolve(strict=True)
+        if probe != Path(stored['result']).with_name('pacman-probe.log') or sha256(probe) != item['pacman_probe_sha256']:
+            raise ValueError(f'{config}: package transaction log changed')
+        source = Path(item['iso']).resolve(strict=True)
+        source_hash = sha256(source)
+        if source_hash != item['iso_sha256'] or not any(Path(name).name == source.name and value == source_hash for name, value in result['baseline_manifest']['files'].items()):
+            raise ValueError(f'{config}: predecessor ISO does not match baseline')
+    if matrix['A']['positive'] != data['evidence']['positive']:
+        raise ValueError('configuration A evidence does not match mutation set')

@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parent.parent
 BASE = ROOT / 'out/update-gate/work/baselines/29-de-sdboot'
+BASELINES = {'A': BASE, 'B': BASE.parent / '29-en-grub-uefi', 'C': BASE.parent / '29-en-grub-bios'}
 VMROOT = ROOT / 'vm'
 WORK = ROOT / 'out/update-gate/work'
 
@@ -38,8 +39,8 @@ def hook_order(log):
     return pre >= 0 and kernel > pre and post > kernel
 
 
-def verify_baseline():
-    manifest = json.loads((BASE / 'manifest.json').read_text())
+def verify_baseline(base=BASE):
+    manifest = json.loads((base / 'manifest.json').read_text())
     if manifest.get('offline_install') is not True or not manifest.get('files'):
         raise RuntimeError('Baseline manifest does not prove offline installation')
     for name, expected in manifest['files'].items():
@@ -50,10 +51,14 @@ def verify_baseline():
 
 
 class Runner:
-    def __init__(self, packages, mutation=None):
+    def __init__(self, packages, mutation=None, configuration='A'):
         if mutation not in (None, 'A', 'B', 'C'):
             raise ValueError('unknown mutation')
         self.mutation = mutation
+        if configuration not in BASELINES:
+            raise ValueError('unknown boot configuration')
+        self.configuration = configuration
+        self.base = BASELINES[configuration]
         self.packages = Path(packages).resolve(strict=True)
         self.name = 'update-gate-' + uuid.uuid4().hex[:12]
         self.vm = VMROOT / self.name
@@ -76,6 +81,8 @@ class Runner:
         obj.result, obj.phase = state['result'], state['phase']
         obj.vmproc = obj.server = None
         obj.mutation = state.get('mutation')
+        obj.configuration = state.get('configuration', 'A')
+        obj.base = BASELINES[obj.configuration]
         marker = obj.vm / '.update-gate-owner'
         if not marker.is_file() or marker.read_text().strip() != name:
             raise RuntimeError('missing VM ownership marker')
@@ -86,7 +93,7 @@ class Runner:
 
     def checkpoint(self, phase):
         self.phase = phase
-        state = {'packages': str(self.packages), 'phase': phase, 'result': self.result, 'mutation': self.mutation}
+        state = {'packages': str(self.packages), 'phase': phase, 'result': self.result, 'mutation': self.mutation, 'configuration': self.configuration}
         temporary = self.run / 'state.json.tmp'
         temporary.write_text(json.dumps(state, indent=2) + '\n')
         os.replace(temporary, self.run / 'state.json')
@@ -120,17 +127,19 @@ class Runner:
         raise TimeoutError('guest-agent or new boot ID did not become ready')
 
     def install(self):
-        self.result['baseline_manifest'] = verify_baseline()
+        self.result['configuration'] = self.configuration
+        self.result['baseline_manifest'] = verify_baseline(self.base)
         self.vm.mkdir()
         (self.vm / '.update-gate-owner').write_text(self.name + '\n')
-        cmd('qemu-img', 'create', '-f', 'qcow2', '-F', 'qcow2', '-b', str(BASE / 'disk.qcow2'), str(self.vm / 'disk.qcow2'), stdout=subprocess.DEVNULL)
-        shutil.copy2(BASE / 'OVMF_VARS.fd', self.vm / 'OVMF_VARS.fd')
-        (self.vm / 'OVMF_VARS.fd').chmod(0o600)
+        cmd('qemu-img', 'create', '-f', 'qcow2', '-F', 'qcow2', '-b', str(self.base / 'disk.qcow2'), str(self.vm / 'disk.qcow2'), stdout=subprocess.DEVNULL)
+        if self.configuration != 'C':
+            shutil.copy2(self.base / 'OVMF_VARS.fd', self.vm / 'OVMF_VARS.fd')
+            (self.vm / 'OVMF_VARS.fd').chmod(0o600)
         log = (self.run / 'qemu-launch.log').open('w')
         self.vmproc = subprocess.Popen(['./build-and-run.sh', '--boot-installed', '--vm-name', self.name,
                                        '--headless', '--graphics', 'soft', '--memory', '4096', '--cpus', '2'],
                                       cwd=ROOT, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
-                                      start_new_session=True)
+                                      start_new_session=True, env={**os.environ, 'WINDOESNOT_VM_BIOS': '1' if self.configuration == 'C' else '0'})
         log.close()
         self.result['baseline_boot_id'] = self.ready()
         self.result['baseline_kernel'] = self.guest('/usr/bin/uname', '-r').strip()
@@ -148,6 +157,17 @@ class Runner:
         for x in ('windoesnot-desktop', 'windoesnot-tools', 'windoesnot-plugins', 'windoesnot-components'):
             if metadata[x]['version'] != '0.1.0-32':
                 raise RuntimeError('Candidate core version mismatch: ' + x)
+        # A tiny, otherwise uninstalled package exercises an ordinary -S/-Rns
+        # transaction using the same offline candidate repository.
+        probe = self.run / 'probe-build'
+        probe.mkdir()
+        (probe / 'usr/lib/modules/windoesnot-gate-probe').mkdir(parents=True)
+        (probe / 'usr/lib/modules/windoesnot-gate-probe/vmlinuz').write_text('gate probe\n')
+        (probe / '.PKGINFO').write_text('pkgname = windoesnot-gate-probe\npkgbase = windoesnot-gate-probe\npkgver = 1-1\npkgdesc = disposable update gate probe\nurl = https://windoesnot.me\nbuilddate = 1\npackager = WinDoesNot test\nsize = 11\narch = any\n')
+        archive_probe = repo / 'windoesnot-gate-probe-1-1-any.pkg.tar.zst'
+        cmd('bsdtar', '--zstd', '-cf', str(archive_probe), '-C', str(probe), '.PKGINFO', 'usr', stdout=subprocess.DEVNULL)
+        cmd('repo-add', str(repo / 'windoesnot.db.tar.gz'), str(archive_probe), stdout=subprocess.DEVNULL)
+        shutil.rmtree(probe)
         from update_gate_common import package_set
         self.result['package_set_sha256'] = package_set(self.packages)
         self.result['packages'] = metadata
@@ -200,16 +220,26 @@ class Runner:
         self.result['checks']['hook_order'] = hook_order(log)
         hook_result = self.vmctl('exec', '/usr/bin/cat', '/var/lib/windoesnot/boot-migration/result.json', check=False)
         try:
-            hook = json.loads(hook_result.stdout)
-            started = datetime.fromisoformat(hook['started'])
-            update_start = datetime.fromisoformat(job['step_times']['update']['started'])
-            update_end = datetime.fromisoformat(job['step_times']['update']['finished'])
-            self.result['checks']['post_hook_status'] = hook.get('state') in ('ok', 'nothing-to-do') and update_start <= started <= update_end
-            self.result['post_hook_result'] = hook
+            if self.configuration in ('B', 'C'):
+                post = log.find('Validating WinDoesNot boot entries')
+                self.result['checks']['post_hook_status'] = post >= 0 and 'not a systemd-boot layout (GRUB/BIOS); nothing to do' in log[post:]
+            else:
+                hook = json.loads(hook_result.stdout)
+                started = datetime.fromisoformat(hook['started'])
+                update_start = datetime.fromisoformat(job['step_times']['update']['started'])
+                update_end = datetime.fromisoformat(job['step_times']['update']['finished'])
+                self.result['checks']['post_hook_status'] = hook.get('state') in ('ok', 'nothing-to-do') and update_start <= started <= update_end
+                self.result['post_hook_result'] = hook
         except (ValueError, KeyError, TypeError):
             self.result['checks']['post_hook_status'] = False
         if not job.get('success'):
             raise RuntimeError('bootstrap or update failed; see update.log')
+        probe_result = self.vmctl('exec', '/usr/bin/bash', '-c',
+                                  'pacman -S --noconfirm windoesnot-candidate/windoesnot-gate-probe && pacman -Rns --noconfirm windoesnot-gate-probe', check=False, timeout=180)
+        (self.run / 'pacman-probe.log').write_text(probe_result.stdout + probe_result.stderr)
+        self.result['checks']['pacman_install_remove'] = (probe_result.returncode == 0 and 'Checking WinDoesNot boot filesystem before update' in probe_result.stdout)
+        if not self.result['checks']['pacman_install_remove']:
+            raise RuntimeError('post-update package install/remove failed; see pacman-probe.log')
 
     def verify(self):
         previous = self.result['baseline_boot_id']
@@ -220,7 +250,7 @@ class Runner:
             # The login and plugins may start after the guest agent.
             end = time.monotonic() + 120
             while True:
-                observation = json.loads(self.guest('/usr/bin/python3', '/var/lib/windoesnot-update-gate/verify.py'))
+                observation = json.loads(self.guest('/usr/bin/python3', '/var/lib/windoesnot-update-gate/verify.py', self.configuration))
                 if observation['checks']['desktop_plugins'] or time.monotonic() >= end:
                     break
                 time.sleep(4)
@@ -240,6 +270,9 @@ class Runner:
 
     def cleanup(self):
         self.stop_server()
+        for temporary in (self.run / 'repo', self.run / 'probe-build'):
+            if temporary.is_dir():
+                shutil.rmtree(temporary)
         if self.vm.exists():
             marker = self.vm / '.update-gate-owner'
             if not marker.is_file() or marker.read_text().strip() != self.name:

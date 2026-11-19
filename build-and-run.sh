@@ -5,6 +5,7 @@ project=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 rootless=true; mode=both; iso=; dry=false; headless=false; fresh=false; installed=false; network=true
 memory=8192; cpus=4; graphics=auto; vm_name=debug; build_id=; extra_disk=
 vm_res=${WINDOESNOT_VM_RES:-}
+vm_bios=${WINDOESNOT_VM_BIOS:-0}
 language=en
 usage() {
     cat <<EOF
@@ -25,6 +26,7 @@ Usage: $0 [options]
   --build-id ID         Resume this exact prepared build
   --language en|de      ISO language (default: en)
   --dry-run             Show actions; do not build, download or launch
+  WINDOESNOT_VM_BIOS=1  Use SeaBIOS instead of UEFI firmware
   --help                Show help
 Only the build subprocess uses sudo. The VM uses its own qcow2 disk.
 EOF
@@ -56,6 +58,7 @@ done
 [[ $graphics == auto || $graphics == gl || $graphics == soft ]] || exit 2
 if [[ -n $vm_res && ! $vm_res =~ ^[0-9]+x[0-9]+$ ]]; then echo 'WINDOESNOT_VM_RES must be WIDTHxHEIGHT' >&2; exit 2; fi
 [[ $language == en || $language == de ]] || { echo 'Language must be en or de' >&2; exit 2; }
+[[ $vm_bios == 0 || $vm_bios == 1 ]] || { echo 'WINDOESNOT_VM_BIOS must be 0 or 1' >&2; exit 2; }
 [[ -z $build_id || $build_id =~ ^[a-zA-Z0-9_-]+$ ]] || exit 2
 if ((EUID == 0)) && [[ $mode != build ]]; then
     echo 'Run as your regular user; only mkarchiso is elevated.' >&2; exit 2
@@ -125,12 +128,16 @@ vm="$project/vm/$vm_name"
 disk="$vm/disk.qcow2"
 firmware=/usr/share/edk2/x64/OVMF_CODE.4m.fd
 template=/usr/share/edk2/x64/OVMF_VARS.4m.fd
-[[ -f $firmware && -f $template ]] || { echo 'edk2-ovmf firmware is required' >&2; exit 1; }
+firmware_args=()
+if [[ $vm_bios == 0 ]]; then
+    [[ -f $firmware && -f $template ]] || { echo 'edk2-ovmf firmware is required' >&2; exit 1; }
+    firmware_args=(-drive "if=pflash,format=raw,readonly=on,file=$firmware" -drive "if=pflash,format=raw,file=$vm/OVMF_VARS.fd")
+fi
 if $installed && ! $dry && [[ ! -f $disk ]]; then echo 'No installed VM disk exists' >&2; exit 1; fi
 if ! $dry; then
     mkdir -p "$vm"
     [[ -e $disk ]] || qemu-img create -f qcow2 "$disk" 64G
-    [[ -e $vm/OVMF_VARS.fd ]] || cp "$template" "$vm/OVMF_VARS.fd"
+    if [[ $vm_bios == 0 && ! -e $vm/OVMF_VARS.fd ]]; then cp "$template" "$vm/OVMF_VARS.fd"; fi
 fi
 # Never open the same writable VM disk from two instances.
 if ! $dry; then exec 9>"$vm/running.lock"; flock -n 9 || { echo 'VM already running' >&2; exit 1; }; fi
@@ -149,8 +156,7 @@ else
     if $headless; then display+=(-display none); else display+=(-display "$gtk_display,gl=off"); fi
 fi
 command=(qemu-system-x86_64 -name "WinDoesNot-$vm_name" -machine q35 "${accel[@]}" -m "$memory" -smp "$cpus"
-    -drive "if=pflash,format=raw,readonly=on,file=$firmware"
-    -drive "if=pflash,format=raw,file=$vm/OVMF_VARS.fd"
+    "${firmware_args[@]}"
     -drive "file=$disk,if=virtio,format=qcow2"
     ${extra_disk:+-drive "file=$extra_disk,if=virtio,format=qcow2"}
     "${display[@]}" -device qemu-xhci -device usb-tablet
