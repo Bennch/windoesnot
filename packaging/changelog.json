@@ -14,7 +14,14 @@
         "Benachrichtigungen: Position und Anzeige auf dem Bildschirm sind einstellbar; das Meldungszentrum bleibt oben in der Mitte.",
         "Einstellungen: Berechtigungen für Flatpak-Apps als übersichtliche Tabellen, Scrollen reicht auf allen Seiten bis ganz nach unten, neue Karte Mein System exportieren.",
         "Store: Nur WinDoesNot aktualisieren unter der Liste der Updates, wenn es welche gibt.",
-        "Das Netzwerk-Symbol zeigt bei einem Kabel das Kabel-Symbol; Netzwerk öffnen im Rechtsklick-Menü öffnet die Netzwerk-App, dazu Firewall öffnen."
+        "Das Netzwerk-Symbol zeigt bei einem Kabel das Kabel-Symbol; Netzwerk öffnen im Rechtsklick-Menü öffnet die Netzwerk-App, dazu Firewall öffnen.",
+        "Neue Suche: Dateien und Ordner zuerst (nach Namen, deinen Ordnern und Aktualität sortiert), Apps mit Kürzeln wie „vsc“, Rechner mit Prozent und Einheiten (5 km in mi), Typ-Filter per Tab oder /pdf, /bilder, „Im Web suchen“ und „Im Terminal ausführen“. Die Suche lernt, welche Apps du oft startest.",
+        "Emoji und Sonderzeichen: alle Emojis mit deutschen und englischen Namen plus ein Reiter mit Sonderzeichen (Anführungszeichen, Striche, Mathe, Währungen, Pfeile, Akzente). Enter fügt das Zeichen direkt ins Textfeld ein.",
+        "Web-Apps haben ein eigenes Fenster ohne Browser-Leiste und das Symbol der Webseite; eigene Web-Apps legst du unter Einstellungen, Apps an. Netflix, Prime Video und Disney+ bleiben im Browser (Kopierschutz).",
+        "Looks: eigene Looks mit Namen speichern (hell/dunkel, Akzentfarbe, Eckenradius, Hintergrund).",
+        "Desktop-Rechtsklick auf Dateien und Ordner in Dateimanager-Reihenfolge: Öffnen, Dateipfad öffnen und kopieren, Senden an (Gerät in der Nähe, Netzwerkfreigabe), Ausschneiden, Kopieren, Löschen, Umbenennen, Eigenschaften.",
+        "Installer: zehn Laufzeitumgebungen zum Nachinstallieren (Python, Node.js, Java, .NET, C/C++, PHP, Go, Rust, Ruby, Kotlin).",
+        "Behoben: Updates und Installationen brachen auf Systemen mit GRUB ab; die Schalter für Feiertage und Kalenderwochen reagierten nicht; Höchstleistung wurde nicht angeboten; das Nearby-Fenster war oben abgeschnitten; Does meldet jetzt, wenn es noch nicht eingerichtet ist; die Netzwerk-App hat nur noch einen Schließen-Knopf."
       ],
       "en": [
         "Updates check package dependencies and protect boot entries when kernels change.",
@@ -26,7 +33,14 @@
         "Notifications: position and on-screen display are adjustable; the notification centre stays at the top centre.",
         "Settings: Flatpak app permissions as clear tables, every page scrolls all the way down, new card Export my system.",
         "Store: Update WinDoesNot only below the list of updates, shown when there are some.",
-        "The network icon shows the cable symbol on a wired connection; Open Network in the right-click menu opens the Network app, plus Open Firewall."
+        "The network icon shows the cable symbol on a wired connection; Open Network in the right-click menu opens the Network app, plus Open Firewall.",
+        "New search: files and folders first (sorted by name, your folders and recency), apps with abbreviations like “vsc”, a calculator with percentages and units (5 km in mi), type filters with Tab or /pdf, /images, “Search the web” and “Run in terminal”. The search learns which apps you start often.",
+        "Emoji and special characters: all emoji with German and English names plus a tab with special characters (quotes, dashes, maths, currencies, arrows, accents). Enter types the character straight into the text field.",
+        "Web apps get their own window without browser bars and the website's icon; create your own under Settings, Apps. Netflix, Prime Video and Disney+ stay in the browser (copy protection).",
+        "Looks: save your own looks with a name (light/dark, accent colour, corner radius, wallpaper).",
+        "Desktop right-click on files and folders in file manager order: Open, open and copy file path, Send to (nearby device, network share), Cut, Copy, Delete, Rename, Properties.",
+        "Installer: ten runtimes to install later (Python, Node.js, Java, .NET, C/C++, PHP, Go, Rust, Ruby, Kotlin).",
+        "Fixed: updates and installs aborted on systems with GRUB; the holiday and week number switches did not respond; Performance mode was not offered; the Nearby window was cut off at the top; Does now says when it is not set up yet; the Network app has a single close button."
       ]
     },
     {
