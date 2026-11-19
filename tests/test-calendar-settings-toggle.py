@@ -42,7 +42,7 @@ ShellRoot {
 }''')
     runtime = base / 'runtime'; runtime.mkdir(mode=0o700)
     env = {**os.environ, 'HOME': str(base), 'XDG_RUNTIME_DIR': str(runtime), 'QT_QPA_PLATFORM': 'offscreen',
-           'QT_QUICK_BACKEND': 'software', 'WAYLAND_DISPLAY': '', 'DISPLAY': '', 'DBUS_SESSION_BUS_ADDRESS': ''}
+           'QT_QUICK_BACKEND': 'software', 'QT_QPA_PLATFORMTHEME': 'basic', 'WAYLAND_DISPLAY': '', 'DISPLAY': '', 'DBUS_SESSION_BUS_ADDRESS': ''}
     out = subprocess.run(['quickshell', '--no-color', '-p', str(base / 'shell.qml')], env=env, text=True,
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=20).stdout
     assert 'CAL_TOGGLE_PASS' in out, out[-1500:]
