@@ -306,6 +306,10 @@ IpcHandler {
         else
             snapManager.requestKeyboardLayouts()
     }
+    // Snap the focused window into a flyout zone, e.g. `qs ipc call windoesnot-snap apply halves:0` (ids: SnapLayouts.qml)
+    function apply(layout: string) {
+        snapManager.applyKeyboardLayout(layout)
+    }
 }
 
 PanelWindow {

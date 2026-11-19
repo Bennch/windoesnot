@@ -219,6 +219,15 @@ void CHyprBar::onMouseMove(Vector2D coords) {
             overMaximize = true;
         offset += BUTTONPAD + button.size;
     }
+    // Apps with their own title bar (Steam, Discord ...): their maximize button sits ~50 px from the right edge of the
+    // window, in the top 34 px. Resting the pointer there opens the same layout flyout as our own button.
+    if (!overMaximize && m_hidden && m_gripHeight > 0) {
+        if (const auto W = m_pWindow.lock()) {
+            const Vector2D REL = g_pInputManager->getMouseCoordsInternal() - W->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+            const double   WIDTH = W->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT).x;
+            overMaximize = REL.y >= 0 && REL.y <= 34 && REL.x >= WIDTH - 70 && REL.x <= WIDTH - 30;
+        }
+    }
     if (overMaximize && !m_bMaxLayoutHover) {
         m_bMaxLayoutHover = true;
         Config::Supplementary::executor()->spawn("qs ipc call windoesnot-snap hover");

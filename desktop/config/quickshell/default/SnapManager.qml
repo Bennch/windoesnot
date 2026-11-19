@@ -172,7 +172,6 @@ Item {
                     return;
                 }
                 console.log("Drag started:", data, "enabled:", snapManager.enabled);
-                console.log("SNAPDBG start", data, "dragging was", snapManager.isDragging);
                 snapManager.isDragging = true;
                 snapManager.activeWindowAddress = data;
                 snapManager.dragStartMonitor = null;
@@ -205,7 +204,6 @@ Item {
                 }
             } else if (name === "hyprdrag-movestop") {
                 console.log("Drag stopped:", data);
-                console.log("SNAPDBG stop zone", snapManager.currentZone, "dragging", snapManager.isDragging, "active", snapManager.activeWindowAddress, "cooldown", snapManager.snapCooldown, "cursor", JSON.stringify(snapManager.cachedCursorPos));
                 // Normalize addresses for comparison (remove 0x prefix)
                 var normalizedData = data.replace(/^0x/, "")
                 var normalizedActive = snapManager.activeWindowAddress ?
@@ -278,6 +276,23 @@ Item {
         }
     }
 
+    property string pickerTarget: ""
+
+    // Topmost floating window whose area (including the title bar / drag strip above it) holds the pointer.
+    function floatingClientAt(clients, cursor) {
+        var best = null
+        for (var i = 0; i < clients.length; i++) {
+            var c = clients[i]
+            if (!c.floating || !c.mapped || c.hidden) continue
+            if ((c.class || "").indexOf("quickshell") >= 0) continue
+            if (cursor.x >= c.at[0] && cursor.x < c.at[0] + c.size[0] &&
+                    cursor.y >= c.at[1] - 34 && cursor.y < c.at[1] + c.size[1]) {
+                if (!best || c.focusHistoryID < best.focusHistoryID) best = c
+            }
+        }
+        return best
+    }
+
     function requestKeyboardLayouts(anchorAtCursor) {
         if (!enabled || keyboardSnapQueryProc.running)
             return
@@ -316,7 +331,32 @@ Item {
                  h: Math.max(120, monitor.height - bar - 15 - 53), gap: 8 }
     }
 
+    // Layout flyout (Windows 11 style): columns as fractions of the width; a zone sits in column `c` and is row `r` of `n`
+    // rows stacked in that column. Ids are "<layout>:<zone index>".
+    readonly property var layoutSpecs: ({
+        "halves":             { cols: [0.5, 0.5],           zones: [ {c: 0, r: 0, n: 1}, {c: 1, r: 0, n: 1} ] },
+        "wide-narrow":        { cols: [2 / 3, 1 / 3],       zones: [ {c: 0, r: 0, n: 1}, {c: 1, r: 0, n: 1} ] },
+        "thirds":             { cols: [1 / 3, 1 / 3, 1 / 3], zones: [ {c: 0, r: 0, n: 1}, {c: 1, r: 0, n: 1}, {c: 2, r: 0, n: 1} ] },
+        "half-stack":         { cols: [0.5, 0.5],           zones: [ {c: 0, r: 0, n: 1}, {c: 1, r: 0, n: 2}, {c: 1, r: 1, n: 2} ] },
+        "quarters":           { cols: [0.5, 0.5],           zones: [ {c: 0, r: 0, n: 2}, {c: 1, r: 0, n: 2}, {c: 0, r: 1, n: 2}, {c: 1, r: 1, n: 2} ] },
+        "narrow-wide-narrow": { cols: [0.25, 0.5, 0.25],    zones: [ {c: 0, r: 0, n: 1}, {c: 1, r: 0, n: 1}, {c: 2, r: 0, n: 1} ] }
+    })
+
+    function layoutZoneRect(id, usable) {
+        var parts = id.split(":")
+        var spec = layoutSpecs[parts[0]]
+        var zone = spec ? spec.zones[parseInt(parts[1])] : null
+        if (!zone) return null
+        var avail = usable.w - usable.gap * (spec.cols.length - 1)
+        var x = usable.x
+        for (var i = 0; i < zone.c; i++) x += avail * spec.cols[i] + usable.gap
+        var rowH = (usable.h - usable.gap * (zone.n - 1)) / zone.n
+        return { x: Math.round(x), y: Math.round(usable.y + zone.r * (rowH + usable.gap)),
+                 w: Math.round(avail * spec.cols[zone.c]), h: Math.round(rowH) }
+    }
+
     function keyboardLayoutRect(layout, usable) {
+        if (layout.indexOf(":") > 0) return layoutZoneRect(layout, usable)
         var halfW = Math.floor((usable.w - usable.gap) / 2)
         var halfH = Math.floor((usable.h - usable.gap) / 2)
         var thirdW = Math.floor((usable.w - 2 * usable.gap) / 3)
@@ -333,7 +373,7 @@ Item {
     Process {
         id: keyboardSnapQueryProc
         property string intent: "picker"
-        command: ["windoesnot-bounded", "8", "bash", "-c", "hyprctl -j activewindow; echo '---MONSEP---'; hyprctl -j monitors; echo '---CURSEP---'; hyprctl -j cursorpos"]
+        command: ["windoesnot-bounded", "8", "bash", "-c", "hyprctl -j activewindow; echo '---MONSEP---'; hyprctl -j monitors; echo '---CURSEP---'; hyprctl -j cursorpos; echo '---CLISEP---'; hyprctl -j clients"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -342,16 +382,33 @@ Item {
                     var client = JSON.parse(parts[0].trim())
                     var monitorText = parts[1].split("---CURSEP---")
                     var monitors = JSON.parse(monitorText[0].trim())
-                    var cursor = monitorText.length > 1 ? JSON.parse(monitorText[1].trim()) : null
+                    var cursorText = monitorText.length > 1 ? monitorText[1].split("---CLISEP---") : []
+                    var cursor = cursorText.length > 0 ? JSON.parse(cursorText[0].trim()) : null
+                    var clients = cursorText.length > 1 ? JSON.parse(cursorText[1].trim()) : []
+                    var hover = keyboardSnapQueryProc.intent === "picker-hover"
+                    var isPicker = keyboardSnapQueryProc.intent === "picker" || hover
+                    if (isPicker) {
+                        // Hovering a maximize button: the window under the pointer is the target, not necessarily the focused one.
+                        var under = hover && cursor ? snapManager.floatingClientAt(clients, cursor) : null
+                        snapManager.pickerTarget = under ? under.address : (client.address || "")
+                    } else if (snapManager.pickerTarget) {
+                        var chosen = clients.find(function(c) { return c.address === snapManager.pickerTarget })
+                        if (chosen) client = chosen
+                        snapManager.pickerTarget = ""
+                    }
                     var monitor = snapManager.monitorForClient(client, monitors)
                     if (!monitor) return
-                    if (keyboardSnapQueryProc.intent === "picker" || keyboardSnapQueryProc.intent === "picker-hover") {
-                        snapManager.layoutPickerRequested(monitor.name,
-                            keyboardSnapQueryProc.intent === "picker-hover" && cursor ? cursor.x : -1,
-                            keyboardSnapQueryProc.intent === "picker-hover" && cursor ? cursor.y : -1)
+                    if (isPicker) {
+                        snapManager.layoutPickerRequested(monitor.name, hover && cursor ? cursor.x : -1, hover && cursor ? cursor.y : -1)
                         return
                     }
                     var rect = snapManager.keyboardLayoutRect(keyboardSnapQueryProc.intent, snapManager.keyboardUsableArea(monitor))
+                    if (!rect) return
+                    // Windows with their own title bar have none of ours above them: use the bar's room as well.
+                    if (!snapManager.hasOurBar(client)) {
+                        var bar = settingsMenu && settingsMenu.hyprbarsHeight > 0 ? settingsMenu.hyprbarsHeight : 30
+                        rect = { x: rect.x, y: rect.y - bar, w: rect.w, h: rect.h + bar }
+                    }
                     keyboardSnapApplyProc.address = client.address
                     keyboardSnapApplyProc.rect = rect
                     keyboardSnapApplyProc.wasFloating = client.floating
@@ -366,11 +423,14 @@ Item {
         property string address: ""
         property var rect: null
         property bool wasFloating: false
-        command: ["windoesnot-bounded", "8", "bash", "-c", buildCommand()]
+        command: ["bash", "-c", buildCommand()]
         function buildCommand() {
             if (!rect || !address) return "true"
             var prefix = wasFloating ? "" : "windoesnot-hyprctl dispatch togglefloating address:" + address + " && "
-            return prefix + "windoesnot-hyprctl --batch \"dispatch resizewindowpixel exact " + Math.round(rect.w) + " " + Math.round(rect.h) + ",address:" + address + "; dispatch movewindowpixel exact " + Math.round(rect.x) + " " + Math.round(rect.y) + ",address:" + address + "\""
+            var win = 'window="address:' + address + '"'
+            var lua = "hl.dispatch(hl.dsp.window.resize({x=" + Math.round(rect.w) + ",y=" + Math.round(rect.h) + ",relative=false," + win + "})); " +
+                      "hl.dispatch(hl.dsp.window.move({x=" + Math.round(rect.x) + ",y=" + Math.round(rect.y) + ",relative=false," + win + "}))"
+            return prefix + "hyprctl eval '" + lua + "'"
         }
         running: false
     }
@@ -723,8 +783,6 @@ Item {
                     // Calculate snap zone using cursor position
                     var result = snapManager.calculateSnapZone(cursorX, cursorY, targetMonitor, monitors)
 
-                    if (result.zone !== snapManager.currentZone)
-                        console.log("SNAPDBG zone", snapManager.currentZone, "->", result.zone, "cursor", cursorX, cursorY, "mon", targetMonitor.name, targetMonitor.x, targetMonitor.y, targetMonitor.width, targetMonitor.height, "hasBar", snapManager.hasOurBar(snapManager.cachedWindowInfo))
                     var monitorChanged = targetMonitor.name !== snapManager.currentMonitorName
                     var zoneChanged    = result.zone !== snapManager.currentZone
 
