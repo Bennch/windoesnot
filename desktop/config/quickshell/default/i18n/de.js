@@ -1118,7 +1118,7 @@ var strings = {
     "search.keysEmoji": "Pfeiltasten wählen   ↵ kopieren   Esc schließen",
     "search.recent":            "ZULETZT VERWENDET",
     "search.apps":              "APPS",
-    "search.files":             "DATEIEN",
+    "search.files":             "DATEIEN UND ORDNER",
     "search.clipboard":         "ZWISCHENABLAGE",
     "search.copy":              "Kopieren",
     "search.noResults":         "Keine Ergebnisse",

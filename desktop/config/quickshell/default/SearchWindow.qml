@@ -252,7 +252,14 @@ FloatingWindow {
             flatModel.append({type:"calc", label:"", hintKey:"", filePath:"", clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:calcResult})
         }
 
-        // Apps
+        function addFiles() {
+            if (fileResults.length === 0) return
+            flatModel.append({type:"header", label:Lang.get("search.files", uiLanguage), hintKey:"", filePath:"", clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:""})
+            for (var j = 0; j < fileResults.length; j++) {
+                flatModel.append({type:"file", label:"", hintKey:"", filePath:fileResults[j].path, clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:fileResults[j].isDir ? "dir" : ""})
+            }
+        }
+        function addApps() {
         if (appResults.length > 0) {
             flatModel.append({type:"header", label:Lang.get("search.apps", uiLanguage), hintKey:"", filePath:"", clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:""})
             for (var i = 0; i < appResults.length; i++) {
@@ -261,14 +268,10 @@ FloatingWindow {
                     appName:a.name, appCmd:a.cmd, appIcon:a.icon, appCustomIcon:a.customIcon, value:""})
             }
         }
-
-        // Files
-        if (fileResults.length > 0) {
-            flatModel.append({type:"header", label:Lang.get("search.files", uiLanguage), hintKey:"", filePath:"", clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:""})
-            for (var j = 0; j < fileResults.length; j++) {
-                flatModel.append({type:"file", label:"", hintKey:"", filePath:fileResults[j], clipText:"", appName:"", appCmd:"", appIcon:"", appCustomIcon:false, value:""})
-            }
         }
+        // Files and folders come first; only an app whose name starts like the search (you typed "firefox") goes ahead of them.
+        var appFirst = appResults.length > 0 && Logic.matchScore(appResults[0].name, appResults[0].cmd, searchText) >= 800
+        if (appFirst || fileResults.length === 0) { addApps(); addFiles() } else { addFiles(); addApps() }
 
         // Web search (always shown when query >= 2 chars)
         if (query.length >= 2 && filterKind === "") {
@@ -497,7 +500,8 @@ FloatingWindow {
     Process {
         id: fileProc
         stdout: StdioCollector {
-            onStreamFinished: root.fileResults = text.trim().split("\n").filter(function(l){ return l.length > 0 })
+            onStreamFinished: root.fileResults = Logic.rankFiles(Logic.parseFileLines(text), root.searchText,
+                                                                 Quickshell.env("HOME"), 8, Date.now())
         }
         stderr: StdioCollector {}
     }
@@ -538,8 +542,8 @@ FloatingWindow {
             if (q.length >= (extensions ? 1 : 2) && root.filterKind !== "apps" && !root.modeEmoji && !root.modeRun && !root.showClip) {
                 fileProc.running = false
                 fileProc.command = ["bash", "-c",
-                    "(fd --max-results 8 --type f --ignore-case " + extensions + " --exclude .cache --exclude node_modules --exclude .git --exclude .local/share -- " + JSON.stringify(q) + " \"$HOME\" 2>/dev/null || " +
-                    "find \"$HOME\" -maxdepth 5 -iname " + JSON.stringify("*" + q + "*") + " -type f -not -path '*/.cache/*' -not -path '*/node_modules/*' 2>/dev/null | head -8) | head -8"]
+                    "(fd --max-results 80 " + (extensions ? "--type f " : "--type f --type d ") + "--ignore-case " + extensions + " --exclude .cache --exclude node_modules --exclude .git --exclude .local/share -0 -- " + JSON.stringify(q) + " \"$HOME\" 2>/dev/null | xargs -0 -r stat -c '%Y|%F|%n' 2>/dev/null) || " +
+                    "find \"$HOME\" -maxdepth 6 \\( -type f -o -type d \\) -iname " + JSON.stringify("*" + q + "*") + " -not -path '*/.cache/*' -not -path '*/node_modules/*' -printf '%T@|%y|%p\\n' 2>/dev/null | head -80"]
                 fileProc.running = true
             } else {
                 root.fileResults = []
@@ -960,7 +964,8 @@ FloatingWindow {
                             left: parent.left; leftMargin: 12
                             verticalCenter: parent.verticalCenter
                         }
-                        readonly property bool isImage: model.type === "file" && Logic.extensionsFor("images").indexOf((model.filePath || "").split(".").pop().toLowerCase()) >= 0
+                        readonly property bool isDir: model.type === "file" && model.value === "dir"
+                        readonly property bool isImage: model.type === "file" && !isDir && Logic.extensionsFor("images").indexOf((model.filePath || "").split(".").pop().toLowerCase()) >= 0
                         // Pictures show a small preview of themselves.
                         Image {
                             anchors.fill: parent
@@ -971,9 +976,17 @@ FloatingWindow {
                             asynchronous: true
                             layer.enabled: true
                         }
+                        Image {
+                            anchors.centerIn: parent
+                            width: 30; height: 30
+                            visible: fileEmoIcon.isDir
+                            source: Qt.resolvedUrl("img/folder.svg")
+                            sourceSize.width: 60; sourceSize.height: 60
+                            fillMode: Image.PreserveAspectFit
+                        }
                         ProjectIcon {
                             anchors.centerIn: parent
-                            visible: !fileEmoIcon.isImage
+                            visible: !fileEmoIcon.isImage && !fileEmoIcon.isDir
                             name: model.type === "file" ? root.fileIcon(model.filePath || "") : "info"
                             font.pixelSize: 20
                         }

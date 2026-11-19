@@ -1118,7 +1118,7 @@ var strings = {
     "search.keysEmoji": "Arrow keys select   ↵ copy   Esc close",
     "search.recent":            "RECENT",
     "search.apps":              "APPS",
-    "search.files":             "FILES",
+    "search.files":             "FILES AND FOLDERS",
     "search.clipboard":         "CLIPBOARD",
     "search.copy":              "Copy",
     "search.noResults":         "No results",

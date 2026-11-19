@@ -283,3 +283,44 @@ function highlight(name, query, color) {
     if (at < 0) return escapeHtml(n)
     return escapeHtml(n.slice(0, at)) + "<font color=\"" + color + "\"><b>" + escapeHtml(n.slice(at, at + q.length)) + "</b></font>" + escapeHtml(n.slice(at + q.length))
 }
+
+// ---- files and folders ------------------------------------------------------------------------------
+
+// Raw output lines "<mtime>|<type>|<path>" (type: "directory"/"d" for folders) -> [{path, isDir, mtime}]
+function parseFileLines(text) {
+    var entries = []
+    String(text).split("\n").forEach(function(line) {
+        var first = line.indexOf("|"), second = first < 0 ? -1 : line.indexOf("|", first + 1)
+        if (second < 0) return
+        var path = line.slice(second + 1)
+        if (path.length === 0 || path[0] !== "/") return
+        var kind = line.slice(first + 1, second)
+        entries.push({path: path, isDir: kind === "directory" || kind === "d", mtime: parseFloat(line.slice(0, first)) * 1000 || 0})
+    })
+    return entries
+}
+
+var FAVOURITE_FOLDERS = ["Dokumente", "Documents", "Schreibtisch", "Desktop", "Downloads", "Bilder", "Pictures", "Projekte", "Musik", "Videos"]
+
+// Best matches first: name quality, then where the file lives (your own folders), how recently it changed and how deep it sits.
+function rankFiles(entries, query, home, limit, now) {
+    var q = normalize(query).trim()
+    var scored = []
+    entries.forEach(function(entry) {
+        var parts = entry.path.split("/").filter(function(x) { return x.length > 0 })
+        var name = parts[parts.length - 1] || ""
+        var stem = entry.isDir ? name : name.replace(/\.[^.]*$/, "")
+        var quality = Math.max(matchScore(stem, "", q), matchScore(name, "", q), 100)
+        var score = quality
+        var relative = home && entry.path.indexOf(home + "/") === 0 ? entry.path.slice(home.length + 1).split("/") : parts
+        if (FAVOURITE_FOLDERS.indexOf(relative[0]) >= 0) score += 30
+        if (relative.some(function(part) { return part.length > 1 && part[0] === "." })) score -= 120
+        score -= Math.max(0, relative.length - 4) * 6
+        var age = (now - entry.mtime) / 86400000
+        if (entry.mtime > 0) score += age < 1 ? 80 : age < 7 ? 50 : age < 30 ? 25 : age < 365 ? 10 : 0
+        if (entry.isDir && quality >= 800) score += 25   // a folder named like the search is usually the target
+        scored.push({entry: entry, score: score})
+    })
+    scored.sort(function(a, b) { return b.score - a.score || a.entry.path.length - b.entry.path.length })
+    return scored.slice(0, limit).map(function(item) { return item.entry })
+}
