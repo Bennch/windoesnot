@@ -134,7 +134,7 @@ def measure(path):
             try:
                 info = (Path(base) / name).lstat()
                 if stat.S_ISREG(info.st_mode):
-                    total += info.st_size
+                    total += info.st_size if not (info.st_size > (1 << 30) and info.st_blocks * 512 < info.st_size // 8) else info.st_blocks * 512
                 elif not (stat.S_ISDIR(info.st_mode) or stat.S_ISLNK(info.st_mode)):
                     warnings.add('special_file')
             except OSError:
@@ -179,10 +179,20 @@ def scan_locations(root):
     for ident, kind, rel, label in location_candidates(root):
         try:
             path = safe_path(root, rel)
-            if not path.is_dir() or not any(path.iterdir()):
+            if not path.is_dir():
+                continue
+        except (OSError, ValueError):
+            continue
+        try:
+            if not any(path.iterdir()):
                 continue
             size, flags = measure(path)
-        except (OSError, ValueError):
+        except PermissionError:
+            # Exists, but only the administrator may read it (Docker's data-root is usually 0700): offered, size unknown.
+            found.append({'id': ident, 'kind': kind, 'path': '/' + rel, 'label': label, 'bytes': 0,
+                          'warnings': ['needs_admin'], 'selected': False})
+            continue
+        except OSError:
             continue
         found.append({'id': ident, 'kind': kind, 'path': '/' + rel, 'label': label, 'bytes': size,
                       'warnings': flags, 'selected': ident != 'docker'})
@@ -630,7 +640,7 @@ def copy_locations(manifest, target_root, progress=None):
         destination.mkdir(parents=True, exist_ok=True)
         if progress:
             progress({'event': 'location', 'id': item['id'], 'bytes': item['bytes']})
-        result = subprocess.run(['rsync', '-aHAX', '--numeric-ids', '--no-specials', '--no-devices', '--',
+        result = subprocess.run(['rsync', '-aHAXS', '--numeric-ids', '--no-specials', '--no-devices', '--',
                                  str(source) + '/', str(destination) + '/'], capture_output=True)
         # 24 = files vanished while reading; the old system is not running, so anything else is a real problem.
         if result.returncode not in (0, 24):

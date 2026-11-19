@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Take Along
+Name[de]=Mitnehmen
+Comment=Find profiles, passwords, settings and data worth taking to a new system
+Comment[de]=Profile, Passwörter, Einstellungen und Daten finden, die auf ein neues System mitkommen sollen
+Exec=windoesnot-finder
+Icon=windoesnot-finder
+Terminal=false
+Categories=System;Utility;

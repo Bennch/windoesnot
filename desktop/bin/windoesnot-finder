@@ -1,0 +1,346 @@
+#!/usr/bin/env python3
+"""Finder: looks through a Linux system for everything worth taking along and lets you confirm it.
+
+Reads only. Choose what to take, then save the list or copy it into a home folder.
+Same look as the Windows data window (windoesnot-migrate).
+"""
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import threading
+
+import gi
+gi.require_version('Gtk', '4.0')
+gi.require_version('Adw', '1')
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk
+
+HERE = Path(__file__).resolve().parent
+FINDER_PATH = None
+for candidate in (Path('/usr/lib/windoesnot'), HERE.parent / 'lib/windoesnot'):
+    if (candidate / 'finder.py').is_file():
+        sys.path.insert(0, str(candidate))
+        FINDER_PATH = candidate / 'finder.py'
+        break
+import finder  # noqa: E402
+
+GERMAN = (os.environ.get('LANG') or '').startswith('de')
+PREVIEW = '--preview' in sys.argv
+
+
+def tr(de, en): return de if GERMAN else en
+def pick(text): return text.get('de' if GERMAN else 'en') or text.get('en') or ''
+
+
+def size(value):
+    if value >= 1 << 30: return f'{value / (1 << 30):.1f} GiB'
+    if value >= 1 << 20: return f'{value / (1 << 20):.1f} MiB'
+    if value >= 1 << 10: return f'{value / (1 << 10):.0f} KiB'
+    return f'{value} B'
+
+
+CSS = b'''
+window, window.background { background: #202020; color: #eeeeee; }
+.card, .folder, .card label, .folder label, checkbutton { color: #eeeeee; }
+label.wdn-text, label.wdn-heading { color: #eeeeee; }
+label.wdn-heading { font-weight: 700; }
+.card .dim, .folder .dim { color: #aaaaaa; }
+.card { background: #141414; border: 1px solid #3a3a3a; border-radius: 10px; padding: 14px; }
+.folder { background: #202020; border: 1px solid #3a3a3a; border-radius: 6px; padding: 8px; }
+.warning { background: #382d22; border: 1px solid #b8804b; border-radius: 8px; padding: 10px; color: #f3c99d; }
+.error { background: #432a22; border: 1px solid #fe6f2d; border-radius: 8px; padding: 10px; color: #ffd0bc; }
+.accent { color: #fe6f2d; }
+.dim { color: #aaaaaa; }
+.pill { background: #382d22; border: 1px solid #b8804b; border-radius: 99px; padding: 0 8px; font-size: 9pt; color: #f3c99d; }
+.pill.soft { background: #202020; border-color: #3a3a3a; color: #aaaaaa; }
+checkbutton check { background: #141414; border: 1px solid #777777; color: #202020; }
+checkbutton check:checked { background: #fe6f2d; border-color: #fe6f2d; color: #202020; }
+progressbar trough { background: #3a3a3a; min-height: 8px; border-radius: 4px; }
+progressbar progress { background: #fe6f2d; min-height: 8px; border-radius: 4px; }
+button.suggested-action { background: #fe6f2d; color: #202020; }
+'''
+
+
+class Window(Adw.ApplicationWindow):
+    def __init__(self, app):
+        super().__init__(application=app, title=tr('Mitnehmen', 'Take along'), default_width=820, default_height=760)
+        self.manifest = None
+        self.checks = []
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=18, margin_bottom=18, margin_start=24, margin_end=24)
+        toolbar = Adw.ToolbarView()
+        toolbar.add_top_bar(Adw.HeaderBar())
+        toolbar.set_content(outer)
+        self.set_content(toolbar)
+        intro = Gtk.Label(label=tr('Ich sehe das System durch und finde Profile, Passwörter, Schlüssel, Einstellungen, Projekte und große Daten. Du bestätigst, was mitkommt. Das alte System bleibt unverändert.',
+                                   'I look through the system and find profiles, passwords, keys, settings, projects and large data. You confirm what comes along. The old system stays unchanged.'), xalign=0, wrap=True)
+        intro.add_css_class('dim'); outer.append(intro)
+        sources = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        for label, handler in ((tr('Dieses System neu durchsuchen', 'Search this system again'), lambda *_: self.begin(Path('/'))),
+                               (tr('Anderes System wählen …', 'Choose another system …'), self.choose_root),
+                               (tr('Liste öffnen …', 'Open list …'), self.open_manifest)):
+            button = Gtk.Button(label=label)
+            button.connect('clicked', handler)
+            sources.append(button)
+        outer.append(sources)
+        self.status = Gtk.Label(xalign=0, wrap=True)
+        outer.append(self.status)
+        summary = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        summary.add_css_class('card'); outer.append(summary)
+        self.total = Gtk.Label(xalign=0); self.total.add_css_class('accent'); summary.append(self.total)
+        self.free = Gtk.Label(xalign=1, hexpand=True); self.free.add_css_class('dim'); summary.append(self.free)
+        scroll = Gtk.ScrolledWindow(vexpand=True)
+        self.items = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        scroll.set_child(self.items); outer.append(scroll)
+        self.progress = Gtk.ProgressBar(); outer.append(self.progress)
+        buttons = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        save = Gtk.Button(label=tr('Liste speichern …', 'Save list …'), hexpand=True)
+        save.connect('clicked', self.save_manifest)
+        self.copy_button = Gtk.Button(label=tr('Ausgewählte Daten kopieren …', 'Copy selected data …'), hexpand=True)
+        self.copy_button.add_css_class('suggested-action')
+        self.copy_button.connect('clicked', self.choose_target)
+        buttons.append(save); buttons.append(self.copy_button)
+        outer.append(buttons)
+        self.update_total()
+        if PREVIEW:
+            path = next((a.split('=', 1)[1] for a in sys.argv if a.startswith('--manifest=')), None)
+            if path:
+                self.show_result(json.loads(Path(path).read_text())); return
+        GLib.idle_add(self.begin, Path('/'))
+
+    def message(self, value, style='warning'):
+        self.status.set_text(value)
+        self.status.remove_css_class('warning'); self.status.remove_css_class('error')
+        if value: self.status.add_css_class(style)
+
+    # --- scanning -------------------------------------------------------------------------------------
+    def begin(self, root):
+        self.copy_button.set_sensitive(False)
+        self.progress.set_fraction(0)
+        while child := self.items.get_first_child(): self.items.remove(child)
+        self.message(tr('Ich sehe nach …', 'Looking …'))
+        self.progress.pulse()
+        self.pulse = GLib.timeout_add(120, lambda: (self.progress.pulse(), True)[1])
+        threading.Thread(target=self.scan_worker, args=(root,), daemon=True).start()
+        return False
+
+    def scan_worker(self, root):
+        def progress(text):
+            GLib.idle_add(self.message, tr('Ich sehe nach: ', 'Looking at: ') + text)
+        try:
+            manifest = finder.scan(root, None, progress)
+        except (OSError, ValueError) as error:
+            GLib.idle_add(self.scan_failed, str(error))
+            return
+        GLib.idle_add(self.show_result, manifest)
+
+    def stop_pulse(self):
+        if getattr(self, 'pulse', None):
+            GLib.source_remove(self.pulse); self.pulse = None
+        self.progress.set_fraction(0)
+
+    def scan_failed(self, message):
+        self.stop_pulse()
+        self.message(message or tr('Nichts gefunden.', 'Nothing found.'), 'error')
+
+    def choose_root(self, *_):
+        dialog = Gtk.FileDialog(title=tr('Wurzelordner des alten Systems', 'Root folder of the old system'))
+        dialog.select_folder(self, None, self.root_chosen)
+
+    def root_chosen(self, dialog, result):
+        try:
+            folder = dialog.select_folder_finish(result)
+        except GLib.Error:
+            return
+        self.begin(Path(folder.get_path()))
+
+    def open_manifest(self, *_):
+        dialog = Gtk.FileDialog(title=tr('Gespeicherte Liste', 'Saved list'))
+        dialog.open(self, None, self.manifest_opened)
+
+    def manifest_opened(self, dialog, result):
+        try:
+            path = dialog.open_finish(result).get_path()
+            manifest = json.loads(Path(path).read_text())
+            if manifest.get('schema') != finder.SCHEMA or manifest.get('kind') != 'finder':
+                raise ValueError(tr('Das ist keine Liste dieser Anwendung.', 'This is not a list of this application.'))
+        except GLib.Error:
+            return
+        except (OSError, ValueError) as error:
+            self.message(str(error), 'error'); return
+        self.show_result(manifest)
+
+    # --- result ---------------------------------------------------------------------------------------
+    def show_result(self, manifest):
+        self.stop_pulse()
+        self.manifest = manifest
+        self.checks = []
+        while child := self.items.get_first_child(): self.items.remove(child)
+        findings = manifest['findings']
+        user = manifest['user']['name']
+        self.message(tr(f'{len(findings)} Funde bei {user}. Haken gesetzt = kommt mit. Neu Ladbares ist abgewählt.', f'{len(findings)} findings for {user}. Ticked = comes along. Rebuildable things are unticked.'), 'dim')
+        for group in manifest['groups']:
+            items = [f for f in findings if f['group'] == group['id']]
+            if not items:
+                continue
+            card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+            card.add_css_class('card'); self.items.append(card)
+            head = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            heading = Gtk.Label(label=pick(group['title']) + '   ·   ' + size(sum(i['bytes'] for i in items)), xalign=0, hexpand=True)
+            heading.add_css_class('title-3'); heading.add_css_class('wdn-heading')
+            head.append(heading)
+            group_checks = []
+            for text, value in ((tr('alle', 'all'), True), (tr('keine', 'none'), False)):
+                button = Gtk.Button(label=text)
+                button.add_css_class('flat')
+                button.connect('clicked', lambda _b, v=value, cs=group_checks: [c.set_active(v) for c in cs])
+                head.append(button)
+            card.append(head)
+            for item in items:
+                group_checks.append(self.finding_row(card, item))
+        self.update_total()
+
+    def finding_row(self, card, item):
+        row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        row.add_css_class('folder'); card.append(row)
+        line = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        row.append(line)
+        check = Gtk.CheckButton()
+        check.set_active(bool(item.get('selected')))
+        check.connect('toggled', lambda button, entry=item: (entry.__setitem__('selected', button.get_active()), self.update_total()))
+        line.append(check)
+        self.checks.append(check)
+        name = Gtk.Label(label=pick(item['title']), xalign=0, hexpand=True)
+        name.add_css_class('wdn-text')
+        name.set_tooltip_text('\n'.join(item['paths'][:25]) + ('\n…' if len(item['paths']) > 25 else ''))
+        click = Gtk.GestureClick()
+        click.connect('released', lambda *_a, button=check: button.set_active(not button.get_active()))
+        name.add_controller(click)
+        line.append(name)
+        if item.get('secrets'):
+            pill = Gtk.Label(label=tr('Zugangsdaten', 'Credentials')); pill.add_css_class('pill')
+            pill.set_tooltip_text(tr('Enthält Passwörter, Schlüssel oder Anmeldungen. Bewahre die Kopie sicher auf.', 'Contains passwords, keys or logins. Keep the copy safe.'))
+            line.append(pill)
+        if item['group'] == 'rebuildable':
+            pill = Gtk.Label(label=tr('neu ladbar', 'rebuildable')); pill.add_css_class('pill'); pill.add_css_class('soft'); line.append(pill)
+        if item.get('note') == 'foreign-desktop':
+            pill = Gtk.Label(label=tr('teils andere Oberfläche', 'partly another desktop')); pill.add_css_class('pill'); pill.add_css_class('soft')
+            pill.set_tooltip_text(tr('KDE- oder GNOME-Einstellungen gelten in Hyprland nicht, schaden aber nicht.', 'KDE or GNOME settings do not apply in Hyprland but do no harm.'))
+            line.append(pill)
+        if 'needs_admin' in item.get('warnings', []):
+            pill = Gtk.Label(label=tr('Administrator nötig', 'needs administrator')); pill.add_css_class('pill')
+            pill.set_tooltip_text(tr('Nur der Administrator darf diesen Ordner lesen; die Größe ist unbekannt.', 'Only the administrator may read this folder; the size is unknown.'))
+            line.append(pill)
+        amount = Gtk.Label(label=size(item['bytes']) if item['bytes'] else '?'); amount.add_css_class('dim')
+        amount.set_width_chars(10); amount.set_xalign(1)
+        line.append(amount)
+        detail = Gtk.Label(label=pick(item['detail']), xalign=0, wrap=True, margin_start=28)
+        detail.add_css_class('dim')
+        row.append(detail)
+        return check
+
+    def update_total(self):
+        selected = [f for f in (self.manifest or {}).get('findings', []) if f.get('selected')]
+        need = sum(f['bytes'] for f in selected)
+        self.total.set_text(tr(f'{len(selected)} ausgewählt · {size(need)}', f'{len(selected)} selected · {size(need)}'))
+        try:
+            st = os.statvfs(Path.home())
+            self.free.set_text(tr('Frei im Home: ', 'Free in home: ') + size(st.f_bavail * st.f_frsize))
+        except OSError:
+            self.free.set_text('')
+        self.copy_button.set_sensitive(bool(selected))
+
+    def save_manifest(self, *_):
+        if not self.manifest:
+            return
+        dialog = Gtk.FileDialog(title=tr('Liste speichern', 'Save list'), initial_name='mitnehmen.json')
+        dialog.save(self, None, self.manifest_saved)
+
+    def manifest_saved(self, dialog, result):
+        try:
+            path = dialog.save_finish(result).get_path()
+        except GLib.Error:
+            return
+        Path(path).write_text(json.dumps(self.manifest, ensure_ascii=False, indent=1))
+        self.message(tr('Liste gespeichert: ', 'List saved: ') + path)
+
+    # --- copying --------------------------------------------------------------------------------------
+    def choose_target(self, *_):
+        dialog = Gtk.FileDialog(title=tr('Ziel: Home-Ordner des neuen Systems', 'Target: home folder of the new system'))
+        dialog.select_folder(self, None, self.target_chosen)
+
+    def target_chosen(self, dialog, result):
+        try:
+            target = dialog.select_folder_finish(result).get_path()
+        except GLib.Error:
+            return
+        if Path(target).resolve() == Path(self.manifest['source_root'], self.manifest['user']['home'].lstrip('/')).resolve():
+            self.message(tr('Quelle und Ziel sind derselbe Ordner.', 'Source and target are the same folder.'), 'error'); return
+        st = os.statvfs(target)
+        free = st.f_bavail * st.f_frsize
+        need = sum(f['bytes'] for f in self.manifest['findings'] if f.get('selected'))
+        if need > free:
+            self.message(tr(f'Dort ist zu wenig Platz: {size(need)} nötig, {size(free)} frei. Wähle weniger aus oder ein anderes Ziel.',
+                            f'Not enough space there: {size(need)} needed, {size(free)} free. Choose less or another target.'), 'error'); return
+        self.copy_button.set_sensitive(False)
+        self.progress.set_fraction(0)
+        self.message(tr('Ich kopiere …', 'Copying …'))
+        threading.Thread(target=self.copy_worker, args=(target, need), daemon=True).start()
+
+    def copy_worker(self, target, need):
+        needs_root = any(f.get('selected') and f.get('note') == 'absolute' for f in self.manifest['findings'])
+        with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as handle:
+            json.dump(self.manifest, handle)
+            path = handle.name
+        command = [sys.executable, str(FINDER_PATH), 'copy', path, target]
+        if needs_root and os.geteuid() != 0:
+            command = ['pkexec'] + command
+        done, result, error = 0, None, ''
+        try:
+            proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            for line in proc.stdout:
+                try:
+                    event = json.loads(line)
+                except ValueError:
+                    continue
+                if event.get('event') == 'finding':
+                    done += event['bytes']
+                    label = next((pick(f['title']) for f in self.manifest['findings'] if f['id'] == event['id']), '')
+                    GLib.idle_add(self.copy_progress, min(1.0, done / max(1, need)), label)
+                elif 'copied' in event:
+                    result = event
+            proc.wait()
+            error = proc.stderr.read().strip()
+        finally:
+            os.unlink(path)
+        GLib.idle_add(self.copy_finished, result, error)
+
+    def copy_progress(self, fraction, label):
+        self.progress.set_fraction(fraction)
+        self.message(tr('Ich kopiere: ', 'Copying: ') + label)
+
+    def copy_finished(self, result, error):
+        self.copy_button.set_sensitive(True)
+        if result is None:
+            self.message(error or tr('Das hat nicht geklappt.', 'That did not work.'), 'error'); return
+        self.progress.set_fraction(1)
+        problems = result.get('problems', [])
+        text = tr(f'Fertig: {len(result["copied"])} Funde kopiert.', f'Done: {len(result["copied"])} findings copied.')
+        if problems:
+            text += ' ' + tr(f'{len(problems)} Pfade mit Problemen: ', f'{len(problems)} paths with problems: ') + ', '.join(p['path'] for p in problems[:5])
+        self.message(text, 'warning' if problems else 'dim')
+
+
+class App(Adw.Application):
+    def __init__(self): super().__init__(application_id='me.windoesnot.Finder')
+    def do_activate(self):
+        Adw.StyleManager.get_default().set_color_scheme(Adw.ColorScheme.FORCE_DARK)
+        provider = Gtk.CssProvider(); provider.load_from_data(CSS)
+        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        self.window = Window(self)
+        self.window.present()
+
+
+if __name__ == '__main__':
+    raise SystemExit(App().run([sys.argv[0]]))
