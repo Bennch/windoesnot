@@ -671,6 +671,278 @@
       "flatpak_id": "org.libretro.RetroArch"
     },
     {
+      "id": "dolphin-emu",
+      "name": {
+        "de": "Dolphin",
+        "en": "Dolphin"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Nintendo GameCube und Wii emulieren. Spiele bringst du selbst mit.",
+        "en": "Emulate Nintendo GameCube and Wii. You bring your own games."
+      },
+      "required": false,
+      "flatpak_id": "org.DolphinEmu.dolphin-emu"
+    },
+    {
+      "id": "pcsx2",
+      "name": {
+        "de": "PCSX2",
+        "en": "PCSX2"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "PlayStation 2 emulieren. Spiele und Firmware bringst du selbst mit.",
+        "en": "Emulate PlayStation 2. You bring your own games and firmware."
+      },
+      "required": false,
+      "flatpak_id": "net.pcsx2.PCSX2"
+    },
+    {
+      "id": "duckstation",
+      "name": {
+        "de": "DuckStation",
+        "en": "DuckStation"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "PlayStation 1 emulieren. Spiele und Firmware bringst du selbst mit.",
+        "en": "Emulate PlayStation 1. You bring your own games and firmware."
+      },
+      "required": false,
+      "flatpak_id": "org.duckstation.DuckStation"
+    },
+    {
+      "id": "rpcs3",
+      "name": {
+        "de": "RPCS3",
+        "en": "RPCS3"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "PlayStation 3 emulieren. Spiele und Firmware bringst du selbst mit.",
+        "en": "Emulate PlayStation 3. You bring your own games and firmware."
+      },
+      "required": false,
+      "flatpak_id": "net.rpcs3.RPCS3"
+    },
+    {
+      "id": "shadps4",
+      "name": {
+        "de": "shadPS4",
+        "en": "shadPS4"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "PlayStation 4 emulieren. Spiele und Firmware bringst du selbst mit.",
+        "en": "Emulate PlayStation 4. You bring your own games and firmware."
+      },
+      "required": false,
+      "flatpak_id": "net.shadps4.shadPS4"
+    },
+    {
+      "id": "ppsspp",
+      "name": {
+        "de": "PPSSPP",
+        "en": "PPSSPP"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "PlayStation Portable emulieren. Spiele bringst du selbst mit.",
+        "en": "Emulate PlayStation Portable. You bring your own games."
+      },
+      "required": false,
+      "flatpak_id": "org.ppsspp.PPSSPP"
+    },
+    {
+      "id": "azahar",
+      "name": {
+        "de": "Azahar",
+        "en": "Azahar"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Nintendo 3DS emulieren. Spiele und Firmware bringst du selbst mit.",
+        "en": "Emulate Nintendo 3DS. You bring your own games and firmware."
+      },
+      "required": false,
+      "flatpak_id": "org.azahar_emu.Azahar"
+    },
+    {
+      "id": "melonds",
+      "name": {
+        "de": "melonDS",
+        "en": "melonDS"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Nintendo DS emulieren. Spiele bringst du selbst mit.",
+        "en": "Emulate Nintendo DS. You bring your own games."
+      },
+      "required": false,
+      "flatpak_id": "net.kuribo64.melonDS"
+    },
+    {
+      "id": "mgba",
+      "name": {
+        "de": "mGBA",
+        "en": "mGBA"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Game Boy, Game Boy Color und Game Boy Advance emulieren. Spiele bringst du selbst mit.",
+        "en": "Emulate Game Boy, Game Boy Color and Game Boy Advance. You bring your own games."
+      },
+      "required": false,
+      "flatpak_id": "io.mgba.mGBA"
+    },
+    {
+      "id": "cemu",
+      "name": {
+        "de": "Cemu",
+        "en": "Cemu"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Nintendo Wii U emulieren. Spiele und Firmware bringst du selbst mit.",
+        "en": "Emulate Nintendo Wii U. You bring your own games and firmware."
+      },
+      "required": false,
+      "flatpak_id": "info.cemu.Cemu"
+    },
+    {
+      "id": "eden",
+      "name": {
+        "de": "Eden",
+        "en": "Eden"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Nintendo Switch emulieren. Spiele und Firmware bringst du selbst mit.",
+        "en": "Emulate Nintendo Switch. You bring your own games and firmware."
+      },
+      "required": false,
+      "flatpak_id": "dev.eden_emu.eden"
+    },
+    {
+      "id": "flycast",
+      "name": {
+        "de": "Flycast",
+        "en": "Flycast"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Sega Dreamcast emulieren. Spiele bringst du selbst mit.",
+        "en": "Emulate Sega Dreamcast. You bring your own games."
+      },
+      "required": false,
+      "flatpak_id": "org.flycast.Flycast"
+    },
+    {
+      "id": "xemu",
+      "name": {
+        "de": "xemu",
+        "en": "xemu"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Microsoft Xbox (die erste) emulieren. Spiele und Firmware bringst du selbst mit.",
+        "en": "Emulate Microsoft Xbox (the original). You bring your own games and firmware."
+      },
+      "required": false,
+      "flatpak_id": "app.xemu.xemu"
+    },
+    {
+      "id": "snes9x",
+      "name": {
+        "de": "Snes9x",
+        "en": "Snes9x"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Super Nintendo emulieren. Spiele bringst du selbst mit.",
+        "en": "Emulate Super Nintendo. You bring your own games."
+      },
+      "required": false,
+      "flatpak_id": "com.snes9x.Snes9x"
+    },
+    {
+      "id": "rmg",
+      "name": {
+        "de": "Rosalie’s Mupen GUI",
+        "en": "Rosalie’s Mupen GUI"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Nintendo 64 emulieren. Spiele bringst du selbst mit.",
+        "en": "Emulate Nintendo 64. You bring your own games."
+      },
+      "required": false,
+      "flatpak_id": "com.github.Rosalie241.RMG"
+    },
+    {
+      "id": "ares",
+      "name": {
+        "de": "ares",
+        "en": "ares"
+      },
+      "category": "games",
+      "source": "flatpak",
+      "packages": [],
+      "description": {
+        "de": "Viele ältere Konsolen: Mega Drive, PC Engine, Neo Geo und mehr emulieren. Spiele bringst du selbst mit.",
+        "en": "Emulate Many older consoles: Mega Drive, PC Engine, Neo Geo and more. You bring your own games."
+      },
+      "required": false,
+      "flatpak_id": "dev.ares.ares"
+    },
+    {
+      "id": "anyps5",
+      "name": {
+        "de": "AnyPS5",
+        "en": "AnyPS5"
+      },
+      "category": "games",
+      "source": "link",
+      "packages": [],
+      "url": "https://github.com/boykopovar/AnyPS5",
+      "description": {
+        "de": "PS5-Programme automatisch für Linux umbauen (Relinker, kein Emulator). Noch ohne fertiges Paket: Quellcode und Anleitung findest du auf GitHub. Enthält keine Spiele, Firmware oder Schlüssel.",
+        "en": "Automatically port PS5 executables to Linux (a relinker, not an emulator). No ready-made package yet: source code and guide are on GitHub. Includes no games, firmware or keys."
+      },
+      "required": false
+    },
+    {
       "id": "discord",
       "name": {
         "de": "Discord",
