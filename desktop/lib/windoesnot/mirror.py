@@ -303,6 +303,10 @@ PROTECTED = tuple('.config/' + name for name in (
     'ghostty', 'gtk-3.0', 'gtk-4.0', 'fish'))
 
 
+# Never copied: caches are rebuilt by the programs, the trash belongs to the old system.
+DEFAULT_EXCLUDES = ('.cache', '.local/share/Trash')
+
+
 def digest(path, size):
     h = hashlib.sha256()
     with open(path, 'rb') as stream:
@@ -339,22 +343,49 @@ def copy_home(manifest, home, progress=None):
     owner = home.stat()
     archive = home / ('Umzug-' + name) / 'original'
     entries, directories, total = [], [], 0
+    skipped = []
+    excludes = tuple(p.strip('/') for p in DEFAULT_EXCLUDES + tuple(user.get('exclude') or ()) if p.strip('/'))
+    def is_excluded(rel):
+        text = rel.as_posix()
+        return any(text == p or text.startswith(p + '/') for p in excludes)
     def walk_error(error):
-        raise error
+        # An unreadable folder is reported and skipped; it must not abort a move of hundreds of gigabytes.
+        try:
+            rel = str(Path(error.filename).relative_to(source))
+        except (TypeError, ValueError):
+            rel = str(error.filename)
+        skipped.append({'path': rel, 'reason': 'unreadable'})
+    source_dev = source.stat().st_dev
     for base, dirs, files in os.walk(source, followlinks=False, onerror=walk_error):
+        pruned = set()
         for entry in dirs + files:
             item = Path(base) / entry
             rel = item.relative_to(source)
-            info = item.lstat()
+            try:
+                info = item.lstat()
+            except OSError:
+                skipped.append({'path': str(rel), 'reason': 'unreadable'})
+                pruned.add(entry)
+                continue
+            if is_excluded(rel):
+                skipped.append({'path': str(rel), 'reason': 'excluded'})
+                pruned.add(entry)
+                continue
             if stat.S_ISDIR(info.st_mode):
-                if info.st_dev != source.stat().st_dev:
-                    raise ValueError('Nested filesystem: ' + str(rel))
+                if info.st_dev != source_dev:
+                    # A mounted drive inside the home (data disk, network share) is not part of the home itself.
+                    skipped.append({'path': str(rel), 'reason': 'mount'})
+                    pruned.add(entry)
+                    continue
                 directories.append(rel)
                 continue
             if not (stat.S_ISREG(info.st_mode) or stat.S_ISLNK(info.st_mode)):
-                raise ValueError('Unsupported special file: ' + str(rel))
+                # Sockets, FIFOs and device files only exist while a program runs.
+                skipped.append({'path': str(rel), 'reason': 'special'})
+                continue
             total += info.st_size if stat.S_ISREG(info.st_mode) else 0
             entries.append((rel, info))
+        dirs[:] = [d for d in dirs if d not in pruned]
     free = shutil.disk_usage(home).free
     if total > free:
         raise OSError('Not enough free space')
@@ -424,7 +455,7 @@ def copy_home(manifest, home, progress=None):
                           'copied_bytes': copied_bytes, 'total_bytes': total})
     if progress:
         progress({'event': 'done', 'bytes': total})
-    return {'bytes': total, 'files': len(entries)}
+    return {'bytes': total, 'files': len(entries), 'skipped': skipped}
 
 
 def archive_etc_and_wifi(source_root, state_dir, connections_dir, *, archive_etc=True, wifi=True):
