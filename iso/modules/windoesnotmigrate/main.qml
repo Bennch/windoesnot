@@ -165,6 +165,12 @@ Rectangle {
             }
 
             Button {
+                text: page.tr("Neu suchen", "Search again")
+                enabled: !(page.bridge && page.bridge.busy)
+                onClicked: if (page.bridge) page.bridge.discover()
+            }
+
+            Button {
                 text: page.tr("Netzwerkfreigabe (SMB) …", "Network share (SMB) …")
                 onClicked: shareBox.visible = !shareBox.visible
             }
