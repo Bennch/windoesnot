@@ -142,6 +142,53 @@ def measure(path):
     return total, sorted(warnings)
 
 
+LOCATIONS = (
+    # id, kind, path inside the source system, label
+    ('opt', 'apps', 'opt', 'Programs in /opt'),
+    ('usr-local', 'apps', 'usr/local', 'Programs in /usr/local'),
+    ('srv', 'data', 'srv', 'Server data in /srv'),
+    ('libvirt', 'vm', 'var/lib/libvirt/images', 'Virtual machines (libvirt)'),
+    ('libvirt-config', 'vm', 'etc/libvirt/qemu', 'Virtual machine definitions (libvirt)'),
+    ('podman', 'container', 'var/lib/containers', 'Containers (Podman)'),
+)
+
+
+def docker_data_root(root):
+    """Docker's data-root from daemon.json (an absolute path inside the old system), default /var/lib/docker."""
+    try:
+        config = json.loads(read_file(root, 'etc/docker/daemon.json') or '{}')
+        value = config.get('data-root') or config.get('graph')
+        if isinstance(value, str) and value.startswith('/') and '..' not in Path(value).parts:
+            return value.strip('/')
+    except (ValueError, AttributeError):
+        pass
+    return 'var/lib/docker'
+
+
+def location_candidates(root):
+    return [('docker', 'container', docker_data_root(root), 'Docker images, containers and volumes')] + list(LOCATIONS)
+
+
+def scan_locations(root):
+    """Data outside the home folders that belongs to the user's programs: Docker, VMs, /opt ...
+
+    Nothing is selected by default for Docker (it can be hundreds of gigabytes of re-downloadable images); the rest is.
+    """
+    root = Path(root).resolve(strict=True)
+    found = []
+    for ident, kind, rel, label in location_candidates(root):
+        try:
+            path = safe_path(root, rel)
+            if not path.is_dir() or not any(path.iterdir()):
+                continue
+            size, flags = measure(path)
+        except (OSError, ValueError):
+            continue
+        found.append({'id': ident, 'kind': kind, 'path': '/' + rel, 'label': label, 'bytes': size,
+                      'warnings': flags, 'selected': ident != 'docker'})
+    return found
+
+
 def scan_tree(root, device='fixture', filesystem='ext4'):
     root = Path(root).resolve(strict=True)
     values = {}
@@ -194,7 +241,8 @@ def scan_tree(root, device='fixture', filesystem='ext4'):
             'system': values.get('PRETTY_NAME', 'Linux'), 'users': users,
             'packages': {'arch_explicit': explicit, 'arch_foreign': foreign,
                          'deb_manual': deb_packages(root), 'flatpak': sorted(flatpak)},
-            'services': sorted(set(services)), 'source_root': str(root), 'warnings': warnings}
+            'services': sorted(set(services)), 'locations': scan_locations(root),
+            'source_root': str(root), 'warnings': warnings}
 
 
 def command(args, **kwargs):
@@ -531,6 +579,39 @@ def restore_wifi(source_root, connections_dir):
 
 
 
+def copy_locations(manifest, target_root, progress=None):
+    """Copy the selected locations to the same path on the new system (numeric owners kept)."""
+    target = Path(target_root)
+    root = Path(manifest['source_root']).resolve(strict=True)
+    known = {ident: {'id': ident, 'path': '/' + rel} for ident, _kind, rel, _label in location_candidates(root)}
+    done = []
+    for wanted in manifest.get('locations', []):
+        if not wanted.get('selected'):
+            continue
+        item = known.get(wanted.get('id'))
+        if item is None:
+            continue
+        rel = item['path'].lstrip('/')
+        source = safe_path(root, rel)
+        destination = target / rel
+        if destination.parent.is_symlink() or target.resolve() not in destination.resolve().parents:
+            raise ValueError('Unsafe destination for ' + item['id'])
+        size, _flags = measure(source)
+        item['bytes'] = size
+        if size > shutil.disk_usage(target).free:
+            raise OSError('Not enough free space for ' + item['id'])
+        destination.mkdir(parents=True, exist_ok=True)
+        if progress:
+            progress({'event': 'location', 'id': item['id'], 'bytes': item['bytes']})
+        result = subprocess.run(['rsync', '-aHAX', '--numeric-ids', '--no-specials', '--no-devices', '--',
+                                 str(source) + '/', str(destination) + '/'], capture_output=True)
+        # 24 = files vanished while reading; the old system is not running, so anything else is a real problem.
+        if result.returncode not in (0, 24):
+            raise RuntimeError('rsync failed for ' + item['id'] + ': ' + result.stderr.decode(errors='replace'))
+        done.append({'id': item['id'], 'path': item['path'], 'bytes': item['bytes']})
+    return done
+
+
 def copy_manifest(manifest, home, target_root='/', secret=None, progress=None):
     if manifest.get('schema') != 1 or manifest.get('kind') != 'linux':
         raise ValueError('Invalid manifest')
@@ -570,6 +651,7 @@ def copy_manifest(manifest, home, target_root='/', secret=None, progress=None):
             prepare(state); prepare(connections)
             return archive_etc_and_wifi(root, state, connections, wifi=False)
         attempt('etc', archive)
+        attempt('locations', lambda: copy_locations(plan, target, progress))
         def write_json(filename, data):
             prepare(state)
             path = safe_path(state, filename)
