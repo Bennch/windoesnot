@@ -1,0 +1,218 @@
+#!/usr/bin/python3
+"""Open a website as its own app window (no tabs, no address bar, own profile, own taskbar entry).
+
+windoesnot-webapp --id youtube --name YouTube https://www.youtube.com/
+
+Uses the system's WebKitGTK, so there is no browser behind it: no browser menus or settings,
+links to other sites open in the normal browser, and every web app keeps its own login data.
+Streaming services that need copy protection (Netflix, Prime Video, Disney+) stay in the
+browser: WebKitGTK cannot play protected video.
+"""
+import argparse
+import os
+import re
+import sys
+from pathlib import Path
+from urllib.parse import urlparse
+
+import gi
+
+gi.require_version('Gdk', '4.0')
+gi.require_version('Gtk', '4.0')
+gi.require_version('WebKit', '6.0')
+from gi.repository import Gdk, Gio, GLib, Gtk, WebKit  # noqa: E402
+
+# Sites that are part of a service's sign-in: they stay inside the app window.
+SIGN_IN_HOSTS = ('accounts.google.com', 'login.microsoftonline.com', 'login.live.com', 'appleid.apple.com',
+                 'auth0.com', 'auth.openai.com', 'login.facebook.com')
+# Looks like current Safari: web apps such as WhatsApp Web refuse unknown engines.
+USER_AGENT = ('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/605.1.15 (KHTML, like Gecko) '
+              'Version/18.0 Safari/605.1.15')
+
+
+def base_domain(host):
+    parts = (host or '').lower().split('.')
+    if len(parts) > 2 and parts[-2] in ('co', 'com', 'org', 'net') and len(parts[-1]) == 2:
+        return '.'.join(parts[-3:])
+    return '.'.join(parts[-2:])
+
+
+def valid_start_url(url):
+    parsed = urlparse(url)
+    return parsed.scheme == 'https' and bool(parsed.hostname)
+
+
+class WebApp(Gtk.Application):
+    def __init__(self, app_id, name, url):
+        super().__init__(application_id=None, flags=Gio.ApplicationFlags.NON_UNIQUE)
+        self.app_id, self.title, self.url = app_id, name, url
+        self.home_domain = base_domain(urlparse(url).hostname)
+        self.window = None
+        self.view = None
+
+    # ----- window ---------------------------------------------------------------------------------
+    def do_activate(self):
+        data = Path(os.environ.get('XDG_DATA_HOME') or Path.home() / '.local/share') / 'windoesnot/webapps' / self.app_id / 'webkit'
+        cache = Path(os.environ.get('XDG_CACHE_HOME') or Path.home() / '.cache') / 'windoesnot/webapps' / self.app_id
+        data.mkdir(parents=True, exist_ok=True, mode=0o700)
+        cache.mkdir(parents=True, exist_ok=True, mode=0o700)
+        session = WebKit.NetworkSession.new(str(data), str(cache))
+        session.get_cookie_manager().set_persistent_storage(str(data / 'cookies.sqlite'), WebKit.CookiePersistentStorage.SQLITE)
+        session.connect('download-started', self.on_download)
+
+        settings = WebKit.Settings()
+        settings.set_user_agent(USER_AGENT)
+        settings.set_enable_developer_extras(False)
+        settings.set_enable_media_stream(True)
+        settings.set_enable_mediasource(True)
+        settings.set_enable_webrtc(True)
+        settings.set_enable_smooth_scrolling(True)
+        settings.set_javascript_can_open_windows_automatically(False)
+
+        self.view = WebKit.WebView(network_session=session, settings=settings)
+        self.view.set_vexpand(True)
+        self.view.set_hexpand(True)
+        self.view.connect('decide-policy', self.on_policy)
+        self.view.connect('create', self.on_create)
+        self.view.connect('permission-request', self.on_permission)
+        self.view.connect('show-notification', self.on_notification)
+        self.view.connect('notify::title', lambda *_: self.window.set_title(self.view.get_title() or self.title))
+        self.view.connect('enter-fullscreen', lambda *_: (self.window.fullscreen(), False)[1])
+        self.view.connect('leave-fullscreen', lambda *_: (self.window.unfullscreen(), False)[1])
+        self.view.connect('load-failed', self.on_load_failed)
+
+        self.window = Gtk.ApplicationWindow(application=self, title=self.title)
+        self.window.set_default_size(1180, 780)
+        self.window.set_child(self.view)
+        self.window.set_icon_name(f'windoesnot-webapp-{self.app_id}')
+        keys = Gtk.EventControllerKey()
+        keys.connect('key-pressed', self.on_key)
+        self.window.add_controller(keys)
+        self.window.present()
+        self.view.load_uri(self.url)
+
+    def on_key(self, _controller, keyval, _code, state):
+        ctrl = bool(state & Gdk.ModifierType.CONTROL_MASK)
+        if keyval == Gdk.KEY_F5 or (ctrl and keyval in (Gdk.KEY_r, Gdk.KEY_R)):
+            self.view.reload()
+        elif ctrl and keyval in (Gdk.KEY_plus, Gdk.KEY_equal, Gdk.KEY_KP_Add):
+            self.view.set_zoom_level(min(3.0, self.view.get_zoom_level() + 0.1))
+        elif ctrl and keyval in (Gdk.KEY_minus, Gdk.KEY_KP_Subtract):
+            self.view.set_zoom_level(max(0.3, self.view.get_zoom_level() - 0.1))
+        elif ctrl and keyval in (Gdk.KEY_0, Gdk.KEY_KP_0):
+            self.view.set_zoom_level(1.0)
+        elif keyval == Gdk.KEY_F11:
+            self.window.unfullscreen() if self.window.is_fullscreen() else self.window.fullscreen()
+        elif ctrl and keyval in (Gdk.KEY_q, Gdk.KEY_Q, Gdk.KEY_w, Gdk.KEY_W):
+            self.window.close()
+        else:
+            return False
+        return True
+
+    # ----- navigation: other sites open in the normal browser ---------------------------------------
+    def stays_inside(self, uri):
+        parsed = urlparse(uri)
+        if parsed.scheme in ('about', 'blob', 'data'):
+            return True
+        host = parsed.hostname or ''
+        return base_domain(host) == self.home_domain or host in SIGN_IN_HOSTS or any(host.endswith('.' + h) for h in SIGN_IN_HOSTS)
+
+    @staticmethod
+    def open_outside(uri):
+        if urlparse(uri).scheme in ('http', 'https', 'mailto', 'tel'):
+            Gio.AppInfo.launch_default_for_uri(uri, None)
+
+    def on_policy(self, _view, decision, kind):
+        if kind == WebKit.PolicyDecisionType.NAVIGATION_ACTION:
+            action = decision.get_navigation_action()
+            uri = action.get_request().get_uri()
+            # Only clicks the user made leave the app; redirects and sign-in steps stay inside.
+            if action.get_navigation_type() == WebKit.NavigationType.LINK_CLICKED and not self.stays_inside(uri):
+                decision.ignore()
+                self.open_outside(uri)
+                return True
+        return False
+
+    def on_create(self, _view, action):
+        uri = action.get_request().get_uri()
+        if uri and not self.stays_inside(uri):
+            self.open_outside(uri)
+        elif uri:
+            self.view.load_uri(uri)
+        return None
+
+    def on_load_failed(self, view, _event, uri, error):
+        escaped = GLib.markup_escape_text(str(error.message))
+        view.load_alternate_html(
+            f'<body style="font-family:sans-serif;background:#1b1b1b;color:#eee;display:flex;align-items:center;'
+            f'justify-content:center;height:100vh;margin:0"><div style="text-align:center;max-width:32em">'
+            f'<h2>{GLib.markup_escape_text(self.title)}</h2><p>{escaped}</p>'
+            f'<p><a style="color:#fe6f2d" href="{GLib.markup_escape_text(self.url)}">&#8635;</a></p></div></body>', uri, None)
+        return True
+
+    # ----- permissions, notifications, downloads -----------------------------------------------------
+    def on_permission(self, _view, request):
+        if isinstance(request, WebKit.NotificationPermissionRequest):
+            request.allow()
+            return True
+        if isinstance(request, (WebKit.UserMediaPermissionRequest, WebKit.GeolocationPermissionRequest,
+                                WebKit.ClipboardPermissionRequest)):
+            what = {WebKit.UserMediaPermissionRequest: 'camera/microphone', WebKit.GeolocationPermissionRequest: 'location',
+                    WebKit.ClipboardPermissionRequest: 'clipboard'}[type(request)]
+            dialog = Gtk.AlertDialog()
+            dialog.set_message(f'{self.title}: allow access to {what}?')
+            dialog.set_buttons(['Deny', 'Allow'])
+            dialog.set_default_button(0)
+            dialog.set_cancel_button(0)
+
+            def answered(source, result):
+                try:
+                    allowed = source.choose_finish(result) == 1
+                except GLib.Error:
+                    allowed = False
+                request.allow() if allowed else request.deny()
+            dialog.choose(self.window, None, answered)
+            return True
+        request.deny()
+        return True
+
+    def on_notification(self, _view, notification):
+        message = Gio.Notification.new(notification.get_title() or self.title)
+        message.set_body(notification.get_body() or '')
+        self.send_notification(None, message)
+        return True
+
+    def on_download(self, _session, download):
+        download.connect('decide-destination', self.on_destination)
+        return True
+
+    @staticmethod
+    def on_destination(download, suggested):
+        folder = Path(GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_DOWNLOAD) or Path.home() / 'Downloads')
+        folder.mkdir(parents=True, exist_ok=True)
+        name = re.sub(r'[\\/\0]', '_', suggested or 'download') or 'download'
+        target = folder / name
+        counter = 1
+        while target.exists():
+            target = folder / f'{Path(name).stem} ({counter}){Path(name).suffix}'
+            counter += 1
+        download.set_destination(str(target))
+        return True
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--id', required=True, help='short name of the web app (letters, digits, dash)')
+    parser.add_argument('--name', help='window title')
+    parser.add_argument('url')
+    args = parser.parse_args()
+    if not re.fullmatch(r'[a-z0-9][a-z0-9-]*', args.id) or not valid_start_url(args.url):
+        parser.error('invalid id or URL (https only)')
+    # The window class is the taskbar's key: one group per web app.
+    GLib.set_prgname(f'windoesnot-webapp-{args.id}')
+    GLib.set_application_name(args.name or args.id)
+    return WebApp(args.id, args.name or args.id, args.url).run([sys.argv[0]])
+
+
+if __name__ == '__main__':
+    sys.exit(main())

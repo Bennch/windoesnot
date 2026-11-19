@@ -48,9 +48,19 @@ def classify(root):
     has_loader = any((boot / p).exists() for p in ('EFI/systemd', 'EFI/BOOT/BOOTX64.EFI', 'loader/loader.conf'))
     if has_entries and has_loader:
         return 'systemd-boot'
+    if has_grub(boot):
+        return 'not-applicable'   # GRUB on a vfat ESP mounted at /boot (UEFI install with GRUB): nothing of ours to guard
     if boot_expected_but_missing(root):
         return 'systemd-boot-unavailable'
     return 'not-applicable'
+
+
+def has_grub(boot):
+    """True when /boot holds a GRUB setup (configuration or an EFI GRUB image)."""
+    try:
+        return (boot / 'grub/grub.cfg').is_file() or any((boot / 'EFI').glob('*/grub*.efi'))
+    except OSError:
+        return False
 
 
 def boot_expected_but_missing(root):
