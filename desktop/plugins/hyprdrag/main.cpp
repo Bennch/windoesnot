@@ -8,7 +8,17 @@
 #include <hyprland/src/layout/LayoutManager.hpp>
 #include <hyprland/src/layout/supplementary/DragController.hpp>
 #include <hyprland/src/managers/input/InputManager.hpp>
+#include <hyprland/src/managers/SeatManager.hpp>
+#include <hyprland/src/desktop/state/FocusState.hpp>
+#include <hyprland/src/desktop/state/WindowState.hpp>
+#include <hyprland/src/desktop/state/ViewHitTester.hpp>
+#include <hyprland/src/desktop/view/LayerSurface.hpp>
+#include <hyprland/src/state/MonitorState.hpp>
+#include <hyprland/src/Compositor.hpp>
+#include <hyprland/src/desktop/state/LayerState.hpp>
+#include <hyprland/src/protocols/LayerShell.hpp>
 #include <chrono>
+#include <linux/input-event-codes.h>
 #include <hyprland/src/managers/eventLoop/EventLoopManager.hpp>
 #include <hyprland/src/version.h>
 
@@ -56,6 +66,88 @@ namespace {
         const auto size = window->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
         (void)Config::Actions::event(std::format("hyprdrag-geo>>{},{},{},{},{}", lastAddress, static_cast<int>(pos.x), static_cast<int>(pos.y),
                                                  static_cast<int>(size.x), static_cast<int>(size.y)));
+    }
+
+    // ---- Explicit edge resizing -------------------------------------------------------------------------------------
+    // Hyprland's own resize_on_border showed the right arrow on hover but started the drag as a corner resize (both axes)
+    // for side edges. Take over the press: a side edge resizes along that one axis, a bottom corner along both, with the
+    // edge named explicitly (same call hyprbars uses for the top corners). Floating windows only; tiling is untouched.
+    bool borderResizeActive = false;
+
+    // Which edge of `window` is under `mouse`, or CORNER_NONE. The top edge belongs to the title bar.
+    Layout::eRectCorner borderEdgeAt(const PHLWINDOW& window, const Vector2D& mouse) {
+        constexpr double OUTSIDE = 12.0;  // grab band outside the window (Hyprland extends the border grab area by 15)
+        constexpr double INSIDE  = 5.0;   // and a few pixels inside
+        constexpr double CORNER  = 28.0;  // extent of a bottom corner along the edges
+        const auto pos  = window->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+        const auto size = window->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+        const double x = mouse.x - pos.x, y = mouse.y - pos.y;
+        const bool inBandX = y >= 0 && y <= size.y + OUTSIDE;
+        const bool inBandY = x >= -OUTSIDE && x <= size.x + OUTSIDE;
+        const bool left   = inBandX && x >= -OUTSIDE && x <= INSIDE;
+        const bool right  = inBandX && x >= size.x - INSIDE && x <= size.x + OUTSIDE;
+        const bool bottom = inBandY && y >= size.y - INSIDE && y <= size.y + OUTSIDE;
+        if (bottom && left && x <= CORNER - OUTSIDE)
+            return Layout::CORNER_BOTTOMLEFT;
+        if (bottom && right && x >= size.x - CORNER + OUTSIDE)
+            return Layout::CORNER_BOTTOMRIGHT;
+        if (bottom && !left && !right) {
+            if (x <= CORNER - OUTSIDE)
+                return Layout::CORNER_BOTTOMLEFT;
+            if (x >= size.x - CORNER + OUTSIDE)
+                return Layout::CORNER_BOTTOMRIGHT;
+            return Layout::CORNER_BOTTOM;
+        }
+        if (left && y >= size.y - CORNER)
+            return Layout::CORNER_BOTTOMLEFT;
+        if (right && y >= size.y - CORNER)
+            return Layout::CORNER_BOTTOMRIGHT;
+        if (left)
+            return Layout::CORNER_LEFT;
+        if (right)
+            return Layout::CORNER_RIGHT;
+        if (bottom)
+            return Layout::CORNER_BOTTOM;
+        return Layout::CORNER_NONE;
+    }
+
+    bool tryBorderResize(Event::SCallbackInfo& info) {
+        if (!g_layoutManager || !g_pInputManager || g_pSeatManager->m_seatGrab || static_cast<uint32_t>(g_pInputManager->getModsFromAllKBs()) != 0)
+            return false;
+
+        const auto mouse   = g_pInputManager->getMouseCoordsInternal();
+        const auto monitor = Desktop::focusState()->monitor();
+        if (!monitor)
+            return false;
+
+        Desktop::CViewHitTester hitTester{*Desktop::viewState()};
+        const auto window = hitTester.windowAt(mouse, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
+        if (!validMapped(window) || !window->isFloating() || window->metadata().title().starts_with("quickshell-"))
+            return false;
+
+        // Panels above windows (taskbar ...) keep their clicks.
+        PHLLS    surface = nullptr;
+        Vector2D local;
+        hitTester.layerSurfaceAt(mouse, &monitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &local, &surface);
+        if (surface)
+            return false;
+        hitTester.layerSurfaceAt(mouse, &monitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &local, &surface);
+        if (surface)
+            return false;
+
+        const auto edge = borderEdgeAt(window, mouse);
+        if (edge == Layout::CORNER_NONE)
+            return false;
+
+        // A press inside the window's own surface (INSIDE band) must still reach the app when the pointer is over content.
+        if (Desktop::focusState()->window() != window)
+            Desktop::focusState()->fullWindowFocus(window, Desktop::FOCUS_REASON_CLICK);
+        Desktop::windowState()->raise(window);
+
+        info.cancelled = true;
+        g_layoutManager->beginDragTarget(window->layoutTarget(), MBIND_RESIZE, edge);
+        borderResizeActive = true;
+        return true;
     }
 
     void postDragEvent(const PHLWINDOW& window, const std::string& address, bool moving, bool start, bool updateTag = true) {
@@ -136,7 +228,16 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         }
         scheduleDragUpdate();
     });
-    mouseButtonListener = Event::bus()->m_events.input.mouse.button.listen([](IPointer::SButtonEvent, Event::SCallbackInfo&) {
+    mouseButtonListener = Event::bus()->m_events.input.mouse.button.listen([](IPointer::SButtonEvent e, Event::SCallbackInfo& info) {
+        if (e.button == BTN_LEFT) {
+            if (e.state == WL_POINTER_BUTTON_STATE_PRESSED)
+                tryBorderResize(info);
+            else if (borderResizeActive) {
+                borderResizeActive = false;
+                info.cancelled = true;
+                (void)g_layoutManager->endDragTarget();
+            }
+        }
         syncDragState();
         scheduleDragUpdate();
     });
