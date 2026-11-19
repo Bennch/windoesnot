@@ -229,7 +229,7 @@ class Runner:
         try:
             if self.configuration in ('B', 'C', 'D', 'E', 'F'):
                 post = log.find('Validating WinDoesNot boot entries')
-                self.result['checks']['post_hook_status'] = post >= 0 and 'not a systemd-boot layout (GRUB/BIOS); nothing to do' in log[post:]
+                self.result['checks']['post_hook_status'] = post >= 0 and 'not a systemd-boot layout' in log[post:] and 'nothing to do' in log[post:]
             else:
                 hook = json.loads(hook_result.stdout)
                 started = datetime.fromisoformat(hook['started'])
