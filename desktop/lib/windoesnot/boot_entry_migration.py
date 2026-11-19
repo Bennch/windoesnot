@@ -48,8 +48,8 @@ def classify(root):
     has_loader = any((boot / p).exists() for p in ('EFI/systemd', 'EFI/BOOT/BOOTX64.EFI', 'loader/loader.conf'))
     if has_entries and has_loader:
         return 'systemd-boot'
-    if has_grub(boot):
-        return 'not-applicable'   # GRUB on a vfat ESP mounted at /boot (UEFI install with GRUB): nothing of ours to guard
+    if has_grub(boot) or has_refind(boot) or has_limine(boot):
+        return 'not-applicable'   # GRUB, rEFInd or Limine on a vfat ESP mounted at /boot (UEFI installs): nothing of ours to guard
     if boot_expected_but_missing(root):
         return 'systemd-boot-unavailable'
     return 'not-applicable'
@@ -59,6 +59,23 @@ def has_grub(boot):
     """True when /boot holds a GRUB setup (configuration or an EFI GRUB image)."""
     try:
         return (boot / 'grub/grub.cfg').is_file() or any((boot / 'EFI').glob('*/grub*.efi'))
+    except OSError:
+        return False
+
+
+def has_refind(boot):
+    """True when /boot holds a rEFInd setup (EFI image or the kernel options file the installer writes)."""
+    try:
+        return (boot / 'refind_linux.conf').is_file() or any((boot / 'EFI/refind').glob('*.efi'))
+    except OSError:
+        return False
+
+
+def has_limine(boot):
+    """True when /boot holds a Limine setup (configuration file or an EFI image in a limine directory)."""
+    try:
+        return any((boot / name).is_file() for name in ('limine.conf', 'limine.cfg')) or any(
+            efi.is_file() for directory in (boot / 'EFI').glob('[Ll][Ii][Mm][Ii][Nn][Ee]*') for efi in directory.glob('*.[Ee][Ff][Ii]'))
     except OSError:
         return False
 

@@ -178,6 +178,31 @@ class Layout(Base):
             self.assertEqual(m.main(['--root', str(self.root), '--preflight']), 0)
             self.assertEqual(m.main(['--root', str(self.root), '--post-transaction']), 0)
 
+    def test_refind_on_vfat_esp_is_not_an_error(self):
+        # The installer also offers rEFInd (UEFI): kernels keep their file names, nothing of ours to guard.
+        import io, contextlib, shutil
+        shutil.rmtree(self.boot)
+        (self.boot / 'EFI/refind').mkdir(parents=True)
+        (self.boot / 'EFI/refind/refind_x64.efi').write_bytes(b'x')
+        (self.boot / 'refind_linux.conf').write_text('"Boot" "rw"\n')
+        (self.root / 'etc/fstab').write_text('UUID=1234-ABCD /boot vfat defaults 0 2\n')
+        self.assertEqual(m.classify(self.root), 'not-applicable')
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(m.main(['--root', str(self.root), '--preflight']), 0)
+            self.assertEqual(m.main(['--root', str(self.root), '--post-transaction']), 0)
+
+    def test_limine_on_vfat_esp_is_not_an_error(self):
+        import io, contextlib, shutil
+        shutil.rmtree(self.boot)
+        (self.boot / 'EFI/limine').mkdir(parents=True)
+        (self.boot / 'EFI/limine/limine_x64.efi').write_bytes(b'x')
+        (self.boot / 'limine.conf').write_text('timeout: 3\n')
+        (self.root / 'etc/fstab').write_text('UUID=1234-ABCD /boot vfat defaults 0 2\n')
+        self.assertEqual(m.classify(self.root), 'not-applicable')
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(m.main(['--root', str(self.root), '--preflight']), 0)
+            self.assertEqual(m.main(['--root', str(self.root), '--post-transaction']), 0)
+
     def test_no_fstab_boot_entry_stays_not_applicable(self):
         import shutil
         shutil.rmtree(self.boot)
