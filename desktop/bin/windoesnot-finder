@@ -26,7 +26,19 @@ for candidate in (Path('/usr/lib/windoesnot'), HERE.parent / 'lib/windoesnot'):
         break
 import finder  # noqa: E402
 
-GERMAN = (os.environ.get('LANG') or '').startswith('de')
+def ui_language():
+    """The language chosen in the WinDoesNot settings, otherwise the session language."""
+    settings = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config') / 'quickshell/default/settings.txt'
+    try:
+        for line in settings.read_text(errors='replace').splitlines():
+            if line.startswith('uiLanguage='):
+                return line.split('=', 1)[1].strip()[:2]
+    except OSError:
+        pass
+    return (os.environ.get('LANG') or 'en')[:2]
+
+
+GERMAN = ui_language() == 'de'
 PREVIEW = '--preview' in sys.argv
 
 
@@ -61,17 +73,19 @@ progressbar trough { background: #3a3a3a; min-height: 8px; border-radius: 4px; }
 progressbar progress { background: #fe6f2d; min-height: 8px; border-radius: 4px; }
 button.suggested-action { background: #fe6f2d; color: #202020; }
 .rail { background: #1a1a1a; border-right: 1px solid #3a3a3a; }
-.rail-row { border-radius: 6px; padding: 0 6px; min-height: 36px; }
+.rail-row { border-radius: 6px; padding: 0 4px; min-height: 32px; }
 .rail-row.current { background: #141414; }
 .rail-pill { background: #fe6f2d; border-radius: 2px; min-width: 3px; min-height: 18px; }
-.rail-title { color: #777777; font-size: 11pt; }
+.rail-title { color: #777777; font-size: 10pt; }
 .rail-title.done { color: #aaaaaa; }
 .rail-title.current { color: #eeeeee; font-weight: 700; }
 .rail-glyph { color: #777777; min-width: 22px; }
 .rail-glyph.done { color: #fe6f2d; }
 .rail-glyph.current { color: #eeeeee; }
-.greeting { font-size: 15pt; font-weight: 800; color: #eeeeee; }
-.joke { color: #aaaaaa; font-size: 10pt; }
+.greeting { font-size: 13pt; font-weight: 800; color: #eeeeee; }
+.joke { color: #aaaaaa; font-size: 9pt; }
+paned > separator { background: #3a3a3a; min-width: 3px; }
+paned > separator:hover { background: #fe6f2d; }
 .page-title { font-size: 22pt; font-weight: 700; color: #eeeeee; }
 '''
 
@@ -114,15 +128,15 @@ class Window(Adw.ApplicationWindow):
         self.current = 'start'
         self.pulse = None
         import random
-        root = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        root = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL, wide_handle=True, resize_start_child=False, shrink_start_child=False, shrink_end_child=False)
         toolbar = Adw.ToolbarView()
         toolbar.add_top_bar(Adw.HeaderBar())
         toolbar.set_content(root)
         self.set_content(toolbar)
         # Left rail like the Windows tool: greeting, then every step by name (done / current / upcoming).
-        rail = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, width_request=232, margin_top=0)
+        rail = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, width_request=150)
         rail.add_css_class('rail')
-        header = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, margin_top=18, margin_bottom=14, margin_start=16, margin_end=14)
+        header = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4, margin_top=14, margin_bottom=10, margin_start=12, margin_end=10)
         self.greeting = Gtk.Label(label=tr('Hallo ', 'Hello ') + greeting_name(), xalign=0)
         self.greeting.add_css_class('greeting')
         joke = random.choice(JOKES)
@@ -133,17 +147,18 @@ class Window(Adw.ApplicationWindow):
         if logo_file:
             logo = Gtk.Picture.new_for_filename(str(logo_file))
             logo.set_content_fit(Gtk.ContentFit.CONTAIN)
-            logo.set_size_request(190, 36)
+            logo.set_size_request(120, 24)
             logo.set_halign(Gtk.Align.START)
             logo.set_margin_bottom(14)
             header.append(logo)
         header.append(self.greeting); header.append(self.joke)
         rail.append(header)
-        self.rail_rows = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1, margin_start=8, margin_end=8)
+        self.rail_rows = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1, margin_start=6, margin_end=6)
         rail.append(self.rail_rows)
-        root.append(rail)
+        root.set_start_child(rail)
+        root.set_position(190)
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=18, margin_bottom=18, margin_start=24, margin_end=24, hexpand=True)
-        root.append(outer)
+        root.set_end_child(outer)
         self.heading = Gtk.Label(xalign=0, wrap=True)
         self.heading.add_css_class('page-title')
         outer.append(self.heading)
