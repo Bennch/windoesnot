@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parent.parent
 BASE = ROOT / 'out/update-gate/work/baselines/29-de-sdboot'
-BASELINES = {'A': BASE, 'B': BASE.parent / '29-en-grub-uefi', 'C': BASE.parent / '29-en-grub-bios', 'D': BASE.parent / '29-en-refind-uefi', 'E': BASE.parent / '29-en-limine-uefi', 'F': BASE.parent / '29-en-limine-bios'}
+BASELINES = {'A': BASE, 'B': BASE.parent / '29-en-grub-uefi', 'C': BASE.parent / '29-en-grub-bios', 'D': BASE.parent / '29-en-refind-uefi', 'E': BASE.parent / '29-en-limine-uefi'}
 VMROOT = ROOT / 'vm'
 WORK = ROOT / 'out/update-gate/work'
 
@@ -36,7 +36,7 @@ def hook_order(log, configuration='A'):
     pre = log.find('Checking WinDoesNot boot filesystem before update')
     kernel = log.find('Updating linux initcpios')
     post = log.find('Validating WinDoesNot boot entries')
-    if configuration in ('B', 'C', 'D', 'E', 'F'):
+    if configuration in ('B', 'C', 'D', 'E'):
         # The 29 bootstrap installs no temporary guard on non-systemd boot layouts.
         # The newly installed packaged guard is checked by the subsequent probe.
         bootstrap = log.find('Kein systemd-boot-Layout; keine Änderung erforderlich.')
@@ -137,14 +137,14 @@ class Runner:
         self.vm.mkdir()
         (self.vm / '.update-gate-owner').write_text(self.name + '\n')
         cmd('qemu-img', 'create', '-f', 'qcow2', '-F', 'qcow2', '-b', str(self.base / 'disk.qcow2'), str(self.vm / 'disk.qcow2'), stdout=subprocess.DEVNULL)
-        if self.configuration not in ('C', 'F'):
+        if self.configuration != 'C':
             shutil.copy2(self.base / 'OVMF_VARS.fd', self.vm / 'OVMF_VARS.fd')
             (self.vm / 'OVMF_VARS.fd').chmod(0o600)
         log = (self.run / 'qemu-launch.log').open('w')
         self.vmproc = subprocess.Popen(['./build-and-run.sh', '--boot-installed', '--vm-name', self.name,
                                        '--headless', '--graphics', 'soft', '--memory', '4096', '--cpus', '2'],
                                       cwd=ROOT, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
-                                      start_new_session=True, env={**os.environ, 'WINDOESNOT_VM_BIOS': '1' if self.configuration in ('C', 'F') else '0'})
+                                      start_new_session=True, env={**os.environ, 'WINDOESNOT_VM_BIOS': '1' if self.configuration == 'C' else '0'})
         log.close()
         self.result['baseline_boot_id'] = self.ready()
         self.result['baseline_kernel'] = self.guest('/usr/bin/uname', '-r').strip()
@@ -227,7 +227,7 @@ class Runner:
         self.result['checks']['hook_order'] = hook_order(log, self.configuration)
         hook_result = self.vmctl('exec', '/usr/bin/cat', '/var/lib/windoesnot/boot-migration/result.json', check=False)
         try:
-            if self.configuration in ('B', 'C', 'D', 'E', 'F'):
+            if self.configuration in ('B', 'C', 'D', 'E'):
                 post = log.find('Validating WinDoesNot boot entries')
                 self.result['checks']['post_hook_status'] = post >= 0 and 'not a systemd-boot layout' in log[post:] and 'nothing to do' in log[post:]
             else:

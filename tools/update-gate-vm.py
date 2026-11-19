@@ -35,7 +35,7 @@ def main():
         parser = argparse.ArgumentParser(description='Run isolated 29-to-candidate update experiment')
         parser.add_argument('stage', choices=['install', 'update', 'verify', 'run'])
         parser.add_argument('--packages', type=Path)
-        parser.add_argument('--configuration', choices=['A', 'B', 'C', 'D', 'E', 'F'], default='A')
+        parser.add_argument('--configuration', choices=['A', 'B', 'C', 'D', 'E'], default='A')
         parser.add_argument('--vm-name', help='owned VM name returned by install')
         args = parser.parse_args()
         if args.stage in ('install', 'run'):

@@ -90,8 +90,8 @@ def inspect_index(data, digest, now=None):
             for name, value in positive['baseline_manifest']['files'].items()):
         raise ValueError('predecessor ISO does not match the baseline')
     matrix = data['matrix']
-    if set(matrix) != {'A', 'B', 'C', 'D', 'E', 'F'}:
-        raise ValueError('all six boot configurations are required')
+    if set(matrix) != {'A', 'B', 'C', 'D', 'E'}:
+        raise ValueError('all five boot configurations are required')
     for config, item in matrix.items():
         stored = item['positive']
         if inspect(stored['result'], digest, 'positive', now) != stored:

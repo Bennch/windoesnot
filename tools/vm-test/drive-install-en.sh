@@ -1,8 +1,8 @@
 #!/bin/bash
-# Drive the English Calamares installer (erase disk). Usage: drive-install-en.sh VM [grub|refind|limine-uefi|limine-bios]
+# Drive the English Calamares installer (erase disk). Usage: drive-install-en.sh VM [grub|refind|limine-uefi]
 cd "$(dirname "$0")/../.."; V=$1; LOADER=${2:-grub}
 case "$LOADER" in
-    grub|0) LY= ;; refind) LY=446 ;; limine-uefi) LY=592 ;; limine-bios) LY=374 ;;
+    grub|0) LY= ;; refind) LY=446 ;; limine-uefi) LY=592 ;;
     *) echo "Unsupported bootloader: $LOADER" >&2; exit 2 ;;
 esac
 S=${TMPDIR:-/tmp}

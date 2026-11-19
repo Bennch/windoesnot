@@ -6,9 +6,14 @@ import tempfile
 import unittest
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-from update_gate_runner import hook_order
+from update_gate_runner import BASELINES, Runner, hook_order
 
 class HookOrder(unittest.TestCase):
+    def test_matrix_rejects_retired_bios_limine(self):
+        self.assertEqual(set(BASELINES), set("ABCDE"))
+        with self.assertRaises(ValueError):
+            Runner(Path("."), configuration="F")
+
     def test_requires_both_hooks_after_kernel_in_order(self):
         pre = 'Checking WinDoesNot boot filesystem before update'
         kernel = 'Updating linux initcpios'
@@ -23,7 +28,7 @@ class HookOrder(unittest.TestCase):
         pre = 'Checking WinDoesNot boot filesystem before update'
         kernel = 'Updating linux initcpios'
         post = 'Validating WinDoesNot boot entries'
-        for config in ('B', 'C', 'D', 'E', 'F'):
+        for config in ('B', 'C', 'D', 'E'):
             self.assertTrue(hook_order('\n'.join((bootstrap, kernel, post)), config))
             self.assertTrue(hook_order('\n'.join((bootstrap, pre, kernel, post)), config))
             for text in (kernel + '\n' + post, bootstrap + '\n' + post + '\n' + kernel,
