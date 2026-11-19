@@ -72,7 +72,7 @@ checkbutton check:checked { background: #fe6f2d; border-color: #fe6f2d; color: #
 progressbar trough { background: #3a3a3a; min-height: 8px; border-radius: 4px; }
 progressbar progress { background: #fe6f2d; min-height: 8px; border-radius: 4px; }
 button.suggested-action { background: #fe6f2d; color: #202020; }
-.rail { background: #1a1a1a; border-right: 1px solid #3a3a3a; }
+.rail { background: #1a1a1a; }
 .rail-row { border-radius: 6px; padding: 0 4px; min-height: 32px; }
 .rail-row.current { background: #141414; }
 .rail-pill { background: #fe6f2d; border-radius: 2px; min-width: 3px; min-height: 18px; }
@@ -84,8 +84,8 @@ button.suggested-action { background: #fe6f2d; color: #202020; }
 .rail-glyph.current { color: #eeeeee; }
 .greeting { font-size: 13pt; font-weight: 800; color: #eeeeee; }
 .joke { color: #aaaaaa; font-size: 9pt; }
-paned > separator { background: #3a3a3a; min-width: 3px; }
-paned > separator:hover { background: #fe6f2d; }
+paned > separator { min-width: 7px; background-color: transparent; background-image: linear-gradient(to right, transparent 3px, #2c2c2c 3px, #2c2c2c 4px, transparent 4px); }
+paned > separator:hover { background-image: linear-gradient(to right, transparent 2px, #fe6f2d 2px, #fe6f2d 5px, transparent 5px); }
 .page-title { font-size: 22pt; font-weight: 700; color: #eeeeee; }
 '''
 

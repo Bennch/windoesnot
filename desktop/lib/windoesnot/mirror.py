@@ -462,7 +462,7 @@ def copy_home(manifest, home, progress=None):
                     skipped.append({'path': str(rel), 'reason': 'mount'})
                     pruned.add(entry)
                     continue
-                directories.append(rel)
+                directories.append((rel, info))
                 continue
             if not (stat.S_ISREG(info.st_mode) or stat.S_ISLNK(info.st_mode)):
                 # Sockets, FIFOs and device files only exist while a program runs.
@@ -487,11 +487,14 @@ def copy_home(manifest, home, progress=None):
                 os.chown(current, owner.st_uid, owner.st_gid)
             elif not current.is_dir():
                 raise ValueError('Target directory conflict')
-    for rel in directories:
+    jobs = {home: [], archive: []}
+    for rel, info in directories:
         managed = any(rel.as_posix() == p or rel.as_posix().startswith(p + '/') for p in PROTECTED)
         target = (archive if managed else home) / rel
         make_directories(target)
-    jobs = {home: [], archive: []}
+        # The folder itself goes through rsync too, otherwise its mode, owner and times are lost (a private ~/.gnupg or
+        # ~/.ssh would come out world-readable).
+        jobs[archive if managed else home].append((rel, info))
     for rel, info in entries:
         managed = any(rel.as_posix() == p or rel.as_posix().startswith(p + '/') for p in PROTECTED)
         dest = safe_path(home, rel.parent)
@@ -518,7 +521,7 @@ def copy_home(manifest, home, progress=None):
             for rel, _ in items:
                 listing.write(os.fsencode(str(rel)) + b'\0')
             listing.seek(0)
-            args = ['rsync', '-aHAX', '--numeric-ids', '--ignore-existing', '--from0',
+            args = ['rsync', '-aHAXS', '--numeric-ids', '--ignore-existing', '--from0',
                     '--files-from=-', '--no-implied-dirs',
                     '--usermap=' + str(user['uid']) + ':' + str(owner.st_uid),
                     '--groupmap=' + str(user['gid']) + ':' + str(owner.st_gid),
@@ -529,6 +532,10 @@ def copy_home(manifest, home, progress=None):
         for rel, info in items:
             safe_path(home, (destroot / rel.parent).relative_to(home))
             target = destroot / rel
+            if stat.S_ISDIR(info.st_mode):
+                if target.is_symlink() or not target.is_dir() or (target.stat().st_mode & 0o7777) != (info.st_mode & 0o7777):
+                    raise RuntimeError('Verification failed (folder mode): ' + str(rel))
+                continue
             if stat.S_ISREG(info.st_mode):
                 if target.is_symlink() or not target.is_file() or target.stat().st_size != info.st_size or digest(source / rel, info.st_size) != digest(target, info.st_size):
                     raise RuntimeError('Verification failed: ' + str(rel))
