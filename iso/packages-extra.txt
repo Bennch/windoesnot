@@ -149,3 +149,4 @@ libpst
 gst-plugins-good
 gst-libav
 gst-plugins-ugly
+fd

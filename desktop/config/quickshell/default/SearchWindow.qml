@@ -49,7 +49,7 @@ FloatingWindow {
     // Derived modes
     readonly property bool modeEmoji: query.startsWith(":")
     readonly property bool modeRun:   query.startsWith(">")
-    readonly property bool showHints: query.length === 0 && !showClip
+    readonly property bool showHints: query.length === 0 && !showClip && activeChip === 0
     // "/pdf bill" narrows the search to one kind; searchText is what is searched for.
     readonly property var    parsed:     Logic.parseFilter(query)
     // Type filter chips under the results (Left/Right choose, live while searching); "" = everything.
@@ -57,6 +57,11 @@ FloatingWindow {
     property int             chipIndex:  0
     readonly property string filterKind: chipIndex > 0 ? chipKinds[chipIndex] : parsed.kind
     readonly property int    activeChip: Math.max(0, chipKinds.indexOf(filterKind))
+    // The symbol in the search bar shows what is searched for.
+    readonly property var    chipIcons: ["actions/symbolic/edit-find-symbolic.svg", "actions/symbolic/view-app-grid-symbolic.svg",
+                                         "places/symbolic/folder-symbolic.svg", "mimes/symbolic/x-office-document-symbolic.svg",
+                                         "mimes/symbolic/image-x-generic-symbolic.svg", "mimes/symbolic/text-x-generic-symbolic.svg",
+                                         "mimes/symbolic/media-video-symbolic.svg", "mimes/symbolic/audio-x-generic-symbolic.svg"]
     readonly property string searchText: parsed.text
     // An answer line is shown whenever the text is a calculation or a unit conversion (see SearchLogic.js).
     readonly property bool modeMath: calcResult.length > 0
@@ -555,11 +560,16 @@ FloatingWindow {
         onTriggered: {
             var q = root.searchText
             var extensions = Logic.extensionsFor(root.filterKind).map(function(e) { return "-e " + e }).join(" ")
-            if (q.length >= (extensions || root.filterKind === "folders" ? 1 : 2) && root.filterKind !== "apps" && !root.modeEmoji && !root.modeRun && !root.showClip) {
+            var fileChip = root.filterKind !== "" && root.filterKind !== "apps"
+            if ((q.length >= (extensions || root.filterKind === "folders" ? 1 : 2) || (fileChip && q.length === 0))
+                    && root.filterKind !== "apps" && !root.modeEmoji && !root.modeRun && !root.showClip) {
+                // No text yet but a type chosen: the newest items of that type.
+                var recent = q.length === 0 ? "--changed-within 120d " : ""
+                if (q.length === 0) q = "."
                 fileProc.running = false
                 fileProc.command = ["bash", "-c",
-                    "(fd --max-results 80 " + (root.filterKind === "folders" ? "--type d " : extensions ? "--type f " : "--type f --type d ") + "--ignore-case " + extensions + " --exclude .cache --exclude node_modules --exclude .git --exclude .local/share -0 -- " + JSON.stringify(q) + " \"$HOME\" 2>/dev/null | xargs -0 -r stat -c '%Y|%F|%n' 2>/dev/null) || " +
-                    "find \"$HOME\" -maxdepth 6 \\( -type f -o -type d \\) -iname " + JSON.stringify("*" + q + "*") + " -not -path '*/.cache/*' -not -path '*/node_modules/*' -printf '%T@|%y|%p\\n' 2>/dev/null | head -80"]
+                    "if command -v fd >/dev/null 2>&1; then fd --max-results 80 " + recent + (root.filterKind === "folders" ? "--type d " : extensions ? "--type f " : "--type f --type d ") + "--ignore-case " + extensions + " --exclude .cache --exclude node_modules --exclude .git --exclude .local/share -0 -- " + JSON.stringify(q) + " \"$HOME\" 2>/dev/null | xargs -0 -r stat -c '%Y|%F|%n' 2>/dev/null; else " +
+                    "find \"$HOME\" -maxdepth 6 \\( -type f -o -type d \\) -iname " + JSON.stringify("*" + q + "*") + " -not -path '*/.cache/*' -not -path '*/node_modules/*' -printf '%T@|%y|%p\\n' 2>/dev/null | head -80; fi"]
                 fileProc.running = true
             } else {
                 root.fileResults = []
@@ -600,7 +610,7 @@ FloatingWindow {
                 // SVG icon (normal, emoji, clip modes)
                 Image {
                     anchors.fill: parent
-                    source: "img/Win11-dark/actions/symbolic/edit-find-symbolic.svg"
+                    source: "img/Win11-dark/" + root.chipIcons[root.activeChip]
                     fillMode: Image.PreserveAspectFit
                     smooth: true
                     mipmap: true
@@ -692,6 +702,7 @@ FloatingWindow {
                 text: root.showClip  ? Lang.get("search.clipPlaceholder",  root.uiLanguage)
                     : root.modeEmoji ? Lang.get("search.emojiPlaceholder", root.uiLanguage)
                     : root.modeRun   ? Lang.get("search.runPlaceholder",   root.uiLanguage)
+                    : root.activeChip > 0 ? Lang.get("search.placeholder." + root.chipKinds[root.activeChip], root.uiLanguage)
                     :                  Lang.get("search.placeholder",       root.uiLanguage)
                 color: root.fgSub
                 font.pixelSize: 16
