@@ -429,7 +429,13 @@ Column {
                         }
                         MouseArea {
                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                            onClicked: settingsMenu.weatherLocation = value
+                            onClicked: {
+                                settingsMenu.weatherLocation = value
+                                // On the taskbar the widget belongs at the far left (left of the desktop switcher), as in
+                                // Windows 11; the default slot -1 put it behind the app icons, where nobody looked for it.
+                                if (value === "taskbar" && settingsMenu.weatherStartAreaSlot < 0)
+                                    settingsMenu.weatherStartAreaSlot = 4
+                            }
                         }
                     }
                 }

@@ -308,6 +308,11 @@ Item {
     }
 
     function monitorForClient(client, monitors) {
+        // No focused window (empty activewindow answer): fall back to the focused monitor.
+        if (!client || !client.at) {
+            for (var f = 0; f < monitors.length; ++f) if (monitors[f].focused) return DisplayGeometry.normalize(monitors[f])
+            return monitors.length ? DisplayGeometry.normalize(monitors[0]) : null
+        }
         for (var i = 0; i < monitors.length; ++i) {
             var m = DisplayGeometry.normalize(monitors[i])
             if (client.at[0] >= m.x && client.at[0] < m.x + m.width &&
@@ -402,6 +407,7 @@ Item {
                         snapManager.layoutPickerRequested(monitor.name, hover && cursor ? cursor.x : -1, hover && cursor ? cursor.y : -1)
                         return
                     }
+                    if (!client || !client.address) return   // nothing focused to arrange
                     var rect = snapManager.keyboardLayoutRect(keyboardSnapQueryProc.intent, snapManager.keyboardUsableArea(monitor))
                     if (!rect) return
                     // Windows with their own title bar have none of ours above them: use the bar's room as well.

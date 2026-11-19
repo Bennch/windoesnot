@@ -6,6 +6,7 @@ Generated from `packaging/changelog.json` (newest first). Releases with download
 
 
 
+
 ## 0.1.0-32 (2026-11-19)
 
 - Updates check package dependencies and protect boot entries when kernels change.
@@ -34,6 +35,7 @@ Generated from `packaging/changelog.json` (newest first). Releases with download
 - Settings, Updates: the Update button now opens the Store on the updates page even when it is already running; before, nothing happened.
 - All GTK programs (Store, Network, Bluetooth and more) show a single close button in the window bar instead of two.
 - Start menu: search also finds programs by their English or German name and keywords ("screenshot" finds Bildschirmfoto).
+- Weather widget: choosing the taskbar places it at the far left next to the desktop switcher; the layout menu via Super+Z also opens when no window has focus.
 - Fixed: updates and installs aborted on systems with GRUB, rEFInd or Limine (Limine is now offered on UEFI only); the holiday and week number switches did not respond; Performance mode was not offered; the Nearby window was cut off at the top; Does now says when it is not set up yet; the Network app has a single close button.
 
 ## 0.1.0-31 (2026-11-17)

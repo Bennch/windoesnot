@@ -31,6 +31,7 @@
         "Einstellungen, Updates: Der Knopf Update öffnet den Store jetzt auch dann auf der Update-Seite, wenn er schon läuft; vorher passierte nichts.",
         "Alle GTK-Programme (Store, Netzwerk, Bluetooth und weitere) zeigen nur noch eine Schließen-Taste in der Fensterleiste statt zwei.",
         "Startmenü: Die Suche findet Programme auch über ihren englischen oder deutschen Namen und Stichwörter („screenshot“ findet Bildschirmfoto).",
+        "Wetter-Widget: Wählst du die Taskleiste, erscheint es ganz links neben dem Desktop-Umschalter; das Layout-Menü per Super+Z öffnet auch, wenn kein Fenster Fokus hat.",
         "Behoben: Updates und Installationen brachen auf Systemen mit GRUB, rEFInd oder Limine ab (Limine wird jetzt nur noch bei UEFI angeboten); die Schalter für Feiertage und Kalenderwochen reagierten nicht; Höchstleistung wurde nicht angeboten; das Nearby-Fenster war oben abgeschnitten; Does meldet jetzt, wenn es noch nicht eingerichtet ist; die Netzwerk-App hat nur noch einen Schließen-Knopf."
       ],
       "en": [
@@ -60,6 +61,7 @@
         "Settings, Updates: the Update button now opens the Store on the updates page even when it is already running; before, nothing happened.",
         "All GTK programs (Store, Network, Bluetooth and more) show a single close button in the window bar instead of two.",
         "Start menu: search also finds programs by their English or German name and keywords (\"screenshot\" finds Bildschirmfoto).",
+        "Weather widget: choosing the taskbar places it at the far left next to the desktop switcher; the layout menu via Super+Z also opens when no window has focus.",
         "Fixed: updates and installs aborted on systems with GRUB, rEFInd or Limine (Limine is now offered on UEFI only); the holiday and week number switches did not respond; Performance mode was not offered; the Nearby window was cut off at the top; Does now says when it is not set up yet; the Network app has a single close button."
       ]
     },
