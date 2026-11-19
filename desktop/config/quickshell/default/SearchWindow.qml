@@ -524,7 +524,7 @@ FloatingWindow {
         if (!appsModel) return list
         for (var i = 0; i < appsModel.count; i++) {
             var a = appsModel.get(i)
-            list.push({name:a.name, cmd:a.cmd, icon:a.icon, customIcon:a.customIcon})
+            list.push({name:a.name, cmd:a.cmd, icon:a.icon, customIcon:a.customIcon, terms:a.terms || ""})
         }
         return list
     }
@@ -565,14 +565,22 @@ FloatingWindow {
     // ── Helpers ───────────────────────────────────────────────────────────────
     function fileIcon(path) {
         var ext = path.split(".").pop().toLowerCase()
-        if (["png","jpg","jpeg","gif","webp","svg","bmp","avif","heic"].indexOf(ext) >= 0) return "display"
-        if (["mp4","mkv","avi","mov","webm"].indexOf(ext) >= 0) return "display"
-        if (["mp3","flac","ogg","wav","opus","m4a"].indexOf(ext) >= 0) return "audio"
-        if (["pdf"].indexOf(ext) >= 0) return "info"
-        if (["zip","tar","gz","bz2","xz","7z","rar"].indexOf(ext) >= 0) return "info"
-        if (["js","ts","py","qml","cpp","c","h","rs","go","sh","fish","bash"].indexOf(ext) >= 0) return "display"
-        if (["md","txt","csv","log"].indexOf(ext) >= 0) return "info"
-        return "info"
+        var kinds = [
+            [["png","jpg","jpeg","gif","webp","svg","bmp","avif","heic","tif","tiff"], "image-x-generic"],
+            [["mp4","mkv","avi","mov","webm","m4v"], "video-x-generic"],
+            [["mp3","flac","ogg","wav","opus","m4a"], "audio-x-generic"],
+            [["pdf"], "application-pdf"],
+            [["zip","tar","gz","bz2","xz","zst","7z","rar"], "package-x-generic"],
+            [["iso","img"], "application-x-cd-image"],
+            [["doc","docx","odt","rtf"], "x-office-document"],
+            [["xls","xlsx","ods","csv"], "x-office-spreadsheet"],
+            [["ppt","pptx","odp"], "x-office-presentation"],
+            [["html","htm"], "text-html"],
+            [["js","ts","py","qml","cpp","c","h","rs","go","sh","fish","bash","json","lua","java"], "text-x-script"]
+        ]
+        for (var i = 0; i < kinds.length; i++)
+            if (kinds[i][0].indexOf(ext) >= 0) return kinds[i][1]
+        return "text-x-generic"
     }
 
     function basename(path) { return path.split("/").pop() }
@@ -1069,17 +1077,13 @@ FloatingWindow {
                             verticalCenter: parent.verticalCenter
                         }
                         spacing: 12
-                        Image {
+                        // The same icon component as the start menu: there is always an icon (fallback if the theme has none).
+                        AppIcon {
                             width: 28; height: 28
-                            sourceSize.width: 56; sourceSize.height: 56
                             anchors.verticalCenter: parent.verticalCenter
-                            source: model.type === "app"
-                                ? (model.appCustomIcon
-                                    ? "img/" + (model.appIcon || "") + ".svg"
-                                    : "image://icon/" + (model.appIcon || ""))
-                                : ""
-                            fillMode: Image.PreserveAspectFit
-                            smooth: true
+                            iconName: model.type === "app" ? (model.appIcon || "") : ""
+                            isCustomIcon: model.type === "app" && model.appCustomIcon === true
+                            fallbackIcon: "img/console.svg"
                         }
                         Text {
                             textFormat: Text.StyledText
@@ -1168,11 +1172,13 @@ FloatingWindow {
                             sourceSize.width: 60; sourceSize.height: 60
                             fillMode: Image.PreserveAspectFit
                         }
-                        ProjectIcon {
+                        // The file type's own icon from the icon theme, as in the file manager.
+                        AppIcon {
                             anchors.centerIn: parent
+                            width: 30; height: 30
                             visible: !fileEmoIcon.isImage && !fileEmoIcon.isDir
-                            name: model.type === "file" ? root.fileIcon(model.filePath || "") : "info"
-                            font.pixelSize: 20
+                            iconName: model.type === "file" ? root.fileIcon(model.filePath || "") : "text-x-generic"
+                            fallbackIcon: "img/file.svg"
                         }
                     }
                     Column {

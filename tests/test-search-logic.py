@@ -17,6 +17,11 @@ const apps = [{name:'Firefox',cmd:'firefox'},{name:'Visual Studio Code',cmd:'cod
 const names = (q, u) => rankApps(apps, q, u || {}, 5, now).map(a => a.name);
 const out = {
   prefix: names('fire'), initials: names('vsc'), fuzzy: names('ffx'), word: names('edit'), command: names('nautilus'),
+  bilingual: ['screenshot','screen cap','bildschirmfoto','foto','browser','rechner','calc'].map(q => rankApps([
+    {name:'Bildschirmfoto',cmd:'windoesnot-screenshot region',terms:'Screenshot Bildschirmfoto Screen Capture'},
+    {name:'Firefox',cmd:'firefox',terms:'Firefox Browser Web Browser Internet'},
+    {name:'Taschenrechner',cmd:'gnome-calculator',terms:'Calculator Taschenrechner calc rechnen'},
+    {name:'Fotos',cmd:'shotwell'}], q, {}, 4, now).map(a => a.name)[0]),
   none: names('zzzz'), accent: rankApps([{name:'Café',cmd:'cafe'}], 'cafe', {}, 3, now).length,
   usageWins: names('fi', {Files: {c: 5, t: now}})[0],
   recents: recentApps(apps, {Files: {c: 5, t: now}, Firefox: {c: 1, t: now - 40*86400000}}, 5, now).map(a => a.name),
@@ -37,6 +42,7 @@ console.log(JSON.stringify(out));
 got = json.loads(subprocess.run(['node', '-e', script], capture_output=True, text=True, check=True).stdout)
 assert got['prefix'][:2] == ['Firefox', 'Firefox ESR'], got['prefix']
 assert got['initials'] == ['Visual Studio Code'] and got['fuzzy'][0] == 'Firefox' and got['word'] == ['Text Editor']
+assert got['bilingual'] == ['Bildschirmfoto', 'Bildschirmfoto', 'Bildschirmfoto', 'Fotos', 'Firefox', 'Taschenrechner', 'Taschenrechner'], got['bilingual']
 assert got['command'] == ['Files'] and got['none'] == [] and got['accent'] == 1
 assert got['usageWins'] == 'Files', 'an app started often outranks a weaker match'
 assert got['recents'] == ['Files', 'Firefox'], got['recents']

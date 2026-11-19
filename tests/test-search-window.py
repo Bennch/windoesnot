@@ -12,7 +12,7 @@ with tempfile.TemporaryDirectory(prefix='wdn-search-') as temp:
     base = Path(temp)
     for name in ('i18n', 'widgets', 'settings', 'img'):
         shutil.copytree(SOURCE / name, base / name)
-    for name in ('SearchWindow.qml', 'SearchLogic.js', 'EmojiData.js', 'SpecialChars.js'):
+    for name in ('SearchWindow.qml', 'AppIcon.qml', 'SearchLogic.js', 'EmojiData.js', 'SpecialChars.js'):
         shutil.copy2(SOURCE / name, base / name)
     (base / 'shell.qml').write_text('''import QtQuick
 import Quickshell

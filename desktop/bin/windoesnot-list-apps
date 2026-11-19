@@ -8,6 +8,23 @@ import re
 import sys
 
 
+def search_terms(entry):
+    """German and English names, generic names and keywords: typing either language finds the app."""
+    terms = set()
+    for key, value in entry.items():
+        base, _, rest = key.partition('[')
+        if base not in ('Name', 'GenericName', 'Keywords'):
+            continue
+        language = rest.rstrip(']')
+        if language and language.split('_')[0] not in ('de', 'en'):
+            continue
+        for part in (value.split(';') if base == 'Keywords' else [value]):
+            part = part.strip()
+            if part and not any(c in part for c in '|\n\r'):
+                terms.add(part)
+    return sorted(terms, key=str.casefold)
+
+
 def launchers(directories, language, structured=False, technical_ids=()):
     language = language.split('.')[0].replace('-', '_')
     keys = ['Name[' + language + ']', 'Name[' + language.split('_')[0] + ']', 'Name']
@@ -43,7 +60,7 @@ def launchers(directories, language, structured=False, technical_ids=()):
                     user_data = Path.home() / '.local/share'
                     user_flatpak = Path.home() / '.var/app'
                     is_user_launcher = path.is_relative_to(user_data) or path.is_relative_to(user_flatpak)
-                    result.append({'id': identity, 'desktopPath': str(path), 'name': name, 'cmd': command, 'icon': row[2], 'names': names, 'technical': identity in technical_ids and not is_user_launcher} if structured else '|'.join(row))
+                    result.append({'id': identity, 'desktopPath': str(path), 'name': name, 'cmd': command, 'icon': row[2], 'names': names, 'terms': search_terms(entry), 'technical': identity in technical_ids and not is_user_launcher} if structured else '|'.join(row))
             except (OSError, UnicodeError, configparser.Error, KeyError):
                 continue
     if structured:

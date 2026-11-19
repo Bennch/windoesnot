@@ -11,7 +11,7 @@ function normalize(text) {
 function words(name) { return name.split(/[^a-z0-9]+/).filter(function(w) { return w.length > 0 }) }
 
 // How well does `query` match an app? -1 = not at all. Higher is better.
-function matchScore(name, command, query) {
+function matchScore(name, command, query, terms) {
     var n = normalize(name), q = normalize(query).trim()
     if (q.length === 0) return -1
     var parts = words(n)
@@ -20,6 +20,11 @@ function matchScore(name, command, query) {
     for (var i = 0; i < parts.length; i++) if (parts[i].indexOf(q) === 0) return 600 - Math.min(i * 20, 100)
     var initials = parts.map(function(w) { return w[0] }).join("")
     if (q.length >= 2 && initials.indexOf(q) === 0) return 500
+    // Names, generic names and keywords of the app in German and English ("screenshot" finds "Bildschirmfoto").
+    var t = terms ? normalize(terms) : ""
+    var termWords = t.length > 0 ? words(t) : []
+    for (var tw = 0; tw < termWords.length; tw++) if (termWords[tw] === q) return 480
+    for (var tp = 0; tp < termWords.length; tp++) if (termWords[tp].indexOf(q) === 0) return 450
     var at = n.indexOf(q)
     if (at > 0) return 400 - Math.min(at, 100)
     // Letters in order, but not next to each other ("ffx" finds Firefox); only for longer queries.
@@ -32,6 +37,7 @@ function matchScore(name, command, query) {
         }
         if (pos >= 0) return 200
     }
+    if (q.length >= 3 && t.indexOf(q) >= 0) return 180
     var cmd = normalize(command).split(/[\s\/]+/).filter(function(w) { return w.length > 0 && w[0] !== "-" && w[0] !== "@" })
     for (var c = 0; c < cmd.length; c++) if (cmd[c].indexOf(q) === 0) return 150
     return -1
@@ -52,7 +58,7 @@ function usageBonus(entry, now) {
 function rankApps(apps, query, usage, limit, now) {
     var scored = []
     for (var i = 0; i < apps.length; i++) {
-        var base = matchScore(apps[i].name, apps[i].cmd, query)
+        var base = matchScore(apps[i].name, apps[i].cmd, query, apps[i].terms)
         if (base < 0) continue
         scored.push({app: apps[i], score: base + usageBonus(usage[apps[i].name], now), order: i})
     }

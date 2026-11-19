@@ -3939,7 +3939,8 @@ FloatingWindow {
                     icon: app.icon,
                     customIcon: app.customIcon,
                     desktopPath: app.desktopPath || "",
-                    pinAliases: app.pinAliases || "[]"
+                    pinAliases: app.pinAliases || "[]",
+                    terms: app.terms || ""
                 })
             }
         }
@@ -3977,6 +3978,7 @@ FloatingWindow {
                     customIcon: app.customIcon,
                     desktopPath: app.desktopPath || "",
                     pinAliases: app.pinAliases || "[]",
+                    terms: app.terms || "",
                     pinned: false
                 })
             }
@@ -3994,6 +3996,7 @@ FloatingWindow {
                 customIcon: pinnedData[j].customIcon,
                 desktopPath: pinnedData[j].desktopPath || "",
                 pinAliases: pinnedData[j].pinAliases || "[]",
+                terms: pinnedData[j].terms || "",
                 technical: pinnedData[j].technical === true,
                 pinned: true
             })
@@ -4274,9 +4277,9 @@ FloatingWindow {
 
                 // Custom Apps (können gepinnt/entpinnt werden)
                 var customApps = [
-                    {name: Lang.get("shell.calculator", settingsMenu.uiLanguage), icon: "img/calc.svg", cmd: "gnome-calculator", pinNames: ["Taschenrechner", "Calculator"]},
-                    {name: Lang.get("shell.colorPicker", settingsMenu.uiLanguage), icon: "img/colorgrab.svg", cmd: "hyprpicker -a -f hex", pinNames: ["Color Picker", "Farbauswahl"]},
-                    {name: Lang.get("shell.screenshot", settingsMenu.uiLanguage), icon: "img/screenshot.svg", cmd: "windoesnot-screenshot region", pinNames: ["Screenshot", "Bildschirmfoto"]}
+                    {name: Lang.get("shell.calculator", settingsMenu.uiLanguage), icon: "img/calc.svg", cmd: "gnome-calculator", pinNames: ["Taschenrechner", "Calculator"], terms: "calc rechnen"},
+                    {name: Lang.get("shell.colorPicker", settingsMenu.uiLanguage), icon: "img/colorgrab.svg", cmd: "hyprpicker -a -f hex", pinNames: ["Color Picker", "Farbauswahl"], terms: "Farbwähler Pipette Colour Picker Eyedropper"},
+                    {name: Lang.get("shell.screenshot", settingsMenu.uiLanguage), icon: "img/screenshot.svg", cmd: "windoesnot-screenshot region", pinNames: ["Screenshot", "Bildschirmfoto"], terms: "Bildschirmaufnahme Screen Capture Snipping Schnappschuss"}
                 ]
 
                 // Desktop-Apps laden
@@ -4309,7 +4312,8 @@ FloatingWindow {
                         customIcon: true,
                         desktopPath: "",
                         technical: false,
-                        pinAliases: JSON.stringify(customApp.pinNames)
+                        pinAliases: JSON.stringify(customApp.pinNames),
+                        terms: customApp.pinNames.join(" ") + " " + (customApp.terms || "")
                     }
 
                     if (isCustomPinned) {
@@ -4364,6 +4368,7 @@ FloatingWindow {
                         }
                         appData.desktopPath = entry.desktopPath || ""
                         appData.pinAliases = JSON.stringify(pinAliases)
+                        appData.terms = aliases.concat(entry.terms || []).join(" ")
 
                         usedNames["$" + appName.toLowerCase()] = true
                         for (var usedAlias = 0; usedAlias < pinAliases.length; usedAlias++)
@@ -7027,7 +7032,7 @@ FloatingWindow {
                     onExited: parent.hovered = false
                     onClicked: {
                         powerMenu.visible = false; powerSubMenu.visible = false
-                        Qt.createQmlObject('import Quickshell.Io; Process { command: ["bash", "-c", "(kitty || foot || alacritty || xterm) &"]; running: true }', powerMenu)
+                        Qt.createQmlObject('import Quickshell.Io; Process { command: ["bash", "-c", "(ghostty || foot || kitty || alacritty || xterm) &"]; running: true }', powerMenu)
                     }
                 }
             }
