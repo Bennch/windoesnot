@@ -49,9 +49,21 @@ Item {
     property var cachedClients: null
 
     // Edge detection thresholds (pixels from screen edge)
-    property int edgeThreshold: 30       // left/right/bottom edges
-    property int topEdgeThreshold: 60    // top edge: larger because notification bar is in the way
-    property int cornerThreshold: 200
+    property int edgeThreshold: 40       // left/right/bottom edges
+    property int topEdgeThreshold: 80    // top edge: larger because notification bar is in the way
+    property int cornerThreshold: 240
+    // Once a zone is showing, the pointer may drift this much further out before it is dropped again: a slightly sticky
+    // preview leaves time to let go of the window (hysteresis, not a longer trigger distance).
+    property real stickyFactor: 1.6
+
+    // Apps that draw their own title bar run without our bar (hyprbars:no_bar, see reference.lua "*-no-bar" rules), so
+    // their snap rectangles must not reserve room for it. Keep this list in sync with those rules
+    // (tests/test-snap-own-bar-list.py checks it).
+    readonly property var ownBarClasses: ["steam", "discord", "vesktop", "legcord", "webcord", "armcord"]
+    function hasOurBar(windowInfo) {
+        var cls = windowInfo && windowInfo.class ? ("" + windowInfo.class).toLowerCase() : ""
+        return ownBarClasses.indexOf(cls) < 0
+    }
 
     // Cached data for processing
     property var cachedCursorPos: null
@@ -489,10 +501,10 @@ Item {
                     }
 
                     // Fallback: hyprdrag-movestop sometimes requires cursor movement to fire.
-                    // 200 ms keeps edge drops responsive while still filtering a brief pause.
+                    // 400 ms keeps edge drops responsive while leaving time to look at the preview and let go.
                     // If cursor has been stationary for 200 ms while drag is active, treat
                     // it as a drop — the user almost certainly released the mouse button.
-                    if (snapManager.isDragging && snapManager.cursorUnchangedCount >= 2) {
+                    if (snapManager.isDragging && snapManager.cursorUnchangedCount >= 4) {
                         snapManager.isDragging = false
                         dragPollTimer.running = false
 
@@ -725,6 +737,11 @@ Item {
         // so we must add this to usableY to keep the title bar on-screen.
         var hyprbarsHeight = (snapManager.settingsMenu && snapManager.settingsMenu.hyprbarsHeight > 0)
                              ? snapManager.settingsMenu.hyprbarsHeight : 30
+        if (!snapManager.hasOurBar(snapManager.cachedWindowInfo))
+            hyprbarsHeight = 0   // own title bar: the window itself starts at the top of the snap rectangle
+
+        var sticky = snapManager.isDragging && snapManager.currentZone !== "none" ? snapManager.stickyFactor : 1
+        var edgeT = edgeThreshold * sticky, topT = topEdgeThreshold * sticky, cornerT = cornerThreshold * sticky
 
         // Layer-shell reservations follow whichever monitor hosts the taskbar.
         var reserved = monitor.reserved || [0, 0, 0, 0]
@@ -741,15 +758,15 @@ Item {
         var distTop    = cursorY - y
         var distBottom = (y + h) - cursorY
 
-        var isNearLeft   = distLeft   >= 0 && distLeft   < edgeThreshold
-        var isNearRight  = distRight  >= 0 && distRight  < edgeThreshold
-        var isNearTop    = distTop    >= 0 && distTop    < topEdgeThreshold
-        var isNearBottom = distBottom >= 0 && distBottom < edgeThreshold
+        var isNearLeft   = distLeft   >= 0 && distLeft   < edgeT
+        var isNearRight  = distRight  >= 0 && distRight  < edgeT
+        var isNearTop    = distTop    >= 0 && distTop    < topT
+        var isNearBottom = distBottom >= 0 && distBottom < edgeT
 
-        var isInTopLeftCorner     = distLeft  < cornerThreshold && distTop    < cornerThreshold
-        var isInTopRightCorner    = distRight < cornerThreshold && distTop    < cornerThreshold
-        var isInBottomLeftCorner  = distLeft  < cornerThreshold && distBottom < cornerThreshold
-        var isInBottomRightCorner = distRight < cornerThreshold && distBottom < cornerThreshold
+        var isInTopLeftCorner     = distLeft  < cornerT && distTop    < cornerT
+        var isInTopRightCorner    = distRight < cornerT && distTop    < cornerT
+        var isInBottomLeftCorner  = distLeft  < cornerT && distBottom < cornerT
+        var isInBottomRightCorner = distRight < cornerT && distBottom < cornerT
 
         var halfW = (usableW - gapInner) / 2
         var halfH = (usableH - gapInner) / 2
