@@ -4029,19 +4029,28 @@ FloatingWindow {
         filteredApps = []
 
         if (searchText.length > 0) {
-            // Bei Suche: Erst ungepinnte, dann gepinnte Apps
-            for (var j = 0; j < allAppsModel.count; j++) {
-                var app2 = allAppsModel.get(j)
-                if (!app2.pinned && app2.name.toLowerCase().includes(searchText.toLowerCase())) {
-                    filteredApps.push(j)
-                }
+            // Bei Suche: Erst ungepinnte, dann gepinnte Apps. Treffer im Namen zuerst, danach Treffer in den Stichwörtern
+            // (deutsche und englische Namen, Schlagwörter: "screenshot" findet Bildschirmfoto).
+            var query = searchText.toLowerCase()
+            var rankOf = function(entry) {
+                var name = ("" + entry.name).toLowerCase()
+                if (name.indexOf(query) === 0) return 0
+                if (name.indexOf(query) >= 0) return 1
+                if (("" + (entry.terms || "")).toLowerCase().indexOf(query) >= 0) return 2
+                return -1
             }
-            for (var i = 0; i < allAppsModel.count; i++) {
-                var app = allAppsModel.get(i)
-                if (app.pinned && app.name.toLowerCase().includes(searchText.toLowerCase())) {
-                    filteredApps.push(i)
+            var collect = function(pinnedFlag) {
+                var hits = []
+                for (var j = 0; j < allAppsModel.count; j++) {
+                    var entry = allAppsModel.get(j)
+                    if (!!entry.pinned !== pinnedFlag) continue
+                    var rank = rankOf(entry)
+                    if (rank >= 0) hits.push({ index: j, rank: rank })
                 }
+                hits.sort(function(a, b) { return a.rank - b.rank || a.index - b.index })
+                return hits.map(function(h) { return h.index })
             }
+            filteredApps = collect(false).concat(collect(true))
         } else {
             // Ohne Suche: Erst gepinnte, dann alle anderen Apps
             for (var k = 0; k < allAppsModel.count; k++) {

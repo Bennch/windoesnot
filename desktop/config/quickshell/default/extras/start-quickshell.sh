@@ -60,6 +60,10 @@ ICON_THEME=$(sed -n 's/^iconTheme=//p' "$CONFIG_DIR/settings.txt" 2>/dev/null | 
 ICON_THEME=${ICON_THEME:-Win11}  # default of Settings.qml iconTheme
 gsettings set org.gnome.desktop.interface icon-theme "$ICON_THEME" >> "$LOGFILE" 2>&1 || true
 
+# GTK and libadwaita apps draw their own window buttons in the header bar, and our title bar adds another set (two close
+# buttons). An empty button layout hides theirs everywhere; ours stay.
+gsettings set org.gnome.desktop.wm.preferences button-layout ':' >> "$LOGFILE" 2>&1 || true
+
 # Native QML modules (LocalTerminal): the packaged build first, so it always
 # matches the installed Qt; a per-user copy covers non-packaged installs.
 for dir in "$CONFIG_DIR/widgets/terminalmodule" /usr/lib/windoesnot; do

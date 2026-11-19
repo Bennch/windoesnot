@@ -181,16 +181,6 @@ Column {
         }
     }
 
-    Process {
-        id: upgradeProc
-        command: ["windoesnot-store", "--upgrade"]
-    }
-
-    Process {
-        id: onlyUpgradeProc
-        command: ["windoesnot-store", "--windoesnot-updates"]
-    }
-
     // `pacman -Q` reads only /var/lib/pacman/local; missing packages are skipped.
     Process {
         id: wdnPkgProc
@@ -300,7 +290,9 @@ Column {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                upgradeProc.running = true
+                                // Detached: this page lives in a Loader that is torn down as soon as the settings window is
+                                // hidden, which killed a Process object before the Store was even started.
+                                Quickshell.execDetached(["windoesnot-store", "--upgrade"])
                                 // The Store's review dialog takes over; don't cover it.
                                 settingsMenu.visible = false
                             }
@@ -524,7 +516,7 @@ Column {
             anchors.fill: parent
             enabled: !storeMissing
             cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-            onClicked: onlyUpgradeProc.running = true
+            onClicked: Quickshell.execDetached(["windoesnot-store", "--windoesnot-updates"])
         }
     }
 

@@ -22,12 +22,15 @@
         "Desktop-Rechtsklick auf Dateien und Ordner in Dateimanager-Reihenfolge: Öffnen, Dateipfad öffnen und kopieren, Senden an (Gerät in der Nähe, Netzwerkfreigabe), Ausschneiden, Kopieren, Löschen, Umbenennen, Eigenschaften.",
         "Installer: zehn Laufzeitumgebungen zum Nachinstallieren (Python, Node.js, Java, .NET, C/C++, PHP, Go, Rust, Ruby, Kotlin).",
         "Suche: Apps werden mit deutschen und englischen Namen und Stichwörtern gefunden („screenshot“ findet Bildschirmfoto); jede App hat ein Symbol; Dateien zeigen das Symbol ihres Typs.",
-        "Store: Der Installieren-Knopf sperrt sich, solange eine App in der Warteschlange ist oder installiert wird; Namen und Symbole stimmen gleich nach dem ersten Start; optimierte Paketvarianten für deinen Prozessor zählen nicht mehr als Updates, und für eine App werden nicht hunderte davon geladen.",
+        "Store: Der Installieren-Knopf sperrt sich mit einem Drehsymbol, solange eine App in der Warteschlange ist oder installiert wird; Namen und Symbole stimmen gleich nach dem ersten Start; optimierte Paketvarianten für deinen Prozessor zählen nicht mehr als Updates, und für eine App werden nicht hunderte davon geladen.",
         "Startmenü: Desktop anzeigen funktioniert wieder; Datenträgerverwaltung, Ereignisanzeige und Energieanzeige sind dabei; Papers öffnet PDF-Dateien.",
         "Fenster im Schwebe-Modus: Snappen reagiert sofort auf jede Mausbewegung, die Vorschau folgt dem Zeiger und lässt etwas mehr Zeit zum Loslassen; Fenster springen danach schneller auf ihren Platz.",
         "Neues Layout-Menü am Maximieren-Knopf wie in Windows 11: sechs Anordnungen mit einzeln anklickbaren Bereichen, die im Akzent aufleuchten. Auch bei Apps mit eigener Titelleiste wie Steam, Discord und Zoom.",
         "Steam, Discord und Zoom: lassen sich wieder an ihrer eigenen Leiste ziehen, Minimieren und Maximieren funktionieren (auch zum Zurückschalten), ein Klick auf das Steam-Symbol im Tray öffnet Steam.",
         "Ränder: Seitliches Ziehen ändert nur die Breite, unten nur die Höhe, die Ecken beides; die Pfeile bleiben beim Darüberfahren sichtbar. Nebeneinander gesnappte Fenster folgen der gemeinsamen Kante sofort.",
+        "Einstellungen, Updates: Der Knopf Update öffnet den Store jetzt auch dann auf der Update-Seite, wenn er schon läuft; vorher passierte nichts.",
+        "Alle GTK-Programme (Store, Netzwerk, Bluetooth und weitere) zeigen nur noch eine Schließen-Taste in der Fensterleiste statt zwei.",
+        "Startmenü: Die Suche findet Programme auch über ihren englischen oder deutschen Namen und Stichwörter („screenshot“ findet Bildschirmfoto).",
         "Behoben: Updates und Installationen brachen auf Systemen mit GRUB, rEFInd oder Limine ab (Limine wird jetzt nur noch bei UEFI angeboten); die Schalter für Feiertage und Kalenderwochen reagierten nicht; Höchstleistung wurde nicht angeboten; das Nearby-Fenster war oben abgeschnitten; Does meldet jetzt, wenn es noch nicht eingerichtet ist; die Netzwerk-App hat nur noch einen Schließen-Knopf."
       ],
       "en": [
@@ -48,12 +51,15 @@
         "Desktop right-click on files and folders in file manager order: Open, open and copy file path, Send to (nearby device, network share), Cut, Copy, Delete, Rename, Properties.",
         "Installer: ten runtimes to install later (Python, Node.js, Java, .NET, C/C++, PHP, Go, Rust, Ruby, Kotlin).",
         "Search: apps are found by German and English names and keywords (“screenshot” finds Screenshot/Bildschirmfoto); every app has an icon; files show the icon of their type.",
-        "Store: the Install button locks while an app is queued or installing; names and icons appear correctly right after the first start; optimized builds for your processor no longer count as updates, and installing one app does not download hundreds of them.",
+        "Store: the Install button locks with a spinner while an app is queued or installing; names and icons appear correctly right after the first start; optimized builds for your processor no longer count as updates, and installing one app does not download hundreds of them.",
         "Start menu: Show desktop works again; Disk Management, Event Viewer and Power Statistics ship with the system; Papers opens PDF files.",
         "Windows in floating mode: snapping reacts to every pointer motion, the preview follows the pointer and leaves a little more time to let go; windows then jump into place faster.",
         "New layout menu on the maximize button like in Windows 11: six arrangements with individually clickable zones that light up in the accent colour. It also works for apps with their own title bar such as Steam, Discord and Zoom.",
         "Steam, Discord and Zoom: can be dragged by their own bar again, minimize and maximize work (including toggling back), a click on the Steam tray icon opens Steam.",
         "Edges: dragging a side edge changes only the width, the bottom edge only the height, the corners both; the arrows stay visible while hovering. Windows snapped side by side follow the shared edge immediately.",
+        "Settings, Updates: the Update button now opens the Store on the updates page even when it is already running; before, nothing happened.",
+        "All GTK programs (Store, Network, Bluetooth and more) show a single close button in the window bar instead of two.",
+        "Start menu: search also finds programs by their English or German name and keywords (\"screenshot\" finds Bildschirmfoto).",
         "Fixed: updates and installs aborted on systems with GRUB, rEFInd or Limine (Limine is now offered on UEFI only); the holiday and week number switches did not respond; Performance mode was not offered; the Nearby window was cut off at the top; Does now says when it is not set up yet; the Network app has a single close button."
       ]
     },
