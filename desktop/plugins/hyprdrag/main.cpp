@@ -7,6 +7,8 @@
 #include <hyprland/src/event/EventBus.hpp>
 #include <hyprland/src/layout/LayoutManager.hpp>
 #include <hyprland/src/layout/supplementary/DragController.hpp>
+#include <hyprland/src/managers/input/InputManager.hpp>
+#include <chrono>
 #include <hyprland/src/managers/eventLoop/EventLoopManager.hpp>
 #include <hyprland/src/version.h>
 
@@ -26,6 +28,19 @@ namespace {
     PHLWINDOWREF lastDraggedWindow;
     std::string lastAddress;
     bool wasMoving = false;
+
+    std::chrono::steady_clock::time_point lastPosEvent;
+
+    // Stream the pointer position while a window is moved, so the snap logic in the shell reacts to every motion
+    // instead of polling hyprctl. Throttled to ~120 Hz; the final position is always sent (force).
+    void postPosition(bool force = false) {
+        const auto now = std::chrono::steady_clock::now();
+        if (!force && now - lastPosEvent < std::chrono::milliseconds(8))
+            return;
+        lastPosEvent = now;
+        const auto mouse = g_pInputManager->getMouseCoordsInternal();
+        (void)Config::Actions::event(std::format("hyprdrag-pos>>{},{}", static_cast<int>(mouse.x), static_cast<int>(mouse.y)));
+    }
 
     void postDragEvent(const PHLWINDOW& window, const std::string& address, bool moving, bool start, bool updateTag = true) {
         const char* event = start ? (moving ? "hyprdrag-movestart" : "hyprdrag-resizestart")
@@ -47,6 +62,8 @@ namespace {
         const auto window = lastDraggedWindow.lock();
         const auto address = std::exchange(lastAddress, {});
         lastDraggedWindow.reset();
+        if (wasMoving)
+            postPosition(true);
         postDragEvent(window, address, wasMoving, false, updateTag);
     }
 
@@ -93,6 +110,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     mouseMoveListener = Event::bus()->m_events.input.mouse.move.listen([](Vector2D, Event::SCallbackInfo&) {
         syncDragState();
+        if (!lastAddress.empty() && wasMoving)
+            postPosition();
         scheduleDragUpdate();
     });
     mouseButtonListener = Event::bus()->m_events.input.mouse.button.listen([](IPointer::SButtonEvent, Event::SCallbackInfo&) {

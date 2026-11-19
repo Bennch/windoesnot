@@ -55,6 +55,10 @@ Item {
     // Once a zone is showing, the pointer may drift this much further out before it is dropped again: a slightly sticky
     // preview leaves time to let go of the window (hysteresis, not a longer trigger distance).
     property real stickyFactor: 1.6
+    // Move animation speed (Hyprland units, lower = faster): normal windows vs. the jump into a snap slot after a drop.
+    // The normal value mirrors the "windows" leaf in reference.lua.
+    property real normalAnimationSpeed: 4.79
+    property real snapAnimationSpeed: 2.2
 
     // Apps that draw their own title bar run without our bar (hyprbars:no_bar, see reference.lua "*-no-bar" rules), so
     // their snap rectangles must not reserve room for it. Keep this list in sync with those rules
@@ -74,6 +78,7 @@ Item {
     property int unchangedCount: 0
     property int cursorUnchangedCount: 0
     property int zoneStableCount: 0  // Track how long zone has been stable
+    property double lastPosEvent: 0  // Date.now() of the last hyprdrag-pos event
     property string pendingNewWindowAddress: ""
 
     // In floating mode new clients are centred by the rule in Hyprland.  This
@@ -162,6 +167,16 @@ Item {
                 snapManager.lastWindowPos = null;  // Reset position tracking
                 dragPollTimer.running = true;  // Start polling for preview updates only
                 dragSafetyTimer.restart();     // Safety: force-reset if movestop never fires
+            } else if (name === "hyprdrag-pos") {
+                // "x,y" of the pointer, streamed by the hyprdrag plugin while a window is being moved.
+                if (!snapManager.isDragging) return
+                var pp = data.split(",")
+                var px = parseFloat(pp[0]), py = parseFloat(pp[1])
+                if (isNaN(px) || isNaN(py)) return
+                snapManager.lastPosEvent = Date.now()
+                snapManager.cachedCursorPos = { x: px, y: py }
+                if (snapManager.cachedMonitors) snapManager.updateZoneAt(px, py, snapManager.cachedMonitors)
+                else if (!monitorQueryProc.running) monitorQueryProc.running = true
             } else if (name === "hyprdrag-movestop") {
                 console.log("Drag stopped:", data);
                 // Normalize addresses for comparison (remove 0x prefix)
@@ -427,7 +442,7 @@ Item {
                     var cursorPos = JSON.parse(parts[1].trim())
 
                     snapManager.cachedWindowInfo = windowInfo
-                    snapManager.cachedCursorPos = cursorPos
+                    if (Date.now() - snapManager.lastPosEvent >= 250) snapManager.cachedCursorPos = cursorPos
 
                     // Check if window is floating
                     if (!windowInfo.floating) {
@@ -629,9 +644,27 @@ Item {
                     if (!snapManager.cachedCursorPos || monitors.length === 0) return
                     snapManager.cachedMonitors = monitors
 
-                    var cursorX = snapManager.cachedCursorPos.x
-                    var cursorY = snapManager.cachedCursorPos.y
+                    // While the compositor streams pointer positions (hyprdrag-pos) they are newer than this poll.
+                    if (Date.now() - snapManager.lastPosEvent < 250) return
+                    snapManager.updateZoneAt(snapManager.cachedCursorPos.x, snapManager.cachedCursorPos.y, monitors)
 
+                } catch (e) {
+                    console.log("Error in monitorQueryProc:", e);
+                    dragPollTimer.running = false
+                    snapManager.isDragging = false
+                    snapManager.hidePreview()
+                    snapManager.currentZone = "none"
+                    snapManager.activeWindowAddress = null
+                    snapManager.dragStartMonitor = null
+                    snapManager.zoneStableCount = 0
+                }
+            }
+        }
+    }
+
+    // Decide the snap zone for a pointer position and update the preview. Called for every pointer position the
+    // compositor streams during a drag (hyprdrag-pos) and, as a fallback, by the slower hyprctl poll.
+    function updateZoneAt(cursorX, cursorY, monitors) {
                     // Determine monitor based on CURSOR position (allows multi-monitor snapping)
                     var targetMonitor = null
 
@@ -700,18 +733,6 @@ Item {
                     }
 
 
-                } catch (e) {
-                    console.log("Error in monitorQueryProc:", e);
-                    dragPollTimer.running = false
-                    snapManager.isDragging = false
-                    snapManager.hidePreview()
-                    snapManager.currentZone = "none"
-                    snapManager.activeWindowAddress = null
-                    snapManager.dragStartMonitor = null
-                    snapManager.zoneStableCount = 0
-                }
-            }
-        }
     }
 
     // Calculate snap zone based on cursor position and monitor
@@ -962,7 +983,12 @@ Item {
                 }
             }
 
-            var cmd = cmds.join(" && ");
+            // The window animation is calm while dragging around, but after a drop the window should reach its slot fast:
+            // run the snap with a quicker move animation and restore the normal speed right after.
+            var anim = function(speed) {
+                return "hyprctl eval 'hl.animation({leaf=\"windowsMove\", enabled=true, speed=" + speed + ", bezier=\"easeOutQuint\"})' >/dev/null 2>&1"
+            }
+            var cmd = anim(snapManager.snapAnimationSpeed) + "; " + cmds.join(" && ") + "; ( sleep 0.6; " + anim(snapManager.normalAnimationSpeed) + " ) >/dev/null 2>&1 &";
             console.log("Snap CMD:", cmd);
             return cmd;
         }
