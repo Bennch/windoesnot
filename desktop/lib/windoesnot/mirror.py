@@ -372,7 +372,27 @@ def mounted_source(device, secret=None):
                 raise RuntimeError('; '.join(cleanup_errors))
 
 
+def finder_module():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('windoesnot_finder', Path(__file__).resolve().with_name('finder.py'))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def package_entries():
+    """Transfer packages on external disks appear next to the old systems (device 'package:<folder>')."""
+    try:
+        found = finder_module().discover_packages()
+    except (OSError, ValueError, subprocess.SubprocessError, json.JSONDecodeError):
+        return []
+    return [{'device': 'package:' + hit['path'], 'filesystem': 'package', 'size': hit['bytes'], 'label': 'Umzugspaket %s · %s' % (hit['user'], hit['label'] or hit['device'])}
+            for hit in found if hit['complete']]
+
+
 def scan_device(device, secret=None):
+    if device.startswith('package:'):
+        return finder_module().package_manifest(device[len('package:'):])
     identity = block_id(device)
     with mounted_source(device, secret) as (root, filesystem, subvolumes):
         result = scan_tree(root, device, filesystem)
@@ -656,9 +676,28 @@ def copy_locations(manifest, target_root, progress=None):
     return done
 
 
+def copy_package(manifest, home, target_root, progress=None):
+    """Restore a transfer package (found by the installer) into the new home."""
+    finder = finder_module()
+    package = manifest['package']
+    chosen = [loc['id'] for loc in manifest.get('locations', []) if loc.get('selected')]
+    owner = Path(home).stat()
+    total = sum(loc['bytes'] for loc in manifest.get('locations', []) if loc.get('selected'))
+    done = {'bytes': 0}
+    def relay(event):
+        if event.get('event') == 'finding' and progress:
+            done['bytes'] += event['bytes']
+            progress({'event': 'file', 'path': event['id'], 'copied_bytes': done['bytes'], 'total_bytes': max(total, 1)})
+    result = finder.import_package(package, home, target_root, owner.st_uid, owner.st_gid, only=set(chosen), progress=relay)
+    errors = [{'path': item['id'], 'error': item['error']} for item in result['problems']]
+    return {'errors': errors, 'home': {'files': len(result['copied'])}, 'files': len(result['copied'])}
+
+
 def copy_manifest(manifest, home, target_root='/', secret=None, progress=None):
     if manifest.get('schema') != 1 or manifest.get('kind') != 'linux':
         raise ValueError('Invalid manifest')
+    if manifest.get('package'):
+        return copy_package(manifest, home, target_root, progress)
     device = manifest.get('device')
     identity = manifest.get('block_identity')
     if not isinstance(device, str) or not device.startswith('/dev/') or block_id(device) != identity:
@@ -744,7 +783,7 @@ def main():
     copy.add_argument('--secret-stdin', action='store_true')
     args = parser.parse_args()
     if args.action == 'partitions':
-        print(json.dumps(partitions(), ensure_ascii=False))
+        print(json.dumps(partitions() + package_entries(), ensure_ascii=False))
         return
     if args.action == 'copy':
         with open(args.manifest, encoding='utf-8') as stream:

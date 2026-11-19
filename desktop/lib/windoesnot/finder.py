@@ -562,6 +562,80 @@ def import_package(package, target_home, target_root='/', uid=None, gid=None, on
     return {'copied': done, 'problems': problems}
 
 
+PACKAGE_FILESYSTEMS = ('exfat', 'ntfs', 'vfat', 'ext4', 'ext3', 'ext2', 'btrfs', 'xfs', 'f2fs', 'udf')
+PACKAGE_MOUNT_BASE = Path('/run/windoesnot/packages')
+
+
+def mount_for_packages(device, filesystem, name):
+    """Mount a partition read-only below /run/windoesnot/packages (installer, runs as root); returns the mount point."""
+    target = PACKAGE_MOUNT_BASE / name
+    target.mkdir(parents=True, exist_ok=True)
+    fstype = {'ntfs': 'ntfs3'}.get(filesystem, filesystem)
+    result = subprocess.run(['mount', '-o', 'ro,nosuid,nodev,noexec', '-t', fstype, device, str(target)], capture_output=True, timeout=60)
+    if result.returncode:
+        try:
+            target.rmdir()
+        except OSError:
+            pass
+        return None
+    return target
+
+
+def discover_packages(blockdevices=None, mounter=mount_for_packages):
+    """Complete transfer packages on all partitions: already mounted ones are searched in place, others are mounted read-only
+    (and kept mounted when they hold a package, because the installer reads them later). Nothing is ever written."""
+    if blockdevices is None:
+        blockdevices = json.loads(subprocess.check_output(['lsblk', '--json', '-o', 'PATH,TYPE,FSTYPE,LABEL,MOUNTPOINTS'], text=True, timeout=20)).get('blockdevices', [])
+    candidates = []
+    def visit(node):
+        if node.get('type') in ('part', 'disk', 'loop', 'rom') and (node.get('fstype') or '').lower() in PACKAGE_FILESYSTEMS:
+            candidates.append(node)
+        for child in node.get('children') or []:
+            visit(child)
+    for node in blockdevices:
+        visit(node)
+    found = []
+    for node in candidates:
+        mounts = [m for m in (node.get('mountpoints') or []) if m and m not in ('/', '/boot', '/efi', '/home') and not m.startswith(('/run/archiso', '/boot/', '/var'))]
+        temporary = None
+        if not mounts:
+            if node.get('mountpoints') and any(node['mountpoints']):
+                continue   # mounted as part of the running system
+            name = Path(node['path']).name
+            temporary = mounter(node['path'], (node.get('fstype') or '').lower(), name)
+            if temporary is None:
+                continue
+            mounts = [str(temporary)]
+        hits = find_packages(mounts)
+        for hit in hits:
+            hit.update({'device': node['path'], 'label': node.get('label') or '', 'filesystem': (node.get('fstype') or '').lower()})
+        found.extend(hits)
+        if temporary is not None and not hits:
+            subprocess.run(['umount', str(temporary)], capture_output=True, timeout=30)
+            try:
+                Path(temporary).rmdir()
+            except OSError:
+                pass
+    return found
+
+
+def package_manifest(package):
+    """The page's view of a package: one 'user' (kind linux so the existing page layout is used) and every finding as a ticked location."""
+    index = read_package(package)
+    if not index.get('complete'):
+        raise ValueError('The package is incomplete')
+    user = index['source']['user']
+    order = {g['id']: i for i, g in enumerate(index['groups'])}
+    findings = sorted(index['findings'], key=lambda f: (order.get(f['group'], 99), -f['bytes']))
+    title = lambda f: (f['title'].get('de') or f['title'].get('en') or f['id'])
+    return {'schema': 1, 'kind': 'linux', 'package': str(Path(package)), 'system': 'Umzugspaket von ' + user['name'], 'device': str(package),
+            'filesystem': 'package', 'users': [{'name': user['name'], 'uid': user['uid'], 'gid': user['gid'], 'home': user['home'],
+                                                'bytes': 0, 'selected': True, 'warnings': [], 'folders': [], 'exclude': []}],
+            'locations': [{'id': f['id'], 'kind': 'finding', 'path': '/' + f['id'], 'label': title(f) + (' (Zugangsdaten)' if f.get('secrets') else ''), 'bytes': f['bytes'],
+                           'warnings': [], 'selected': f['group'] != 'rebuildable'} for f in findings],
+            'packages': {}, 'services': [], 'warnings': []}
+
+
 def remap_owner(path, old_uid, old_gid, uid, gid):
     """The new account may have another numeric id than the old one."""
     stack = [str(path)]

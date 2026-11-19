@@ -333,9 +333,10 @@ Rectangle {
                         Label { id: linuxNotice; anchors.fill: parent; anchors.margins: 10; wrapMode: Text.WordWrap; color: "#f3c99d"
                             text: page.tr("Eigene Desktop-Konfiguration (z. B. ~/.config/hypr) ersetzt nicht das WinDoesNot-Aussehen. Sie landet unter ~/Umzug-<Benutzer>/original/. Separate Dateisysteme werden möglicherweise nicht erfasst.", "Your desktop configuration (e.g. ~/.config/hypr) does not replace the WinDoesNot appearance. It is saved under ~/Umzug-<user>/original/. Separate filesystems may not be included.") }
                     }
-                    Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: "#aaaaaa"; text: page.tr("Ein Quellbenutzer kann übernommen werden.", "One source user can be transferred.") }
+                    Label { visible: !page.plan.package; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: "#aaaaaa"; text: page.tr("Ein Quellbenutzer kann übernommen werden.", "One source user can be transferred.") }
+                    Label { visible: !!page.plan.package; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: "#aaaaaa"; text: page.tr("Umzugspaket gefunden. Hake an, was in das neue System soll; alles wird vor dem Einspielen auf Prüfsummen geprüft.", "Transfer package found. Tick what should go into the new system; everything is checked against its checksums before it is restored.") }
                     Repeater {
-                        model: page.plan.users || []
+                        model: page.plan.package ? [] : (page.plan.users || [])
                         delegate: Rectangle {
                             Layout.fillWidth: true; implicitHeight: linuxUser.implicitHeight + 20; radius: 8; color: "#141414"; border.color: "#3a3a3a"
                             ColumnLayout { id: linuxUser; property var userData: modelData; property int userIndex: index; anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 10
@@ -360,17 +361,17 @@ Rectangle {
                         }
                     }
                     Label { visible: (page.plan.locations || []).length > 0; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: "#aaaaaa"
-                        text: page.tr("Weitere Daten der alten Installation (landen am gleichen Ort):", "More data of the old installation (copied to the same place):") }
+                        text: page.plan.package ? page.tr("Inhalt des Pakets:", "Contents of the package:") : page.tr("Weitere Daten der alten Installation (landen am gleichen Ort):", "More data of the old installation (copied to the same place):") }
                     Repeater {
                         model: page.plan.locations || []
                         delegate: CheckBox { enabled: !page.skipped; checked: !!modelData.selected
-                            text: modelData.label + " (" + modelData.path + ") · " + page.size(modelData.bytes)
+                            text: modelData.label + (page.plan.package ? "" : " (" + modelData.path + ")") + " · " + page.size(modelData.bytes)
                             contentItem: Text { text: parent.text; font: parent.font; color: "#eeeeee"; wrapMode: Text.WordWrap; leftPadding: parent.indicator.width + parent.spacing; verticalAlignment: Text.AlignVCenter }
                             onClicked: if (page.bridge) page.bridge.setLinuxLocation(modelData.id, checked)
                         }
                     }
                     Repeater {
-                        model: [
+                        model: page.plan.package ? [] : [
                             { key: "wlan", label: page.tr("WLAN-Verbindungen", "Wi-Fi connections"), checked: !!page.plan.wlan_selected },
                             { key: "packages", label: page.tr("Pakete (explizit installierte Pakete nach dem ersten Start nachinstallieren)", "Packages (reinstall explicitly installed packages after first boot)"), checked: !!(page.plan.package_selection && page.plan.package_selection.arch_explicit) },
                             { key: "flatpak", label: page.tr("Flatpak-Apps", "Flatpak apps"), checked: !!(page.plan.package_selection && page.plan.package_selection.flatpak) }
@@ -380,7 +381,7 @@ Rectangle {
                             onClicked: if (page.bridge) page.bridge.setLinuxGroup(modelData.key, checked)
                         }
                     }
-                    CheckBox { checked: true; enabled: false; text: page.tr("/etc als Referenzkopie (immer)", "/etc as reference copy (always)")
+                    CheckBox { visible: !page.plan.package; checked: true; enabled: false; text: page.tr("/etc als Referenzkopie (immer)", "/etc as reference copy (always)")
                         contentItem: Text { text: parent.text; font: parent.font; color: "#aaaaaa"; leftPadding: parent.indicator.width + parent.spacing; verticalAlignment: Text.AlignVCenter }
                     }
                     Label { visible: (page.plan.warnings || []).length > 0; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: "#f3c99d"; text: page.tr("Hinweise: ", "Notes: ") + (page.plan.warnings || []).map(function(w) { return page.warningText(w); }).join("; ") }
