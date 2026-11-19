@@ -142,6 +142,8 @@ class Window(Adw.ApplicationWindow):
         self.titles = {}
         self.current = 'start'
         self.pulse = None
+        self.destination = None   # path of the chosen target
+        self.mode = 'package'     # 'package' or 'direct'
         import random
         root = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL, wide_handle=True, resize_start_child=False, shrink_start_child=False, shrink_end_child=False)
         toolbar = Adw.ToolbarView()
@@ -197,6 +199,9 @@ class Window(Adw.ApplicationWindow):
             path = next((a.split('=', 1)[1] for a in sys.argv if a.startswith('--manifest=')), None)
             if path:
                 self.show_result(json.loads(Path(path).read_text()))
+                step = next((a.split('=', 1)[1] for a in sys.argv if a.startswith('--step=')), None)
+                if step:
+                    self.show_page(step)
 
     def update_logo(self):
         """The light wordmark on dark, the dark one on light."""
@@ -220,7 +225,8 @@ class Window(Adw.ApplicationWindow):
         intro.add_css_class('dim'); page.append(intro)
         for label, handler, style in ((tr('Dieses System durchsuchen', 'Search this system'), lambda *_: self.begin(Path('/')), 'suggested-action'),
                                       (tr('Anderes (eingehängtes) System wählen …', 'Choose another (mounted) system …'), self.choose_root, None),
-                                      (tr('Gespeicherte Liste öffnen …', 'Open a saved list …'), self.open_manifest, None)):
+                                      (tr('Gespeicherte Liste öffnen …', 'Open a saved list …'), self.open_manifest, None),
+                                      (tr('Umzugspaket einspielen …', 'Restore a transfer package …'), self.choose_package, None)):
             card = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
             card.add_css_class('card')
             button = Gtk.Button(label=label, hexpand=True)
@@ -281,21 +287,20 @@ class Window(Adw.ApplicationWindow):
         self.next.set_visible(not (on_start or scanning))
         last = self.current == 'copy'
         self.next.set_visible(not on_start and not scanning and not last)
-        if self.current == 'overview':
-            self.next.set_label(tr('Mitnehmen …', 'Take along …'))
-        else:
-            self.next.set_label(tr('Weiter', 'Next'))
+        self.next.set_label(tr('Mitnehmen', 'Take along') if self.current == 'target' else tr('Weiter', 'Next'))
         selected = [f for f in (self.manifest or {}).get('findings', []) if f.get('selected')]
         need = sum(f['bytes'] for f in selected)
         self.total.set_text('' if not self.manifest or on_start or scanning else tr(f'{len(selected)} ausgewählt · {size(need)}', f'{len(selected)} selected · {size(need)}'))
         if self.current == 'overview':
             self.next.set_sensitive(bool(selected))
+        elif self.current == 'target':
+            self.next.set_sensitive(bool(selected) and bool(self.destination))
         else:
             self.next.set_sensitive(True)
 
     def go(self, delta):
-        if self.current == 'overview' and delta > 0:
-            self.choose_target()
+        if self.current == 'target' and delta > 0:
+            self.start_transfer()
             return
         index = self.order.index(self.current) + delta
         if 0 <= index < len(self.order):
@@ -385,8 +390,9 @@ class Window(Adw.ApplicationWindow):
             self.add_page(name, pick(group['title']), self.group_page(group, items))
             names.append(name)
         self.add_page('overview', tr('Überblick', 'Overview'), self.overview_page())
+        self.add_page('target', tr('Wohin soll es?', 'Where to?'), self.target_page())
         self.add_page('copy', tr('Ich nehme es mit', 'Taking it along'), self.copy_page())
-        self.order = names + ['overview', 'copy']
+        self.order = names + ['overview', 'target', 'copy']
         self.show_page(names[1] if len(names) > 1 else 'overview')
 
     def group_page(self, group, items):
@@ -534,20 +540,152 @@ class Window(Adw.ApplicationWindow):
         Path(path).write_text(json.dumps(self.manifest, ensure_ascii=False, indent=1))
         self.message(tr('Liste gespeichert: ', 'List saved: ') + path, 'dim')
 
-    def choose_target(self):
-        dialog = Gtk.FileDialog(title=tr('Ziel: Home-Ordner des neuen Systems', 'Target: home folder of the new system'))
-        dialog.select_folder(self, None, self.target_chosen)
+    # --- where to -------------------------------------------------------------------------------------
+    def target_page(self):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        intro = Gtk.Label(label=tr('Ein Umzugspaket liegt auf einer externen Platte oder im Netzwerk (SMB) und kann später beim Installieren oder im neuen System eingespielt werden. '
+                                   'Es bewahrt Rechte und Besitzer, auch auf Platten mit Windows-Dateisystem.',
+                                   'A transfer package lies on an external disk or on the network (SMB) and can be restored later during installation or in the new system. '
+                                   'It keeps permissions and owners, even on disks with a Windows file system.'), xalign=0, wrap=True)
+        intro.add_css_class('dim'); page.append(intro)
+        self.place_label = Gtk.Label(xalign=0, wrap=True)
+        self.place_label.add_css_class('accent')
+        page.append(self.place_label)
+        scroll = Gtk.ScrolledWindow(vexpand=True)
+        self.places_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        scroll.set_child(self.places_box)
+        page.append(scroll)
+        self.stack.connect('notify::visible-child-name', lambda *_: self.refresh_places() if self.current == 'target' else None)
+        return page
 
-    def target_chosen(self, dialog, result):
+    def mounted_places(self):
+        """Mounted external disks and network shares (mount point, name)."""
+        places, seen = [], set()
+        for mount in Gio.VolumeMonitor.get().get_mounts():
+            root = mount.get_default_location().get_path() or mount.get_root().get_path()
+            if not root or root in seen:
+                continue
+            if root.startswith(('/run/media', '/media', '/mnt')) or '/gvfs/' in root or mount.can_unmount():
+                seen.add(root)
+                places.append((root, mount.get_name()))
+        return places
+
+    def refresh_places(self):
+        while child := self.places_box.get_first_child(): self.places_box.remove(child)
+        group = None
+        def add_option(title, detail, value, path=None, mode='package'):
+            nonlocal group
+            row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            row.add_css_class('folder')
+            line = Gtk.Box(spacing=8)
+            check = Gtk.CheckButton()
+            if group is None: group = check
+            else: check.set_group(group)
+            check.set_active(self.destination == path and path is not None)
+            check.connect('toggled', lambda b, p=path, m=mode: b.get_active() and self.pick_destination(p, m))
+            line.append(check)
+            label = Gtk.Label(label=title, xalign=0, hexpand=True); label.add_css_class('wdn-text')
+            click = Gtk.GestureClick(); click.connect('released', lambda *_a, b=check: b.set_active(True)); label.add_controller(click)
+            line.append(label)
+            row.append(line)
+            small = Gtk.Label(label=detail, xalign=0, wrap=True, margin_start=28); small.add_css_class('dim')
+            row.append(small)
+            self.places_box.append(row)
+        places = self.mounted_places()
+        for path, name in places:
+            try:
+                st = os.statvfs(path)
+                free = size(st.f_bavail * st.f_frsize)
+            except OSError:
+                free = '?'
+            add_option(name, tr(f'Umzugspaket auf {path} · {free} frei', f'Transfer package on {path} · {free} free'), 'place', path)
+        if not places:
+            hint = Gtk.Label(label=tr('Keine externe Platte und keine Netzwerkfreigabe verbunden. Stecke eine Platte an oder verbinde eine Freigabe.', 'No external disk or network share connected. Plug in a disk or connect a share.'), xalign=0, wrap=True)
+            hint.add_css_class('dim'); self.places_box.append(hint)
+        buttons = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, max_children_per_line=3, column_spacing=8, row_spacing=8, homogeneous=False)
+        smb = Gtk.Button(label=tr('Netzwerkfreigabe verbinden (SMB) …', 'Connect a network share (SMB) …'))
+        smb.connect('clicked', self.connect_smb)
+        other = Gtk.Button(label=tr('Anderen Ordner als Paketziel …', 'Another folder for the package …'))
+        other.connect('clicked', lambda *_: self.pick_folder(tr('Ordner für das Umzugspaket', 'Folder for the transfer package'), 'package'))
+        direct = Gtk.Button(label=tr('Direkt in einen Home-Ordner kopieren …', 'Copy straight into a home folder …'))
+        direct.connect('clicked', lambda *_: self.pick_folder(tr('Home-Ordner des neuen Systems', 'Home folder of the new system'), 'direct'))
+        for button in (smb, other, direct): buttons.append(button)
+        self.places_box.append(buttons)
+        self.update_place_label()
+
+    def update_place_label(self):
+        if not self.destination:
+            self.place_label.set_text(tr('Noch kein Ziel gewählt.', 'No target chosen yet.'))
+        elif self.mode == 'direct':
+            self.place_label.set_text(tr('Ziel: direkt nach ', 'Target: straight into ') + self.destination)
+        else:
+            self.place_label.set_text(tr('Ziel: Umzugspaket in ', 'Target: transfer package in ') + self.destination)
+        self.update_nav()
+
+    def pick_destination(self, path, mode):
+        self.destination, self.mode = path, mode
+        self.update_place_label()
+
+    def pick_folder(self, title, mode):
+        dialog = Gtk.FileDialog(title=title)
+        dialog.select_folder(self, None, lambda d, r, m=mode: self.folder_picked(d, r, m))
+
+    def folder_picked(self, dialog, result, mode):
         try:
-            target = dialog.select_folder_finish(result).get_path()
+            path = dialog.select_folder_finish(result).get_path()
         except GLib.Error:
             return
-        if Path(target).resolve() == self.absolute(None, self.manifest['user']['home']).resolve():
+        self.pick_destination(path, mode)
+        self.refresh_places()
+
+    def connect_smb(self, *_):
+        """Mounts smb://server/share through GVfs (asks for the login itself) and offers the mounted folder."""
+        dialog = Adw.AlertDialog(heading=tr('Netzwerkfreigabe verbinden', 'Connect a network share'),
+                                 body=tr('Adresse der Freigabe, zum Beispiel smb://nas/umzug', 'Address of the share, for example smb://nas/transfer'))
+        entry = Gtk.Entry(placeholder_text='smb://nas/umzug')
+        dialog.set_extra_child(entry)
+        dialog.add_response('cancel', tr('Abbrechen', 'Cancel'))
+        dialog.add_response('connect', tr('Verbinden', 'Connect'))
+        dialog.set_response_appearance('connect', Adw.ResponseAppearance.SUGGESTED)
+        dialog.connect('response', lambda d, r: r == 'connect' and self.mount_smb(entry.get_text().strip()))
+        dialog.present(self)
+
+    def mount_smb(self, uri):
+        if not uri.lower().startswith(('smb://', 'cifs://')):
+            self.message(tr('Die Adresse muss mit smb:// beginnen.', 'The address must start with smb://.'), 'error')
+            return
+        self.message(tr('Verbinde …', 'Connecting …'), 'dim')
+        location = Gio.File.new_for_uri(uri)
+        location.mount_enclosing_volume(Gio.MountMountFlags.NONE, Gtk.MountOperation(parent=self), None, self.smb_mounted)
+
+    def smb_mounted(self, location, result):
+        try:
+            location.mount_enclosing_volume_finish(result)
+        except GLib.Error as error:
+            if not error.matches(Gio.io_error_quark(), Gio.IOErrorEnum.ALREADY_MOUNTED):
+                self.message(tr('Verbindung fehlgeschlagen: ', 'Connection failed: ') + error.message, 'error')
+                return
+        path = location.get_path()
+        if not path:
+            self.message(tr('Die Freigabe ist verbunden, hat aber keinen lokalen Pfad (GVfs-FUSE fehlt).', 'The share is connected but has no local path (GVfs FUSE missing).'), 'error')
+            return
+        self.message('')
+        self.pick_destination(path, 'package')
+        self.refresh_places()
+
+    # --- transfer ---------------------------------------------------------------------------------------
+    def start_transfer(self):
+        if not self.destination:
+            return
+        selected = [f for f in self.manifest['findings'] if f.get('selected')]
+        need = sum(f['bytes'] for f in selected)
+        if self.mode == 'direct' and Path(self.destination).resolve() == self.absolute(None, self.manifest['user']['home']).resolve():
             self.message(tr('Quelle und Ziel sind derselbe Ordner.', 'Source and target are the same folder.'), 'error'); return
-        st = os.statvfs(target)
+        try:
+            st = os.statvfs(self.destination)
+        except OSError as error:
+            self.message(str(error), 'error'); return
         free = st.f_bavail * st.f_frsize
-        need = sum(f['bytes'] for f in self.manifest['findings'] if f.get('selected'))
         if need > free:
             self.message(tr(f'Dort ist zu wenig Platz: {size(need)} nötig, {size(free)} frei. Wähle weniger aus oder ein anderes Ziel.',
                             f'Not enough space there: {size(need)} needed, {size(free)} free. Choose less or another target.'), 'error'); return
@@ -555,14 +693,45 @@ class Window(Adw.ApplicationWindow):
         self.copy_bar.set_fraction(0)
         self.copy_label.set_text('')
         self.show_page('copy')
-        threading.Thread(target=self.copy_worker, args=(target, need), daemon=True).start()
+        action = ['copy', None, self.destination] if self.mode == 'direct' else ['export', None, self.destination]
+        threading.Thread(target=self.copy_worker, args=(action, need), daemon=True).start()
 
-    def copy_worker(self, target, need):
+    def choose_package(self, *_):
+        dialog = Gtk.FileDialog(title=tr('Ordner des Umzugspakets', 'Folder of the transfer package'))
+        dialog.select_folder(self, None, self.package_chosen)
+
+    def package_chosen(self, dialog, result):
+        try:
+            path = dialog.select_folder_finish(result).get_path()
+        except GLib.Error:
+            return
+        try:
+            index = finder.read_package(path)
+        except (OSError, ValueError):
+            self.message(tr('In diesem Ordner liegt kein Umzugspaket.', 'There is no transfer package in this folder.'), 'error'); return
+        if not index.get('complete'):
+            self.message(tr('Das Paket ist unvollständig.', 'The package is incomplete.'), 'error'); return
+        need = sum(f['bytes'] for f in index['findings'])
+        self.manifest = {'findings': [{'id': f['id'], 'title': f['title'], 'bytes': f['bytes'], 'selected': True, 'note': 'absolute' if f['kind'] == 'absolute' else None, 'group': f['group']} for f in index['findings']]}
+        for name in ('copy',):
+            if not self.stack.get_child_by_name(name):
+                self.add_page('copy', tr('Ich nehme es mit', 'Taking it along'), self.copy_page())
+        self.order = ['start', 'copy']
+        self.copy_bar.set_fraction(0)
+        self.copy_label.set_text('')
+        self.show_page('copy')
+        threading.Thread(target=self.copy_worker, args=(['import', path, str(Path.home())], need), daemon=True).start()
+
+    def copy_worker(self, action, need):
+        verb, source, destination = action
         needs_root = any(f.get('selected') and f.get('note') == 'absolute' for f in self.manifest['findings'])
-        with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as handle:
-            json.dump(self.manifest, handle)
-            path = handle.name
-        command = [sys.executable, str(FINDER_PATH), 'copy', path, target]
+        path = None
+        if verb in ('copy', 'export'):
+            with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as handle:
+                json.dump(self.manifest, handle)
+                path = handle.name
+            source = path
+        command = [sys.executable, str(FINDER_PATH), verb, source, destination]
         if needs_root and os.geteuid() != 0:
             command = ['pkexec'] + command
         done, result, error = 0, None, ''
@@ -577,12 +746,13 @@ class Window(Adw.ApplicationWindow):
                     done += event['bytes']
                     label = next((pick(f['title']) for f in self.manifest['findings'] if f['id'] == event['id']), '')
                     GLib.idle_add(self.copy_progress, min(1.0, done / max(1, need)), label)
-                elif 'copied' in event:
+                elif 'copied' in event or 'package' in event:
                     result = event
             proc.wait()
             error = proc.stderr.read().strip()
         finally:
-            os.unlink(path)
+            if path:
+                os.unlink(path)
         GLib.idle_add(self.copy_finished, result, error)
 
     def copy_progress(self, fraction, label):
@@ -596,7 +766,10 @@ class Window(Adw.ApplicationWindow):
             return
         self.copy_bar.set_fraction(1)
         problems = result.get('problems', [])
-        text = tr(f'Fertig: {len(result["copied"])} Funde kopiert.', f'Done: {len(result["copied"])} findings copied.')
+        count = len(result.get('copied') or result.get('findings') or [])
+        text = tr(f'Fertig: {count} Funde übertragen.', f'Done: {count} findings transferred.')
+        if result.get('package'):
+            text += ' ' + tr('Umzugspaket: ', 'Transfer package: ') + result['package']
         if problems:
             text += ' ' + tr(f'{len(problems)} Pfade mit Problemen: ', f'{len(problems)} paths with problems: ') + ', '.join(p['path'] for p in problems[:5])
         self.copy_label.set_text(text)

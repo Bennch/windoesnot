@@ -434,6 +434,149 @@ def copy(manifest, target_home, target_root='/', progress=None):
     return {'copied': done, 'problems': problems}
 
 
+# --- Transfer package ---------------------------------------------------------------------------------------------
+# A package is a folder that can lie on any storage (external disk with any file system, SMB share, USB stick):
+#   windoesnot-umzug.json   marker and index; only written when everything is complete ("complete": true)
+#   data/<id>.tar           one tar per finding (keeps modes, owners, xattrs and ACLs even on exFAT/NTFS/SMB)
+#   SHA256SUMS              checksums of the archives
+# The installer looks for the marker; the Windows exporter can write the same layout later.
+PACKAGE_MARKER = 'windoesnot-umzug.json'
+PACKAGE_SCHEMA = 3
+
+
+def sha256_file(path):
+    import hashlib
+    digest = hashlib.sha256()
+    with open(path, 'rb') as stream:
+        for block in iter(lambda: stream.read(1 << 20), b''):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def tar_base(args_extra):
+    return ['tar', '--numeric-owner', '--xattrs', '--acls', *args_extra]
+
+
+def export_package(manifest, destination, progress=None):
+    """Write the selected findings as a transfer package below `destination`; returns the package folder."""
+    root = Path(manifest['source_root'])
+    user = manifest['user']
+    source_home = (root / user['home'].lstrip('/')).resolve()
+    package = Path(destination) / ('Umzug-%s-%s' % (user['name'], time.strftime('%Y%m%d-%H%M')))
+    data = package / 'data'
+    data.mkdir(parents=True)
+    selected = [f for f in manifest['findings'] if f.get('selected')]
+    unselected = [p for f in manifest['findings'] if not f.get('selected') and f.get('note') != 'absolute' for p in f['paths']]
+    need = sum(f['bytes'] for f in selected)
+    st = os.statvfs(package)
+    if need > st.f_bavail * st.f_frsize:
+        raise OSError('Not enough free space: %d needed, %d free' % (need, st.f_bavail * st.f_frsize))
+    entries, problems, sums = [], [], []
+    for item in selected:
+        if progress:
+            progress({'event': 'finding', 'id': item['id'], 'bytes': item['bytes']})
+        absolute = item.get('note') == 'absolute'
+        names = []
+        for rel in item['paths']:
+            if rel.startswith('/') != absolute or '..' in Path(rel).parts:
+                raise ValueError('Unsafe path in finding ' + item['id'])
+            names.append(rel.lstrip('/'))
+        archive = data / (item['id'].replace(':', '_').replace('/', '_') + '.tar')
+        # Anchored and literal: an unselected folder is left out only at exactly that path.
+        excludes = [] if absolute else ['--anchored', '--no-wildcards'] + ['--exclude=' + p for p in unselected]
+        base_dir = root if absolute else source_home
+        command = tar_base(['--create', '--format=posix', '--sparse', '--file', str(archive), '-C', str(base_dir), *excludes, '--', *names])
+        result = subprocess.run(command, capture_output=True)
+        # 1 = a file changed while it was read (normal on a live system), anything else is a real problem.
+        if result.returncode not in (0, 1):
+            problems.append({'id': item['id'], 'error': result.stderr.decode(errors='replace')[-300:]})
+            continue
+        digest = sha256_file(archive)
+        sums.append('%s  data/%s' % (digest, archive.name))
+        entries.append({'id': item['id'], 'group': item['group'], 'title': item['title'], 'archive': 'data/' + archive.name,
+                        'kind': 'absolute' if absolute else 'home', 'paths': item['paths'], 'bytes': item['bytes'],
+                        'archive_bytes': archive.stat().st_size, 'sha256': digest, 'secrets': bool(item.get('secrets'))})
+    (package / 'SHA256SUMS').write_text('\n'.join(sums) + '\n')
+    index = {'schema': PACKAGE_SCHEMA, 'kind': 'package', 'complete': not problems, 'created': int(time.time()),
+             'source': {'user': user, 'root': str(root)}, 'groups': manifest['groups'], 'findings': entries, 'problems': problems}
+    partial = package / (PACKAGE_MARKER + '.partial')
+    partial.write_text(json.dumps(index, ensure_ascii=False, indent=1))
+    os.replace(partial, package / PACKAGE_MARKER)
+    return {'package': str(package), 'findings': [e['id'] for e in entries], 'problems': problems}
+
+
+def read_package(package):
+    index = json.loads((Path(package) / PACKAGE_MARKER).read_text())
+    if index.get('schema') != PACKAGE_SCHEMA or index.get('kind') != 'package':
+        raise ValueError('Not a transfer package')
+    return index
+
+
+def find_packages(roots):
+    """Packages below the given mount points (one or two levels deep); incomplete ones are reported but flagged."""
+    found = []
+    for base in roots:
+        base = Path(base)
+        try:
+            candidates = [base] + [c for c in sorted(base.iterdir()) if c.is_dir()]
+        except OSError:
+            continue
+        for candidate in candidates:
+            if (candidate / PACKAGE_MARKER).is_file():
+                try:
+                    index = read_package(candidate)
+                except (OSError, ValueError):
+                    continue
+                found.append({'path': str(candidate), 'complete': bool(index.get('complete')), 'user': index['source']['user']['name'],
+                              'created': index.get('created'), 'bytes': sum(f['bytes'] for f in index['findings']),
+                              'findings': len(index['findings'])})
+    return found
+
+
+def import_package(package, target_home, target_root='/', uid=None, gid=None, only=None, progress=None):
+    """Verify the archives, then unpack them. Home findings go to target_home, absolute ones below target_root."""
+    package = Path(package)
+    index = read_package(package)
+    if not index.get('complete'):
+        raise ValueError('The package is incomplete')
+    chosen = [f for f in index['findings'] if only is None or f['id'] in only]
+    for item in chosen:
+        archive = package / item['archive']
+        if Path(item['archive']).is_absolute() or '..' in Path(item['archive']).parts or sha256_file(archive) != item['sha256']:
+            raise ValueError('Checksum mismatch: ' + item['id'])
+    old = index['source']['user']
+    done, problems = [], []
+    for item in chosen:
+        if progress:
+            progress({'event': 'finding', 'id': item['id'], 'bytes': item['bytes']})
+        target = Path(target_root) if item['kind'] == 'absolute' else Path(target_home)
+        target.mkdir(parents=True, exist_ok=True)
+        result = subprocess.run(tar_base(['--extract', '--preserve-permissions', '--file', str(package / item['archive']), '-C', str(target)]), capture_output=True)
+        if result.returncode:
+            problems.append({'id': item['id'], 'error': result.stderr.decode(errors='replace')[-300:]})
+            continue
+        if item['kind'] == 'home' and uid is not None and (uid != old['uid'] or gid != old['gid']):
+            for rel in item['paths']:
+                remap_owner(target / rel, old['uid'], old['gid'], uid, gid)
+        done.append(item['id'])
+    return {'copied': done, 'problems': problems}
+
+
+def remap_owner(path, old_uid, old_gid, uid, gid):
+    """The new account may have another numeric id than the old one."""
+    stack = [str(path)]
+    while stack:
+        current = stack.pop()
+        try:
+            info = os.lstat(current)
+            if info.st_uid == old_uid or info.st_gid == old_gid:
+                os.lchown(current, uid if info.st_uid == old_uid else -1, gid if info.st_gid == old_gid else -1)
+            if stat.S_ISDIR(info.st_mode):
+                stack.extend(entry.path for entry in os.scandir(current))
+        except OSError:
+            continue
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='action', required=True)
@@ -445,7 +588,31 @@ def main():
     copy_parser.add_argument('manifest')
     copy_parser.add_argument('target_home')
     copy_parser.add_argument('--target-root', default='/')
+    export_parser = sub.add_parser('export')
+    export_parser.add_argument('manifest')
+    export_parser.add_argument('destination')
+    import_parser = sub.add_parser('import')
+    import_parser.add_argument('package')
+    import_parser.add_argument('target_home')
+    import_parser.add_argument('--target-root', default='/')
+    import_parser.add_argument('--uid', type=int)
+    import_parser.add_argument('--gid', type=int)
+    find_parser = sub.add_parser('find')
+    find_parser.add_argument('roots', nargs='+')
     args = parser.parse_args()
+    if args.action == 'find':
+        print(json.dumps(find_packages(args.roots), ensure_ascii=False))
+        return
+    if args.action == 'import':
+        print(json.dumps(import_package(args.package, args.target_home, args.target_root, args.uid, args.gid,
+                                        progress=lambda e: print(json.dumps(e), flush=True)), ensure_ascii=False))
+        return
+    if args.action == 'export':
+        manifest = json.loads(Path(args.manifest).read_text())
+        if manifest.get('schema') != SCHEMA or manifest.get('kind') != 'finder':
+            raise ValueError('Not a finder manifest')
+        print(json.dumps(export_package(manifest, args.destination, lambda e: print(json.dumps(e), flush=True)), ensure_ascii=False))
+        return
     if args.action == 'scan':
         manifest = scan(args.root, args.user)
         text = json.dumps(manifest, ensure_ascii=False, indent=1)
