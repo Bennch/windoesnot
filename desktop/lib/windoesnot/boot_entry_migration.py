@@ -51,6 +51,10 @@ def classify(root):
     if has_grub(boot) or has_refind(boot) or has_limine(boot):
         return 'not-applicable'   # GRUB, rEFInd or Limine on a vfat ESP mounted at /boot (UEFI installs): nothing of ours to guard
     if boot_expected_but_missing(root):
+        # Any other boot manager (syslinux, EFISTUB, UKI, a later switch ...) on a mounted, populated ESP is none of our
+        # business. Only an ESP that is not mounted (empty /boot) is the hazard this guard exists for.
+        if esp_present(root):
+            return 'not-applicable'
         return 'systemd-boot-unavailable'
     return 'not-applicable'
 
@@ -76,6 +80,17 @@ def has_limine(boot):
     try:
         return any((boot / name).is_file() for name in ('limine.conf', 'limine.cfg')) or any(
             efi.is_file() for directory in (boot / 'EFI').glob('[Ll][Ii][Mm][Ii][Nn][Ee]*') for efi in directory.glob('*.[Ee][Ff][Ii]'))
+    except OSError:
+        return False
+
+
+def esp_present(root):
+    """True when /boot is mounted (real system) and holds something: an unmounted ESP leaves an empty directory."""
+    boot = Path(root) / 'boot'
+    try:
+        if str(root) == '/' and not os.path.ismount(str(boot)):
+            return False
+        return any(boot.iterdir())
     except OSError:
         return False
 
@@ -308,11 +323,11 @@ def main(argv=None):
     args = parser.parse_args(argv)
     kind = classify(args.root)
     if kind == 'systemd-boot-unavailable':
-        print('windoesnot boot %s FAILED: fstab lists a vfat /boot but it holds no systemd-boot loader (ESP not mounted?)' % ('guard' if args.preflight else 'migration'), file=sys.stderr)
+        print('windoesnot boot %s FAILED: fstab lists a vfat /boot but it is not mounted or empty (ESP not mounted?)' % ('guard' if args.preflight else 'migration'), file=sys.stderr)
         print('Mount the EFI system partition on /boot BEFORE updating the kernel or rebooting.', file=sys.stderr)
         return 1
     if kind == 'not-applicable':
-        print('windoesnot boot migration: not a systemd-boot layout (GRUB/BIOS); nothing to do')
+        print('windoesnot boot migration: not a systemd-boot layout (GRUB, rEFInd, Limine, BIOS or other); nothing to do')
         return 0
     try:
         check_mount(mount_info(args.root))

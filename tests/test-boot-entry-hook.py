@@ -203,6 +203,19 @@ class Layout(Base):
             self.assertEqual(m.main(['--root', str(self.root), '--preflight']), 0)
             self.assertEqual(m.main(['--root', str(self.root), '--post-transaction']), 0)
 
+    def test_unknown_boot_manager_on_populated_esp_is_not_an_error(self):
+        # Syslinux, EFISTUB with efibootmgr, a UKI-only ESP or a later switch of boot manager: never block the update.
+        import io, contextlib, shutil
+        for layout in ('EFI/syslinux/syslinux.efi', 'EFI/Linux/arch-linux.efi', 'EFI/custom/loader.efi', 'vmlinuz-linux-cachyos'):
+            shutil.rmtree(self.boot, ignore_errors=True)
+            target = self.boot / layout
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(b'x')
+            (self.root / 'etc/fstab').write_text('UUID=1234-ABCD /boot vfat defaults 0 2\n')
+            self.assertEqual(m.classify(self.root), 'not-applicable', layout)
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(m.main(['--root', str(self.root), '--preflight']), 0, layout)
+
     def test_no_fstab_boot_entry_stays_not_applicable(self):
         import shutil
         shutil.rmtree(self.boot)
