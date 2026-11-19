@@ -45,7 +45,7 @@ class Evidence(unittest.TestCase):
                 (directory / 'update.log').write_text(log)
                 paths[kind] = path
             matrix = {}
-            for config in 'ABC':
+            for config in 'ABCDEF':
                 directory = base / ('positive-' + config); directory.mkdir()
                 data = json.loads(paths['positive'].read_text()); data['configuration'] = config
                 path = directory / 'result.json'; path.write_text(json.dumps(data))
@@ -68,8 +68,9 @@ class Evidence(unittest.TestCase):
             inspect_index(index, digest, now)
             (base / (digest + '.json')).write_text(json.dumps(index))
             self.assertEqual(validate(packages, base, now), digest)
-            missing = dict(index, matrix={k: v for k, v in matrix.items() if k != 'C'})
-            with self.assertRaises(ValueError): inspect_index(missing, digest, now)
+            for omitted in 'ABCDEF':
+                missing = dict(index, matrix={k: v for k, v in matrix.items() if k != omitted})
+                with self.assertRaises(ValueError): inspect_index(missing, digest, now)
             with self.assertRaises(ValueError): inspect_index(dict(index, schema=2), digest, now)
             probe = base / 'positive-B' / 'pacman-probe.log'
             old_probe = probe.read_text(); probe.write_text('missing guard')

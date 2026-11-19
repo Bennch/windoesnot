@@ -5,11 +5,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from update_gate_runner import hook_order
 
-POSITIVE_CHECKS = {'package_files_intact', 'install_offline', 'test_repo', 'regular_syu', 'hook_order', 'post_hook_status',
+POSITIVE_CHECKS = {'manager_hook_intact', 'package_files_intact', 'install_offline', 'test_repo', 'regular_syu', 'hook_order', 'post_hook_status',
                    'target_versions', 'newest_kernel', 'boot_mounted', 'default_valid', 'old_entries_removed',
                    'failed_units', 'personal_sha256', 'desktop_plugins', 'configerrors', 'no_pending_updates',
                    'two_new_boots', 'kernel_changed', 'package_set_unchanged'}
-GUEST_CHECKS = {'package_files_intact', 'target_versions', 'newest_kernel', 'boot_mounted', 'default_valid', 'old_entries_removed',
+GUEST_CHECKS = {'manager_hook_intact', 'package_files_intact', 'target_versions', 'newest_kernel', 'boot_mounted', 'default_valid', 'old_entries_removed',
                 'failed_units', 'personal_sha256', 'desktop_plugins', 'configerrors', 'no_pending_updates'}
 
 
@@ -90,8 +90,8 @@ def inspect_index(data, digest, now=None):
             for name, value in positive['baseline_manifest']['files'].items()):
         raise ValueError('predecessor ISO does not match the baseline')
     matrix = data['matrix']
-    if set(matrix) != {'A', 'B', 'C'}:
-        raise ValueError('all three boot configurations are required')
+    if set(matrix) != {'A', 'B', 'C', 'D', 'E', 'F'}:
+        raise ValueError('all six boot configurations are required')
     for config, item in matrix.items():
         stored = item['positive']
         if inspect(stored['result'], digest, 'positive', now) != stored:

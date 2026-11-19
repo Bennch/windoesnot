@@ -216,6 +216,63 @@ class Layout(Base):
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(m.main(['--root', str(self.root), '--preflight']), 0, layout)
 
+    def _real(self, mounted):
+        """Pretend this temp root is the real system; `mounted` = set of mountpoints (relative names) that are mounted."""
+        orig = (m.is_real_root, m.is_mountpoint)
+        m.is_real_root = lambda root: True
+        m.is_mountpoint = lambda path: Path(path).name in mounted
+        self.addCleanup(lambda: setattr(m, 'is_real_root', orig[0]) or setattr(m, 'is_mountpoint', orig[1]))
+
+    def test_stale_boot_manager_files_on_an_unmounted_esp_still_block(self):
+        # Review 19.11.: files of a former GRUB/rEFInd/Limine in the hidden /boot directory must not bypass the mount check.
+        import shutil
+        for name, content in (('grub/grub.cfg', '# grub'), ('refind_linux.conf', '"x" "y"'), ('limine.conf', 'timeout: 3')):
+            shutil.rmtree(self.boot, ignore_errors=True)
+            (self.boot / name).parent.mkdir(parents=True, exist_ok=True)
+            (self.boot / name).write_text(content)
+            (self.root / 'etc/fstab').write_text('UUID=1234-ABCD /boot vfat defaults 0 2\n')
+            self._real(mounted=set())
+            self.assertEqual(m.classify(self.root), 'systemd-boot-unavailable', name)
+            self._real(mounted={'boot'})
+            self.assertEqual(m.classify(self.root), 'not-applicable', name)
+
+    def test_efi_layout_checks_efi_and_ignores_a_boot_on_the_root_filesystem(self):
+        (self.root / 'etc/fstab').write_text('UUID=1 / btrfs defaults 0 0\nUUID=1234-ABCD /efi vfat defaults 0 2\n')
+        import shutil
+        shutil.rmtree(self.boot)
+        (self.boot).mkdir()
+        (self.boot / 'vmlinuz-linux-cachyos').write_bytes(b'k')   # /boot is part of the root filesystem here
+        (self.root / 'efi/EFI/Linux').mkdir(parents=True)
+        (self.root / 'efi/EFI/Linux/a.efi').write_bytes(b'x')
+        self._real(mounted={'efi'})
+        self.assertEqual(m.classify(self.root), 'not-applicable')
+        self._real(mounted=set())
+        self.assertEqual(m.classify(self.root), 'systemd-boot-unavailable')
+
+    def test_io_failure_while_retiring_is_reported_as_error_with_partial_changes(self):
+        self.write_entry(MID + '-6.2.conf', '/%s/6.2/linux' % MID, '/%s/6.2/initrd' % MID)
+        (self.boot / MID / '6.2').mkdir()
+        (self.boot / MID / '6.2/linux').write_text('k')
+        (self.boot / MID / '6.2/initrd').write_text('i')
+        real_unlink = Path.unlink
+        calls = []
+
+        def flaky(path, *a, **k):
+            if path.suffix == '.conf' and path.parent == self.entries:
+                calls.append(path.name)
+                if len(calls) == 2:
+                    raise PermissionError('read-only')
+            return real_unlink(path, *a, **k)
+        Path.unlink = flaky
+        try:
+            with self.assertRaises(m.BootProblem):
+                m.apply(self.root, mid=MID, set_default=lambda e: None)
+        finally:
+            Path.unlink = real_unlink
+        result = json.loads((self.root / m.STATE_DIR / 'result.json').read_text())
+        self.assertEqual(result['state'], 'error')
+        self.assertTrue(result['partial'])
+
     def test_no_fstab_boot_entry_stays_not_applicable(self):
         import shutil
         shutil.rmtree(self.boot)

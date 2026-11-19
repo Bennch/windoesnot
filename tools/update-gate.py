@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate exact 29-to-32 VM evidence and record a short-lived package gate."""
+"""Validate exact 29-to-candidate VM evidence and record a short-lived package gate."""
 import argparse
 import json
 import os
@@ -21,6 +21,9 @@ def main():
     p.add_argument('--positive-c', required=True, type=Path, help='BIOS GRUB VM result.json')
     p.add_argument('--iso-b', required=True, type=Path, help='UEFI GRUB predecessor ISO')
     p.add_argument('--iso-c', required=True, type=Path, help='BIOS GRUB predecessor ISO')
+    for name in 'def':
+        p.add_argument('--positive-' + name, required=True, type=Path, help='additional boot configuration VM result.json')
+        p.add_argument('--iso-' + name, required=True, type=Path, help='additional predecessor ISO')
     for name in 'abc':
         p.add_argument('--mutation-' + name, required=True, type=Path, help='real mutation result.json')
     a = p.parse_args()
@@ -35,7 +38,7 @@ def main():
         evidence = {kind: inspect(path, digest, kind, now) for kind, path in paths.items()}
         positive = json.loads(Path(evidence['positive']['result']).read_text())
         matrix = {}
-        for config, path, source_iso in [('A', a.positive, iso), ('B', a.positive_b, a.iso_b), ('C', a.positive_c, a.iso_c)]:
+        for config, path, source_iso in [('A', a.positive, iso), ('B', a.positive_b, a.iso_b), ('C', a.positive_c, a.iso_c), ('D', a.positive_d, a.iso_d), ('E', a.positive_e, a.iso_e), ('F', a.positive_f, a.iso_f)]:
             positive_evidence = inspect(path, digest, 'positive', now)
             probe = Path(positive_evidence['result']).with_name('pacman-probe.log').resolve(strict=True)
             source_iso = source_iso.resolve(strict=True)

@@ -14,7 +14,18 @@ def run(*args):
     return subprocess.run(args, capture_output=True, text=True, env={**os.environ, 'LC_ALL': 'C'})
 
 
-def observe(configuration='A'):
+def limine_boot_files(boot, machine_id):
+    configs = [boot / n for n in ('limine.conf', 'limine.cfg') if (boot / n).is_file()]
+    if not configs:
+        return False
+    config = configs[0].read_text(errors='replace')
+    deployed = boot / machine_id / 'linux-cachyos'
+    files = ((deployed / 'vmlinuz', deployed / 'initramfs') if deployed.is_dir() else
+             (boot / 'vmlinuz-linux-cachyos', boot / 'initramfs-linux-cachyos.img'))
+    return all(str(p.relative_to(boot)) in config and p.is_file() and p.stat().st_size > 0 for p in files)
+
+
+def observe(configuration='A', target_version='0.1.0-32'):
     kernel = os.uname().release
     boot = Path('/proc/sys/kernel/random/boot_id').read_text().strip()
     packages = run('pacman', '-Q', 'windoesnot-desktop', 'windoesnot-tools', 'windoesnot-plugins', 'windoesnot-components')
@@ -57,9 +68,27 @@ def observe(configuration='A'):
         boot_mounted = (mount.returncode == 0 and len(mount_fields) >= 3 and 'rw' in mount_fields[-1].split(',')
                         and efi == expected_efi and ((mount_fields[:2] == ['/boot', 'vfat'] and Path('/boot/EFI/WinDoesNot/grubx64.efi').is_file()) if expected_efi else mount_fields[1] != 'vfat'))
         old_entries_removed = True  # systemd-boot entries do not apply to GRUB
+    if configuration in ('D', 'E', 'F'):
+        efi = Path('/sys/firmware/efi').is_dir()
+        expected_efi = configuration != 'F'
+        files = (Path('/boot/vmlinuz-linux-cachyos'), Path('/boot/initramfs-linux-cachyos.img'))
+        if configuration == 'D':
+            manager = any(Path('/boot/EFI/refind').glob('*.efi'))
+        else:
+            manager = limine_boot_files(Path('/boot'), machine_id)
+            files = ()
+        default_valid = manager and all(p.is_file() and p.stat().st_size > 0 for p in files)
+        boot_mounted = (mount.returncode == 0 and len(mount_fields) >= 3 and 'rw' in mount_fields[-1].split(',')
+                        and efi == expected_efi and (mount_fields[:2] == ['/boot', 'vfat'] if expected_efi else True))
+        old_entries_removed = True  # systemd-boot entry migration is inapplicable
+    manager_package = {'D': 'refind-btrfs', 'E': 'limine-mkinitcpio-hook', 'F': 'limine-mkinitcpio-hook'}.get(configuration)
+    manager_integrity = run('pacman', '-Qk', manager_package) if manager_package else None
     checks = {
+        'manager_hook_intact': ((manager_integrity is None or manager_integrity.returncode == 0)
+                                and not (configuration in ('E', 'F') and Path('/etc/pacman.d/hooks/80-limine-efi-deploy.hook').is_symlink()
+                                         and os.path.realpath('/etc/pacman.d/hooks/80-limine-efi-deploy.hook') == '/dev/null')),
         'package_files_intact': package_files.returncode == 0,
-        'target_versions': packages.returncode == 0 and len(parsed) == 4 and all(v == '0.1.0-32' for v in parsed.values()),
+        'target_versions': packages.returncode == 0 and len(parsed) == 4 and all(v == target_version for v in parsed.values()),
         'newest_kernel': bool(newest) and kernel == newest and 'lts' not in kernel and (Path('/usr/lib/modules') / kernel).is_dir(),
         'boot_mounted': boot_mounted,
         'default_valid': default_valid,
@@ -74,10 +103,12 @@ def observe(configuration='A'):
             'packages': parsed, 'package_files': package_files.stdout, 'package_files_stderr': package_files.stderr, 'bootctl': bootctl.stdout, 'mount': mount.stdout,
             'failed_units': units.stdout, 'updates': updates.stdout, 'updates_stderr': updates.stderr,
             'plugins': plugins.stdout if plugins else '', 'configerrors': config.stdout if config else '',
-            'entries': [p.name for p in entries]}
+            'entries': [p.name for p in entries], 'manager_package_integrity': manager_integrity.stdout if manager_integrity else '',
+            'manager_package_integrity_stderr': manager_integrity.stderr if manager_integrity else ''}
 
 if __name__ == '__main__':
     configuration = sys.argv[1] if len(sys.argv) > 1 else 'A'
-    if configuration not in ('A', 'B', 'C'):
+    if configuration not in ('A', 'B', 'C', 'D', 'E', 'F'):
         raise SystemExit('invalid configuration')
-    print(json.dumps(observe(configuration), indent=2))
+    target_version = sys.argv[2] if len(sys.argv) > 2 else '0.1.0-32'
+    print(json.dumps(observe(configuration, target_version), indent=2))

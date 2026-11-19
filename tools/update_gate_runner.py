@@ -1,4 +1,4 @@
-"""Isolated 29-to-32 VM update experiment; never publishes release evidence."""
+"""Isolated 29-to-candidate VM update experiment; never publishes release evidence."""
 import hashlib
 import json
 import os
@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parent.parent
 BASE = ROOT / 'out/update-gate/work/baselines/29-de-sdboot'
-BASELINES = {'A': BASE, 'B': BASE.parent / '29-en-grub-uefi', 'C': BASE.parent / '29-en-grub-bios'}
+BASELINES = {'A': BASE, 'B': BASE.parent / '29-en-grub-uefi', 'C': BASE.parent / '29-en-grub-bios', 'D': BASE.parent / '29-en-refind-uefi', 'E': BASE.parent / '29-en-limine-uefi', 'F': BASE.parent / '29-en-limine-bios'}
 VMROOT = ROOT / 'vm'
 WORK = ROOT / 'out/update-gate/work'
 
@@ -36,8 +36,8 @@ def hook_order(log, configuration='A'):
     pre = log.find('Checking WinDoesNot boot filesystem before update')
     kernel = log.find('Updating linux initcpios')
     post = log.find('Validating WinDoesNot boot entries')
-    if configuration in ('B', 'C'):
-        # The 29 bootstrap deliberately installs no temporary guard on GRUB.
+    if configuration in ('B', 'C', 'D', 'E', 'F'):
+        # The 29 bootstrap installs no temporary guard on non-systemd boot layouts.
         # The newly installed packaged guard is checked by the subsequent probe.
         bootstrap = log.find('Kein systemd-boot-Layout; keine Änderung erforderlich.')
         return bootstrap >= 0 and kernel > bootstrap and post > kernel and (pre < 0 or bootstrap < pre < kernel)
@@ -72,7 +72,7 @@ class Runner:
         self.vmproc = None
         self.server = None
         self.result = {'timestamp': datetime.now(timezone.utc).isoformat(), 'vm': self.name,
-                       'scope': '29-to-32 experimental run; not a release approval', 'checks': {}}
+                       'scope': '29-to-candidate experimental run; not a release approval', 'checks': {}}
 
     @classmethod
     def attach(cls, name):
@@ -137,14 +137,14 @@ class Runner:
         self.vm.mkdir()
         (self.vm / '.update-gate-owner').write_text(self.name + '\n')
         cmd('qemu-img', 'create', '-f', 'qcow2', '-F', 'qcow2', '-b', str(self.base / 'disk.qcow2'), str(self.vm / 'disk.qcow2'), stdout=subprocess.DEVNULL)
-        if self.configuration != 'C':
+        if self.configuration not in ('C', 'F'):
             shutil.copy2(self.base / 'OVMF_VARS.fd', self.vm / 'OVMF_VARS.fd')
             (self.vm / 'OVMF_VARS.fd').chmod(0o600)
         log = (self.run / 'qemu-launch.log').open('w')
         self.vmproc = subprocess.Popen(['./build-and-run.sh', '--boot-installed', '--vm-name', self.name,
                                        '--headless', '--graphics', 'soft', '--memory', '4096', '--cpus', '2'],
                                       cwd=ROOT, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
-                                      start_new_session=True, env={**os.environ, 'WINDOESNOT_VM_BIOS': '1' if self.configuration == 'C' else '0'})
+                                      start_new_session=True, env={**os.environ, 'WINDOESNOT_VM_BIOS': '1' if self.configuration in ('C', 'F') else '0'})
         log.close()
         self.result['baseline_boot_id'] = self.ready()
         self.result['baseline_kernel'] = self.guest('/usr/bin/uname', '-r').strip()
@@ -159,9 +159,11 @@ class Runner:
                     'windoesnot-network', 'windoesnot-audio', 'windoesnot-graphics', 'windoesnot-store'}
         if set(metadata) != expected:
             raise RuntimeError('Candidate repository lacks required packages')
-        for x in ('windoesnot-desktop', 'windoesnot-tools', 'windoesnot-plugins', 'windoesnot-components'):
-            if metadata[x]['version'] != '0.1.0-32':
-                raise RuntimeError('Candidate core version mismatch: ' + x)
+        core = ('windoesnot-desktop', 'windoesnot-tools', 'windoesnot-plugins', 'windoesnot-components')
+        versions = {metadata[x]['version'] for x in core}
+        if len(versions) != 1 or not next(iter(versions)):
+            raise RuntimeError('Candidate core versions do not match')
+        self.result['target_core_version'] = next(iter(versions))
         # A tiny, otherwise uninstalled package exercises an ordinary -S/-Rns
         # transaction using the same offline candidate repository.
         probe = self.run / 'probe-build'
@@ -225,7 +227,7 @@ class Runner:
         self.result['checks']['hook_order'] = hook_order(log, self.configuration)
         hook_result = self.vmctl('exec', '/usr/bin/cat', '/var/lib/windoesnot/boot-migration/result.json', check=False)
         try:
-            if self.configuration in ('B', 'C'):
+            if self.configuration in ('B', 'C', 'D', 'E', 'F'):
                 post = log.find('Validating WinDoesNot boot entries')
                 self.result['checks']['post_hook_status'] = post >= 0 and 'not a systemd-boot layout (GRUB/BIOS); nothing to do' in log[post:]
             else:
@@ -243,8 +245,7 @@ class Runner:
                                   'pacman -S --noconfirm windoesnot-candidate/windoesnot-gate-probe && pacman -Rns --noconfirm windoesnot-gate-probe', check=False, timeout=180)
         (self.run / 'pacman-probe.log').write_text(probe_result.stdout + probe_result.stderr)
         self.result['checks']['pacman_install_remove'] = (probe_result.returncode == 0 and 'Checking WinDoesNot boot filesystem before update' in probe_result.stdout)
-        if not self.result['checks']['pacman_install_remove']:
-            raise RuntimeError('post-update package install/remove failed; see pacman-probe.log')
+        # Preserve the failure in checks, but still observe both boots of this disposable VM.
 
     def verify(self):
         previous = self.result['baseline_boot_id']
@@ -255,7 +256,7 @@ class Runner:
             # The login and plugins may start after the guest agent.
             end = time.monotonic() + 120
             while True:
-                observation = json.loads(self.guest('/usr/bin/python3', '/var/lib/windoesnot-update-gate/verify.py', self.configuration))
+                observation = json.loads(self.guest('/usr/bin/python3', '/var/lib/windoesnot-update-gate/verify.py', self.configuration, self.result['target_core_version']))
                 if observation['checks']['desktop_plugins'] or time.monotonic() >= end:
                     break
                 time.sleep(4)

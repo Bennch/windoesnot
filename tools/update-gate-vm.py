@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Evaluate manual hook evidence or run an isolated 29-to-32 VM experiment.
+"""Evaluate manual hook evidence or run an isolated 29-to-candidate VM experiment.
 
 Neither mode grants release approval. The run mode creates and deletes its own
 VM overlay; the legacy evidence evaluator does not start a machine.
@@ -32,10 +32,10 @@ def main():
     import sys
     if len(sys.argv) > 1 and sys.argv[1] in ('install', 'update', 'verify', 'run'):
         from update_gate_runner import Runner
-        parser = argparse.ArgumentParser(description='Run isolated 29-to-32 update experiment')
+        parser = argparse.ArgumentParser(description='Run isolated 29-to-candidate update experiment')
         parser.add_argument('stage', choices=['install', 'update', 'verify', 'run'])
         parser.add_argument('--packages', type=Path)
-        parser.add_argument('--configuration', choices=['A', 'B', 'C'], default='A')
+        parser.add_argument('--configuration', choices=['A', 'B', 'C', 'D', 'E', 'F'], default='A')
         parser.add_argument('--vm-name', help='owned VM name returned by install')
         args = parser.parse_args()
         if args.stage in ('install', 'run'):

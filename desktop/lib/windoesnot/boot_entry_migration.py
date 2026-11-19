@@ -42,72 +42,56 @@ def machine_id(root):
 
 
 def classify(root):
-    """-> 'systemd-boot' or 'not-applicable'. GRUB/BIOS systems are never touched."""
+    """-> 'systemd-boot', 'not-applicable' or 'systemd-boot-unavailable'.
+
+    The mount check comes first and does not depend on any boot manager: when fstab declares a vfat /boot (or /efi),
+    that partition must be mounted and populated, whatever lives on it (stale GRUB/rEFInd/Limine files left in the
+    hidden directory of an unmounted ESP must not let a kernel update through). Everything else (GRUB, rEFInd, Limine,
+    syslinux, EFISTUB, UKI, BIOS, a later switch of boot manager) is none of our business and never blocks."""
+    declared = declared_esp_targets(root)
+    if declared and not esp_present(root, declared):
+        return 'systemd-boot-unavailable'
     boot = Path(root) / 'boot'
     has_entries = (boot / 'loader/entries').is_dir()
     has_loader = any((boot / p).exists() for p in ('EFI/systemd', 'EFI/BOOT/BOOTX64.EFI', 'loader/loader.conf'))
     if has_entries and has_loader:
         return 'systemd-boot'
-    if has_grub(boot) or has_refind(boot) or has_limine(boot):
-        return 'not-applicable'   # GRUB, rEFInd or Limine on a vfat ESP mounted at /boot (UEFI installs): nothing of ours to guard
-    if boot_expected_but_missing(root):
-        # Any other boot manager (syslinux, EFISTUB, UKI, a later switch ...) on a mounted, populated ESP is none of our
-        # business. Only an ESP that is not mounted (empty /boot) is the hazard this guard exists for.
-        if esp_present(root):
-            return 'not-applicable'
-        return 'systemd-boot-unavailable'
     return 'not-applicable'
 
 
-def has_grub(boot):
-    """True when /boot holds a GRUB setup (configuration or an EFI GRUB image)."""
+def is_real_root(root):
+    return str(root) == '/'
+
+
+def is_mountpoint(path):
+    return os.path.ismount(str(path))
+
+
+def declared_esp_targets(root):
+    """The vfat boot partitions fstab declares at /boot and /efi."""
+    targets = []
     try:
-        return (boot / 'grub/grub.cfg').is_file() or any((boot / 'EFI').glob('*/grub*.efi'))
-    except OSError:
-        return False
-
-
-def has_refind(boot):
-    """True when /boot holds a rEFInd setup (EFI image or the kernel options file the installer writes)."""
-    try:
-        return (boot / 'refind_linux.conf').is_file() or any((boot / 'EFI/refind').glob('*.efi'))
-    except OSError:
-        return False
-
-
-def has_limine(boot):
-    """True when /boot holds a Limine setup (configuration file or an EFI image in a limine directory)."""
-    try:
-        return any((boot / name).is_file() for name in ('limine.conf', 'limine.cfg')) or any(
-            efi.is_file() for directory in (boot / 'EFI').glob('[Ll][Ii][Mm][Ii][Nn][Ee]*') for efi in directory.glob('*.[Ee][Ff][Ii]'))
-    except OSError:
-        return False
-
-
-def esp_present(root):
-    """True when /boot is mounted (real system) and holds something: an unmounted ESP leaves an empty directory."""
-    boot = Path(root) / 'boot'
-    try:
-        if str(root) == '/' and not os.path.ismount(str(boot)):
-            return False
-        return any(boot.iterdir())
-    except OSError:
-        return False
-
-
-def boot_expected_but_missing(root):
-    """True when the system declares a vfat /boot (fstab) or runs in UEFI mode with a systemd-boot ESP
-    configured, yet /boot holds no loader: an unmounted ESP must never look like a GRUB/BIOS system."""
-    root = Path(root)
-    fstab = root / 'etc/fstab'
-    try:
-        for line in fstab.read_text().splitlines():
+        for line in (Path(root) / 'etc/fstab').read_text().splitlines():
             fields = line.split()
             if len(fields) >= 3 and not line.lstrip().startswith('#') and fields[1] in ('/boot', '/efi') and fields[2] == 'vfat':
-                return True
+                targets.append(fields[1])
     except OSError:
         pass
-    return False
+    return targets
+
+
+def esp_present(root, targets=None):
+    """True when every declared vfat boot target is mounted (real system) and holds something: an unmounted ESP is an empty directory."""
+    for target in (targets if targets is not None else declared_esp_targets(root)):
+        path = Path(root) / target.lstrip('/')
+        try:
+            if is_real_root(root) and not is_mountpoint(path):
+                return False
+            if not any(path.iterdir()):
+                return False
+        except OSError:
+            return False
+    return True
 
 
 def mount_info(root='/'):
@@ -280,6 +264,8 @@ def apply(root, set_default=None, mid=None, now=None):
             return result
         configured_default = loader_default(boot)
         selected = saved_default_id() if configured_default == '@saved' else configured_default
+        if configured_default == '@saved' and selected is None:
+            raise BootProblem('the saved default boot entry is unknown; no entries were retired')
         replacement = preferred_replacement(p['generic'], p['retire'], boot, selected)
         if default_target(boot, p['retire']) == 'repair' or (configured_default == '@saved' and selected in [n[:-5] for n in p['retire']] + p['retire']):
             if set_default is None:
@@ -298,9 +284,11 @@ def apply(root, set_default=None, mid=None, now=None):
             result['removed'].append(name)
         result['backup'] = str(backup)
         return result
-    except BootProblem as exc:
-        result.update(state='error', error=str(exc))
-        raise
+    except (BootProblem, OSError) as exc:
+        result.update(state='error', error=str(exc), partial=bool(result['removed'] or result['default_repaired']))
+        if isinstance(exc, BootProblem):
+            raise
+        raise BootProblem('boot migration I/O failure: %s' % exc) from exc
     finally:
         result['finished'] = datetime.datetime.now(datetime.timezone.utc).isoformat()
         try:
@@ -323,7 +311,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     kind = classify(args.root)
     if kind == 'systemd-boot-unavailable':
-        print('windoesnot boot %s FAILED: fstab lists a vfat /boot but it is not mounted or empty (ESP not mounted?)' % ('guard' if args.preflight else 'migration'), file=sys.stderr)
+        print('windoesnot boot %s FAILED: a vfat /boot or /efi listed in fstab is not mounted or empty (ESP not mounted?)' % ('guard' if args.preflight else 'migration'), file=sys.stderr)
         print('Mount the EFI system partition on /boot BEFORE updating the kernel or rebooting.', file=sys.stderr)
         return 1
     if kind == 'not-applicable':
@@ -341,7 +329,7 @@ def main(argv=None):
     except BootProblem as exc:
         print('windoesnot boot %s FAILED: %s' % ('guard' if args.preflight else 'migration', exc), file=sys.stderr)
         print('Fix the boot partition BEFORE rebooting; do not continue the update.' if args.preflight else
-              'Boot entries were not changed. Do not reboot before this is fixed (see https://windoesnot.me/hilfe/bekannte-einschraenkungen/).', file=sys.stderr)
+              'Boot entries may have been changed (see /var/lib/windoesnot/boot-migration/result.json). Do not reboot before this is fixed (see https://windoesnot.me/hilfe/bekannte-einschraenkungen/).', file=sys.stderr)
         return 1
 
 
