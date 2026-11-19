@@ -233,11 +233,18 @@ void CHyprBar::onMouseMove(Vector2D coords) {
     const auto PWINDOW = m_pWindow.lock();
     const auto LOCAL   = cursorRelativeToBar();
     constexpr float RESIZE_HANDLE = 8.F;
-    if (PWINDOW && PWINDOW->isFloating() && LOCAL.y <= RESIZE_HANDLE &&
-        (LOCAL.x <= RESIZE_HANDLE || LOCAL.x >= assignedBoxGlobal().w - RESIZE_HANDLE))
+    // Every bar sees every pointer motion. Only touch the cursor for the handles this bar owns, and only undo what this
+    // bar did: restoring unconditionally wiped the resize arrows Hyprland itself shows on the other window borders
+    // within a few milliseconds.
+    const bool IN_HANDLE = PWINDOW && PWINDOW->isFloating() && !m_hidden && LOCAL.y >= 0 && LOCAL.y <= RESIZE_HANDLE &&
+        (LOCAL.x <= RESIZE_HANDLE || LOCAL.x >= assignedBoxGlobal().w - RESIZE_HANDLE) && LOCAL.x >= 0 && LOCAL.x <= assignedBoxGlobal().w;
+    if (IN_HANDLE) {
         g_pInputManager->setCursorIconOnBorder(PWINDOW);
-    else
+        m_bCursorFromBar = true;
+    } else if (m_bCursorFromBar) {
         g_pInputManager->restoreCursorIconToApp();
+        m_bCursorFromBar = false;
+    }
 
     if (m_bGripPending && validMapped(m_pWindow)) {
         // A small slop keeps a plain click on the app's own buttons a click.

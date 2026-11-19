@@ -69,6 +69,7 @@ class CHyprBar : public IHyprWindowDecoration {
     // turns the top <px> of such a window into an invisible drag handle: clicks still reach the app, but moving the
     // pointer while the button is held drags the window (the app cannot ask the compositor to do that itself).
     int                        m_gripHeight         = 0;
+    bool                       m_bCursorFromBar     = false;   // this bar set the diagonal resize cursor
     bool                       m_bGripPending       = false;
     Vector2D                   m_gripStart;
     bool                       gripHit(Vector2D* local = nullptr);
