@@ -53,41 +53,56 @@ def size(value):
     return f'{value} B'
 
 
-CSS = b'''
-window, window.background { background: #202020; color: #eeeeee; }
-.card, .folder, .card label, .folder label, checkbutton { color: #eeeeee; }
-label.wdn-text, label.wdn-heading { color: #eeeeee; }
+PALETTES = {
+    'dark': dict(bg='#202020', card='#141414', line='#3a3a3a', text='#eeeeee', dim='#aaaaaa', todo='#777777', check='#141414', checkline='#777777',
+                 checkmark='#202020', warn_bg='#382d22', warn_line='#b8804b', warn_text='#f3c99d', err_bg='#432a22', err_text='#ffd0bc', divider='#3d3d3d',
+                 current='#141414', trough='#3a3a3a'),
+    'light': dict(bg='#f6f6f6', card='#ffffff', line='#d6d6d6', text='#202020', dim='#5f5f5f', todo='#8a8a8a', check='#ffffff', checkline='#8a8a8a',
+                  checkmark='#ffffff', warn_bg='#fdf0e2', warn_line='#d9a066', warn_text='#7a4a14', err_bg='#fde5dc', err_text='#8a2b0a', divider='#d0d0d0',
+                  current='#ffffff', trough='#dcdcdc'),
+}
+
+CSS_TEMPLATE = """
+window, window.background { background: %(bg)s; color: %(text)s; }
+.card, .folder, .card label, .folder label, checkbutton { color: %(text)s; }
+label.wdn-text, label.wdn-heading { color: %(text)s; }
 label.wdn-heading { font-weight: 700; }
-.card .dim, .folder .dim { color: #aaaaaa; }
-.card { background: #141414; border: 1px solid #3a3a3a; border-radius: 10px; padding: 14px; }
-.folder { background: #202020; border: 1px solid #3a3a3a; border-radius: 6px; padding: 8px; }
-.warning { background: #382d22; border: 1px solid #b8804b; border-radius: 8px; padding: 10px; color: #f3c99d; }
-.error { background: #432a22; border: 1px solid #fe6f2d; border-radius: 8px; padding: 10px; color: #ffd0bc; }
+.card .dim, .folder .dim { color: %(dim)s; }
+.card { background: %(card)s; border: 1px solid %(line)s; border-radius: 10px; padding: 14px; }
+.folder { background: %(bg)s; border: 1px solid %(line)s; border-radius: 6px; padding: 8px; }
+.warning { background: %(warn_bg)s; border: 1px solid %(warn_line)s; border-radius: 8px; padding: 10px; color: %(warn_text)s; }
+.error { background: %(err_bg)s; border: 1px solid #fe6f2d; border-radius: 8px; padding: 10px; color: %(err_text)s; }
 .accent { color: #fe6f2d; }
-.dim { color: #aaaaaa; }
-.pill { background: #382d22; border: 1px solid #b8804b; border-radius: 99px; padding: 0 8px; font-size: 9pt; color: #f3c99d; }
-.pill.soft { background: #202020; border-color: #3a3a3a; color: #aaaaaa; }
-checkbutton check { background: #141414; border: 1px solid #777777; color: #202020; }
-checkbutton check:checked { background: #fe6f2d; border-color: #fe6f2d; color: #202020; }
-progressbar trough { background: #3a3a3a; min-height: 8px; border-radius: 4px; }
+.dim { color: %(dim)s; }
+.pill { background: %(warn_bg)s; border: 1px solid %(warn_line)s; border-radius: 99px; padding: 0 8px; font-size: 9pt; color: %(warn_text)s; }
+.pill.soft { background: %(bg)s; border-color: %(line)s; color: %(dim)s; }
+checkbutton check { background: %(check)s; border: 1px solid %(checkline)s; color: %(checkmark)s; }
+checkbutton check:checked { background: #fe6f2d; border-color: #fe6f2d; color: #ffffff; }
+progressbar trough { background: %(trough)s; min-height: 8px; border-radius: 4px; }
 progressbar progress { background: #fe6f2d; min-height: 8px; border-radius: 4px; }
-button.suggested-action { background: #fe6f2d; color: #202020; }
-.rail { background: transparent; border-right: 1px solid #3d3d3d; }
+button.suggested-action { background: #fe6f2d; color: #ffffff; }
+.rail { background: transparent; border-right: 1px solid %(divider)s; }
 .rail-row { border-radius: 6px; padding: 0 4px; min-height: 32px; }
-.rail-row.current { background: #141414; }
+.rail-row.current { background: %(current)s; }
 .rail-pill { background: #fe6f2d; border-radius: 2px; min-width: 3px; min-height: 18px; }
-.rail-title { color: #777777; font-size: 10pt; }
-.rail-title.done { color: #aaaaaa; }
-.rail-title.current { color: #eeeeee; font-weight: 700; }
-.rail-glyph { color: #777777; min-width: 22px; }
+.rail-title { color: %(todo)s; font-size: 10pt; }
+.rail-title.done { color: %(dim)s; }
+.rail-title.current { color: %(text)s; font-weight: 700; }
+.rail-glyph { color: %(todo)s; min-width: 22px; }
 .rail-glyph.done { color: #fe6f2d; }
-.rail-glyph.current { color: #eeeeee; }
-.greeting { font-size: 13pt; font-weight: 800; color: #eeeeee; }
-.joke { color: #aaaaaa; font-size: 9pt; }
+.rail-glyph.current { color: %(text)s; }
+.greeting { font-size: 13pt; font-weight: 800; color: %(text)s; }
+.joke { color: %(dim)s; font-size: 9pt; }
+.page-title { font-size: 22pt; font-weight: 700; color: %(text)s; }
 paned > separator { min-width: 6px; border: none; box-shadow: none; background: transparent; background-image: none; }
 paned > separator:hover { background-image: linear-gradient(to right, transparent 2px, #fe6f2d 2px, #fe6f2d 4px, transparent 4px); }
-.page-title { font-size: 22pt; font-weight: 700; color: #eeeeee; }
-'''
+"""
+
+
+def css_for(dark):
+    return (CSS_TEMPLATE % PALETTES['dark' if dark else 'light']).encode()
+
+
 
 
 JOKES = (
@@ -140,23 +155,21 @@ class Window(Adw.ApplicationWindow):
         self.greeting = Gtk.Label(label=tr('Hallo ', 'Hello ') + greeting_name(), xalign=0)
         self.greeting.add_css_class('greeting')
         joke = random.choice(JOKES)
-        self.joke = Gtk.Label(label=tr(*joke), xalign=0, wrap=True)
+        self.joke = Gtk.Label(label=tr(*joke), xalign=0, wrap=True, max_width_chars=22)
         self.joke.add_css_class('joke')
-        logo_file = next((c for c in (Path('/usr/share/windoesnot/branding/windoesnot-logo-hell.png'),
-                                      HERE.parent / 'config/quickshell/default/img/brand/windoesnot-logo-hell.png') if c.is_file()), None)
-        if logo_file:
-            logo = Gtk.Picture.new_for_filename(str(logo_file))
-            logo.set_content_fit(Gtk.ContentFit.CONTAIN)
-            logo.set_size_request(120, 24)
-            logo.set_halign(Gtk.Align.START)
-            logo.set_margin_bottom(14)
-            header.append(logo)
+        self.logo = Gtk.Picture()
+        self.logo.set_content_fit(Gtk.ContentFit.CONTAIN)
+        self.logo.set_size_request(120, 24)
+        self.logo.set_halign(Gtk.Align.START)
+        self.logo.set_margin_bottom(14)
+        header.append(self.logo)
+        self.update_logo()
         header.append(self.greeting); header.append(self.joke)
         rail.append(header)
         self.rail_rows = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1, margin_start=6, margin_end=6)
         rail.append(self.rail_rows)
         root.set_start_child(rail)
-        root.set_position(190)
+        self.paned = root
         outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=18, margin_bottom=18, margin_start=24, margin_end=24, hexpand=True)
         root.set_end_child(outer)
         self.heading = Gtk.Label(xalign=0, wrap=True)
@@ -184,6 +197,14 @@ class Window(Adw.ApplicationWindow):
             path = next((a.split('=', 1)[1] for a in sys.argv if a.startswith('--manifest=')), None)
             if path:
                 self.show_result(json.loads(Path(path).read_text()))
+
+    def update_logo(self):
+        """The light wordmark on dark, the dark one on light."""
+        name = 'windoesnot-logo-hell.png' if Adw.StyleManager.get_default().get_dark() else 'windoesnot-logo-dunkel.png'
+        for base in (Path('/usr/share/windoesnot/branding'), HERE.parent / 'config/quickshell/default/img/brand'):
+            if (base / name).is_file():
+                self.logo.set_filename(str(base / name))
+                return
 
     # --- pages ----------------------------------------------------------------------------------------
     def add_page(self, name, title, widget):
@@ -238,7 +259,7 @@ class Window(Adw.ApplicationWindow):
             glyph.add_css_class('rail-glyph')
             if state != 'todo': glyph.add_css_class(state)
             title = self.RAIL_SHORT.get(name)
-            label = Gtk.Label(label=tr(*title) if title else self.titles.get(name, name), xalign=0, hexpand=True, ellipsize=Pango.EllipsizeMode.END)
+            label = Gtk.Label(label=tr(*title) if title else self.titles.get(name, name), xalign=0, hexpand=True)
             label.add_css_class('rail-title')
             if state != 'todo': label.add_css_class(state)
             row.append(pill); row.append(glyph); row.append(label)
@@ -249,6 +270,8 @@ class Window(Adw.ApplicationWindow):
         self.heading.set_text(self.titles.get(name, ''))
         self.stack.set_visible_child_name(name)
         self.refresh_rail()
+        # The rail is as wide as its longest step title; dragging still works from there.
+        GLib.idle_add(lambda: self.paned.set_position(-1) or False)
         self.update_nav()
 
     def update_nav(self):
@@ -581,10 +604,20 @@ class Window(Adw.ApplicationWindow):
 
 class App(Adw.Application):
     def __init__(self): super().__init__(application_id='me.windoesnot.Finder')
+
+    def apply_css(self, *_):
+        self.provider.load_from_data(css_for(Adw.StyleManager.get_default().get_dark()))
+        if getattr(self, 'window', None):
+            self.window.update_logo()
+
     def do_activate(self):
-        Adw.StyleManager.get_default().set_color_scheme(Adw.ColorScheme.FORCE_DARK)
-        provider = Gtk.CssProvider(); provider.load_from_data(CSS)
-        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        # Follows the system setting (light or dark), also on other distros: libadwaita reads the desktop's preference.
+        manager = Adw.StyleManager.get_default()
+        manager.set_color_scheme(Adw.ColorScheme.DEFAULT)
+        self.provider = Gtk.CssProvider()
+        self.apply_css()
+        manager.connect('notify::dark', self.apply_css)
+        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), self.provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         self.window = Window(self)
         self.window.present()
 
