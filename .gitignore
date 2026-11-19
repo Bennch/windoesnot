@@ -38,3 +38,8 @@
 /docs/*
 !/docs/screenshots/
 igloo-windoesnot/
+
+# Local only: marketing drafts, reports and videos, internal helper scripts
+/deliverables/
+/tools/auto-bugfix-watch.sh
+/tools/systemd/
