@@ -543,9 +543,9 @@ class Window(Adw.ApplicationWindow):
     # --- where to -------------------------------------------------------------------------------------
     def target_page(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        intro = Gtk.Label(label=tr('Ein Umzugspaket liegt auf einer externen Platte oder im Netzwerk (SMB) und kann später beim Installieren oder im neuen System eingespielt werden. '
+        intro = Gtk.Label(label=tr('Empfohlen: ein Umzugspaket auf einer externen Platte oder im Netzwerk (SMB). Der Installer erkennt es selbst und spielt es beim Installieren ein; im neuen System geht es auch. '
                                    'Es bewahrt Rechte und Besitzer, auch auf Platten mit Windows-Dateisystem.',
-                                   'A transfer package lies on an external disk or on the network (SMB) and can be restored later during installation or in the new system. '
+                                   'Recommended: a transfer package on an external disk or on the network (SMB). The installer finds it by itself and restores it while installing; it also works in the new system. '
                                    'It keeps permissions and owners, even on disks with a Windows file system.'), xalign=0, wrap=True)
         intro.add_css_class('dim'); page.append(intro)
         self.place_label = Gtk.Label(xalign=0, wrap=True)
@@ -605,10 +605,11 @@ class Window(Adw.ApplicationWindow):
         buttons = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin_top=6)
         smb = Gtk.Button(label=tr('Netzwerkfreigabe verbinden (SMB) …', 'Connect a network share (SMB) …'))
         smb.connect('clicked', self.connect_smb)
-        other = Gtk.Button(label=tr('Anderen Ordner als Paketziel …', 'Another folder for the package …'))
+        other = Gtk.Button(label=tr('Umzugspaket in anderen Ordner schreiben …', 'Write the transfer package to another folder …'))
         other.connect('clicked', lambda *_: self.pick_folder(tr('Ordner für das Umzugspaket', 'Folder for the transfer package'), 'package'))
-        direct = Gtk.Button(label=tr('Direkt in einen Home-Ordner kopieren …', 'Copy straight into a home folder …'))
+        direct = Gtk.Button(label=tr('Ohne Paket direkt in einen Home-Ordner kopieren …', 'Copy straight into a home folder, without a package …'))
         direct.connect('clicked', lambda *_: self.pick_folder(tr('Home-Ordner des neuen Systems', 'Home folder of the new system'), 'direct'))
+        direct.set_tooltip_text(tr('Nur sinnvoll, wenn das neue System schon läuft oder eingehängt ist. Der Installer erkennt das nicht automatisch.', 'Only useful if the new system already runs or is mounted. The installer does not detect it.'))
         for button in (smb, other, direct):
             button.set_halign(Gtk.Align.START)
             buttons.append(button)
@@ -619,7 +620,7 @@ class Window(Adw.ApplicationWindow):
         if not self.destination:
             self.place_label.set_text(tr('Noch kein Ziel gewählt.', 'No target chosen yet.'))
         elif self.mode == 'direct':
-            self.place_label.set_text(tr('Ziel: direkt nach ', 'Target: straight into ') + self.destination)
+            self.place_label.set_text(tr('Ziel: direkt nach ', 'Target: straight into ') + self.destination + tr(' (kein Paket, der Installer erkennt es nicht)', ' (no package, the installer does not detect it)'))
         else:
             self.place_label.set_text(tr('Ziel: Umzugspaket in ', 'Target: transfer package in ') + self.destination)
         self.update_nav()
