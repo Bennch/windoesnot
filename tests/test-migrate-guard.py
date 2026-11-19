@@ -39,6 +39,18 @@ with patch.dict(sys.modules, {'libcalamares': fake}):
     for malformed in ('{', '{}', '[]', '{"profiles": null}', '{"profiles": [{"items": [{"selected": "false"}]}]}'):
         values['windoesnotMigrateManifest'] = malformed
         assert guard.run() is not None
+    # A transfer package (copy on another disk or share) works with every install choice; a live Linux source does not.
+    linux_plan = {'kind': 'linux', 'schema': 1, 'users': [{'selected': True}]}
+    for choice in ('erase', 'manual', 'replace', None):
+        values['partitionChoices'] = {'install': choice}
+        values['windoesnotMigrateManifest'] = json.dumps(dict(linux_plan, package='/run/windoesnot/packages/x/umzug'))
+        assert guard.run() is None, choice
+        values['windoesnotMigrateManifest'] = json.dumps(linux_plan)
+        assert 'Linux-Datenquelle' in guard.run()[0], choice
+    values['windoesnotMigrateManifest'] = json.dumps({'kind': 'linux', 'schema': 2, 'users': [], 'package': '/x'})
+    assert guard.run() is not None
+    values['partitionChoices'] = {'install': 'alongside'}
+    values['windoesnotMigrateManifest'] = '{'
     values['locale'] = 'en_US.UTF-8'
     assert 'before partitioning' in guard.run()[1]
 print('PASS migrate guard')

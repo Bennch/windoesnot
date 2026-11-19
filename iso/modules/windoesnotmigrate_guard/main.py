@@ -72,6 +72,11 @@ def run():
     # The import reads the Windows partition after partitioning. "Alongside" only shrinks an existing
     # partition and never deletes or formats one, so the source survives. Erase, replace and manual
     # partitioning can destroy it before it is read: stop before anything is written.
+    # A transfer package is a copy on another disk or share; the old system itself is not touched by this
+    # installer. Calamares offers no erase action for a disk with mounted partitions, so the mounted package
+    # disk cannot be wiped by "erase" either. Package plans therefore work with every install choice.
+    if linux and not invalid and isinstance(candidate, dict) and candidate.get('package'):
+        return None
     choices = storage.value('partitionChoices') or {}
     if not invalid and isinstance(choices, dict) and choices.get('install') == 'alongside':
         # Same rule for Linux sources: "alongside" only shrinks a partition (its data stays) and Calamares

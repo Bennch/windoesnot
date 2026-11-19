@@ -97,7 +97,7 @@ Rectangle {
         spacing: 12
 
         Rectangle {
-            visible: page.bridge && page.bridge.installChoice !== "alongside" && !page.skipped
+            visible: page.bridge && page.bridge.installChoice !== "alongside" && !page.skipped && !(page.plan && page.plan.package)
             Layout.fillWidth: true
             implicitHeight: choiceWarning.implicitHeight + 20
             color: "#382d22"; border.color: "#fe6f2d"; radius: 8
