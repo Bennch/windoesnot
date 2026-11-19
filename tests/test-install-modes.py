@@ -107,6 +107,28 @@ with tempfile.TemporaryDirectory(prefix='wdn-install-modes-') as temporary:
     with patch.object(installation.subprocess,'check_output',return_value='ext4\n'),patch.object(installation.subprocess,'run',side_effect=limine_run):
         installation.finish('limine','efi','offline',root)
 
+    # Manual entries exist on non-Btrfs installs too; the exact title must
+    # distinguish the normal kernel from the LTS entry and survive reruns.
+    refind=root/'boot/EFI/refind';refind.mkdir(parents=True)
+    config=refind/'refind.conf'
+    config.write_text('timeout 20\n#default_selection 1\ndefault_selection old\ninclude snapshots.conf\n')
+    (root/'boot/refind_linux.conf').write_text('"Standard" "root=UUID=test rw"\n')
+    for kernel in ('linux-cachyos','linux-cachyos-lts'):
+        (root/('boot/vmlinuz-'+kernel)).touch()
+        (root/('boot/initramfs-'+kernel+'.img')).touch()
+    with patch.object(installation,'BASE',ROOT),patch.object(installation.subprocess,'check_output',return_value='ext4\n'),patch.object(installation.subprocess,'run',return_value=SimpleNamespace(returncode=0)):
+        installation.finish('refind','efi','offline',root)
+        first=config.read_text()
+        installation.finish('refind','efi','offline',root)
+    assert config.read_text()==first
+    assert first.count('default_selection "WinDoesNot (linux-cachyos)"')==1
+    assert 'default_selection old' not in first and 'include snapshots.conf' in first
+    assert first.count('include themes/windoesnot/theme.conf')==1
+    assert first.count('include windoesnot-linux.conf')==1
+    entries=(refind/'windoesnot-linux.conf').read_text()
+    assert 'menuentry "WinDoesNot (linux-cachyos)"' in entries
+    assert 'menuentry "WinDoesNot (linux-cachyos-lts)"' in entries
+
 print('PASS: bootloader/firmware validation, HTTPS-only snapshot transactions, offline isolation, network failures, base drift rejection, Btrfs-only backups')
 
 # Every Btrfs loader gets transaction snapshots; no other filesystem does.
