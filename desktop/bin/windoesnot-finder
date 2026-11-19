@@ -602,14 +602,16 @@ class Window(Adw.ApplicationWindow):
         if not places:
             hint = Gtk.Label(label=tr('Keine externe Platte und keine Netzwerkfreigabe verbunden. Stecke eine Platte an oder verbinde eine Freigabe.', 'No external disk or network share connected. Plug in a disk or connect a share.'), xalign=0, wrap=True)
             hint.add_css_class('dim'); self.places_box.append(hint)
-        buttons = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, max_children_per_line=3, column_spacing=8, row_spacing=8, homogeneous=False)
+        buttons = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin_top=6)
         smb = Gtk.Button(label=tr('Netzwerkfreigabe verbinden (SMB) …', 'Connect a network share (SMB) …'))
         smb.connect('clicked', self.connect_smb)
         other = Gtk.Button(label=tr('Anderen Ordner als Paketziel …', 'Another folder for the package …'))
         other.connect('clicked', lambda *_: self.pick_folder(tr('Ordner für das Umzugspaket', 'Folder for the transfer package'), 'package'))
         direct = Gtk.Button(label=tr('Direkt in einen Home-Ordner kopieren …', 'Copy straight into a home folder …'))
         direct.connect('clicked', lambda *_: self.pick_folder(tr('Home-Ordner des neuen Systems', 'Home folder of the new system'), 'direct'))
-        for button in (smb, other, direct): buttons.append(button)
+        for button in (smb, other, direct):
+            button.set_halign(Gtk.Align.START)
+            buttons.append(button)
         self.places_box.append(buttons)
         self.update_place_label()
 
