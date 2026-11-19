@@ -2,6 +2,30 @@
   "comment": "WinDoesNot changes per desktop package release, newest first. Shown in Settings > Updates; entries marked unreleased are never offered as an update.",
   "releases": [
     {
+      "version": "0.1.0-33",
+      "date": "2026-11-20",
+      "de": [
+        "Mitnehmen: ein neues Programm, das ein Linux-System nach Profilen, Passwörtern, Schlüsseln, Einstellungen, Projekten, Docker und virtuellen Maschinen durchsucht; du bestätigst Schritt für Schritt, was mitkommt.",
+        "Umzugspakete: Lege deine Daten auf eine externe Platte oder ein NAS (SMB); der Installer findet das Paket und spielt es nach der Prüfsummenprüfung ein.",
+        "Der Linux-Umzug im Installer behält Ordnerrechte und Sparse-Dateien, überspringt Sockets und Caches statt abzubrechen und lässt große Ordner auf Wunsch zurück.",
+        "Spiele im Installer: Emulatoren für Dolphin, PCSX2, DuckStation, RPCS3, shadPS4, PPSSPP, Azahar, melonDS, mGBA, Cemu, Eden, Flycast, xemu, Snes9x, N64 und viele ältere Konsolen; AnyPS5 als Link.",
+        "Store: Beim Entfernen zeigt er, was sonst noch mitginge, und behält standardmäßig die Abhängigkeiten (eine Entfernung hat einmal Flatpak mitgenommen); ein Befehl ohne Ausgabe meldet nach einer Weile, dass er auf die Anmeldung wartet.",
+        "rEFInd-Installationen starten zuerst den normalen Kernel, LTS bleibt im Menü.",
+        "GRUB zeigt beim Start keine „Loading Linux“-Zeilen mehr.",
+        "Snappen und Einstellungen: Aufrufe an den Fenstermanager haben ein Zeitlimit; ein zweiter Klick auf Update zeigt den offenen Dialog."
+      ],
+      "en": [
+        "Take along: a new program that looks through a Linux system for profiles, passwords, keys, settings, projects, Docker and virtual machines; you confirm what comes along step by step.",
+        "Transfer packages: put your data on an external disk or a NAS (SMB); the installer finds the package and restores it after checking checksums.",
+        "The Linux move in the installer keeps folder permissions and sparse files, skips sockets and caches instead of stopping, and can leave large folders behind.",
+        "Games in the installer: emulators for Dolphin, PCSX2, DuckStation, RPCS3, shadPS4, PPSSPP, Azahar, melonDS, mGBA, Cemu, Eden, Flycast, xemu, Snes9x, N64 and many older consoles; AnyPS5 as a link.",
+        "Store: removing a program shows what else would be removed and by default keeps its dependencies (a removal once took Flatpak along); a command that outputs nothing for a while says it waits for the authentication.",
+        "rEFInd installations start the standard kernel first, LTS stays in the menu.",
+        "GRUB no longer prints the “Loading Linux” lines while starting.",
+        "Snapping and Settings: calls to the window manager have a time limit; a second click on Update shows the open dialog."
+      ]
+    },
+    {
       "version": "0.1.0-32",
       "date": "2026-11-19",
       "de": [

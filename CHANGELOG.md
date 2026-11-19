@@ -7,6 +7,17 @@ Generated from `packaging/changelog.json` (newest first). Releases with download
 
 
 
+## 0.1.0-33 (2026-11-20)
+
+- Take along: a new program that looks through a Linux system for profiles, passwords, keys, settings, projects, Docker and virtual machines; you confirm what comes along step by step.
+- Transfer packages: put your data on an external disk or a NAS (SMB); the installer finds the package and restores it after checking checksums.
+- The Linux move in the installer keeps folder permissions and sparse files, skips sockets and caches instead of stopping, and can leave large folders behind.
+- Games in the installer: emulators for Dolphin, PCSX2, DuckStation, RPCS3, shadPS4, PPSSPP, Azahar, melonDS, mGBA, Cemu, Eden, Flycast, xemu, Snes9x, N64 and many older consoles; AnyPS5 as a link.
+- Store: removing a program shows what else would be removed and by default keeps its dependencies (a removal once took Flatpak along); a command that outputs nothing for a while says it waits for the authentication.
+- rEFInd installations start the standard kernel first, LTS stays in the menu.
+- GRUB no longer prints the “Loading Linux” lines while starting.
+- Snapping and Settings: calls to the window manager have a time limit; a second click on Update shows the open dialog.
+
 ## 0.1.0-32 (2026-11-19)
 
 - Updates check package dependencies and protect boot entries when kernels change.
