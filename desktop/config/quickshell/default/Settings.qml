@@ -359,6 +359,7 @@ FloatingWindow {
         }
         onExited: function(code) {
             if (code !== 0) console.error("Hyprland settings could not be applied:", code)
+            rearmFocusGrabTimer.restart()
             if (windowModeTransitionAfterApply.length > 0) {
                 var transition = windowModeTransitionAfterApply
                 windowModeTransitionAfterApply = ""
@@ -370,6 +371,19 @@ FloatingWindow {
         }
     }
 
+    // Applying Hyprland state reloads the compositor config, which drops the focus grab on the compositor side while
+    // Quickshell still believes it is active. The settings window then stays open on clicks elsewhere and keeps eating
+    // pointer input. Re-create the grab once the reload and the window transition are done.
+    Timer {
+        id: rearmFocusGrabTimer
+        interval: 500
+        repeat: false
+        onTriggered: {
+            settingsFocusGrab.active = false
+            settingsMenu.syncFocusGrab()
+        }
+    }
+
     // A mode switch is a one-off transition. New windows are handled by the
     // floating-mode rule; current normal clients retain their arrangement and
     // are simply released from their tiled layout after the config reload.
@@ -378,6 +392,7 @@ FloatingWindow {
         property string mode: ""
         command: ["windoesnot-transition-window-mode", mode]
         running: false
+        onExited: rearmFocusGrabTimer.restart()
         stderr: StdioCollector {
             onStreamFinished: {
                 if (text.trim().length > 0) console.error("Window mode transition:", text)

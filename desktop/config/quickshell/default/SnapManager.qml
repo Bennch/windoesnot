@@ -193,6 +193,16 @@ Item {
                 snapManager.cachedCursorPos = { x: px, y: py }
                 if (snapManager.cachedMonitors) snapManager.updateZoneAt(px, py, snapManager.cachedMonitors)
                 else if (!monitorQueryProc.running) monitorQueryProc.running = true
+            } else if (name === "hyprdrag-geo") {
+                // "addr,x,y,w,h" of a window being resized: a snapped neighbour follows the shared edge at once.
+                var gp = data.split(",")
+                var gaddr = gp[0].replace(/^0x/, "")
+                var gx = parseFloat(gp[1]), gy = parseFloat(gp[2]), gw = parseFloat(gp[3]), gh = parseFloat(gp[4])
+                if (snapManager.snapMembers[gaddr] && !isNaN(gx + gy + gw + gh)) {
+                    var members2 = snapManager.snapMembers
+                    var follow = snapManager.partnerFollow(members2, gaddr, gx, gy, gw, gh)
+                    if (follow) snapManager.queueAdjust(follow)
+                }
             } else if (name === "hyprdrag-movestop") {
                 console.log("Drag stopped:", data);
                 console.log("SNAPDBG stop zone", snapManager.currentZone, "dragging", snapManager.isDragging, "active", snapManager.activeWindowAddress, "cooldown", snapManager.snapCooldown, "cursor", JSON.stringify(snapManager.cachedCursorPos));
@@ -1064,11 +1074,11 @@ Item {
         // command for every pointer frame.
         // We run whenever snap is enabled (floating mode) so manually-positioned adjacent
         // windows are detected even before any snap has happened.
-        interval: 100
+        interval: 250
         running: snapManager.enabled
         repeat: true
         onTriggered: {
-            if (!snapGroupQueryProc.running && !snapGroupAdjustProc.running) {
+            if (!snapGroupQueryProc.running) {
                 snapGroupQueryProc.running = true
             }
         }
@@ -1194,49 +1204,11 @@ Item {
                             continue
                         }
 
-                        // If width or height changed, adjust the partner to fill remaining space
+                        // If width or height changed, let the partner follow (width changes move only the shared edge,
+                        // height changes only the vertical extent)
                         if (cw !== member.lastW || ch !== member.lastH) {
-                            var partnerAddr = null
-                            var partner     = null
-                            for (var pa in members) {
-                                if (pa === addr) continue
-                                var pm = members[pa]
-                                if (pm.monitorName === member.monitorName &&
-                                        ((member.zone === "left"  && pm.zone === "right") ||
-                                         (member.zone === "right" && pm.zone === "left"))) {
-                                    partnerAddr = pa
-                                    partner     = pm
-                                    break
-                                }
-                            }
-
-                            if (partner && partnerAddr) {
-                                var newPartnerX, newPartnerW, newPartnerY, newPartnerH
-                                if (member.zone === "left") {
-                                    newPartnerX = cx + cw + member.gapInner
-                                    newPartnerW = member.usableX + member.usableW - newPartnerX
-                                } else if (member.zone === "right") {
-                                    newPartnerX = member.usableX
-                                    newPartnerW = cx - member.gapInner - member.usableX
-                                }
-
-                                if (newPartnerW !== undefined && newPartnerW > 100) {
-                                    adjustPairs.push({
-                                        addr: "0x" + partnerAddr,
-                                        x: newPartnerX, y: member.usableY,
-                                        w: newPartnerW, h: member.usableH
-                                    })
-                                    members[partnerAddr].lastX = newPartnerX
-                                    members[partnerAddr].lastW = newPartnerW
-                                    membersChanged = true
-                                }
-                            }
-
-                            // Update current member's last known state
-                            member.lastX = cx
-                            member.lastY = cy
-                            member.lastW = cw
-                            member.lastH = ch
+                            var entry = snapManager.partnerFollow(members, addr, cx, cy, cw, ch)
+                            if (entry) adjustPairs.push(entry)
                             membersChanged = true
                         }
                     }
@@ -1245,10 +1217,7 @@ Item {
                         snapManager.snapMembers = members
                     }
 
-                    if (adjustPairs.length > 0) {
-                        snapGroupAdjustProc.adjustData = adjustPairs
-                        snapGroupAdjustProc.running = true
-                    }
+                    for (var qi = 0; qi < adjustPairs.length; qi++) snapManager.queueAdjust(adjustPairs[qi])
 
                 } catch (e) {
                     console.log("snapGroupQuery error:", e)
@@ -1257,27 +1226,70 @@ Item {
         }
     }
 
+    // Native `hyprctl eval` (one ~4 ms process) instead of two python bridge calls per window; requests that arrive while
+    // one is running are merged (latest geometry per window wins) and sent right after.
+    property var pendingAdjust: ({})
+    function queueAdjust(entry) {
+        pendingAdjust[entry.addr] = entry
+        if (!snapGroupAdjustProc.running) flushAdjust()
+    }
+    function flushAdjust() {
+        var lua = []
+        for (var k in pendingAdjust) {
+            var d = pendingAdjust[k]
+            var win = 'window="address:' + d.addr + '"'
+            lua.push("hl.dispatch(hl.dsp.window.resize({x=" + Math.round(d.w) + ",y=" + Math.round(d.h) + ",relative=false," + win + "}))")
+            lua.push("hl.dispatch(hl.dsp.window.move({x=" + Math.round(d.x) + ",y=" + Math.round(d.y) + ",relative=false," + win + "}))")
+        }
+        pendingAdjust = ({})
+        if (lua.length === 0) return
+        snapGroupAdjustProc.script = lua.join("; ")
+        snapGroupAdjustProc.running = true
+    }
+
+    // Partner of a snapped window (left <-> right on the same monitor) and the geometry it must take when `addr` changed.
+    function partnerFollow(members, addr, cx, cy, cw, ch) {
+        var member = members[addr]
+        if (!member) return null
+        var dw = cw !== member.lastW, dh = ch !== member.lastH
+        var partnerAddr = null
+        for (var pa in members) {
+            if (pa === addr) continue
+            var pm = members[pa]
+            if (pm.monitorName === member.monitorName &&
+                    ((member.zone === "left" && pm.zone === "right") || (member.zone === "right" && pm.zone === "left"))) {
+                partnerAddr = pa
+                break
+            }
+        }
+        var partner = partnerAddr ? members[partnerAddr] : null
+        var entry = null
+        if (partner) {
+            var nx = partner.lastX, nw = partner.lastW, ny = partner.lastY, nh = partner.lastH
+            if (dw) {
+                if (member.zone === "left") {
+                    nx = cx + cw + member.gapInner
+                    nw = member.usableX + member.usableW - nx
+                } else {
+                    nx = member.usableX
+                    nw = cx - member.gapInner - member.usableX
+                }
+            }
+            if (dh) { ny = cy; nh = ch }   // same top and bottom edge as the resized window
+            if (nw > 100 && (nx !== partner.lastX || nw !== partner.lastW || ny !== partner.lastY || nh !== partner.lastH)) {
+                entry = { addr: "0x" + partnerAddr, x: nx, y: ny, w: nw, h: nh }
+                partner.lastX = nx; partner.lastW = nw; partner.lastY = ny; partner.lastH = nh
+            }
+        }
+        member.lastX = cx; member.lastY = cy; member.lastW = cw; member.lastH = ch
+        return entry
+    }
+
     Process {
         id: snapGroupAdjustProc
-        property var adjustData: []
-        command: ["windoesnot-bounded", "8", "bash", "-c", buildAdjustCmd()]
+        property string script: ""
+        command: ["hyprctl", "eval", script]
         running: false
-
-        function buildAdjustCmd() {
-            if (!adjustData || adjustData.length === 0) return "echo 'no-op'"
-            var cmds = []
-            for (var i = 0; i < adjustData.length; i++) {
-                var d = adjustData[i]
-                var x = Math.round(d.x), y = Math.round(d.y)
-                var w = Math.round(d.w), h = Math.round(d.h)
-                cmds.push("windoesnot-hyprctl dispatch resizewindowpixel 'exact " + w + " " + h + ",address:" + d.addr + "'")
-                cmds.push("windoesnot-hyprctl dispatch movewindowpixel 'exact " + x + " " + y + ",address:" + d.addr + "'")
-            }
-            return cmds.join(" && ")
-        }
-
-        stdout: StdioCollector {
-            onStreamFinished: { /* done */ }
-        }
+        onExited: if (Object.keys(snapManager.pendingAdjust).length > 0) snapManager.flushAdjust()
     }
 }

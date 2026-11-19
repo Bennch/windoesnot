@@ -42,6 +42,22 @@ namespace {
         (void)Config::Actions::event(std::format("hyprdrag-pos>>{},{}", static_cast<int>(mouse.x), static_cast<int>(mouse.y)));
     }
 
+    // While a window is resized, stream its geometry the same way ("hyprdrag-geo>>addr,x,y,w,h"): a snapped neighbour
+    // follows the shared edge from these events instead of a polled hyprctl snapshot.
+    void postGeometry(bool force = false) {
+        const auto now = std::chrono::steady_clock::now();
+        if (!force && now - lastPosEvent < std::chrono::milliseconds(8))
+            return;
+        const auto window = lastDraggedWindow.lock();
+        if (!validMapped(window))
+            return;
+        lastPosEvent = now;
+        const auto pos  = window->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+        const auto size = window->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+        (void)Config::Actions::event(std::format("hyprdrag-geo>>{},{},{},{},{}", lastAddress, static_cast<int>(pos.x), static_cast<int>(pos.y),
+                                                 static_cast<int>(size.x), static_cast<int>(size.y)));
+    }
+
     void postDragEvent(const PHLWINDOW& window, const std::string& address, bool moving, bool start, bool updateTag = true) {
         const char* event = start ? (moving ? "hyprdrag-movestart" : "hyprdrag-resizestart")
                                   : (moving ? "hyprdrag-movestop" : "hyprdrag-resizestop");
@@ -59,11 +75,13 @@ namespace {
         if (lastAddress.empty())
             return;
 
+        if (wasMoving)
+            postPosition(true);
+        else
+            postGeometry(true);
         const auto window = lastDraggedWindow.lock();
         const auto address = std::exchange(lastAddress, {});
         lastDraggedWindow.reset();
-        if (wasMoving)
-            postPosition(true);
         postDragEvent(window, address, wasMoving, false, updateTag);
     }
 
@@ -110,8 +128,12 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     mouseMoveListener = Event::bus()->m_events.input.mouse.move.listen([](Vector2D, Event::SCallbackInfo&) {
         syncDragState();
-        if (!lastAddress.empty() && wasMoving)
-            postPosition();
+        if (!lastAddress.empty()) {
+            if (wasMoving)
+                postPosition();
+            else
+                postGeometry();
+        }
         scheduleDragUpdate();
     });
     mouseButtonListener = Event::bus()->m_events.input.mouse.button.listen([](IPointer::SButtonEvent, Event::SCallbackInfo&) {
