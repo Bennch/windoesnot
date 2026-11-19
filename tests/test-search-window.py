@@ -12,7 +12,7 @@ with tempfile.TemporaryDirectory(prefix='wdn-search-') as temp:
     base = Path(temp)
     for name in ('i18n', 'widgets', 'settings', 'img'):
         shutil.copytree(SOURCE / name, base / name)
-    for name in ('SearchWindow.qml', 'SearchLogic.js'):
+    for name in ('SearchWindow.qml', 'SearchLogic.js', 'EmojiData.js', 'SpecialChars.js'):
         shutil.copy2(SOURCE / name, base / name)
     (base / 'shell.qml').write_text('''import QtQuick
 import Quickshell
@@ -34,13 +34,21 @@ ShellRoot {
       s.stepChip(-9); var chip3 = s.filterKind + ":" + s.activeChip
       s.query = "/pdf x"; s.stepChip(1); var chip4 = s.filterKind + ":" + s.searchText + ":" + s.query
       s.chipIndex = 0
-      s.query = ""; s.selIdx = -1; s.navUp(); var up1 = s.filterKind
-      s.navUp(); s.navUp(); var up3 = s.filterKind
+      s.query = ""; s.cycleChip(1); var up1 = s.filterKind
+      s.cycleChip(1); s.cycleChip(1); var up3 = s.filterKind
+      s.cycleChip(-1); var up4 = s.filterKind
       s.chipIndex = 0
+      s.query = ":herz"; var heart = s.filteredEmoji.length > 3 && s.filteredEmoji[0].e.length > 0
+      s.emojiTab = 1; s.query = ":euro"; var euro = s.filteredEmoji.length > 0 && s.filteredEmoji[0].e === "€"
+      s.query = ":"; var allSpecial = s.filteredEmoji.length > 250
+      s.emojiTab = 0; var allEmoji = s.filteredEmoji.length > 1800
+      s.query = ":lol"; var hint = s.filteredEmoji.length > 0
+      s.emojiTab = 0
+      s.query = ""
       var empty = s.showHints
       s.usage = {"Files": {c: 4, t: Date.now()}}
       var recent = s.allApps().length
-      console.log("SEARCH_RESULT " + [initials, calc, unit, filter, empty, recent, chip1, chip2, chip3, chip4, up1, up3].join(" ; "))
+      console.log("SEARCH_RESULT " + [initials, calc, unit, filter, empty, recent, chip1, chip2, chip3, chip4, up1, up3, up4, heart, euro, allSpecial, allEmoji, hint].join(" ; "))
     } catch (e) { console.log("SEARCH_ERROR " + e) }
     Qt.quit() } }
 }''')
@@ -51,7 +59,7 @@ ShellRoot {
     out = subprocess.run(['quickshell', '--no-color', '-p', str(base / 'shell.qml')], env=env, text=True,
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=30).stdout
     line = next((l for l in out.splitlines() if 'SEARCH_' in l), '')
-    assert 'SEARCH_RESULT Visual Studio Code ; 8 ; 3.1068559612 mi ; pdf|bill|0|true ; true ; 3 ; apps ; pdf:5 ; :0 ; video:x:x ; apps ; docs' in line, line + out[-1500:]
+    assert 'SEARCH_RESULT Visual Studio Code ; 8 ; 3.1068559612 mi ; pdf|bill|0|true ; true ; 3 ; apps ; pdf:5 ; :0 ; video:x:x ; apps ; docs ; folders ; true ; true ; true ; true ; true' in line, line + out[-1500:]
     for bad in ('WARN scene', 'TypeError', 'ReferenceError', 'Failed to load configuration'):
         assert bad not in out, bad + '\n' + out[-1500:]
 print('PASS: search window ranks, answers and filters without QML warnings')

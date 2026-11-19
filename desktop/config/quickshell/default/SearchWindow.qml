@@ -6,6 +6,8 @@ import Quickshell.Hyprland
 import Quickshell.Io
 import "i18n/Lang.js" as Lang
 import "SearchLogic.js" as Logic
+import "EmojiData.js" as EmojiDb
+import "SpecialChars.js" as SpecialDb
 
 FloatingWindow {
     id: root
@@ -67,7 +69,8 @@ FloatingWindow {
     readonly property bool modeMath: calcResult.length > 0
 
     // ── Emoji data ───────────────────────────────────────────────────────────
-    readonly property var emojiData: [
+    // Extra search words for the most common emoji (the full list below only knows the official names).
+    readonly property var emojiHints: [
         {e:"😀",n:"grinning",k:["smile","happy","grin"]},
         {e:"😂",n:"joy",k:["laugh","lol","funny","tears"]},
         {e:"😍",n:"heart eyes",k:["love","cute"]},
@@ -181,20 +184,35 @@ FloatingWindow {
         {e:"🏃",n:"running",k:["run","fast","exercise"]},
     ]
 
+    // All emoji and the special characters, parsed once from EmojiData.js / SpecialChars.js ("symbol<TAB>English<TAB>German").
+    function parseSymbols(lines, hints) {
+        var extra = {}
+        if (hints) for (var h = 0; h < hints.length; h++) extra[hints[h].e] = hints[h].n + " " + hints[h].k.join(" ")
+        var list = []
+        for (var i = 0; i < lines.length; i++) {
+            var parts = lines[i].split("\t")
+            var words = (parts[1] + " " + (parts[2] || "") + " " + (extra[parts[0]] || "")).toLowerCase()
+            list.push({e: parts[0], n: parts[1], w: Logic.normalize(words)})
+        }
+        return list
+    }
+    readonly property var emojiAll:   parseSymbols(EmojiDb.emoji, emojiHints)
+    readonly property var specialAll: parseSymbols(SpecialDb.chars, null)
+    // 0 = emoji, 1 = special characters (Tab switches while ":" is active)
+    property int emojiTab: 0
+
     readonly property var filteredEmoji: {
         if (!modeEmoji) return []
-        var q = query.substring(1).toLowerCase().trim()
-        if (q.length === 0) return emojiData.slice(0, 40)
-        var res = []
-        for (var i = 0; i < emojiData.length; i++) {
-            var em = emojiData[i]
-            if (res.length >= 60) break
-            if (em.n.indexOf(q) !== -1) { res.push(em); continue }
-            for (var j = 0; j < em.k.length; j++) {
-                if (em.k[j].indexOf(q) !== -1) { res.push(em); break }
-            }
+        var list = emojiTab === 0 ? emojiAll : specialAll
+        var q = Logic.normalize(query.substring(1)).trim()
+        if (q.length === 0) return list
+        var starts = [], contains = []
+        for (var i = 0; i < list.length; i++) {
+            var at = list[i].w.indexOf(q)
+            if (at === 0 || list[i].w.indexOf(" " + q) >= 0) starts.push(list[i])
+            else if (at > 0) contains.push(list[i])
         }
-        return res
+        return starts.concat(contains)
     }
 
     // ── Flat model for ListView ───────────────────────────────────────────────
@@ -324,16 +342,26 @@ FloatingWindow {
     }
 
     // ── Keyboard nav ─────────────────────────────────────────────────────────
-    // Up on the first row (nothing above it, as right after opening) changes the search type instead.
+    function selectFirst() {
+        for (var i = 0; i < flatModel.count; i++) if (flatModel.get(i).type !== "header" && flatModel.get(i).type !== "empty") { selIdx = i; return }
+    }
+    function selectLast() {
+        for (var i = flatModel.count - 1; i >= 0; i--) if (flatModel.get(i).type !== "header" && flatModel.get(i).type !== "empty") { selIdx = i; return }
+    }
+
+    // Up on the first row jumps to the last one ("Search the web", "Run in terminal"); Down on the last row to the first.
     function navUp() {
         var next = selIdx - 1
         while (next >= 0 && flatModel.get(next).type === "header") next--
         if (next >= 0) selIdx = next
-        else if (!showClip && !modeRun) cycleChip()
+        else selectLast()
     }
 
-    function cycleChip() {
-        var next = (activeChip + 1) % chipKinds.length
+    // Tab / Shift+Tab: the next / previous search type (or emoji <-> special characters while ":" is active).
+    function cycleChip(delta) {
+        if (modeEmoji) { emojiTab = (emojiTab + 1) % 2; emojiGrid.currentIndex = 0; return }
+        if (showClip || modeRun) return
+        var next = (activeChip + (delta || 1) + chipKinds.length) % chipKinds.length
         if (parsed.kind !== "") searchField.text = parsed.text
         chipIndex = next
     }
@@ -342,6 +370,7 @@ FloatingWindow {
         var next = selIdx + 1
         while (next < flatModel.count && flatModel.get(next).type === "header") next++
         if (next < flatModel.count) selIdx = next
+        else selectFirst()
     }
 
     // ── Actions ───────────────────────────────────────────────────────────────
@@ -495,7 +524,7 @@ FloatingWindow {
 
     // ── Public API ────────────────────────────────────────────────────────────
     function openSearch() {
-        query = ""; chipIndex = 0; selIdx = -1; calcResult = ""; calcError = false
+        query = ""; chipIndex = 0; emojiTab = 0; selIdx = -1; calcResult = ""; calcError = false
         fileResults = []; appResults = []; clipResults = []; showClip = false
         searchField.text = ""
         usageLoad.running = false
@@ -683,7 +712,8 @@ FloatingWindow {
                     if ((event.modifiers & Qt.ControlModifier) && root.revealSelected()) return
                     root.launchSelected()
                 }
-                Keys.onTabPressed:    root.launchSelected()
+                Keys.onTabPressed:    root.cycleChip(1)
+                Keys.onBacktabPressed: root.cycleChip(-1)
                 Keys.onUpPressed: {
                     if (root.modeEmoji) emojiGrid.moveCurrentIndexUp()
                     else root.navUp()
@@ -767,7 +797,7 @@ FloatingWindow {
         GridView {
             id: emojiGrid
             anchors {
-                top: searchBar.bottom
+                top: emojiTabs.bottom
                 left: parent.left
                 right: parent.right
                 bottom: keyBar.top
@@ -796,6 +826,41 @@ FloatingWindow {
                     anchors.fill: parent; hoverEnabled: true
                     onEntered: emojiGrid.currentIndex = index
                     onClicked: root.activateEmoji(modelData)
+                }
+            }
+        }
+
+        // ── Emoji / special characters tabs (Tab switches) ─────────────────────
+        Item {
+            id: emojiTabs
+            visible: root.modeEmoji
+            anchors { top: searchBar.bottom; left: parent.left; right: parent.right }
+            height: visible ? 38 : 0
+            Row {
+                anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
+                spacing: 6
+                Repeater {
+                    model: ["emoji", "special"]
+                    delegate: Rectangle {
+                        required property string modelData
+                        required property int index
+                        readonly property bool active: root.emojiTab === index
+                        height: 26; width: tabText.implicitWidth + 24; radius: 13
+                        color: active ? root.acSel : (tabMouse.containsMouse ? root.hover : "transparent")
+                        border.width: 1; border.color: active ? root.accentColor : root.sep
+                        Text {
+                            id: tabText
+                            anchors.centerIn: parent
+                            text: Lang.get("search.tab." + parent.modelData, root.uiLanguage)
+                            color: parent.active ? root.fg : root.fgSub
+                            font.pixelSize: 12; font.bold: parent.active
+                        }
+                        MouseArea {
+                            id: tabMouse
+                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: { root.emojiTab = index; emojiGrid.currentIndex = 0; searchField.forceActiveFocus() }
+                        }
+                    }
                 }
             }
         }
