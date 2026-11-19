@@ -32,7 +32,7 @@ class MigrateBridge : public QObject {
 public:
     explicit MigrateBridge(QObject* parent = nullptr) : QObject(parent) {
         connect(&m_process, &QProcess::started, this, [this] {
-            if (m_action == QStringLiteral("unlock")) { m_process.write(m_secret.toUtf8() + "\n"); m_process.closeWriteChannel(); }
+            if (m_action == QStringLiteral("unlock") || m_action == QStringLiteral("smb")) { m_process.write(m_secret.toUtf8() + "\n"); m_process.closeWriteChannel(); }
         });
         connect(&m_process, &QProcess::finished, this, [this](int code, QProcess::ExitStatus status) {
             m_busy = false;
@@ -55,6 +55,20 @@ public:
                     }
                     scan(device); return;
                 }
+            } else if (m_action == QStringLiteral("smb")) {
+                // Packages found on a network share join the list of sources; the first one is opened right away.
+                auto entries = QJsonDocument::fromJson(m_devices.toUtf8()).array();
+                QString first;
+                for (const auto& value : QJsonDocument::fromJson(data).array()) {
+                    entries.append(value);
+                    if (first.isEmpty()) first = value.toObject().value("device").toString();
+                }
+                m_secret.clear();
+                m_devices = QString::fromUtf8(QJsonDocument(entries).toJson(QJsonDocument::Compact));
+                if (first.isEmpty()) { m_error = german() ? QStringLiteral("Auf der Freigabe liegt kein Umzugspaket.") : QStringLiteral("There is no transfer package on the share."); emit changed(); return; }
+                emit changed();
+                scan(first);
+                return;
             } else {
                 auto root = QJsonDocument::fromJson(data).object();
                 if (root.value("kind").toString() == QStringLiteral("linux")) {
@@ -170,12 +184,21 @@ public:
         handoff.insert("wlan_selected", selected); root.insert("handoff", handoff);
         m_manifest = QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Compact)); emit changed();
     }
+    // Mounts //host/share read-only through mirror.py (the password goes to its stdin, never into a command line).
+    Q_INVOKABLE void connectShare(const QString& address, const QString& user, const QString& password) {
+        if (address.trimmed().isEmpty()) return;
+        m_secret = password;
+        QStringList args{address.trimmed()};
+        if (!user.trimmed().isEmpty()) args << QStringLiteral("--user") << user.trimmed();
+        args << QStringLiteral("--password-stdin");
+        start(QStringLiteral("smb"), args);
+    }
     Q_INVOKABLE void setSecret(const QString& secret) { m_secret = secret; }
     Q_INVOKABLE void setEnvelopeSecret(const QString& secret) { m_envelopeSecret = secret; }
     void start(const QString& action, const QStringList& args) {
         if (m_process.state() != QProcess::NotRunning) return;
         m_action = action; m_error.clear(); m_busy = true; emit changed();
-        m_process.start(QStringLiteral("/usr/bin/python3"), QStringList{(action == QStringLiteral("linuxPartitions") || (action != QStringLiteral("partitions") && m_linux)) ? QStringLiteral("/usr/lib/windoesnot/mirror.py") : QStringLiteral("/usr/lib/windoesnot/migrate.py"), action == QStringLiteral("unlock") ? QStringLiteral("scan") : (action == QStringLiteral("linuxPartitions") ? QStringLiteral("partitions") : action)} + args);
+        m_process.start(QStringLiteral("/usr/bin/python3"), QStringList{(action == QStringLiteral("linuxPartitions") || action == QStringLiteral("smb") || (action != QStringLiteral("partitions") && m_linux)) ? QStringLiteral("/usr/lib/windoesnot/mirror.py") : QStringLiteral("/usr/lib/windoesnot/migrate.py"), action == QStringLiteral("unlock") ? QStringLiteral("scan") : (action == QStringLiteral("linuxPartitions") ? QStringLiteral("partitions") : action)} + args);
     }
 signals:
     void changed();

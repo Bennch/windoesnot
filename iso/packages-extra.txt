@@ -91,6 +91,7 @@ pacman-contrib
 qt6-multimedia-ffmpeg
 localsend
 samba
+cifs-utils
 gtk4
 libadwaita
 polkit

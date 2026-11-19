@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 import pwd
+import re
 import stat
 import subprocess
 import sys
@@ -617,6 +618,53 @@ def discover_packages(blockdevices=None, mounter=mount_for_packages):
             except OSError:
                 pass
     return found
+
+
+def smb_parts(address):
+    """'//host/share[/folder]' or 'smb://host/share[/folder]' -> (host, share, folder)."""
+    text = address.strip()
+    for prefix in ('smb://', 'cifs://', '//'):
+        if text.lower().startswith(prefix):
+            text = text[len(prefix):]
+            break
+    else:
+        raise ValueError('The address must look like smb://host/share')
+    parts = [p for p in text.split('/') if p]
+    if len(parts) < 2 or any(part in ('.', '..') for part in parts) or not re.fullmatch(r'[A-Za-z0-9._-]{1,253}', parts[0]) or not re.fullmatch(r'[A-Za-z0-9._ $-]{1,80}', parts[1]):
+        raise ValueError('The address must look like smb://host/share')
+    return parts[0], parts[1], '/'.join(parts[2:])
+
+
+def connect_smb(address, user=None, password=None, runner=subprocess.run):
+    """Mount a network share read-only (installer, root) and return the transfer packages on it."""
+    host, share, folder = smb_parts(address)
+    if user is not None and not re.fullmatch(r'[A-Za-z0-9._@\\-]{1,80}', user):
+        raise ValueError('Invalid user name')
+    target = PACKAGE_MOUNT_BASE / ('smb-%s-%s' % (host, re.sub(r'[^A-Za-z0-9]', '_', share)))
+    target.mkdir(parents=True, exist_ok=True)
+    options = 'ro,nosuid,nodev,noexec' + (',username=' + user if user else ',guest')
+    environment = dict(os.environ)
+    if password:
+        # mount.cifs reads PASSWD from the environment: the password never appears in a command line or file.
+        environment['PASSWD'] = password
+    result = runner(['mount', '-t', 'cifs', '//%s/%s' % (host, share), str(target), '-o', options], capture_output=True, timeout=60, env=environment)
+    if result.returncode:
+        try:
+            target.rmdir()
+        except OSError:
+            pass
+        raise OSError(result.stderr.decode(errors='replace').strip() or 'Could not connect to the share')
+    base = target / folder if folder else target
+    hits = find_packages([base])
+    for hit in hits:
+        hit.update({'device': '//%s/%s' % (host, share), 'label': share, 'filesystem': 'cifs'})
+    if not hits:
+        runner(['umount', str(target)], capture_output=True, timeout=30)
+        try:
+            target.rmdir()
+        except OSError:
+            pass
+    return hits
 
 
 def package_manifest(package):

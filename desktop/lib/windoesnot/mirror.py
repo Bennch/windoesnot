@@ -380,12 +380,13 @@ def finder_module():
     return module
 
 
-def package_entries():
+def package_entries(found=None):
     """Transfer packages on external disks appear next to the old systems (device 'package:<folder>')."""
-    try:
-        found = finder_module().discover_packages()
-    except (OSError, ValueError, subprocess.SubprocessError, json.JSONDecodeError):
-        return []
+    if found is None:
+        try:
+            found = finder_module().discover_packages()
+        except (OSError, ValueError, subprocess.SubprocessError, json.JSONDecodeError):
+            return []
     return [{'device': 'package:' + hit['path'], 'filesystem': 'package', 'size': hit['bytes'], 'label': 'Umzugspaket %s · %s' % (hit['user'], hit['label'] or hit['device'])}
             for hit in found if hit['complete']]
 
@@ -772,6 +773,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='action', required=True)
     sub.add_parser('partitions')
+    smb = sub.add_parser('smb')
+    smb.add_argument('address')
+    smb.add_argument('--user')
+    smb.add_argument('--password-stdin', action='store_true')
     scan = sub.add_parser('scan')
     scan.add_argument('device')
     scan.add_argument('--secret-stdin', action='store_true')
@@ -784,6 +789,10 @@ def main():
     args = parser.parse_args()
     if args.action == 'partitions':
         print(json.dumps(partitions() + package_entries(), ensure_ascii=False))
+        return
+    if args.action == 'smb':
+        password = sys.stdin.readline().rstrip('\n') if args.password_stdin else None
+        print(json.dumps(package_entries(finder_module().connect_smb(args.address, args.user or None, password)), ensure_ascii=False))
         return
     if args.action == 'copy':
         with open(args.manifest, encoding='utf-8') as stream:

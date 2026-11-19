@@ -149,7 +149,7 @@ Rectangle {
                     function onDisksChanged() { Qt.callLater(diskBox.syncIndex) }
                 }
                 textRole: "display"
-                model: page.disks.map(function(d) { return { device: d.device, display: (d.system || (d.filesystem === "ntfs" || d.filesystem === "bitlocker" ? "Windows" : "Linux")) + " — " + d.device + (d.label ? " (" + d.label + ")" : "") }; })
+                model: page.disks.map(function(d) { return { device: d.device, display: d.filesystem === "package" ? d.label : (d.system || (d.filesystem === "ntfs" || d.filesystem === "bitlocker" ? "Windows" : "Linux")) + " — " + d.device + (d.label ? " (" + d.label + ")" : "") }; })
                 onActivated: {
                     if (page.bridge) {
                         page.bridge.scan(page.disks[currentIndex].device);
@@ -164,6 +164,36 @@ Rectangle {
                 implicitHeight: 32
             }
 
+            Button {
+                text: page.tr("Netzwerkfreigabe (SMB) …", "Network share (SMB) …")
+                onClicked: shareBox.visible = !shareBox.visible
+            }
+
+        }
+
+        Rectangle {
+            id: shareBox
+            visible: false
+            Layout.fillWidth: true; implicitHeight: shareColumn.implicitHeight + 20; radius: 8; color: "#141414"; border.color: "#3a3a3a"
+            ColumnLayout {
+                id: shareColumn
+                anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 10
+                spacing: 8
+                Label { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: "#aaaaaa"
+                    text: page.tr("Liegt das Umzugspaket auf einem NAS? Adresse der Freigabe, zum Beispiel smb://nas/umzug. Benutzer und Passwort nur, wenn die Freigabe sie verlangt.",
+                                  "Is the transfer package on a NAS? Address of the share, for example smb://nas/transfer. User and password only if the share asks for them.") }
+                TextField { id: shareAddress; Layout.fillWidth: true; placeholderText: "smb://nas/umzug" }
+                RowLayout {
+                    Layout.fillWidth: true
+                    TextField { id: shareUser; Layout.fillWidth: true; placeholderText: page.tr("Benutzer (optional)", "User (optional)") }
+                    TextField { id: sharePassword; Layout.fillWidth: true; echoMode: TextInput.Password; placeholderText: page.tr("Passwort (optional)", "Password (optional)") }
+                }
+                Button {
+                    text: page.tr("Verbinden und suchen", "Connect and search")
+                    enabled: shareAddress.text.length > 0 && !(page.bridge && page.bridge.busy)
+                    onClicked: if (page.bridge) { page.bridge.connectShare(shareAddress.text, shareUser.text, sharePassword.text); sharePassword.text = "" }
+                }
+            }
         }
 
         Rectangle {
