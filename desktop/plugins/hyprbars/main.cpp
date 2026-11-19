@@ -167,6 +167,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     g_pGlobalState->nobarRuleIdx      = Desktop::Rule::windowEffects()->registerEffect("hyprbars:no_bar");
     g_pGlobalState->barColorRuleIdx   = Desktop::Rule::windowEffects()->registerEffect("hyprbars:bar_color");
     g_pGlobalState->titleColorRuleIdx = Desktop::Rule::windowEffects()->registerEffect("hyprbars:title_color");
+    g_pGlobalState->dragGripRuleIdx   = Desktop::Rule::windowEffects()->registerEffect("hyprbars:drag_grip");
 
     static auto P  = Event::bus()->m_events.window.open.listen([&](PHLWINDOW w) { onNewWindow(w); });
     static auto P3 = Event::bus()->m_events.window.updateRules.listen([&](PHLWINDOW w) { onUpdateWindowRules(w); });
@@ -249,4 +250,5 @@ APICALL EXPORT void PLUGIN_EXIT() {
     Desktop::Rule::windowEffects()->unregisterEffect(g_pGlobalState->barColorRuleIdx);
     Desktop::Rule::windowEffects()->unregisterEffect(g_pGlobalState->titleColorRuleIdx);
     Desktop::Rule::windowEffects()->unregisterEffect(g_pGlobalState->nobarRuleIdx);
+    Desktop::Rule::windowEffects()->unregisterEffect(g_pGlobalState->dragGripRuleIdx);
 }

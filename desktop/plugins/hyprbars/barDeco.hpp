@@ -65,6 +65,13 @@ class CHyprBar : public IHyprWindowDecoration {
 
     bool                       m_bWindowSizeChanged = false;
     bool                       m_hidden             = false;
+    // Apps that draw their own title bar (Steam, Discord ...) run with the bar hidden. "hyprbars:drag_grip <px>"
+    // turns the top <px> of such a window into an invisible drag handle: clicks still reach the app, but moving the
+    // pointer while the button is held drags the window (the app cannot ask the compositor to do that itself).
+    int                        m_gripHeight         = 0;
+    bool                       m_bGripPending       = false;
+    Vector2D                   m_gripStart;
+    bool                       gripHit(Vector2D* local = nullptr);
     bool                       m_bTitleColorChanged = false;
     bool                       m_bButtonHovered     = false;
     bool                       m_bBarHovered        = false;

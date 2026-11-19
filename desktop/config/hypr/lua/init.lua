@@ -81,7 +81,7 @@ end
 for _, rule in ipairs(reference.rules) do
     local copy = {}
     for key, value in pairs(rule) do
-        if key ~= "hyprbars:no_bar" or hasBars then
+        if not tostring(key):find("^hyprbars:") or hasBars then
             if value == "__primary__" then value = primary ~= "" and primary or nil end
             copy[key] = value
         end

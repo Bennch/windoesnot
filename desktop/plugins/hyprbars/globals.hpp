@@ -31,6 +31,7 @@ struct SGlobalState {
     uint32_t                  nobarRuleIdx      = 0;
     uint32_t                  barColorRuleIdx   = 0;
     uint32_t                  titleColorRuleIdx = 0;
+    uint32_t                  dragGripRuleIdx   = 0;
 
     struct {
         SP<Config::Values::CColorValue>      barColor, barColorInactive, textColor, inactiveButtonColor, buttonHoverBgColor;

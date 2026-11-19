@@ -111,7 +111,7 @@ std::string CHyprBar::getDisplayName() {
 }
 
 bool CHyprBar::inputIsValid() {
-    if (!g_pGlobalState->config.enabled->value() || m_hidden)
+    if (!g_pGlobalState->config.enabled->value() || (m_hidden && m_gripHeight <= 0))
         return false;
 
     if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(m_pWindow->wlSurface()->resource()))
@@ -147,6 +147,16 @@ bool CHyprBar::inputIsValid() {
         return false;
 
     return true;
+}
+
+bool CHyprBar::gripHit(Vector2D* local) {
+    const auto PWINDOW = m_pWindow.lock();
+    if (!PWINDOW || !m_hidden || m_gripHeight <= 0)
+        return false;
+    const Vector2D REL = g_pInputManager->getMouseCoordsInternal() - PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+    if (local)
+        *local = REL;
+    return REL.x >= 0 && REL.y >= 0 && REL.x < PWINDOW->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT).x && REL.y < m_gripHeight;
 }
 
 void CHyprBar::onMouseButton(Event::SCallbackInfo& info, IPointer::SButtonEvent e) {
@@ -229,6 +239,15 @@ void CHyprBar::onMouseMove(Vector2D coords) {
     else
         g_pInputManager->restoreCursorIconToApp();
 
+    if (m_bGripPending && validMapped(m_pWindow)) {
+        // A small slop keeps a plain click on the app's own buttons a click.
+        if ((g_pInputManager->getMouseCoordsInternal() - m_gripStart).size() > 8.0) {
+            m_bGripPending = false;
+            handleMovement();
+        }
+        return;
+    }
+
     if (!m_bDragPending || m_bTouchEv || !validMapped(m_pWindow) || m_touchId != 0)
         return;
 
@@ -270,6 +289,13 @@ void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch:
         }
         PMONITOR = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
         COORDS   = Vector2D(PMONITOR->m_position.x + e.pos.x * PMONITOR->m_size.x, PMONITOR->m_position.y + e.pos.y * PMONITOR->m_size.y) - assignedBoxGlobal().pos();
+    }
+
+    if (m_hidden) {
+        // Drag handle of a window with its own title bar: remember the press, never swallow it.
+        m_bGripPending = !m_bTouchEv && gripHit() && !PWINDOW->hasPopupAt(g_pInputManager->getMouseCoordsInternal());
+        m_gripStart    = g_pInputManager->getMouseCoordsInternal();
+        return;
     }
 
     const auto HEIGHT           = g_pGlobalState->config.barHeight->value();
@@ -335,6 +361,7 @@ void CHyprBar::handleDownEvent(Event::SCallbackInfo& info, std::optional<ITouch:
 }
 
 void CHyprBar::handleUpEvent(Event::SCallbackInfo& info) {
+    m_bGripPending = false;
     if (m_pWindow.lock() != Desktop::focusState()->window())
         return;
 
@@ -789,6 +816,12 @@ void CHyprBar::updateRules() {
 
     if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->nobarRuleIdx))
         m_hidden = truthy(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->nobarRuleIdx)->effect);
+    m_gripHeight = 0;
+    if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->dragGripRuleIdx)) {
+        try {
+            m_gripHeight = std::clamp(std::stoi(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->dragGripRuleIdx)->effect), 0, 200);
+        } catch (...) { m_gripHeight = 0; }
+    }
     if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->barColorRuleIdx))
         m_bForcedBarColor = CHyprColor(Config::ParserUtils::parseColor(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->barColorRuleIdx)->effect).value_or(0));
     if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->titleColorRuleIdx))
