@@ -524,7 +524,14 @@ def find_packages(roots):
     for base in roots:
         base = Path(base)
         try:
-            candidates = [base] + [c for c in sorted(base.iterdir()) if c.is_dir()]
+            children = [c for c in sorted(base.iterdir()) if c.is_dir()]
+            candidates = [base] + children
+            for child in children:
+                # The user may have picked a sub folder of the disk as the target.
+                try:
+                    candidates += [g for g in sorted(child.iterdir()) if g.is_dir()]
+                except OSError:
+                    continue
         except OSError:
             continue
         for candidate in candidates:
@@ -563,9 +570,8 @@ def import_package(package, target_home, target_root='/', uid=None, gid=None, on
             continue
         if item['kind'] == 'home' and uid is not None:
             own_parents(target, item['paths'], uid, gid)
-            if uid != old['uid'] or gid != old['gid']:
-                for rel in item['paths']:
-                    remap_owner(target / rel, old['uid'], old['gid'], uid, gid)
+            for rel in item['paths']:
+                remap_owner(target / rel, old['uid'], old['gid'], uid, gid)
         done.append(item['id'])
     return {'copied': done, 'problems': problems}
 
@@ -707,14 +713,16 @@ def own_parents(home, paths, uid, gid):
 
 
 def remap_owner(path, old_uid, old_gid, uid, gid):
-    """The new account may have another numeric id than the old one."""
+    """The new account may have another numeric id than the old one; things in the old home that belonged to root
+    (a mount point, a file made with sudo) are the user's in the new home, otherwise they could not be changed."""
+    owners, groups = {old_uid, 0}, {old_gid, 0}
     stack = [str(path)]
     while stack:
         current = stack.pop()
         try:
             info = os.lstat(current)
-            if info.st_uid == old_uid or info.st_gid == old_gid:
-                os.lchown(current, uid if info.st_uid == old_uid else -1, gid if info.st_gid == old_gid else -1)
+            if info.st_uid in owners or info.st_gid in groups:
+                os.lchown(current, uid if info.st_uid in owners else -1, gid if info.st_gid in groups else -1)
             if stat.S_ISDIR(info.st_mode):
                 stack.extend(entry.path for entry in os.scandir(current))
         except OSError:

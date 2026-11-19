@@ -93,4 +93,22 @@ with tempfile.TemporaryDirectory() as tmp:
     with mock.patch.object(f.os, 'lstat', fake_lstat), mock.patch.object(f.os, 'lchown', lambda p, u, g: owned.append((str(p), u, g))):
         f.own_parents(home, ['.config/Code/User'], 1234, 1234)
     assert owned == [(str(home / '.config'), 1234, 1234)], owned
+# Things root owned in the old home are handed to the new user too.
+with tempfile.TemporaryDirectory() as tmp:
+    sample = Path(tmp) / 'Daten'
+    write(sample / 'mounted.txt', 'x')
+    real = os.lstat
+    def root_owned(path, *a, **k):
+        info = real(path, *a, **k)
+        return os.stat_result((info.st_mode, info.st_ino, info.st_dev, info.st_nlink, 0, 0, info.st_size, 0, 0, 0))
+    changed = []
+    with mock.patch.object(f.os, 'lstat', root_owned), mock.patch.object(f.os, 'lchown', lambda p, u, g: changed.append((Path(p).name, u, g))):
+        f.remap_owner(sample, 1000, 1000, 2000, 2000)
+    assert ('Daten', 2000, 2000) in changed and ('mounted.txt', 2000, 2000) in changed, changed
+# A package two folders below the mount point (a sub folder picked as target) is found as well.
+with tempfile.TemporaryDirectory() as tmp:
+    deep = Path(tmp) / 'disk/transfers/Umzug-x'
+    (deep / 'data').mkdir(parents=True)
+    (deep / f.PACKAGE_MARKER).write_text('{"schema": 3, "kind": "package", "complete": true, "created": 1, "source": {"user": {"name": "anna"}}, "findings": [{"bytes": 1}]}')
+    assert [p['path'] for p in f.find_packages([Path(tmp) / 'disk'])] == [str(deep)]
 print('PASS finder package')
