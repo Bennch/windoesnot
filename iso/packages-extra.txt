@@ -154,3 +154,4 @@ wtype
 gnome-disk-utility
 gnome-logs
 gnome-power-manager
+papers

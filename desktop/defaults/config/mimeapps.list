@@ -6,8 +6,8 @@ image/webp=org.gnome.Loupe.desktop
 image/svg+xml=org.gnome.Loupe.desktop
 image/bmp=org.gnome.Loupe.desktop
 image/tiff=org.gnome.Loupe.desktop
-application/pdf=evince.desktop
-text/plain=gedit.desktop
+application/pdf=org.gnome.Papers.desktop
+text/plain=org.gnome.TextEditor.desktop
 text/html=firefox.desktop
 x-scheme-handler/http=firefox.desktop
 x-scheme-handler/https=firefox.desktop
@@ -15,4 +15,4 @@ x-scheme-handler/https=firefox.desktop
 [Added Associations]
 image/png=org.gnome.Loupe.desktop;firefox.desktop;
 image/jpeg=org.gnome.Loupe.desktop;firefox.desktop;
-application/pdf=evince.desktop;org.gnome.Evince.desktop;firefox.desktop;
+application/pdf=org.gnome.Papers.desktop;firefox.desktop;
