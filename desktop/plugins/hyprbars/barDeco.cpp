@@ -225,7 +225,7 @@ void CHyprBar::onMouseMove(Vector2D coords) {
         if (const auto W = m_pWindow.lock()) {
             const Vector2D REL = g_pInputManager->getMouseCoordsInternal() - W->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
             const double   WIDTH = W->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT).x;
-            overMaximize = REL.y >= 0 && REL.y <= 34 && REL.x >= WIDTH - 70 && REL.x <= WIDTH - 30;
+            overMaximize = REL.y >= 0 && REL.y <= m_maxHeight && std::abs(REL.x - (WIDTH - m_maxCenter)) <= 20;
         }
     }
     if (overMaximize && !m_bMaxLayoutHover) {
@@ -834,8 +834,19 @@ void CHyprBar::updateRules() {
         m_hidden = truthy(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->nobarRuleIdx)->effect);
     m_gripHeight = 0;
     if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->dragGripRuleIdx)) {
+        // "<grip height>[,<maximize button centre from the right>[,<zone height>]]"
+        const std::string VALUE = PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->dragGripRuleIdx)->effect;
         try {
-            m_gripHeight = std::clamp(std::stoi(PWINDOW->m_ruleApplicator->m_otherProps.props.at(g_pGlobalState->dragGripRuleIdx)->effect), 0, 200);
+            size_t first = VALUE.find(',');
+            m_gripHeight = std::clamp(std::stoi(VALUE.substr(0, first)), 0, 200);
+            m_maxCenter  = 50;
+            m_maxHeight  = 34;
+            if (first != std::string::npos) {
+                size_t second = VALUE.find(',', first + 1);
+                m_maxCenter   = std::clamp(std::stoi(VALUE.substr(first + 1, second == std::string::npos ? std::string::npos : second - first - 1)), 10, 400);
+                if (second != std::string::npos)
+                    m_maxHeight = std::clamp(std::stoi(VALUE.substr(second + 1)), 10, 200);
+            }
         } catch (...) { m_gripHeight = 0; }
     }
     if (PWINDOW->m_ruleApplicator->m_otherProps.props.contains(g_pGlobalState->barColorRuleIdx))

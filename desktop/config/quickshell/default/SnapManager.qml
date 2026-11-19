@@ -63,7 +63,7 @@ Item {
     // Apps that draw their own title bar run without our bar (hyprbars:no_bar, see reference.lua "*-no-bar" rules), so
     // their snap rectangles must not reserve room for it. Keep this list in sync with those rules
     // (tests/test-snap-own-bar-list.py checks it).
-    readonly property var ownBarClasses: ["steam", "discord", "vesktop", "legcord", "webcord", "armcord"]
+    readonly property var ownBarClasses: ["steam", "discord", "vesktop", "legcord", "webcord", "armcord", "zoom"]
     function hasOurBar(windowInfo) {
         var cls = windowInfo && windowInfo.class ? ("" + windowInfo.class).toLowerCase() : ""
         return ownBarClasses.indexOf(cls) < 0

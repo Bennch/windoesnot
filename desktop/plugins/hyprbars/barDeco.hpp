@@ -69,6 +69,8 @@ class CHyprBar : public IHyprWindowDecoration {
     // turns the top <px> of such a window into an invisible drag handle: clicks still reach the app, but moving the
     // pointer while the button is held drags the window (the app cannot ask the compositor to do that itself).
     int                        m_gripHeight         = 0;
+    int                        m_maxCenter          = 50;      // own maximize button: centre, px from the right edge
+    int                        m_maxHeight          = 34;      // and the height of the zone around it
     bool                       m_bCursorFromBar     = false;   // this bar set the diagonal resize cursor
     bool                       m_bGripPending       = false;
     Vector2D                   m_gripStart;

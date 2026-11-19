@@ -25,8 +25,8 @@
         "Store: Der Installieren-Knopf sperrt sich, solange eine App in der Warteschlange ist oder installiert wird; Namen und Symbole stimmen gleich nach dem ersten Start; optimierte Paketvarianten für deinen Prozessor zählen nicht mehr als Updates, und für eine App werden nicht hunderte davon geladen.",
         "Startmenü: Desktop anzeigen funktioniert wieder; Datenträgerverwaltung, Ereignisanzeige und Energieanzeige sind dabei; Papers öffnet PDF-Dateien.",
         "Fenster im Schwebe-Modus: Snappen reagiert sofort auf jede Mausbewegung, die Vorschau folgt dem Zeiger und lässt etwas mehr Zeit zum Loslassen; Fenster springen danach schneller auf ihren Platz.",
-        "Neues Layout-Menü am Maximieren-Knopf wie in Windows 11: sechs Anordnungen mit einzeln anklickbaren Bereichen, die im Akzent aufleuchten. Auch bei Apps mit eigener Titelleiste wie Steam und Discord.",
-        "Steam und Discord: lassen sich wieder an ihrer eigenen Leiste ziehen, Minimieren und Maximieren funktionieren (auch zum Zurückschalten), ein Klick auf das Steam-Symbol im Tray öffnet Steam.",
+        "Neues Layout-Menü am Maximieren-Knopf wie in Windows 11: sechs Anordnungen mit einzeln anklickbaren Bereichen, die im Akzent aufleuchten. Auch bei Apps mit eigener Titelleiste wie Steam, Discord und Zoom.",
+        "Steam, Discord und Zoom: lassen sich wieder an ihrer eigenen Leiste ziehen, Minimieren und Maximieren funktionieren (auch zum Zurückschalten), ein Klick auf das Steam-Symbol im Tray öffnet Steam.",
         "Ränder: Seitliches Ziehen ändert nur die Breite, unten nur die Höhe, die Ecken beides; die Pfeile bleiben beim Darüberfahren sichtbar. Nebeneinander gesnappte Fenster folgen der gemeinsamen Kante sofort.",
         "Behoben: Updates und Installationen brachen auf Systemen mit GRUB, rEFInd oder Limine ab (Limine wird jetzt nur noch bei UEFI angeboten); die Schalter für Feiertage und Kalenderwochen reagierten nicht; Höchstleistung wurde nicht angeboten; das Nearby-Fenster war oben abgeschnitten; Does meldet jetzt, wenn es noch nicht eingerichtet ist; die Netzwerk-App hat nur noch einen Schließen-Knopf."
       ],
@@ -51,8 +51,8 @@
         "Store: the Install button locks while an app is queued or installing; names and icons appear correctly right after the first start; optimized builds for your processor no longer count as updates, and installing one app does not download hundreds of them.",
         "Start menu: Show desktop works again; Disk Management, Event Viewer and Power Statistics ship with the system; Papers opens PDF files.",
         "Windows in floating mode: snapping reacts to every pointer motion, the preview follows the pointer and leaves a little more time to let go; windows then jump into place faster.",
-        "New layout menu on the maximize button like in Windows 11: six arrangements with individually clickable zones that light up in the accent colour. It also works for apps with their own title bar such as Steam and Discord.",
-        "Steam and Discord: can be dragged by their own bar again, minimize and maximize work (including toggling back), a click on the Steam tray icon opens Steam.",
+        "New layout menu on the maximize button like in Windows 11: six arrangements with individually clickable zones that light up in the accent colour. It also works for apps with their own title bar such as Steam, Discord and Zoom.",
+        "Steam, Discord and Zoom: can be dragged by their own bar again, minimize and maximize work (including toggling back), a click on the Steam tray icon opens Steam.",
         "Edges: dragging a side edge changes only the width, the bottom edge only the height, the corners both; the arrows stay visible while hovering. Windows snapped side by side follow the shared edge immediately.",
         "Fixed: updates and installs aborted on systems with GRUB, rEFInd or Limine (Limine is now offered on UEFI only); the holiday and week number switches did not respond; Performance mode was not offered; the Nearby window was cut off at the top; Does now says when it is not set up yet; the Network app has a single close button."
       ]
