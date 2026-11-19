@@ -78,4 +78,19 @@ with tempfile.TemporaryDirectory() as tmp:
     sample = Path(tmp) / 'owner'
     write(sample / 'a', 'x')
     f.remap_owner(sample, -12345, -12345, os.getuid(), os.getgid())   # nothing matches: must not fail
+# Folders tar creates above an extracted path (root-owned in the installer) are handed to the new user.
+from unittest import mock
+with tempfile.TemporaryDirectory() as tmp:
+    home = Path(tmp)
+    (home / '.config/Code').mkdir(parents=True)
+    real = os.lstat
+    def fake_lstat(path, *a, **k):
+        info = real(path, *a, **k)
+        if str(path).endswith('/.config'):
+            return os.stat_result((info.st_mode, info.st_ino, info.st_dev, info.st_nlink, 0, 0, info.st_size, 0, 0, 0))
+        return info
+    owned = []
+    with mock.patch.object(f.os, 'lstat', fake_lstat), mock.patch.object(f.os, 'lchown', lambda p, u, g: owned.append((str(p), u, g))):
+        f.own_parents(home, ['.config/Code/User'], 1234, 1234)
+    assert owned == [(str(home / '.config'), 1234, 1234)], owned
 print('PASS finder package')

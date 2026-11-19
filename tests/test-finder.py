@@ -45,6 +45,7 @@ with tempfile.TemporaryDirectory() as tmp:
     write(home / 'Projects/app/docs/notes.md', 'private notes')
     write(home / 'Stuff/loose.txt', 'x')
     write(home / 'notes.txt', 'n')
+    os.link(home / 'notes.txt', home / 'notes-link.txt')
     write(home / '.bashrc', 'alias')
     write(old / 'opt/tool/bin', 'tool')
     f.IGNORED_BIG = 2000
@@ -83,6 +84,7 @@ with tempfile.TemporaryDirectory() as tmp:
     assert (new_home / '.local/share/Steam/userdata/1/save').exists() and not (new_home / '.local/share/Steam/steamapps').exists()
     assert (new_root / 'opt/tool/bin').read_text() == 'tool'
     assert (new_home / 'notes.txt').exists() and (new_home / '.bashrc').exists()
+    assert (new_home / 'notes.txt').stat().st_ino == (new_home / 'notes-link.txt').stat().st_ino, 'hard links inside a finding are kept'
     # A forged manifest cannot escape.
     items['ssh']['paths'] = ['../../etc']
     try:

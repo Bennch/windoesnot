@@ -419,18 +419,23 @@ def copy(manifest, target_home, target_root='/', progress=None):
         for rel in item['paths']:
             if rel.startswith('/') != absolute or '..' in Path(rel).parts:
                 raise ValueError('Unsafe path in finding ' + item['id'])
-            if absolute:
+        if absolute:
+            calls = []
+            for rel in item['paths']:
                 source, destination = root / rel.lstrip('/'), target_root / rel.lstrip('/')
                 destination.mkdir(parents=True, exist_ok=True)
-                args = ['rsync', '-aHAXS', '--numeric-ids', '--no-specials', '--no-devices', '--', str(source) + '/', str(destination) + '/']
-            else:
-                nested = [p[len(rel) + 1:] for p in unselected_paths if p.startswith(rel + '/')]
-                args = ['rsync', '-aHAXS', '--numeric-ids', '--no-specials', '--no-devices', '--relative']
-                args += ['--exclude=/' + rel + '/' + n for n in nested]
-                args += ['--', './' + rel, str(target_home) + '/']
-            result = subprocess.run(args, cwd=None if absolute else source_home, capture_output=True)
+                calls.append((['rsync', '-aHAXS', '--numeric-ids', '--no-specials', '--no-devices', '--', str(source) + '/', str(destination) + '/'], None))
+        else:
+            # One call for every path of the finding: only inside one rsync run are hard links kept together.
+            nested = [p for p in unselected_paths if any(p.startswith(rel + '/') for rel in item['paths'])]
+            args = ['rsync', '-aHAXS', '--numeric-ids', '--no-specials', '--no-devices', '--relative']
+            args += ['--exclude=/' + n for n in nested]
+            args += ['--'] + ['./' + rel for rel in item['paths']] + [str(target_home) + '/']
+            calls = [(args, source_home)]
+        for args, cwd in calls:
+            result = subprocess.run(args, cwd=cwd, capture_output=True)
             if result.returncode not in (0, 24):
-                problems.append({'id': item['id'], 'path': rel, 'error': result.stderr.decode(errors='replace')[-300:]})
+                problems.append({'id': item['id'], 'path': ','.join(item['paths'])[:200], 'error': result.stderr.decode(errors='replace')[-300:]})
         done.append(item['id'])
     return {'copied': done, 'problems': problems}
 
@@ -556,9 +561,11 @@ def import_package(package, target_home, target_root='/', uid=None, gid=None, on
         if result.returncode:
             problems.append({'id': item['id'], 'error': result.stderr.decode(errors='replace')[-300:]})
             continue
-        if item['kind'] == 'home' and uid is not None and (uid != old['uid'] or gid != old['gid']):
-            for rel in item['paths']:
-                remap_owner(target / rel, old['uid'], old['gid'], uid, gid)
+        if item['kind'] == 'home' and uid is not None:
+            own_parents(target, item['paths'], uid, gid)
+            if uid != old['uid'] or gid != old['gid']:
+                for rel in item['paths']:
+                    remap_owner(target / rel, old['uid'], old['gid'], uid, gid)
         done.append(item['id'])
     return {'copied': done, 'problems': problems}
 
@@ -682,6 +689,21 @@ def package_manifest(package):
             'locations': [{'id': f['id'], 'kind': 'finding', 'path': '/' + f['id'], 'label': title(f) + (' (Zugangsdaten)' if f.get('secrets') else ''), 'bytes': f['bytes'],
                            'warnings': [], 'selected': f['group'] != 'rebuildable'} for f in findings],
             'packages': {}, 'services': [], 'warnings': []}
+
+
+def own_parents(home, paths, uid, gid):
+    """tar creates the folders above an extracted path as the extracting user (root in the installer): hand them to the new user."""
+    home = Path(home)
+    for rel in paths:
+        current = home
+        for part in Path(rel).parts[:-1]:
+            current = current / part
+            try:
+                info = os.lstat(current)
+                if stat.S_ISDIR(info.st_mode) and info.st_uid == 0 and uid != 0:
+                    os.lchown(current, uid, gid)
+            except OSError:
+                break
 
 
 def remap_owner(path, old_uid, old_gid, uid, gid):
