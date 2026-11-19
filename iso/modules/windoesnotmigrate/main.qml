@@ -20,7 +20,11 @@ Rectangle {
         for (var p of plan.profiles || []) for (var item of p.items || []) if (item.selected) {
             sum += item.bytes;
         }
-        for (var u of plan.users || []) if (u.selected) sum += u.bytes || 0;
+        for (var u of plan.users || []) if (u.selected) {
+            sum += u.bytes || 0;
+            for (var f of u.folders || []) if ((u.exclude || []).indexOf(f.name) >= 0) sum -= f.bytes;
+        }
+        for (var l of plan.locations || []) if (l.selected) sum += l.bytes || 0;
         return sum;
     }
 
@@ -334,7 +338,7 @@ Rectangle {
                         model: page.plan.users || []
                         delegate: Rectangle {
                             Layout.fillWidth: true; implicitHeight: linuxUser.implicitHeight + 20; radius: 8; color: "#141414"; border.color: "#3a3a3a"
-                            ColumnLayout { id: linuxUser; anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 10
+                            ColumnLayout { id: linuxUser; property var userData: modelData; property int userIndex: index; anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 10
                                 Label { color: "#eeeeee"; font.bold: true; text: modelData.name + " · " + page.size(modelData.bytes) }
                                 RadioButton { checked: !!modelData.selected; enabled: !page.skipped
                                     text: page.tr("Home (alles inklusive versteckter Dateien)", "Home (everything including hidden files)")
@@ -342,7 +346,27 @@ Rectangle {
                                     onClicked: if (page.bridge) page.bridge.setLinuxUser(index, true)
                                 }
                                 Label { visible: modelData.warnings && modelData.warnings.length > 0; color: "#f3c99d"; text: (modelData.warnings || []).join(", ") }
+                                Label { visible: !!modelData.selected && (modelData.folders || []).length > 0; color: "#aaaaaa"; Layout.fillWidth: true; wrapMode: Text.WordWrap
+                                    text: page.tr("Große Ordner (abwählen, was auf der alten Platte bleiben soll):", "Large folders (untick what should stay on the old disk):") }
+                                Repeater {
+                                    model: linuxUser.userData.selected ? (linuxUser.userData.folders || []) : []
+                                    delegate: CheckBox { enabled: !page.skipped; checked: (linuxUser.userData.exclude || []).indexOf(modelData.name) < 0
+                                        text: modelData.name + " · " + page.size(modelData.bytes)
+                                        contentItem: Text { text: parent.text; font: parent.font; color: "#eeeeee"; leftPadding: parent.indicator.width + parent.spacing; verticalAlignment: Text.AlignVCenter }
+                                        onClicked: if (page.bridge) page.bridge.setHomeFolder(linuxUser.userIndex, modelData.name, checked)
+                                    }
+                                }
                             }
+                        }
+                    }
+                    Label { visible: (page.plan.locations || []).length > 0; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: "#aaaaaa"
+                        text: page.tr("Weitere Daten der alten Installation (landen am gleichen Ort):", "More data of the old installation (copied to the same place):") }
+                    Repeater {
+                        model: page.plan.locations || []
+                        delegate: CheckBox { enabled: !page.skipped; checked: !!modelData.selected
+                            text: modelData.label + " (" + modelData.path + ") · " + page.size(modelData.bytes)
+                            contentItem: Text { text: parent.text; font: parent.font; color: "#eeeeee"; wrapMode: Text.WordWrap; leftPadding: parent.indicator.width + parent.spacing; verticalAlignment: Text.AlignVCenter }
+                            onClicked: if (page.bridge) page.bridge.setLinuxLocation(modelData.id, checked)
                         }
                     }
                     Repeater {

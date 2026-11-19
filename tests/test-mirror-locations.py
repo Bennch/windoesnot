@@ -39,4 +39,18 @@ with tempfile.TemporaryDirectory() as tmp:
     forged = {'source_root': str(src), 'locations': [{'id': 'opt', 'path': '/etc', 'selected': False},
                                                      {'id': 'evil', 'path': '/etc', 'selected': True}]}
     assert m.copy_locations(forged, other) == [] and not any(other.iterdir())
+# Big top-level home folders are reported one by one so they can be left out.
+with tempfile.TemporaryDirectory() as tmp:
+    src = Path(tmp) / 'src'
+    (src / 'home/old/Big').mkdir(parents=True)
+    (src / 'home/old/Small').mkdir()
+    (src / 'home/old/Big/f').write_bytes(b'x' * 500)
+    (src / 'home/old/Small/f').write_bytes(b'x' * 5)
+    (src / 'home/old/r').write_bytes(b'y' * 7)
+    (src / 'etc').mkdir()
+    (src / 'etc/passwd').write_text('old:x:1000:1000::/home/old:/bin/sh\n')
+    m.BIG_FOLDER = 100
+    user = m.scan_tree(src)['users'][0]
+    assert user['bytes'] == 512 and user['exclude'] == []
+    assert user['folders'] == [{'name': 'Big', 'bytes': 500}], user['folders']
 print('PASS mirror locations')

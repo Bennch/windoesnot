@@ -189,6 +189,33 @@ def scan_locations(root):
     return found
 
 
+BIG_FOLDER = 1 << 30
+
+
+def measure_home(path):
+    """Size of a home folder in one pass, plus its top-level folders of 1 GiB or more so single ones can be left out."""
+    total, flags, folders = 0, set(), []
+    try:
+        children = sorted(path.iterdir())
+    except OSError:
+        return 0, ['unreadable'], []
+    for child in children:
+        try:
+            info = child.lstat()
+            if stat.S_ISREG(info.st_mode):
+                total += info.st_size
+            elif stat.S_ISDIR(info.st_mode):
+                size, child_flags = measure(child)
+                total += size
+                flags.update(child_flags)
+                if size >= BIG_FOLDER:
+                    folders.append({'name': child.name, 'bytes': size})
+        except OSError:
+            flags.add('unreadable')
+    folders.sort(key=lambda item: -item['bytes'])
+    return total, sorted(flags), folders
+
+
 def scan_tree(root, device='fixture', filesystem='ext4'):
     root = Path(root).resolve(strict=True)
     values = {}
@@ -210,9 +237,9 @@ def scan_tree(root, device='fixture', filesystem='ext4'):
             path = safe_path(root, home.lstrip('/'))
             if not path.is_dir():
                 warnings.append('home_missing:' + parts[0]); continue
-            size, flags = measure(path)
+            size, flags, folders = measure_home(path)
             users.append({'name': parts[0], 'uid': int(parts[2]), 'gid': int(parts[3]),
-                          'home': home, 'bytes': size, 'warnings': flags})
+                          'home': home, 'bytes': size, 'warnings': flags, 'folders': folders, 'exclude': []})
             apps = safe_path(root, path.relative_to(root) / '.local/share/flatpak/app')
             if apps.is_dir():
                 flatpak.update(p.name for p in apps.iterdir() if not p.is_symlink() and p.is_dir())

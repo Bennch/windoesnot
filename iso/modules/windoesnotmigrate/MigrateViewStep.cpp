@@ -147,6 +147,21 @@ public:
         }
         m_manifest = QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Compact)); emit changed();
     }
+    Q_INVOKABLE void setLinuxLocation(const QString& id, bool selected) {
+        auto root = QJsonDocument::fromJson(m_manifest.toUtf8()).object(); auto locations = root.value("locations").toArray();
+        for (int i = 0; i < locations.size(); ++i) { auto item = locations[i].toObject(); if (item.value("id").toString() == id) { item.insert("selected", selected); locations[i] = item; } }
+        root.insert("locations", locations); m_manifest = QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Compact)); emit changed();
+    }
+    // A big top-level home folder can be left out; it stays on the old disk.
+    Q_INVOKABLE void setHomeFolder(int index, const QString& name, bool included) {
+        auto root = QJsonDocument::fromJson(m_manifest.toUtf8()).object(); auto users = root.value("users").toArray();
+        if (index < 0 || index >= users.size() || name.isEmpty() || name.contains(QLatin1Char('/'))) return;
+        auto user = users[index].toObject(); QJsonArray exclude;
+        for (const auto& value : user.value("exclude").toArray()) if (value.toString() != name) exclude.append(value);
+        if (!included) exclude.append(name);
+        user.insert("exclude", exclude); users[index] = user;
+        root.insert("users", users); m_manifest = QString::fromUtf8(QJsonDocument(root).toJson(QJsonDocument::Compact)); emit changed();
+    }
     Q_INVOKABLE void setSkipped(bool skipped) { m_skip = skipped; emit changed(); }
     Q_INVOKABLE void setWlanSelected(bool selected) {
         auto document = QJsonDocument::fromJson(m_manifest.toUtf8());
