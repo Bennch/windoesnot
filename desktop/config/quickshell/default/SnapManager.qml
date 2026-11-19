@@ -79,6 +79,10 @@ Item {
     property int cursorUnchangedCount: 0
     property int zoneStableCount: 0  // Track how long zone has been stable
     property double lastPosEvent: 0  // Date.now() of the last hyprdrag-pos event
+    // True once the hyprdrag plugin streams positions: movestart/movestop are then exact and the guessing fallbacks below
+    // stay off. They ended drags early (a window pushed against a screen edge stops moving while the pointer still does,
+    // which looked like a release exactly when dragging up to maximize or sideways to tile) and snapped from stale data.
+    property bool eventDriven: false
     property string pendingNewWindowAddress: ""
 
     // In floating mode new clients are centred by the rule in Hyprland.  This
@@ -174,6 +178,8 @@ Item {
                 var px = parseFloat(pp[0]), py = parseFloat(pp[1])
                 if (isNaN(px) || isNaN(py)) return
                 snapManager.lastPosEvent = Date.now()
+                snapManager.eventDriven = true
+                dragSafetyTimer.restart()   // a long drag is fine as long as the pointer keeps moving
                 snapManager.cachedCursorPos = { x: px, y: py }
                 if (snapManager.cachedMonitors) snapManager.updateZoneAt(px, py, snapManager.cachedMonitors)
                 else if (!monitorQueryProc.running) monitorQueryProc.running = true
@@ -499,7 +505,7 @@ Item {
                     if (windowMoved) {
                         // Event-free fallback for a titlebar drag. Start the
                         // same preview/drop flow used by hyprdrag events.
-                        if (!snapManager.isDragging && !snapManager.snapCooldown && cursorOnTitlebar) {
+                        if (!snapManager.eventDriven && !snapManager.isDragging && !snapManager.snapCooldown && cursorOnTitlebar) {
                             console.log("Snap fallback: detected floating window movement")
                             snapManager.isDragging = true
                             snapManager.activeWindowAddress = addr
@@ -519,7 +525,7 @@ Item {
                     // 400 ms keeps edge drops responsive while leaving time to look at the preview and let go.
                     // If cursor has been stationary for 200 ms while drag is active, treat
                     // it as a drop — the user almost certainly released the mouse button.
-                    if (snapManager.isDragging && snapManager.cursorUnchangedCount >= 4) {
+                    if (!snapManager.eventDriven && snapManager.isDragging && snapManager.cursorUnchangedCount >= 4) {
                         snapManager.isDragging = false
                         dragPollTimer.running = false
 
@@ -582,7 +588,7 @@ Item {
                     // During a real drag, cursor movement always moves the window.
                     // If the window has been stationary for 200 ms while the cursor
                     // is actively moving, the user almost certainly released the mouse.
-                    if (snapManager.isDragging &&
+                    if (!snapManager.eventDriven && snapManager.isDragging &&
                             snapManager.unchangedCount >= 2 &&
                             snapManager.cursorUnchangedCount === 0) {
                         console.log("Window-stopped-but-cursor-moving fallback: ending drag")
