@@ -2,6 +2,41 @@
 
 Generated from `packaging/changelog.json` (newest first). Releases with downloads: https://github.com/Bennch/windoesnot/releases
 
+## 0.1.0-32 (2026-11-19)
+
+- Updates check package dependencies and protect boot entries when kernels change.
+- The Store explains system update problems more clearly.
+- New firewall in the Network app: open ports live with explanations, a profile per network (Home, Public, Trust only), rules and templates. It replaces ufw on update automatically; if you switch it off, it stays off.
+- New Diagnosis under Settings, Maintenance & Kernel: quick checks (sound, Bluetooth, network, disk space, graphics, firewall and more), errors since boot and a report without personal data to copy or save.
+- Share folders in the network: right-click in the file manager, own dialog, access from Windows and Mac (Samba). Guests read-only and only on request.
+- Calendar with holidays for Germany, Austria, Switzerland, the US, the UK and France, week numbers and a selectable first day of the week. Everything can be switched off in Settings.
+- Notifications: position and on-screen display are adjustable; the notification centre stays at the top centre.
+- Settings: Flatpak app permissions as clear tables, every page scrolls all the way down, new card Export my system.
+- Store: Update WinDoesNot only below the list of updates, shown when there are some.
+- The network icon shows the cable symbol on a wired connection; Open Network in the right-click menu opens the Network app, plus Open Firewall.
+- New search: files and folders first (sorted by name, your folders and recency), apps with abbreviations like “vsc”, a calculator with percentages and units (5 km in mi), type filters with Tab or /pdf, /images, “Search the web” and “Run in terminal”. The search learns which apps you start often.
+- Emoji and special characters: all emoji with German and English names plus a tab with special characters (quotes, dashes, maths, currencies, arrows, accents). Enter types the character straight into the text field.
+- Web apps get their own window without browser bars and the website's icon; create your own under Settings, Apps. Netflix, Prime Video and Disney+ stay in the browser (copy protection).
+- Looks: save your own looks with a name (light/dark, accent colour, corner radius, wallpaper).
+- Desktop right-click on files and folders in file manager order: Open, open and copy file path, Send to (nearby device, network share), Cut, Copy, Delete, Rename, Properties.
+- Installer: ten runtimes to install later (Python, Node.js, Java, .NET, C/C++, PHP, Go, Rust, Ruby, Kotlin).
+- Fixed: updates and installs aborted on systems with GRUB; the holiday and week number switches did not respond; Performance mode was not offered; the Nearby window was cut off at the top; Does now says when it is not set up yet; the Network app has a single close button.
+
+## 0.1.0-31 (2026-11-17)
+
+- Moving from Windows: several Windows accounts no longer end up in one folder; each further account gets its own subfolder. The page shows which system the data comes from.
+- Moving: Thunderbird profiles, Windows Live Mail and Outlook mailboxes (PST) come along as e-mail. Saved browser passwords can be protected with their own password and saved as a file for the browser import.
+- New: Linux to Linux. Home, Wi-Fi connections and the package list of another Linux on the disk can come along when you install alongside.
+- New: Remove old system under Settings, Maintenance. After the move, the assistant removes Windows and gives the space to your system. It shows exactly what disappears first and asks for confirmation.
+- The installer now says up front that the move only works with Install alongside. The first start has an optional donation card.
+- New: keyboard shortcut overview and a guided welcome checklist for the first start.
+- New: app permissions for Flatpak programs in the settings. You see what an app may access.
+- New: media format check and help for Windows programs (with Bottles).
+- New: Looks under Settings, Appearance. Six ready-made combinations of light or dark, accent colour, corner radius and background, with a way back to your own settings.
+- The exporter for Windows 7 and 8.1 now has three steps with a sidebar and matches the look of the large Windows app.
+- Shortcut overview with key caps. The welcome checklist ticks Wi-Fi, updates and shortcuts by itself.
+- Optimized package builds for your processor no longer count as hundreds of updates. The Performance power plan stays visible even when your device does not offer it.
+
 ## 0.1.0-30 (2026-11-15)
 
 - Updates from older versions: fixed a file conflict on the Ghostty launcher shim so pacman -Syu runs through cleanly.
