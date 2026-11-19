@@ -7,7 +7,7 @@
       "de": [
         "Updates prüfen Paketabhängigkeiten und schützen die Starteinträge bei Kernelwechseln.",
         "Der Store zeigt Probleme bei Systemupdates verständlicher an.",
-        "Neue Firewall in der Netzwerk-App: offene Ports live mit Erklärung, Profile pro Netzwerk (Zuhause, Öffentlich, Strikt), Regeln und Vorlagen. Sie ersetzt ufw beim Update automatisch; wer sie ausschaltet, bleibt ausgeschaltet.",
+        "Neue Firewall in der Netzwerk-App: offene Ports live mit Erklärung, Profile pro Netzwerk (Zuhause, Öffentlich, Nur vertrauen), Regeln und Vorlagen. Sie ersetzt ufw beim Update automatisch; wer sie ausschaltet, bleibt ausgeschaltet.",
         "Neue Diagnose unter Einstellungen, Wartung & Kernel: Schnelltests (Ton, Bluetooth, Netzwerk, Speicherplatz, Grafik, Firewall und mehr), Fehler seit dem Start und ein Bericht ohne persönliche Daten zum Kopieren oder Speichern.",
         "Ordner im Netzwerk freigeben: Rechtsklick im Dateimanager, eigener Dialog, Zugriff von Windows und Mac (Samba). Gast nur lesend und nur auf Wunsch.",
         "Kalender mit Feiertagen für Deutschland, Österreich, die Schweiz, die USA, Großbritannien und Frankreich, Kalenderwochen und wählbarem Wochenbeginn. Alles in den Einstellungen abschaltbar.",
@@ -26,7 +26,7 @@
       "en": [
         "Updates check package dependencies and protect boot entries when kernels change.",
         "The Store explains system update problems more clearly.",
-        "New firewall in the Network app: open ports live with explanations, a profile per network (Home, Public, Strict), rules and templates. It replaces ufw on update automatically; if you switch it off, it stays off.",
+        "New firewall in the Network app: open ports live with explanations, a profile per network (Home, Public, Trust only), rules and templates. It replaces ufw on update automatically; if you switch it off, it stays off.",
         "New Diagnosis under Settings, Maintenance & Kernel: quick checks (sound, Bluetooth, network, disk space, graphics, firewall and more), errors since boot and a report without personal data to copy or save.",
         "Share folders in the network: right-click in the file manager, own dialog, access from Windows and Mac (Samba). Guests read-only and only on request.",
         "Calendar with holidays for Germany, Austria, Switzerland, the US, the UK and France, week numbers and a selectable first day of the week. Everything can be switched off in Settings.",
