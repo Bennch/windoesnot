@@ -49,8 +49,15 @@ class Evidence(unittest.TestCase):
                 directory = base / ('positive-' + config); directory.mkdir()
                 data = json.loads(paths['positive'].read_text()); data['configuration'] = config
                 path = directory / 'result.json'; path.write_text(json.dumps(data))
-                (directory / 'update.log').write_text((paths['positive'].parent / 'update.log').read_text())
-                probe = directory / 'pacman-probe.log'; probe.write_text('installed and removed')
+                log = (paths['positive'].parent / 'update.log').read_text()
+                if config != 'A':
+                    log = log.replace('Checking WinDoesNot boot filesystem before update',
+                                      'Kein systemd-boot-Layout; keine Änderung erforderlich.')
+                (directory / 'update.log').write_text(log)
+                probe = directory / 'pacman-probe.log'
+                actions = ('windoesnot-gate-probe wird installiert\nwindoesnot-gate-probe wird entfernt'
+                           if config == 'A' else 'installing windoesnot-gate-probe\nremoving windoesnot-gate-probe')
+                probe.write_text('Checking WinDoesNot boot filesystem before update\n' + actions)
                 matrix[config] = {'positive': inspect(path, digest, 'positive', now), 'iso': str(iso),
                                   'iso_sha256': sha256(iso), 'pacman_probe': str(probe), 'pacman_probe_sha256': sha256(probe)}
             paths['positive'] = base / 'positive-A' / 'result.json'
@@ -64,6 +71,11 @@ class Evidence(unittest.TestCase):
             missing = dict(index, matrix={k: v for k, v in matrix.items() if k != 'C'})
             with self.assertRaises(ValueError): inspect_index(missing, digest, now)
             with self.assertRaises(ValueError): inspect_index(dict(index, schema=2), digest, now)
+            probe = base / 'positive-B' / 'pacman-probe.log'
+            old_probe = probe.read_text(); probe.write_text('missing guard')
+            matrix['B']['pacman_probe_sha256'] = sha256(probe)
+            with self.assertRaises(ValueError): inspect_index(index, digest, now)
+            probe.write_text(old_probe); matrix['B']['pacman_probe_sha256'] = sha256(probe)
             wrong = dict(matrix, B=matrix['A'])
             with self.assertRaises(ValueError): inspect_index(dict(index, matrix=wrong), digest, now)
             with self.assertRaises(ValueError): inspect_index(index, 'different', now)

@@ -32,10 +32,15 @@ def digest(path):
     return h.hexdigest()
 
 
-def hook_order(log):
+def hook_order(log, configuration='A'):
     pre = log.find('Checking WinDoesNot boot filesystem before update')
     kernel = log.find('Updating linux initcpios')
     post = log.find('Validating WinDoesNot boot entries')
+    if configuration in ('B', 'C'):
+        # The 29 bootstrap deliberately installs no temporary guard on GRUB.
+        # The newly installed packaged guard is checked by the subsequent probe.
+        bootstrap = log.find('Kein systemd-boot-Layout; keine Änderung erforderlich.')
+        return bootstrap >= 0 and kernel > bootstrap and post > kernel and (pre < 0 or bootstrap < pre < kernel)
     return pre >= 0 and kernel > pre and post > kernel
 
 
@@ -217,7 +222,7 @@ class Runner:
         self.result['checks']['test_repo'] = True
         self.result['checks']['regular_syu'] = job.get('success') is True
         log = (self.run / 'update.log').read_text(errors='replace')
-        self.result['checks']['hook_order'] = hook_order(log)
+        self.result['checks']['hook_order'] = hook_order(log, self.configuration)
         hook_result = self.vmctl('exec', '/usr/bin/cat', '/var/lib/windoesnot/boot-migration/result.json', check=False)
         try:
             if self.configuration in ('B', 'C'):

@@ -16,5 +16,17 @@ class HookOrder(unittest.TestCase):
                      pre + '\n' + post + '\n' + kernel):
             self.assertFalse(hook_order(text))
 
+    def test_grub_bootstrap_has_no_temporary_guard(self):
+        bootstrap = 'Kein systemd-boot-Layout; keine Änderung erforderlich.'
+        pre = 'Checking WinDoesNot boot filesystem before update'
+        kernel = 'Updating linux initcpios'
+        post = 'Validating WinDoesNot boot entries'
+        for config in ('B', 'C'):
+            self.assertTrue(hook_order('\n'.join((bootstrap, kernel, post)), config))
+            self.assertTrue(hook_order('\n'.join((bootstrap, pre, kernel, post)), config))
+            for text in (kernel + '\n' + post, bootstrap + '\n' + post + '\n' + kernel,
+                         bootstrap + '\n' + kernel + '\n' + pre + '\n' + post):
+                self.assertFalse(hook_order(text, config))
+
 if __name__ == '__main__':
     unittest.main()

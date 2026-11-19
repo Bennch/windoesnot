@@ -3,6 +3,7 @@ import hashlib
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from update_gate_runner import hook_order
 
 POSITIVE_CHECKS = {'package_files_intact', 'install_offline', 'test_repo', 'regular_syu', 'hook_order', 'post_hook_status',
                    'target_versions', 'newest_kernel', 'boot_mounted', 'default_valid', 'old_entries_removed',
@@ -46,10 +47,7 @@ def inspect(result_path, digest, kind, now=None):
             raise ValueError('positive: invalid reboot observations')
         if result.get('job', {}).get('steps') != {'bootstrap': 0, 'update': 0}:
             raise ValueError('positive: transaction did not complete')
-        pre = log.find('Checking WinDoesNot boot filesystem before update')
-        kernel = log.find('Updating linux initcpios')
-        post = log.find('Validating WinDoesNot boot entries')
-        if not pre >= 0 or not kernel > pre or not post > kernel:
+        if not hook_order(log, result.get('configuration', 'A')):
             raise ValueError('positive: hook sequence missing')
     else:
         job = result.get('job', {}).get('steps', {})
@@ -104,6 +102,11 @@ def inspect_index(data, digest, now=None):
         probe = Path(item['pacman_probe']).resolve(strict=True)
         if probe != Path(stored['result']).with_name('pacman-probe.log') or sha256(probe) != item['pacman_probe_sha256']:
             raise ValueError(f'{config}: package transaction log changed')
+        probe_log = probe.read_text(errors='replace')
+        installed = ('installing windoesnot-gate-probe' in probe_log or 'windoesnot-gate-probe wird installiert' in probe_log)
+        removed = ('removing windoesnot-gate-probe' in probe_log or 'windoesnot-gate-probe wird entfernt' in probe_log)
+        if 'Checking WinDoesNot boot filesystem before update' not in probe_log or not installed or not removed:
+            raise ValueError(f'{config}: package guard, installation or removal missing')
         source = Path(item['iso']).resolve(strict=True)
         source_hash = sha256(source)
         if source_hash != item['iso_sha256'] or not any(Path(name).name == source.name and value == source_hash for name, value in result['baseline_manifest']['files'].items()):
