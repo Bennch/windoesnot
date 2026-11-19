@@ -422,12 +422,16 @@ def finish(bootloader, firmware, mode, root=Path('/'), selected_locale=None):
     filesystem = subprocess.check_output(['findmnt', '-n', '-o', 'FSTYPE', '--target', '/'], text=True).strip()
     if bootloader == 'refind':
         configure_refind_theme(root)
-        configure_refind_entries(root)
-        main = root / 'boot/EFI/refind/refind.conf'
-        text = main.read_text()
-        # The closing parenthesis distinguishes this manual entry from LTS.
-        text = re.sub(r'(?m)^[ \t]*default_selection[ \t]+[^\n]*\n?', '', text)
-        main.write_text(text.rstrip() + '\ndefault_selection "WinDoesNot (linux-cachyos)"\n')
+        try:
+            configure_refind_entries(root)
+            main = root / 'boot/EFI/refind/refind.conf'
+            text = main.read_text()
+            # The closing parenthesis distinguishes this manual entry from LTS.
+            text = re.sub(r'(?m)^[ \t]*default_selection[ \t]+[^\n]*\n?', '', text)
+            main.write_text(text.rstrip() + '\ndefault_selection "WinDoesNot (linux-cachyos)"\n')
+        except (OSError, RuntimeError) as error:
+            # Without the manual entries rEFInd keeps its automatic list; that must never abort an installation.
+            print('rEFInd default kernel entry not configured:', error, file=sys.stderr)
     if filesystem == 'btrfs':
         configure_snapshots(bootloader, root)
         (root / 'etc/windoesnot-image-build').unlink(missing_ok=True)
