@@ -91,6 +91,10 @@ _TR = {
         "rename":           "Umbenennen",
         "share_nearby":     "Mit Gerät in der Nähe teilen",
         "share_folder":     "Im Netzwerk freigeben …",
+        "open_location":    "Dateipfad öffnen",
+        "copy_path":        "Dateipfad kopieren",
+        "send_to":          "Senden an",
+        "properties":       "Eigenschaften",
         "new_folder_name":  "Neuer Ordner",
         "new_document_name":"Neues Dokument",
         "kino_modus":       "Kino-Modus",
@@ -119,6 +123,10 @@ _TR = {
         "rename":           "Rename",
         "share_nearby":     "Share with a nearby device",
         "share_folder":     "Share in the network …",
+        "open_location":    "Open file location",
+        "copy_path":        "Copy file path",
+        "send_to":          "Send to",
+        "properties":       "Properties",
         "new_folder_name":  "New Folder",
         "new_document_name":"New Document",
         "kino_modus":       "Cinema Mode",
@@ -1357,6 +1365,32 @@ class DesktopIcon(Gtk.Box):
             return []
         return paths
 
+    def is_file_icon(self):
+        """A real file or folder on the desktop (not a launcher, not the trash)."""
+        return bool(self.spec.get("file_path")) and "desktop_file" not in self.spec and not self.spec.get("is_trash")
+
+    def open_location(self):
+        """Show the file in its folder (file manager, item selected); the folder itself for a folder icon."""
+        path = str(self.spec.get("file_path"))
+        uri = Gio.File.new_for_path(path).get_uri().replace("'", "%27")
+        try:
+            subprocess.Popen(["gdbus", "call", "--session", "--dest", "org.freedesktop.FileManager1",
+                              "--object-path", "/org/freedesktop/FileManager1", "--method",
+                              "org.freedesktop.FileManager1.ShowItems", f"['{uri}']", ""],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except OSError:
+            subprocess.Popen(["xdg-open", os.path.dirname(path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def show_properties(self):
+        uri = Gio.File.new_for_path(str(self.spec.get("file_path"))).get_uri().replace("'", "%27")
+        try:
+            subprocess.Popen(["gdbus", "call", "--session", "--dest", "org.freedesktop.FileManager1",
+                              "--object-path", "/org/freedesktop/FileManager1", "--method",
+                              "org.freedesktop.FileManager1.ShowItemProperties", f"['{uri}']", ""],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except OSError:
+            pass
+
     def network_share_folder(self):
         """The folder this icon stands for when it can be shared in the network (single folder, helper present)."""
         path = self.spec.get("file_path")
@@ -1386,6 +1420,34 @@ class DesktopIcon(Gtk.Box):
             menu.append(tr("open", _lang), "icon.open")
             menu.append(tr("empty", _lang), "icon.empty_trash")
             menu.append(tr("hide", _lang), "icon.hide_trash")
+        elif self.is_file_icon():
+            # Files and folders: the same order as in the file manager.
+            can_copy = True
+            first = Gio.Menu()
+            first.append(tr("open", _lang), "icon.open")
+            first.append(tr("open_location", _lang), "icon.open_location")
+            first.append(tr("copy_path", _lang), "icon.copy_path")
+            menu.append_section(None, first)
+            send_to = Gio.Menu()
+            if share_paths:
+                send_to.append(tr("share_nearby", _lang), "icon.share_nearby")
+            if self.network_share_folder():
+                send_to.append(tr("share_folder", _lang), "icon.share_folder")
+            if send_to.get_n_items():
+                send_section = Gio.Menu()
+                send_section.append_submenu(tr("send_to", _lang), send_to)
+                menu.append_section(None, send_section)
+            clipboard_section = Gio.Menu()
+            clipboard_section.append(tr("cut", _lang), "icon.cut")
+            clipboard_section.append(tr("copy", _lang), "icon.copy")
+            menu.append_section(None, clipboard_section)
+            change_section = Gio.Menu()
+            change_section.append(tr("delete", _lang), "icon.delete")
+            change_section.append(tr("rename", _lang), "icon.rename")
+            menu.append_section(None, change_section)
+            properties_section = Gio.Menu()
+            properties_section.append(tr("properties", _lang), "icon.properties")
+            menu.append_section(None, properties_section)
         else:
             can_copy = True
             menu.append(tr("open", _lang), "icon.open")
@@ -1396,7 +1458,7 @@ class DesktopIcon(Gtk.Box):
             if "file_path" in self.spec:
                 menu.append(tr("rename", _lang), "icon.rename")
             menu.append(tr("delete", _lang), "icon.delete")
-        if can_copy:
+        if can_copy and not (self.is_file_icon() and not (multiple_selected and self.selected)):
             copy_section = Gio.Menu()
             copy_section.append(tr("copy", _lang), "icon.copy")
             copy_section.append(tr("cut", _lang), "icon.cut")
@@ -1414,6 +1476,17 @@ class DesktopIcon(Gtk.Box):
             share_action.connect("activate", lambda *args, paths=share_paths: subprocess.Popen(
                 ["windoesnot-nearby", "share", *paths], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
             action_group.add_action(share_action)
+
+        if self.is_file_icon():
+            location_action = Gio.SimpleAction.new("open_location", None)
+            location_action.connect("activate", lambda *args: self.open_location())
+            action_group.add_action(location_action)
+            path_action = Gio.SimpleAction.new("copy_path", None)
+            path_action.connect("activate", lambda *args: self.get_clipboard().set(str(self.spec.get("file_path"))))
+            action_group.add_action(path_action)
+            properties_action = Gio.SimpleAction.new("properties", None)
+            properties_action.connect("activate", lambda *args: self.show_properties())
+            action_group.add_action(properties_action)
 
         folder = self.network_share_folder()
         if folder and not (multiple_selected and self.selected):
