@@ -429,14 +429,14 @@ Item {
         property string address: ""
         property var rect: null
         property bool wasFloating: false
-        command: ["bash", "-c", buildCommand()]
+        command: ["bash", "-c", buildCommand()]  // every hyprctl call inside runs under timeout 2
         function buildCommand() {
             if (!rect || !address) return "true"
-            var prefix = wasFloating ? "" : "windoesnot-hyprctl dispatch togglefloating address:" + address + " && "
+            var prefix = wasFloating ? "" : "timeout 2 windoesnot-hyprctl dispatch togglefloating address:" + address + " && "
             var win = 'window="address:' + address + '"'
             var lua = "hl.dispatch(hl.dsp.window.resize({x=" + Math.round(rect.w) + ",y=" + Math.round(rect.h) + ",relative=false," + win + "})); " +
                       "hl.dispatch(hl.dsp.window.move({x=" + Math.round(rect.x) + ",y=" + Math.round(rect.y) + ",relative=false," + win + "}))"
-            return prefix + "hyprctl eval '" + lua + "'"
+            return prefix + "timeout 2 hyprctl eval '" + lua + "'"
         }
         running: false
     }
@@ -1352,7 +1352,7 @@ Item {
     Process {
         id: snapGroupAdjustProc
         property string script: ""
-        command: ["hyprctl", "eval", script]
+        command: ["timeout", "2", "hyprctl", "eval", script]  // timeout 2: a stuck compositor must not pile up processes
         running: false
         onExited: if (Object.keys(snapManager.pendingAdjust).length > 0) snapManager.flushAdjust()
     }
