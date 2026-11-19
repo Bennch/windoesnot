@@ -534,17 +534,34 @@ Column {
                 }
             }
 
-            // Status text
-            ProjectIcon { name: "location"; color: settingsMenu.darkMode ? "#aaa" : "#555" }
-            Text {
-                id: geocodeStatus
+            // Status text: confirmations and errors fade back to the current place after a few seconds.
+            Row {
                 width: parent.width
-                wrapMode: Text.WordWrap
-                font.pixelSize: 12
-                color: settingsMenu.darkMode ? "#888" : "#666"
-                text: settingsMenu.weatherLatitude !== 0
-                    ? settingsMenu.weatherCity + "  (" + settingsMenu.weatherLatitude.toFixed(2) + "°, " + settingsMenu.weatherLongitude.toFixed(2) + "°)"
-                    : "Noch kein Standort gesetzt"
+                spacing: 8
+                ProjectIcon { id: locationPin; anchors.verticalCenter: parent.verticalCenter; name: "location"; color: settingsMenu.darkMode ? "#aaa" : "#555" }
+                Text {
+                    id: geocodeStatus
+                    width: parent.width - locationPin.width - parent.spacing
+                    anchors.verticalCenter: parent.verticalCenter
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: 12
+                    color: settingsMenu.darkMode ? "#888" : "#666"
+                    text: currentPlaceText()
+                    onTextChanged: if (text !== currentPlaceText()) geocodeStatusReset.restart()
+                    function currentPlaceText() {
+                        return settingsMenu.weatherLatitude !== 0
+                            ? settingsMenu.weatherCity + "  (" + settingsMenu.weatherLatitude.toFixed(2) + "°, " + settingsMenu.weatherLongitude.toFixed(2) + "°)"
+                            : "Noch kein Standort gesetzt"
+                    }
+                }
+                Timer {
+                    id: geocodeStatusReset
+                    interval: 4000
+                    onTriggered: {
+                        geocodeStatus.color = settingsMenu.darkMode ? "#888" : "#666"
+                        geocodeStatus.text = Qt.binding(function() { return geocodeStatus.currentPlaceText() })
+                    }
+                }
             }
         }
     }
@@ -602,13 +619,17 @@ Column {
 
         // Sidebar item toggles
         Text {
+            visible: settingsMenu.startMenuSidebarPosition !== "hidden"
             text: Lang.get("alignment.visibleLinks", _lang)
             font.pixelSize: 14
             color: settingsMenu.darkMode ? "#aaa" : "#555"
         }
 
+        // the link list belongs to the sidebar: nothing to choose while the sidebar is off
         Repeater {
-            model: ListModel {
+            model: settingsMenu.startMenuSidebarPosition === "hidden" ? null : sidebarLinkModel
+            ListModel {
+                id: sidebarLinkModel
                 ListElement { labelKey: "alignment.link.allApps";     propName: "startMenuShowAllApps" }
                 ListElement { labelKey: "alignment.link.personalized"; propName: "startMenuShowPersonalized" }
                 ListElement { labelKey: "alignment.link.desktop";        propName: "startMenuShowDesktop" }

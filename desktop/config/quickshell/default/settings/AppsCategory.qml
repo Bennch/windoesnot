@@ -29,7 +29,8 @@ Column {
             { "propertyName": "showOllamaTray", "title": "Ollama", "description": "apps.ollamaTrayDesc" },
             { "propertyName": "showNearbyTray", "title": Lang.get("nearby.title", _lang), "description": "apps.nearbyTrayDesc" },
             { "propertyName": "showBatteryTray", "title": Lang.get("nav.power", _lang), "description": "apps.batteryTrayDesc" },
-            { "propertyName": "showGraphicsTray", "title": Lang.get("graphics.title", _lang), "description": "apps.graphicsTrayDesc" }
+            { "propertyName": "showGraphicsTray", "title": Lang.get("graphics.title", _lang), "description": "apps.graphicsTrayDesc" },
+            { "propertyName": "weatherEnabled", "title": Lang.get("weather.label", _lang), "description": "apps.weatherTrayDesc" }
         ]
         delegate: Row {
             required property var modelData
@@ -67,7 +68,11 @@ Column {
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: settingsMenu[modelData.propertyName] = !settingsMenu[modelData.propertyName]
+                    onClicked: {
+                        // the weather needs a place first (set under Taskbar > Weather)
+                        if (modelData.propertyName === "weatherEnabled" && !settingsMenu.weatherEnabled && settingsMenu.weatherLatitude === 0 && settingsMenu.weatherLongitude === 0) return
+                        settingsMenu[modelData.propertyName] = !settingsMenu[modelData.propertyName]
+                    }
                 }
             }
         }

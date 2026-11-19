@@ -39,7 +39,12 @@ Column {
         width: parent.width; height: rows.height + 2; radius: 8; color: page.cardColor; border.color: page.lineColor; border.width: 1; clip: true
         Column {
             id: rows; x: 1; y: 1; width: parent.width - 2
-            Text { visible: page.shares.length === 0; x: 14; width: parent.width - 28; topPadding: 12; bottomPadding: 12; wrapMode: Text.WordWrap; text: page.tr("folders.empty"); font.pixelSize: 13; color: page.mutedColor }
+            Column {
+                visible: page.shares.length === 0
+                x: 20; width: parent.width - 40; topPadding: 28; bottomPadding: 28; spacing: 12
+                Image { anchors.horizontalCenter: parent.horizontalCenter; width: 48; height: 48; source: Qt.resolvedUrl("../img/folder.svg"); sourceSize.width: 96; sourceSize.height: 96; fillMode: Image.PreserveAspectFit; opacity: 0.8 }
+                Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap; text: page.tr("folders.empty"); font.pixelSize: 13; color: page.mutedColor }
+            }
             Repeater {
                 model: page.shares
                 Column {

@@ -27,9 +27,9 @@ Rectangle {
     topRightRadius: borderRadius
     bottomLeftRadius: 0
     bottomRightRadius: 0
-    // Exactly as tall as the content, up to 580 px; the window follows this height.
+    // Exactly as tall as the content, up to 680 px; the window follows this height.
     implicitWidth: 400
-    implicitHeight: Math.min(580, nearbyColumn.height + 36)
+    implicitHeight: Math.min(680, nearbyColumn.height + 44)
     width: implicitWidth
     height: implicitHeight
 

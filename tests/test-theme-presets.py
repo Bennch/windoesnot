@@ -21,7 +21,7 @@ translations = []
 for lang in ('de', 'en'):
     text = (settings.parent / 'i18n' / (lang + '.js')).read_text()
     translations.append(set(re.findall(r'"(looks\.[^"]+)"\s*:', text)))
-assert translations[0] == translations[1] == {'looks.title', 'looks.restore', 'looks.error'}
+assert translations[0] == translations[1] == {'looks.title', 'looks.restore', 'looks.error', 'looks.namePlaceholder', 'looks.saveCurrent', 'looks.saveHint'}
 
 with tempfile.TemporaryDirectory() as tmp:
     temp = Path(tmp)
@@ -49,3 +49,21 @@ with tempfile.TemporaryDirectory() as tmp:
     assert conf.read_text() == original
     assert not (state / 'windoesnot/theme-preset.json').exists()
 print('theme presets: OK')
+
+# Own looks: save (with the current wallpaper), list, overwrite by name, delete; the file stays valid JSON.
+with tempfile.TemporaryDirectory() as tmp:
+    temp = Path(tmp)
+    config = temp / 'config'
+    (config / 'hypr').mkdir(parents=True)
+    (config / 'hypr/hyprpaper.conf').write_text('wallpaper {\n monitor =\n path = /usr/share/x.jpg\n}\n')
+    env = dict(os.environ, XDG_CONFIG_HOME=str(config), XDG_STATE_HOME=str(temp / 'state'))
+    helper = settings / 'theme-presets.py'
+    def run(*arguments):
+        return json.loads(subprocess.run(['python3', str(helper), *arguments], env=env, check=True, capture_output=True, text=True).stdout)
+    assert run('list') == []
+    looks = run('save', 'Mein Look', json.dumps({'darkMode': False, 'accentColor': '#112233', 'borderRadius': 9}))
+    assert looks == [{'name': 'Mein Look', 'darkMode': False, 'accentColor': '#112233', 'borderRadius': 9, 'wallpaperPath': '/usr/share/x.jpg'}]
+    looks = run('save', 'Mein Look', json.dumps({'darkMode': True, 'accentColor': '#445566', 'borderRadius': 3}))
+    assert len(looks) == 1 and looks[0]['darkMode'] is True
+    assert run('delete', 'Mein Look') == [] and run('list') == []
+print('PASS: own looks save/list/delete')

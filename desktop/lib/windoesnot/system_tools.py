@@ -427,11 +427,12 @@ def power_profiles():
         return [], ''
     profiles, current = [], ''
     for line in raw.splitlines():
-        match = re.match(r'^(\* |  )([a-z][\w-]*):$', line)
+        # The output is stripped, so the first profile may lack its two leading spaces.
+        match = re.match(r'^\s*(\*)?\s*([a-z][\w-]*):$', line)
         if match:
             name = match.group(2)
             profiles.append(name)
-            if match.group(1) == '* ':
+            if match.group(1):
                 current = name
     return profiles, current
 

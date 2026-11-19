@@ -5553,7 +5553,7 @@ FloatingWindow {
                             width: 40
                             height: 40
                             radius: 20
-                            color: "#0078d4"
+                            color: settingsMenu.accentColor
                             anchors.verticalCenter: parent.verticalCenter
 
                             layer.enabled: true
@@ -6435,7 +6435,7 @@ FloatingWindow {
     id: nearbyWindow
     visible: false
     implicitWidth: 400
-    // Follows the panel's real height (short when idle, up to 580 with transfers and history).
+    // Follows the panel's real height (short when idle, up to 680 with transfers and history).
     implicitHeight: nearbyLoader.height
     color: "transparent"
     title: "quickshell-nearby"
@@ -6444,8 +6444,10 @@ FloatingWindow {
     // Bottom-right above the taskbar (45 px). Like the battery popup: the rule is set
     // before the window maps, and a live window is moved when its height changes.
     function bottomRightX() { return screen ? screen.x + screen.width - implicitWidth - 8 : 0 }
-    // Uses the window's real height: the implicit height can lead the size Hyprland applied.
-    function bottomRightY() { return screen ? screen.y + screen.height - 45 - height : 0 }
+    // The wanted height (implicitHeight) drives size and position: the window's own height only follows
+    // once Hyprland has applied a resize, so using it here would keep a window that must grow at its old size
+    // (the panel then ran out of the top of the window when the firewall note appeared after mapping).
+    function bottomRightY() { return screen ? screen.y + screen.height - 45 - implicitHeight : 0 }
     function openAt() {
         if (visible) return
         // Position comes from the static nearby-config rule; placeLive() corrects it once the height is known.
@@ -6454,7 +6456,7 @@ FloatingWindow {
     }
     // Moves the mapped window to its final position once the panel has its real height.
     function placeLive() {
-        nearbyPlaceProc.command = panelWindow.popupFitCommand("quickshell-nearby", implicitWidth, Math.round(height), Math.round(bottomRightX()), Math.round(bottomRightY()))
+        nearbyPlaceProc.command = panelWindow.popupFitCommand("quickshell-nearby", implicitWidth, Math.round(implicitHeight), Math.round(bottomRightX()), Math.round(bottomRightY()))
         nearbyPlaceProc.running = true
     }
     Timer { id: nearbyPlaceTimer; interval: 150; repeat: false; onTriggered: nearbyWindow.placeLive() }

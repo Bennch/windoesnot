@@ -119,6 +119,13 @@ Item {
     property string modelSearchQuery: ""
     onShowModelDropdownChanged: { if (!showModelDropdown) modelSearchQuery = "" }
     property string statusMessage: ""
+    // What keeps the assistant from answering: "" when it can, otherwise a key for the hint above the input.
+    readonly property string setupProblem: {
+        if (activeProvider === "ollama" || activeProvider === "openclaw")
+            return (activeModel === "" || ollamaModels.length === 0 && activeProvider === "ollama") ? "noModel" : ""
+        if (activeModel === "") return "noModel"
+        return currentApiKey() === "" ? "noKey" : ""
+    }
     property bool userScrolled: false
     property bool showScrollButtons: false
     property bool _loadingSession: false
@@ -3865,6 +3872,26 @@ Item {
 
             }
 
+            // Shown while the assistant is not set up, so nobody types into the void.
+            Rectangle {
+                id: setupBanner
+                z: 101
+                visible: !copilotPanel.showSettings && copilotPanel.setupProblem !== ""
+                anchors { bottom: composerArea.top; bottomMargin: 8; left: parent.left; right: parent.right; leftMargin: 16; rightMargin: 16 }
+                height: setupText.implicitHeight + 20
+                radius: 10
+                color: Qt.rgba(0.91, 0.63, 0.13, copilotPanel.darkMode ? 0.16 : 0.22)
+                border.width: 1
+                border.color: "#e8a020"
+                Text {
+                    id: setupText
+                    anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; leftMargin: 12; rightMargin: 12 }
+                    wrapMode: Text.WordWrap; font.pixelSize: 13
+                    color: copilotPanel.textColor
+                    text: Lang.get(copilotPanel.setupProblem === "noKey" ? "copilot.notSetupKey" : "copilot.notSetupModel", copilotPanel.uiLanguage)
+                }
+            }
+
             Item {
                 id: composerArea
                 z: 100
@@ -3918,6 +3945,8 @@ Item {
                             Keys.onPressed: function(e) {
                                 if (e.key === Qt.Key_Return && !(e.modifiers & Qt.ShiftModifier)) {
                                     e.accepted = true
+                                    // not set up: keep the text and let the hint above the input explain why
+                                    if (copilotPanel.setupProblem !== "") return
                                     var t = inputEdit.text
                                     inputEdit.text = ""
                                     copilotPanel.sendMessage(t)

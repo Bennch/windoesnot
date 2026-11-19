@@ -5,6 +5,6 @@ Name[de]=Daten übernehmen
 Comment=Copy selected files from a Windows installation
 Comment[de]=Ausgewählte Dateien aus einer Windows-Installation kopieren
 Exec=windoesnot-migrate
-Icon=folder-download
+Icon=windoesnot-migrate
 Terminal=false
 Categories=System;Utility;

@@ -34,7 +34,7 @@ FloatingWindow {
     readonly property bool needsPassword: !guest && !status.password
     visible: false
     implicitWidth: 500
-    implicitHeight: content.implicitHeight + 48
+    implicitHeight: content.implicitHeight + buttons.height + 84
     color: dark ? "#1b1b1b" : "#fafafa"
     title: "quickshell-sharedialog"
 
@@ -132,7 +132,7 @@ FloatingWindow {
             width: parent.width; height: 44; radius: 8; color: dialog.dark ? "#262626" : "#eeeeee"; border.color: dialog.lineColor; border.width: 1
             Row {
                 anchors.fill: parent; anchors.leftMargin: 12; spacing: 10
-                Text { anchors.verticalCenter: parent.verticalCenter; text: "📁"; font.pixelSize: 18 }
+                Image { anchors.verticalCenter: parent.verticalCenter; width: 22; height: 22; source: Qt.resolvedUrl("../img/folder.svg"); sourceSize.width: 44; sourceSize.height: 44; fillMode: Image.PreserveAspectFit }
                 Text { anchors.verticalCenter: parent.verticalCenter; width: parent.width - 50; text: dialog.folderPath; elide: Text.ElideMiddle; font.pixelSize: 13; color: dialog.mutedColor }
             }
         }
@@ -217,17 +217,20 @@ FloatingWindow {
 
         Text { visible: dialog.message !== ""; width: parent.width; wrapMode: Text.WordWrap; text: dialog.message; font.pixelSize: 13; font.bold: true; color: dialog.failure ? "#cc4444" : "#3aa655" }
 
-        Row {
-            spacing: 10; layoutDirection: Qt.RightToLeft; width: parent.width
-            Tools.SystemToolsButton {
-                settingsMenu: dialog.settingsMenu; primary: true
-                visible: !dialog.existing
-                enabled: !dialog.busy && dialog.status.installed && dialog.shareName.trim() !== ""
-                text: dialog.busy ? dialog.tr("working") : dialog.tr("share")
-                onClicked: dialog.share()
-            }
-            Tools.SystemToolsButton { settingsMenu: dialog.settingsMenu; visible: dialog.existing !== null; destructive: true; enabled: !dialog.busy; text: dialog.tr("stop"); onClicked: dialog.stopSharing() }
-            Tools.SystemToolsButton { settingsMenu: dialog.settingsMenu; text: dialog.existing || dialog.resultUnc !== "" ? dialog.tr("close") : dialog.tr("cancel"); onClicked: dialog.visible = false }
+    }
+
+    Row {
+        id: buttons
+    anchors { right: parent.right; bottom: parent.bottom; rightMargin: 24; bottomMargin: 32 }
+    spacing: 10; layoutDirection: Qt.RightToLeft
+        Tools.SystemToolsButton {
+            settingsMenu: dialog.settingsMenu; primary: true
+            visible: !dialog.existing
+            enabled: !dialog.busy && dialog.status.installed && dialog.shareName.trim() !== ""
+            text: dialog.busy ? dialog.tr("working") : dialog.tr("share")
+            onClicked: dialog.share()
         }
+        Tools.SystemToolsButton { settingsMenu: dialog.settingsMenu; visible: dialog.existing !== null; destructive: true; enabled: !dialog.busy; text: dialog.tr("stop"); onClicked: dialog.stopSharing() }
+        Tools.SystemToolsButton { settingsMenu: dialog.settingsMenu; text: dialog.existing || dialog.resultUnc !== "" ? dialog.tr("close") : dialog.tr("cancel"); onClicked: dialog.visible = false }
     }
 }

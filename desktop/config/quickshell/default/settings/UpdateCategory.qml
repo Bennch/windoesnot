@@ -507,9 +507,10 @@ Column {
         }
     }
 
-    // === Install only the WinDoesNot updates: shown under the WinDoesNot lists, and only when there are some ===
+    // === Install only the WinDoesNot updates: shown under the WinDoesNot lists, and only while one of them has an update ===
     Rectangle {
-        visible: !storeMissing && ((status && status.windoesnot && status.windoesnot.update === true) || wdnRows.length > 0)
+        visible: !storeMissing && ((status && status.windoesnot && status.windoesnot.update === true)
+                                    || wdnRows.some(function(row) { return row.available !== "" }))
         width: onlyUpdateLabel.implicitWidth + 32; height: visible ? 36 : 0
         radius: settingsMenu.borderRadius
         color: "transparent"; border.color: accent; border.width: 1
@@ -523,7 +524,7 @@ Column {
             anchors.fill: parent
             enabled: !storeMissing
             cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-            onClicked: { onlyUpgradeProc.running = true; settingsMenu.visible = false }
+            onClicked: onlyUpgradeProc.running = true
         }
     }
 

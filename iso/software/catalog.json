@@ -1611,6 +1611,195 @@
       },
       "required": false,
       "flatpak_id": "com.usebottles.bottles"
+    },
+    {
+      "id": "runtime-python",
+      "name": {
+        "de": "Python",
+        "en": "Python"
+      },
+      "category": "development",
+      "source": "repo",
+      "packages": [],
+      "description": {
+        "de": "Python mit pip und pipx",
+        "en": "Python with pip and pipx"
+      },
+      "required": false,
+      "repo_packages": [
+        "python",
+        "python-pip",
+        "python-pipx"
+      ]
+    },
+    {
+      "id": "runtime-node",
+      "name": {
+        "de": "Node.js und TypeScript",
+        "en": "Node.js und TypeScript"
+      },
+      "category": "development",
+      "source": "repo",
+      "packages": [],
+      "description": {
+        "de": "JavaScript und TypeScript ausführen, mit npm.",
+        "en": "Run JavaScript and TypeScript, with npm."
+      },
+      "required": false,
+      "repo_packages": [
+        "nodejs",
+        "npm",
+        "typescript"
+      ]
+    },
+    {
+      "id": "runtime-java",
+      "name": {
+        "de": "Java (OpenJDK)",
+        "en": "Java (OpenJDK)"
+      },
+      "category": "development",
+      "source": "repo",
+      "packages": [],
+      "description": {
+        "de": "Java-Entwicklung mit Maven und Gradle.",
+        "en": "Java development with Maven and Gradle."
+      },
+      "required": false,
+      "repo_packages": [
+        "jdk-openjdk",
+        "maven",
+        "gradle"
+      ]
+    },
+    {
+      "id": "runtime-dotnet",
+      "name": {
+        "de": ".NET und C#",
+        "en": ".NET und C#"
+      },
+      "category": "development",
+      "source": "repo",
+      "packages": [],
+      "description": {
+        "de": "C# und .NET-Anwendungen entwickeln.",
+        "en": "Develop C# and .NET applications."
+      },
+      "required": false,
+      "repo_packages": [
+        "dotnet-sdk"
+      ]
+    },
+    {
+      "id": "runtime-cpp",
+      "name": {
+        "de": "C und C++",
+        "en": "C und C++"
+      },
+      "category": "development",
+      "source": "repo",
+      "packages": [],
+      "description": {
+        "de": "Compiler und Werkzeuge: GCC, Clang, CMake, Debugger.",
+        "en": "Compilers and tools: GCC, Clang, CMake, debugger."
+      },
+      "required": false,
+      "repo_packages": [
+        "gcc",
+        "clang",
+        "cmake",
+        "gdb"
+      ]
+    },
+    {
+      "id": "runtime-php",
+      "name": {
+        "de": "PHP",
+        "en": "PHP"
+      },
+      "category": "development",
+      "source": "repo",
+      "packages": [],
+      "description": {
+        "de": "PHP-Skripte und Webprojekte ausführen.",
+        "en": "Run PHP scripts and web projects."
+      },
+      "required": false,
+      "repo_packages": [
+        "php"
+      ]
+    },
+    {
+      "id": "runtime-go",
+      "name": {
+        "de": "Go",
+        "en": "Go"
+      },
+      "category": "development",
+      "source": "repo",
+      "packages": [],
+      "description": {
+        "de": "Programmiersprache Go mit Compiler und Werkzeugen.",
+        "en": "The Go language with compiler and tools."
+      },
+      "required": false,
+      "repo_packages": [
+        "go"
+      ]
+    },
+    {
+      "id": "runtime-rust",
+      "name": {
+        "de": "Rust",
+        "en": "Rust"
+      },
+      "category": "development",
+      "source": "repo",
+      "packages": [],
+      "description": {
+        "de": "Programmiersprache Rust mit Cargo.",
+        "en": "The Rust language with Cargo."
+      },
+      "required": false,
+      "repo_packages": [
+        "rust"
+      ]
+    },
+    {
+      "id": "runtime-ruby",
+      "name": {
+        "de": "Ruby",
+        "en": "Ruby"
+      },
+      "category": "development",
+      "source": "repo",
+      "packages": [],
+      "description": {
+        "de": "Programmiersprache Ruby mit RubyGems.",
+        "en": "The Ruby language with RubyGems."
+      },
+      "required": false,
+      "repo_packages": [
+        "ruby"
+      ]
+    },
+    {
+      "id": "runtime-kotlin",
+      "name": {
+        "de": "Kotlin",
+        "en": "Kotlin"
+      },
+      "category": "development",
+      "source": "repo",
+      "packages": [],
+      "description": {
+        "de": "Programmiersprache Kotlin für Java-Plattform und Android.",
+        "en": "The Kotlin language for the Java platform and Android."
+      },
+      "required": false,
+      "repo_packages": [
+        "kotlin"
+      ]
     }
   ],
   "flatpak_remotes": {

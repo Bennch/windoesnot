@@ -3,6 +3,6 @@ Type=Application
 Name=Keyboard Shortcuts
 Name[de]=Tastenkürzel
 Exec=windoesnot-hyprctl dispatch global quickshell:toggle-shortcuts
-Icon=preferences-desktop-keyboard-shortcuts
+Icon=windoesnot-shortcuts
 Terminal=false
 Categories=Settings;DesktopSettings;

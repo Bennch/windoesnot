@@ -10,11 +10,54 @@ import sys
 config = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config')
 state = Path(os.environ.get('XDG_STATE_HOME') or Path.home() / '.local/state') / 'windoesnot/theme-preset.json'
 wallpaper_config = config / 'hypr/hyprpaper.conf'
+looks_file = config / 'windoesnot/looks.json'
 action = sys.argv[1]
+
+
+def current_wallpaper():
+    try:
+        match = re.search(r'(?m)^\s*path\s*=\s*(\S.*?)\s*$', wallpaper_config.read_text())
+        return match.group(1) if match else ''
+    except OSError:
+        return ''
+
+
+def saved_looks():
+    try:
+        data = json.loads(looks_file.read_text())
+        return [item for item in data if isinstance(item, dict) and item.get('name')] if isinstance(data, list) else []
+    except (OSError, ValueError):
+        return []
+
+
+if action == 'list':
+    print(json.dumps(saved_looks()))
+    raise SystemExit(0)
+if action == 'save':
+    # save <name> <json with darkMode, accentColor, borderRadius>: the current wallpaper is stored with it
+    name = sys.argv[2].strip()[:40]
+    values = json.loads(sys.argv[3])
+    if not name:
+        raise SystemExit('Name missing')
+    entry = {'name': name, 'darkMode': bool(values['darkMode']), 'accentColor': str(values['accentColor']),
+             'borderRadius': int(values['borderRadius']), 'wallpaperPath': current_wallpaper()}
+    looks = [item for item in saved_looks() if item['name'] != name] + [entry]
+    looks_file.parent.mkdir(parents=True, exist_ok=True)
+    temporary = looks_file.with_suffix('.tmp')
+    temporary.write_text(json.dumps(looks, indent=1))
+    temporary.replace(looks_file)
+    print(json.dumps(looks))
+    raise SystemExit(0)
+if action == 'delete':
+    looks = [item for item in saved_looks() if item['name'] != sys.argv[2]]
+    looks_file.parent.mkdir(parents=True, exist_ok=True)
+    looks_file.write_text(json.dumps(looks, indent=1))
+    print(json.dumps(looks))
+    raise SystemExit(0)
 if action == 'apply':
     values = json.loads(sys.argv[2])
     wallpaper = sys.argv[3]
-    if not Path(wallpaper).is_file():
+    if wallpaper and not Path(wallpaper).is_file():
         raise SystemExit('Wallpaper missing')
     original = wallpaper_config.read_text() if wallpaper_config.exists() else None
     if not state.exists():
@@ -22,6 +65,8 @@ if action == 'apply':
         fd = os.open(state, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(fd, 'w') as stream:
             json.dump({'values': values, 'wallpaperConfig': original}, stream)
+    if not wallpaper:
+        raise SystemExit(0)
     content = original or 'splash = false\n\nwallpaper {\n    monitor =\n    path =\n    fit_mode = cover\n}\n'
     # Change only paths inside wallpaper blocks, retaining all monitor assignments.
     def replace_block(match):
