@@ -144,6 +144,15 @@ Item {
         function onRawEvent(ev) {
             var name = "" + ev.name;
             var data = ("" + ev.data).trim();
+            // Plugin events (hyprdrag-*) arrive as a "custom" event with "<name>>><payload>" since Hyprland 0.57. Matching the
+            // plain name never fired, so the whole drag/snap logic silently ran on its polling fallbacks.
+            if (name === "custom") {
+                var sep = data.indexOf(">>")
+                if (sep > 0) {
+                    name = data.substring(0, sep)
+                    data = data.substring(sep + 2).trim()
+                }
+            }
 
             // Only handle events if snapping is enabled (floating mode)
             if (!snapManager.enabled) {
@@ -163,6 +172,7 @@ Item {
                     return;
                 }
                 console.log("Drag started:", data, "enabled:", snapManager.enabled);
+                console.log("SNAPDBG start", data, "dragging was", snapManager.isDragging);
                 snapManager.isDragging = true;
                 snapManager.activeWindowAddress = data;
                 snapManager.dragStartMonitor = null;
@@ -185,6 +195,7 @@ Item {
                 else if (!monitorQueryProc.running) monitorQueryProc.running = true
             } else if (name === "hyprdrag-movestop") {
                 console.log("Drag stopped:", data);
+                console.log("SNAPDBG stop zone", snapManager.currentZone, "dragging", snapManager.isDragging, "active", snapManager.activeWindowAddress, "cooldown", snapManager.snapCooldown, "cursor", JSON.stringify(snapManager.cachedCursorPos));
                 // Normalize addresses for comparison (remove 0x prefix)
                 var normalizedData = data.replace(/^0x/, "")
                 var normalizedActive = snapManager.activeWindowAddress ?
@@ -702,6 +713,8 @@ Item {
                     // Calculate snap zone using cursor position
                     var result = snapManager.calculateSnapZone(cursorX, cursorY, targetMonitor, monitors)
 
+                    if (result.zone !== snapManager.currentZone)
+                        console.log("SNAPDBG zone", snapManager.currentZone, "->", result.zone, "cursor", cursorX, cursorY, "mon", targetMonitor.name, targetMonitor.x, targetMonitor.y, targetMonitor.width, targetMonitor.height, "hasBar", snapManager.hasOurBar(snapManager.cachedWindowInfo))
                     var monitorChanged = targetMonitor.name !== snapManager.currentMonitorName
                     var zoneChanged    = result.zone !== snapManager.currentZone
 
