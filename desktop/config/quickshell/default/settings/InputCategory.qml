@@ -6,6 +6,7 @@ import "../i18n/Lang.js" as Lang
 import "../LocaleNames.js" as LocaleNames
 
 Column {
+    id: inputRoot
     property var settingsMenu: null
     property string _lang: settingsMenu ? settingsMenu.uiLanguage : "de"
 
@@ -424,7 +425,7 @@ Column {
         }
 
         Tools.SystemToolsToggle {
-            settingsMenu: settingsMenu
+            settingsMenu: inputRoot.settingsMenu
             text: Lang.get("calendar.holidays", _lang)
             checked: (settingsMenu ? settingsMenu.calendarHolidays : false)
             onToggled: settingsMenu.calendarHolidays = checked
@@ -443,7 +444,7 @@ Column {
             Text { text: Lang.get("calendar.region", _lang); font.pixelSize: 14; color: settingsMenu.darkMode ? "#aaa" : "#555"; width: parent.width - 260 - parent.spacing; anchors.verticalCenter: parent.verticalCenter }
             Tools.SystemToolsChoice {
                 id: calendarRegionChoice
-                settingsMenu: settingsMenu
+                settingsMenu: inputRoot.settingsMenu
                 width: 260
                 labelPrefix: "calendar.region"
                 model: ["auto", "DE", "AT", "CH", "US", "GB", "FR", "GLOBAL"]
@@ -457,7 +458,7 @@ Column {
             visible: (settingsMenu ? settingsMenu.calendarHolidays : false) && ((settingsMenu ? settingsMenu.calendarRegion : "auto") === "DE" || ((settingsMenu ? settingsMenu.calendarRegion : "auto") === "auto" && Qt.locale().name.indexOf("_DE") > 0))
             Text { text: Lang.get("calendar.state", _lang); font.pixelSize: 14; color: settingsMenu.darkMode ? "#aaa" : "#555"; width: parent.width - 260 - parent.spacing; anchors.verticalCenter: parent.verticalCenter }
             Tools.SystemToolsChoice {
-                settingsMenu: settingsMenu
+                settingsMenu: inputRoot.settingsMenu
                 width: 260
                 labelPrefix: "calendar.state"
                 model: ["ALL", "BW", "BY", "BE", "BB", "HB", "HH", "HE", "MV", "NI", "NW", "RP", "SL", "SN", "ST", "SH", "TH"]
@@ -467,14 +468,14 @@ Column {
         }
 
         Tools.SystemToolsToggle {
-            settingsMenu: settingsMenu
+            settingsMenu: inputRoot.settingsMenu
             visible: (settingsMenu ? settingsMenu.calendarHolidays : false) && (settingsMenu ? settingsMenu.calendarState : "ALL") === "ALL"
             text: Lang.get("calendar.regional", _lang)
             checked: (settingsMenu ? settingsMenu.calendarRegional : false)
             onToggled: settingsMenu.calendarRegional = checked
         }
         Tools.SystemToolsToggle {
-            settingsMenu: settingsMenu
+            settingsMenu: inputRoot.settingsMenu
             visible: (settingsMenu ? settingsMenu.calendarHolidays : false)
             text: Lang.get("calendar.observances", _lang)
             checked: (settingsMenu ? settingsMenu.calendarObservances : false)
@@ -484,7 +485,7 @@ Column {
             width: parent.width; spacing: 15
             Text { text: Lang.get("calendar.firstDay", _lang); font.pixelSize: 14; color: settingsMenu.darkMode ? "#aaa" : "#555"; width: parent.width - 260 - parent.spacing; anchors.verticalCenter: parent.verticalCenter }
             Tools.SystemToolsChoice {
-                settingsMenu: settingsMenu
+                settingsMenu: inputRoot.settingsMenu
                 width: 260
                 labelPrefix: "calendar.firstDay"
                 model: ["auto", "mon", "sun", "sat"]
@@ -493,7 +494,7 @@ Column {
             }
         }
         Tools.SystemToolsToggle {
-            settingsMenu: settingsMenu
+            settingsMenu: inputRoot.settingsMenu
             text: Lang.get("calendar.weekNumbers", _lang)
             checked: (settingsMenu ? settingsMenu.calendarWeekNumbers : false)
             onToggled: settingsMenu.calendarWeekNumbers = checked
