@@ -69,7 +69,8 @@ int main(int argc,char** argv) {
     BootSelectionWidget bios(false);
     assert(!bios.findChild<QRadioButton*>("bootloader-refind"));
     assert(!bios.findChild<QRadioButton*>("bootloader-systemd-boot"));
-    bios.findChild<QRadioButton*>("bootloader-limine")->click();assert(bios.selected()=="limine");
+    assert(!bios.findChild<QRadioButton*>("bootloader-limine"));
+    bios.findChild<QRadioButton*>("bootloader-grub")->click();assert(bios.selected()=="grub");
     bios.setDetectedSystems({"/dev/sda2:Debian GNU/Linux:Debian:linux"},State::Available);
     assert(bios.findChild<QLabel*>("boot-detection")->text().contains("Debian GNU/Linux"));
     assert(bios.findChild<QLabel*>("boot-detection")->text().contains("cannot reliably identify an existing BIOS boot menu"));

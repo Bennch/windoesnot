@@ -15,7 +15,7 @@ const Choice choices[] = {
     {"grub", "GRUB", "Empfohlen, wenn du unsicher bist. Kann erkannte Windows- und Linux-Systeme im gemeinsamen Startmenü anbieten. Unterstützt UEFI und ältere BIOS-Rechner.", "Recommended if you are unsure. Can offer detected Windows and Linux systems in a shared boot menu. Supports UEFI and older BIOS computers.", false},
     {"refind", "rEFInd", "Grafisches Startmenü mit automatischer Suche nach Betriebssystemen. Benötigt UEFI.", "Graphical boot menu that automatically finds operating systems. Requires UEFI.", true},
     {"systemd-boot", "systemd-boot", "Schlichtes Startmenü für UEFI-Rechner. Erkennt Windows auf derselben EFI-Systempartition. Für erfahrene Nutzer mit passender Partitionierung.", "A simple boot menu for UEFI computers. Detects Windows on the same EFI system partition. For experienced users with a suitable partition layout.", true},
-    {"limine", "Limine", "Alternative für Nutzer, die Limine bereits kennen. Unterstützt UEFI und BIOS. Die Einbindung anderer Systeme hängt von seiner Konfiguration ab.", "An alternative for users already familiar with Limine. Supports UEFI and BIOS. Showing other operating systems requires a suitable configuration.", false},
+    {"limine", "Limine", "Alternative für Nutzer, die Limine bereits kennen. Benötigt UEFI. Die Einbindung anderer Systeme hängt von seiner Konfiguration ab.", "An alternative for users already familiar with Limine. Requires UEFI. Showing other operating systems requires a suitable configuration.", true},
 };
 }
 BootSelectionWidget::BootSelectionWidget(bool efi, QWidget* parent) : QWidget(parent), m_efi(efi) { build(); }

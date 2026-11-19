@@ -2,6 +2,7 @@
 
 Generated from `packaging/changelog.json` (newest first). Releases with downloads: https://github.com/Bennch/windoesnot/releases
 
+
 ## 0.1.0-32 (2026-11-19)
 
 - Updates check package dependencies and protect boot entries when kernels change.
@@ -20,7 +21,14 @@ Generated from `packaging/changelog.json` (newest first). Releases with download
 - Looks: save your own looks with a name (light/dark, accent colour, corner radius, wallpaper).
 - Desktop right-click on files and folders in file manager order: Open, open and copy file path, Send to (nearby device, network share), Cut, Copy, Delete, Rename, Properties.
 - Installer: ten runtimes to install later (Python, Node.js, Java, .NET, C/C++, PHP, Go, Rust, Ruby, Kotlin).
-- Fixed: updates and installs aborted on systems with GRUB; the holiday and week number switches did not respond; Performance mode was not offered; the Nearby window was cut off at the top; Does now says when it is not set up yet; the Network app has a single close button.
+- Search: apps are found by German and English names and keywords (“screenshot” finds Screenshot/Bildschirmfoto); every app has an icon; files show the icon of their type.
+- Store: the Install button locks while an app is queued or installing; names and icons appear correctly right after the first start; optimized builds for your processor no longer count as updates, and installing one app does not download hundreds of them.
+- Start menu: Show desktop works again; Disk Management, Event Viewer and Power Statistics ship with the system; Papers opens PDF files.
+- Windows in floating mode: snapping reacts to every pointer motion, the preview follows the pointer and leaves a little more time to let go; windows then jump into place faster.
+- New layout menu on the maximize button like in Windows 11: six arrangements with individually clickable zones that light up in the accent colour. It also works for apps with their own title bar such as Steam and Discord.
+- Steam and Discord: can be dragged by their own bar again, minimize and maximize work (including toggling back), a click on the Steam tray icon opens Steam.
+- Edges: dragging a side edge changes only the width, the bottom edge only the height, the corners both; the arrows stay visible while hovering. Windows snapped side by side follow the shared edge immediately.
+- Fixed: updates and installs aborted on systems with GRUB, rEFInd or Limine (Limine is now offered on UEFI only); the holiday and week number switches did not respond; Performance mode was not offered; the Nearby window was cut off at the top; Does now says when it is not set up yet; the Network app has a single close button.
 
 ## 0.1.0-31 (2026-11-17)
 

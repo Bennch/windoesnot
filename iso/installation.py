@@ -260,8 +260,8 @@ def validate_choice(bootloader, firmware, mode):
         raise ValueError('Missing or unsupported bootloader / installation mode')
     if firmware not in ('efi', 'bios'):
         raise ValueError('Unsupported firmware type')
-    if firmware != 'efi' and bootloader in ('refind', 'systemd-boot'):
-        raise ValueError('This bootloader requires UEFI. Choose GRUB or Limine on BIOS.')
+    if firmware != 'efi' and bootloader in ('refind', 'systemd-boot', 'limine'):
+        raise ValueError('This bootloader requires UEFI. Choose GRUB on BIOS.')
 
 
 @contextmanager

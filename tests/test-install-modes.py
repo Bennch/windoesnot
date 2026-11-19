@@ -18,9 +18,9 @@ import repository
 
 for loader in installation.BOOT_PACKAGES:
     installation.validate_choice(loader,'efi','offline')
-for loader in ('grub','limine'):
+for loader in ('grub',):
     installation.validate_choice(loader,'bios','online')
-for choice in [('refind','bios','offline'),('systemd-boot','bios','online'),('none','efi','offline'),('refind-ai','efi','online'),('grub','efi','typo')]:
+for choice in [('refind','bios','offline'),('systemd-boot','bios','online'),('limine','bios','offline'),('none','efi','offline'),('refind-ai','efi','online'),('grub','efi','typo')]:
     try: installation.validate_choice(*choice)
     except ValueError: pass
     else: raise AssertionError('Unsupported boot choice accepted')

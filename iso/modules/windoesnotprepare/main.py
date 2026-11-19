@@ -14,8 +14,8 @@ def run():
     mode = libcalamares.job.configuration.get('mode')
     if bootloader not in ('grub', 'refind', 'systemd-boot', 'limine') or firmware not in ('efi', 'bios') or mode not in ('offline', 'online'):
         return ('Invalid installation choices', 'Return to the bootloader page and select a supported option.')
-    if firmware != 'efi' and bootloader in ('refind', 'systemd-boot'):
-        return ('UEFI required', 'Choose GRUB or Limine for a BIOS installation.')
+    if firmware != 'efi' and bootloader in ('refind', 'systemd-boot', 'limine'):
+        return ('UEFI required', 'Choose GRUB for a BIOS installation.')
     if mode == 'online':
         # unpackfs contains a clean, empty resolver. networkcfg runs later; use
         # the live connection's resolver for this first target download too.
