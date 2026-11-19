@@ -59,7 +59,7 @@ PALETTES = {
                  current='#141414', trough='#3a3a3a'),
     'light': dict(bg='#f6f6f6', card='#ffffff', line='#d6d6d6', text='#202020', dim='#5f5f5f', todo='#8a8a8a', check='#ffffff', checkline='#8a8a8a',
                   checkmark='#ffffff', warn_bg='#fdf0e2', warn_line='#d9a066', warn_text='#7a4a14', err_bg='#fde5dc', err_text='#8a2b0a', divider='#d0d0d0',
-                  current='#ffffff', trough='#dcdcdc'),
+                  current='#ffe3d3', trough='#dcdcdc'),
 }
 
 CSS_TEMPLATE = """
@@ -69,7 +69,7 @@ label.wdn-text, label.wdn-heading { color: %(text)s; }
 label.wdn-heading { font-weight: 700; }
 .card .dim, .folder .dim { color: %(dim)s; }
 .card { background: %(card)s; border: 1px solid %(line)s; border-radius: 10px; padding: 14px; }
-.folder { background: %(bg)s; border: 1px solid %(line)s; border-radius: 6px; padding: 8px; }
+.folder { background: %(bg)s; border: 1px solid %(line)s; border-radius: 8px; padding: 12px 14px; }
 .warning { background: %(warn_bg)s; border: 1px solid %(warn_line)s; border-radius: 8px; padding: 10px; color: %(warn_text)s; }
 .error { background: %(err_bg)s; border: 1px solid #fe6f2d; border-radius: 8px; padding: 10px; color: %(err_text)s; }
 .accent { color: #fe6f2d; }
@@ -82,8 +82,8 @@ progressbar trough { background: %(trough)s; min-height: 8px; border-radius: 4px
 progressbar progress { background: #fe6f2d; min-height: 8px; border-radius: 4px; }
 button.suggested-action { background: #fe6f2d; color: #ffffff; }
 .rail { background: transparent; border-right: 1px solid %(divider)s; }
-.rail-row { border-radius: 6px; padding: 0 4px; min-height: 32px; }
-.rail-row.current { background: %(current)s; }
+.rail-row { border-radius: 8px; padding: 0 10px 0 6px; min-height: 38px; }
+.rail-row.current { background: %(current)s; border: 1px solid %(line)s; }
 .rail-pill { background: #fe6f2d; border-radius: 2px; min-width: 3px; min-height: 18px; }
 .rail-title { color: %(todo)s; font-size: 10pt; }
 .rail-title.done { color: %(dim)s; }
@@ -166,7 +166,7 @@ class Window(Adw.ApplicationWindow):
         self.update_logo()
         header.append(self.greeting); header.append(self.joke)
         rail.append(header)
-        self.rail_rows = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1, margin_start=6, margin_end=6)
+        self.rail_rows = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3, margin_start=8, margin_end=10)
         rail.append(self.rail_rows)
         root.set_start_child(rail)
         self.paned = root
@@ -403,7 +403,7 @@ class Window(Adw.ApplicationWindow):
             head.append(button)
         page.append(head)
         scroll = Gtk.ScrolledWindow(vexpand=True)
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         scroll.set_child(box)
         for item in items:
             checks.append(self.finding_row(box, item))
