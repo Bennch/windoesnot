@@ -125,6 +125,8 @@ package_windoesnot-tools() {
     install -Dm644 desktop/share/libalpm/hooks/00-windoesnot-boot-guard.hook "$pkgdir/usr/share/libalpm/hooks/00-windoesnot-boot-guard.hook"
     install -Dm755 desktop/lib/windoesnot/boot_entry_migration.py "$pkgdir/usr/lib/windoesnot/boot_entry_migration.py"
     install -Dm644 desktop/share/libalpm/hooks/90-windoesnot-plugins.hook "$pkgdir/usr/share/libalpm/hooks/90-windoesnot-plugins.hook"
+    install -Dm644 desktop/share/libalpm/hooks/zzz-windoesnot-grub-quiet.hook "$pkgdir/usr/share/libalpm/hooks/zzz-windoesnot-grub-quiet.hook"
+    install -Dm755 desktop/lib/windoesnot/grub_quiet.py "$pkgdir/usr/lib/windoesnot/grub_quiet.py"
     install -Dm755 desktop/share/NetworkManager/dispatcher.d/90-windoesnot-first-network "$pkgdir/usr/lib/NetworkManager/dispatcher.d/90-windoesnot-first-network"
     # Public verification material for future images; repository setup is explicit.
     install -Dm644 packaging/release-key/RELEASE-KEY.asc "$pkgdir/usr/share/windoesnot/repository/RELEASE-KEY.asc"

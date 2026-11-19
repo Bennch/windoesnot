@@ -218,6 +218,7 @@ def sync(root=Path('/'), force=False, register=False):
                 raise ValueError('GRUB generation must run inside the target')
             subprocess.run(['/usr/bin/grub-mkconfig', '-o', '/boot/grub/grub.cfg'], check=True,
                            env={**os.environ, 'LANG': locale, 'LC_ALL': locale, 'LANGUAGE': lang})
+            subprocess.run(['/usr/lib/windoesnot/grub_quiet.py', 'filter'], check=False, timeout=30)
     elif loader == 'systemd-boot':
         atomic_write(owned_path(root, 'boot/loader/windoesnot-language'), lang + '\n')
     elif loader == 'refind':

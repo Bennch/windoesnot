@@ -88,8 +88,10 @@ with tempfile.TemporaryDirectory(prefix='wdn-install-modes-') as temporary:
     calls.clear()
     with patch.object(installation.subprocess,'check_output',return_value='ext4\n'),patch.object(installation.subprocess,'run',side_effect=finish_run):
         installation.finish('grub','efi','offline',root)
-    assert calls == [['/usr/lib/windoesnot/boot_language.py', 'finish'],
+    assert calls == [['/usr/lib/windoesnot/grub_quiet.py', 'filter'],
+                     ['/usr/lib/windoesnot/boot_language.py', 'finish'],
                      ['systemctl', 'enable', 'windoesnot-boot-language.path']]
+    assert ['/usr/lib/windoesnot/grub_quiet.py', 'mkconfig'] != calls[0]
     (root/'boot').mkdir()
     (root/'etc/default').mkdir(exist_ok=True)
     (root/'boot/limine.conf').write_text('timeout: 5\ndefault_entry: 2\ncomment: machine-id=test-id\n/+CachyOS\n')

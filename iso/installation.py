@@ -245,6 +245,8 @@ def configure_snapshots(bootloader, root):
         config = root / 'etc/default/grub-btrfs/config'
         set_shell_value(config, 'GRUB_BTRFS_SUBMENUNAME', 'WinDoesNot restore points')
         set_shell_value(config, 'GRUB_BTRFS_SNAPSHOT_KERNEL_PARAMETERS', 'ro')
+        # grub-btrfsd regenerates grub.cfg on every snapshot: keep the start quiet there as well.
+        set_shell_value(config, 'GRUB_BTRFS_MKCONFIG', '/usr/lib/windoesnot/grub_quiet.py mkconfig')
         subprocess.run(['systemctl', 'enable', 'grub-btrfsd.service'], check=True, timeout=30)
         subprocess.run(['mkinitcpio', '-P'], check=True)
     elif bootloader == 'limine':
@@ -438,6 +440,9 @@ def finish(bootloader, firmware, mode, root=Path('/'), selected_locale=None):
         subprocess.run(['snapper', '--no-dbus', '-c', 'root', 'create', '--description', 'WinDoesNot installation'], check=True)
     if filesystem == 'btrfs' and bootloader == 'grub':
         subprocess.run(['grub-mkconfig', '-o', '/boot/grub/grub.cfg'], check=True)
+    if bootloader == 'grub':
+        # No 'Loading Linux ...' lines between the menu and the splash; a failure here must never stop the installation.
+        subprocess.run(['/usr/lib/windoesnot/grub_quiet.py', 'filter'], check=False, timeout=30)
     if bootloader == 'limine':
         subprocess.run(['limine-update'], check=True)
     subprocess.run(['/usr/lib/windoesnot/boot_language.py', 'finish'], check=True)

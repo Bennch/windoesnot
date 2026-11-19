@@ -1,0 +1,11 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = grub
+Target = linux*
+
+[Action]
+Description = Keeping the GRUB start quiet...
+When = PostTransaction
+Exec = /usr/lib/windoesnot/grub_quiet.py filter
