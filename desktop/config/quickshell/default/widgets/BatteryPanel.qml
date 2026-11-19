@@ -48,6 +48,7 @@ Item {
     // Quickshell can't disagree with reality.
     property bool hasNightLight: false
     property bool nightLightEnabled: false
+    property bool inVirtualMachine: false   // the colour filter needs the real display: usually without effect in a VM
 
     function tr(key) { return Lang.get(key, uiLanguage) }
 
@@ -220,12 +221,13 @@ Item {
 
     Process {
         id: nightLightStatusProc
-        command: ["bash", "-c", "command -v hyprsunset >/dev/null 2>&1 && echo has; pgrep -x hyprsunset >/dev/null 2>&1 && echo on"]
+        command: ["bash", "-c", "command -v hyprsunset >/dev/null 2>&1 && echo has; pgrep -x hyprsunset >/dev/null 2>&1 && echo on; systemd-detect-virt -q 2>/dev/null && echo virtualized"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
                 batteryPanel.hasNightLight = this.text.indexOf("has") !== -1
-                batteryPanel.nightLightEnabled = this.text.indexOf("on") !== -1
+                batteryPanel.nightLightEnabled = /(^|\n)on(\n|$)/.test(this.text)
+                batteryPanel.inVirtualMachine = this.text.indexOf("virtualized") !== -1
             }
         }
     }
@@ -468,6 +470,12 @@ Item {
                         onClicked: batteryPanel.toggleNightLight()
                     }
                 }
+            }
+            Text {
+                visible: batteryPanel.hasNightLight && batteryPanel.inVirtualMachine
+                width: parent.width; wrapMode: Text.WordWrap
+                text: batteryPanel.tr("power.nightLightVm")
+                font.pixelSize: 11; color: darkMode ? "#999999" : "#666666"
             }
         }
     }

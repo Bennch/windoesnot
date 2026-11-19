@@ -90,6 +90,7 @@ _TR = {
         "new_document":     "Dokument",
         "rename":           "Umbenennen",
         "share_nearby":     "Mit Gerät in der Nähe teilen",
+        "share_folder":     "Im Netzwerk freigeben …",
         "new_folder_name":  "Neuer Ordner",
         "new_document_name":"Neues Dokument",
         "kino_modus":       "Kino-Modus",
@@ -117,6 +118,7 @@ _TR = {
         "new_document":     "Document",
         "rename":           "Rename",
         "share_nearby":     "Share with a nearby device",
+        "share_folder":     "Share in the network …",
         "new_folder_name":  "New Folder",
         "new_document_name":"New Document",
         "kino_modus":       "Cinema Mode",
@@ -1355,6 +1357,13 @@ class DesktopIcon(Gtk.Box):
             return []
         return paths
 
+    def network_share_folder(self):
+        """The folder this icon stands for when it can be shared in the network (single folder, helper present)."""
+        path = self.spec.get("file_path")
+        if not path or self.spec.get("is_trash") or not os.path.isdir(path) or shutil.which("qs") is None:
+            return None
+        return str(path)
+
     def on_right_click(self, gesture, n_press, x, y):
         """Zeigt Kontextmenü für Icon."""
         # Prüfen ob mehrere Icons selektiert sind
@@ -1382,6 +1391,8 @@ class DesktopIcon(Gtk.Box):
             menu.append(tr("open", _lang), "icon.open")
             if share_paths:
                 menu.append(tr("share_nearby", _lang), "icon.share_nearby")
+            if self.network_share_folder():
+                menu.append(tr("share_folder", _lang), "icon.share_folder")
             if "file_path" in self.spec:
                 menu.append(tr("rename", _lang), "icon.rename")
             menu.append(tr("delete", _lang), "icon.delete")
@@ -1403,6 +1414,13 @@ class DesktopIcon(Gtk.Box):
             share_action.connect("activate", lambda *args, paths=share_paths: subprocess.Popen(
                 ["windoesnot-nearby", "share", *paths], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
             action_group.add_action(share_action)
+
+        folder = self.network_share_folder()
+        if folder and not (multiple_selected and self.selected):
+            folder_action = Gio.SimpleAction.new("share_folder", None)
+            folder_action.connect("activate", lambda *args, path=folder: subprocess.Popen(
+                ["qs", "ipc", "call", "windoesnot-share", "open", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+            action_group.add_action(folder_action)
 
         if can_copy:
             copy_action = Gio.SimpleAction.new("copy", None)

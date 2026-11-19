@@ -54,7 +54,7 @@ with tempfile.TemporaryDirectory() as temp:
     pend = d / 'pending.json'; pend.write_text(json.dumps({'schema_version': 1, 'pending': ['netflix', 'youtube', 'evil-site', 'gta2-rtx-remix-guide']}))
     bins = d / 'bin'; bins.mkdir()
     for name in ('notify-send', 'nm-online'): (bins / name).write_text('#!/bin/sh\nexit 0\n'); (bins / name).chmod(0o755)
-    env = {**os.environ, 'HOME': str(home), 'PATH': str(bins), 'WINDOESNOT_PENDING': str(pend), 'XDG_STATE_HOME': str(home / 's'), 'LANG': 'en_US.UTF-8'}
+    env = {**os.environ, 'HOME': str(home), 'PATH': str(bins), 'WINDOESNOT_PENDING': str(pend), 'XDG_STATE_HOME': str(home / 's'), 'LANG': 'en_US.UTF-8', 'WINDOESNOT_ASSUME_WEBKIT': '1'}
     env.pop('WINDOESNOT_BASE', None)
     tool = str(ROOT / 'desktop/bin/windoesnot-pending-apps')
     desktop = home / '.local/share/applications/windoesnot-webapp-netflix.desktop'
@@ -69,6 +69,12 @@ with tempfile.TemporaryDirectory() as temp:
     subprocess.run([sys.executable, tool, '--no-wait'], env=env, check=True)   # a Chromium browser appeared: rewritten
     text = desktop.read_text()
     assert f'Exec=chromium --app=https://www.netflix.com/ --user-data-dir={home}/.local/share/windoesnot/webapps/netflix' in text, text
+    # Own app window present: used for everything except copy-protected streaming (Netflix stays in the browser).
+    (bins / 'windoesnot-webapp').write_text('#!/bin/sh\n'); (bins / 'windoesnot-webapp').chmod(0o755)
+    subprocess.run([sys.executable, tool, '--no-wait'], env=env, check=True)
+    youtube = (home / '.local/share/applications/windoesnot-webapp-youtube.desktop').read_text()
+    assert 'Exec=windoesnot-webapp --id youtube --name YouTube https://www.youtube.com/' in youtube and 'StartupWMClass=windoesnot-webapp-youtube' in youtube, youtube
+    assert 'chromium --app=https://www.netflix.com/' in desktop.read_text()
     before = desktop.stat().st_mtime_ns
     subprocess.run([sys.executable, tool, '--no-wait'], env=env, check=True)   # nothing changed: untouched
     assert desktop.stat().st_mtime_ns == before

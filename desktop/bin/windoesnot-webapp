@@ -200,12 +200,92 @@ class WebApp(Gtk.Application):
         return True
 
 
+def slug(name):
+    text = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
+    return text[:30] or 'app'
+
+
+def fetch_favicon(wmclass, url):
+    """Icon of the site itself: the page's own icon links (largest first), else /favicon.ico. '' when none works."""
+    import shutil
+    import subprocess
+    import urllib.request
+    from html.parser import HTMLParser
+    from urllib.parse import urljoin
+    if not shutil.which('magick'):
+        return ''
+    icons = Path.home() / '.local/share/icons/hicolor/64x64/apps'
+    icons.mkdir(parents=True, exist_ok=True)
+    target = icons / f'{wmclass}.png'
+    request = lambda u: urllib.request.Request(u, headers={'User-Agent': USER_AGENT})
+    candidates = []
+
+    class Links(HTMLParser):
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            rel = (attrs.get('rel') or '').lower()
+            if tag == 'link' and 'icon' in rel and attrs.get('href'):
+                sizes = re.findall(r'\d+', attrs.get('sizes') or '')
+                candidates.append((int(sizes[0]) if sizes else (180 if 'apple' in rel else 0), urljoin(url, attrs['href'])))
+    try:
+        with urllib.request.urlopen(request(url), timeout=10) as page:
+            Links().feed(page.read(300000).decode('utf-8', 'replace'))
+    except (OSError, ValueError):
+        pass
+    ordered = [u for _size, u in sorted(candidates, key=lambda c: -c[0])]
+    ordered.append(urljoin(url, '/favicon.ico'))
+    for source in ordered[:6]:
+        if urlparse(source).scheme != 'https':
+            continue
+        raw = icons / f'{wmclass}.download'
+        try:
+            with urllib.request.urlopen(request(source), timeout=10) as response:
+                raw.write_bytes(response.read(2_000_000))
+        except (OSError, ValueError):
+            continue
+        done = subprocess.run(['magick', '-background', 'none', f'{raw}[0]', '-resize', '64x64', '-gravity', 'center',
+                               '-extent', '64x64', str(target)], capture_output=True).returncode == 0
+        raw.unlink(missing_ok=True)
+        if done and target.is_file():
+            return str(target)
+    return ''
+
+
+def create_launcher(name, url):
+    """Own web app: a start-menu entry (with the site's favicon) that starts this program."""
+    app_id = 'my-' + slug(name)
+    wmclass = f'windoesnot-webapp-{app_id}'
+    icon = fetch_favicon(wmclass, url) or 'web-browser'
+    exec_line = f'windoesnot-webapp --id {app_id} --name "{name.replace(chr(34), "")}" {url}'
+    applications = Path.home() / '.local/share/applications'
+    applications.mkdir(parents=True, exist_ok=True)
+    path = applications / f'windoesnot-webapp-{app_id}.desktop'
+    path.write_text('[Desktop Entry]\nType=Application\nVersion=1.0\n'
+                    f'Name={name}\nComment={url}\nExec={exec_line}\nIcon={icon}\nTerminal=false\n'
+                    f'Categories=Network;\nStartupWMClass={wmclass}\nX-WinDoesNot-WebApp=true\nX-WinDoesNot-UserWebApp=true\n')
+    return path
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--id', required=True, help='short name of the web app (letters, digits, dash)')
+    parser.add_argument('--id', help='short name of the web app (letters, digits, dash)')
     parser.add_argument('--name', help='window title')
+    parser.add_argument('--create', action='store_true', help='only create the start-menu entry for NAME and URL')
+    parser.add_argument('--fetch-icon', action='store_true', help='only fetch the site icon for --id and print its path')
     parser.add_argument('url')
     args = parser.parse_args()
+    if args.create:
+        if not args.name or not valid_start_url(args.url):
+            parser.error('--create needs --name and an https URL')
+        print(create_launcher(args.name.strip()[:60], args.url))
+        return 0
+    if not args.id:
+        parser.error('--id is required')
+    if args.fetch_icon:
+        if not valid_start_url(args.url):
+            parser.error('invalid URL (https only)')
+        print(fetch_favicon(f'windoesnot-webapp-{args.id}', args.url))
+        return 0
     if not re.fullmatch(r'[a-z0-9][a-z0-9-]*', args.id) or not valid_start_url(args.url):
         parser.error('invalid id or URL (https only)')
     # The window class is the taskbar's key: one group per web app.

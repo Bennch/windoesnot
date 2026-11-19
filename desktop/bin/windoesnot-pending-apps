@@ -102,12 +102,20 @@ def seed_firefox_profile(profile, dry):
     (profile / 'chrome/userChrome.css').write_text(FIREFOX_CHROME)
 
 
-def webapp_command(app_id, url, dry=False):
+# Services with copy-protected video: WebKitGTK cannot play them, so they keep using a browser.
+DRM_WEBAPPS = {'netflix', 'prime-video', 'disney-plus'}
+
+
+def webapp_command(app_id, url, dry=False, name=''):
     """(Exec argv, window class). Own window class per web app so the taskbar groups it as its own app.
 
-    Chromium family in app mode if present, else Firefox (always in the image) with a private
-    profile whose toolbars are hidden; never the user's normal Firefox profile."""
+    Our own app window (windoesnot-webapp, system WebKitGTK: no browser look at all) for everything except
+    copy-protected streaming; there, Chromium family in app mode if present, else Firefox (always in the image)
+    with a private profile whose toolbars are hidden; never the user's normal Firefox profile."""
     wmclass = f'windoesnot-webapp-{app_id}'
+    webkit = any(Path(d, 'WebKit-6.0.typelib').is_file() for d in ('/usr/lib/girepository-1.0', '/usr/lib64/girepository-1.0'))
+    if app_id not in DRM_WEBAPPS and shutil.which('windoesnot-webapp') and (webkit or os.environ.get('WINDOESNOT_ASSUME_WEBKIT')):
+        return ['windoesnot-webapp', '--id', app_id, '--name', name or app_id, url], wmclass
     profile = Path.home() / '.local/share/windoesnot/webapps' / app_id
     for binary in ('google-chrome-stable', 'chromium', 'brave'):
         if shutil.which(binary):
@@ -120,8 +128,17 @@ def webapp_command(app_id, url, dry=False):
             '--new-window', url], wmclass
 
 
-def webapp_icon(app_id, dry):
-    """Copy the catalogue icon into the user's icon theme and return its absolute path (empty if unknown)."""
+def webapp_icon(app_id, dry, url=''):
+    """The site's own favicon (fetched by windoesnot-webapp) if possible, else the catalogue icon copied into the
+    user's icon theme; returns the absolute path (empty if unknown)."""
+    if url and not dry and shutil.which('windoesnot-webapp'):
+        try:
+            fetched = subprocess.run(['windoesnot-webapp', '--fetch-icon', '--id', app_id, url], capture_output=True,
+                                     text=True, timeout=60).stdout.strip()
+            if fetched and Path(fetched).is_file():
+                return fetched
+        except (OSError, subprocess.SubprocessError):
+            pass
     for base in (BASE, Path(__file__).resolve().parent.parent.parent):
         source = base / 'iso/software/icons' / f'{app_id}.png'
         if source.is_file():
@@ -140,10 +157,10 @@ def write_webapp(app, name, dry, link=False):
     if link:
         command = ['xdg-open', refs[0]]
     else:
-        command, wmclass = webapp_command(app['id'], refs[0], dry)
+        command, wmclass = webapp_command(app['id'], refs[0], dry, name)
     quoted = ' '.join('"' + part.replace('\\', '\\\\').replace('"', '\\"') + '"' if any(c in part for c in ' "') else part for part in command)
     comment = app['description']['de' if german else 'en']
-    icon = webapp_icon(app['id'], dry) or ('applications-games' if link else 'web-browser')
+    icon = webapp_icon(app['id'], dry, '' if link else refs[0]) or ('applications-games' if link else 'web-browser')
     tail = 'Categories=Game;\nX-WinDoesNot-Link=true\n' if link else f'Categories=Network;AudioVideo;\nStartupWMClass={wmclass}\nX-WinDoesNot-WebApp=true\n'
     text = ('[Desktop Entry]\nType=Application\nVersion=1.0\n'
             f'Name={name}\nComment={comment}\nExec={quoted}\nIcon={icon}\nTerminal=false\n') + tail
