@@ -2,10 +2,13 @@
 # Screenshot with a clickable notification: the screen is captured at the key press (open popups stay visible),
 # the selection only crops it; the image is saved and copied to the clipboard,
 # then a notification opens the picture with a click on the card or on the "Open" button, or its folder.
-#   windoesnot-screenshot [region|window|output|active]
+#   windoesnot-screenshot [region|window|output|active|region-menu]
+# region-menu is for starting from the start menu: the menu is still open at that moment and would end up in the
+# picture, so the capture waits until it has closed. The key binding keeps capturing at once (popups stay visible).
 set -uo pipefail
 mode=${1:-region}
-case $mode in region|window|output|active) ;; *) echo "Unknown mode: $mode" >&2; exit 2;; esac
+case $mode in region|window|output|active|region-menu) ;; *) echo "Unknown mode: $mode" >&2; exit 2;; esac
+if [[ $mode == region-menu ]]; then mode=region; sleep "${WINDOESNOT_SCREENSHOT_MENU_DELAY:-0.8}"; fi
 dir=$(xdg-user-dir PICTURES 2>/dev/null || true)
 [[ -n $dir ]] || dir=$HOME/Pictures
 dir+=/Screenshots
