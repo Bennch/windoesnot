@@ -126,7 +126,8 @@ ShellRoot {
     testWindow.check(maintenance.tr("header.maintenance") === "Maintenance & Kernel", "maintenance EN")
     testWindow.check(maintenance.resultText.indexOf("Cancelled") === 0, "translated result EN")
     const fb=fileBackupLoader.item
-    fb.acceptStatus({config:{enabled:true,target:{kind:"drive",uuid:"u1",label:"Backup",folder:""},sources:["~/Documents"],schedule:"daily"},status:{state:"idle",last_success:Math.floor(Date.now()/1000)-7200},available:true,points:3})
+    fb.acceptStatus({config:{enabled:true,system:true,target:{kind:"drive",uuid:"u1",label:"Backup",folder:""},sources:["~/Documents"],schedule:"daily"},status:{state:"idle",last_success:Math.floor(Date.now()/1000)-7200},available:true,points:3,systemAvailable:true,systemPoints:2})
+    testWindow.check(!!testWindow.find(fb,o=>o.objectName==="fileBackupSystem") && fb.statusLine.indexOf("2 ")>0 && fb.statusLine.indexOf("ystem")>0 && fb.systemRestoreCommand.indexOf("snapshot_export.py restore")>0, "system states toggle and count: "+fb.statusLine)
     fb.acceptDrives([{kind:"drive",uuid:"u1",label:"Backup",filesystem:"ext4",size:500000000000},{kind:"drive",uuid:"u2",label:"USB",filesystem:"exFAT",size:32000000000}])
     fb.acceptPoints([{id:"2026-11-20_100000",time:"2026-11-20T10:00:00",kind:"full"}])
     fb.acceptBrowse([{name:"a.txt",dir:false,size:10,modified:0}])

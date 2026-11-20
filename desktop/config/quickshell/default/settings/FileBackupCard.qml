@@ -34,10 +34,11 @@ Item {
     property string browsePath: ""
     property string restoreRel: ""
     readonly property var status: info.status || ({})
-    readonly property bool running: status.state === "running" || runProcess.running
+    readonly property bool running: status.state === "running" || runProcess.running || systemProcess.running
     readonly property bool available: info.available === true
     readonly property var quickFolders: ["Documents", "Pictures", "Music", "Videos", "Desktop", "Downloads"]
 
+    readonly property string systemRestoreCommand: "pkexec /usr/lib/windoesnot/snapshot_export.py restore '{\"dir\":\"<WinDoesNot-Backup/" + tr("systemHostPlaceholder") + "/system>\",\"id\":<" + tr("systemNumberPlaceholder") + ">,\"into\":\"<" + tr("systemIntoPlaceholder") + ">\"}'"
     function tr(key) { return Lang.get("filebackup." + key, _lang) }
     function parse(text) {
         try { return JSON.parse(text) } catch (e) { return null }
@@ -69,6 +70,7 @@ Item {
         return target.label || target.uuid
     }
     readonly property string statusLine: {
+        if (running && status.message === "system") return tr("systemRunning")
         if (running) return tr("running").replace("%1", Math.round(Number(status.percent || 0)))
         if (!config.target) return tr("targetNone")
         if (!available) return tr("offline")
@@ -76,6 +78,7 @@ Item {
         const last = Number(status.last_success || 0)
         const when = last > 0 ? tr("last").replace("%1", relativeTime(last)).replace("%2", absoluteTime(last)) : tr("never")
         return when + " - " + tr("points").replace("%1", Number(info.points || 0))
+            + (info.systemAvailable && config.system ? " - " + tr("systemPoints").replace("%1", Number(info.systemPoints || 0)) : "")
     }
 
     // Data acceptance (also used by tests)
@@ -120,6 +123,11 @@ Item {
         resultText = ""
         runProcess.running = true
         pollTimer.start()
+    }
+    function startSystemExport() {
+        if (systemProcess.running || runProcess.running || !available) return
+        resultText = ""
+        systemProcess.running = true
     }
     function toggleSource(path, on) {
         const current = (config.sources || ["~"]).slice()
@@ -178,6 +186,12 @@ Item {
     Process {
         id: runProcess
         command: [card.cli, "run"]
+        stdout: StdioCollector { onStreamFinished: { const data = card.parse(text); if (data && data.error) card.errorText = card.errorMessage(data.error); card.refresh() } }
+        onExited: card.refresh()
+    }
+    Process {
+        id: systemProcess
+        command: [card.cli, "system-export"]
         stdout: StdioCollector { onStreamFinished: { const data = card.parse(text); if (data && data.error) card.errorText = card.errorMessage(data.error); card.refresh() } }
         onExited: card.refresh()
     }
@@ -388,6 +402,23 @@ Item {
                         }
                     }
                 }
+                Tools.SystemToolsToggle {
+                    objectName: "fileBackupSystem"
+                    visible: card.info.systemAvailable === true
+                    settingsMenu: card.settingsMenu
+                    text: card.tr("systemEnable")
+                    checked: card.config.system === true
+                    onToggled: card.saveConfig({system: checked})
+                }
+                Note { objectName: "fileBackupSystemHint"; visible: card.info.systemAvailable === true; text: card.tr("systemHint") }
+                Tools.SystemToolsButton {
+                    objectName: "fileBackupSystemNow"
+                    visible: card.info.systemAvailable === true
+                    settingsMenu: card.settingsMenu
+                    text: card.tr("systemNow")
+                    enabled: card.available && !card.running
+                    onClicked: card.startSystemExport()
+                }
                 Text { font.pixelSize: 12; color: card.dark ? "#aaaaaa" : "#555555"; text: card.tr("what") }
                 CheckBox {
                     objectName: "fileBackupHome"
@@ -480,6 +511,7 @@ Item {
         }
 
         // Honest notes
-        Note { objectName: "fileBackupHints"; text: card.tr("hintEncrypt") + "\n" + card.tr("hintFat") + "\n" + card.tr("hintSystem") }
+        Note { objectName: "fileBackupHints"; text: card.tr("hintEncrypt") + "\n" + card.tr("hintFat") + "\n" + card.tr("hintSystem")
+            + (card.info.systemAvailable === true ? "\n" + card.tr("systemRestoreHint") + "\n" + card.systemRestoreCommand : "") }
     }
 }

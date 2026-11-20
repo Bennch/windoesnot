@@ -460,6 +460,9 @@ var PAGES = [
   "page": "backups",
   "keys": [
    "filebackup.title",
+   "filebackup.systemEnable",
+   "filebackup.systemNow",
+   "filebackup.systemHint",
    "filebackup.systemTitle",
    "filebackup.automatic",
    "filebackup.enabled",

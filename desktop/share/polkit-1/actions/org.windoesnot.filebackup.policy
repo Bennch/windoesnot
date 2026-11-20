@@ -10,4 +10,12 @@
   <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin_keep</allow_active></defaults>
   <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/windoesnot-filebackup-mount</annotate>
 </action>
+<action id="org.windoesnot.filebackup.system">
+  <description>Copy system restore points to a backup drive</description><description xml:lang="de">Systemstände auf das Sicherungslaufwerk kopieren</description>
+  <message>Authentication is required: Copy system restore points to a backup drive</message>
+  <message xml:lang="de">Bitte bestätigen: Systemstände auf das Sicherungslaufwerk kopieren</message>
+  <icon_name>system-lock-screen</icon_name>
+  <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin_keep</allow_active></defaults>
+  <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/snapshot_export.py</annotate>
+</action>
 </policyconfig>

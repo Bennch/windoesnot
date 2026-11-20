@@ -36,7 +36,7 @@ DEFAULT_EXCLUDES = ['.cache/', '.local/share/Trash/', '.local/share/Steam/', '.v
                     '.cargo/registry/', '.gradle/caches/', '.thumbnails/', 'snap/', '.local/share/containers/', '.local/share/docker/',
                     '*.part', '*.crdownload', '.Trash-*/', 'WinDoesNot-Backup/']
 DEFAULTS = {'version': 1, 'enabled': False, 'target': None, 'sources': ['~'], 'excludes': DEFAULT_EXCLUDES, 'schedule': 'daily',
-            'keep': {'hourly': 24, 'daily': 14, 'weekly': 8, 'monthly': 12}, 'minBattery': 30}
+            'keep': {'hourly': 24, 'daily': 14, 'weekly': 8, 'monthly': 12}, 'minBattery': 30, 'system': False}
 
 
 class BackupError(Exception):
@@ -493,5 +493,52 @@ def status_report():
     except BackupError:
         pass
     points = list_snapshots(base) if available else []
-    return {'config': config, 'status': status, 'available': available, 'points': len(points),
+    return {'config': config, 'status': status, 'available': available, 'points': len(points), 'systemAvailable': system_available(),
+            'systemPoints': len(system_list(base)) if available else 0,
             'due': due(config, status), 'newest': points[0]['time'] if points else ''}
+
+
+# ---------------------------------------------------------------- system restore points
+EXPORTER = Path('/usr/lib/windoesnot/snapshot_export.py')
+
+
+def system_folder(base):
+    return set_root(base) / 'system'
+
+
+def system_available():
+    """Only on an installed btrfs system with Snapper and the root helper."""
+    return EXPORTER.is_file() and Path('/etc/snapper/configs/root').is_file() and not Path('/etc/windoesnot-image-build').exists()
+
+
+def system_list(base):
+    try:
+        entries = json.loads((system_folder(base) / 'index.json').read_text())
+        return entries if isinstance(entries, list) else []
+    except (OSError, ValueError):
+        return []
+
+
+def system_export(base):
+    """Copy a fresh system restore point (incremental when possible) to the target. Asks for authentication (pkexec)."""
+    if not system_available():
+        raise BackupError('System restore points are not available on this system')
+    folder = system_folder(base)
+    folder.mkdir(parents=True, exist_ok=True)
+    write_status(state='running', message='system', percent=0)
+    try:
+        result = run('pkexec', str(EXPORTER), 'export', json.dumps({'dest': str(folder)}), timeout=6 * 3600)
+        if result.returncode:
+            try:
+                message = json.loads(result.stderr.strip().splitlines()[-1]).get('error', '')
+            except (ValueError, IndexError):
+                message = ''
+            raise BackupError(message or 'The system restore point could not be copied')
+        write_status(state='idle', message='', percent=100, last_system=int(time.time()))
+        return json.loads(result.stdout)
+    except BackupError as error:
+        write_status(state='error', error=str(error))
+        raise
+    finally:
+        if read_status().get('state') == 'running':
+            write_status(state='idle', message='')

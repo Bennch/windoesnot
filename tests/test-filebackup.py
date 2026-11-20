@@ -50,5 +50,17 @@ fb.run_backup(mc); time.sleep(1.1); fb.prune = lambda *a: []; (home / 'Documents
 assert fb.run_backup(mc)['mode'] == 'mirror'
 ids = [p['id'] for p in fb.list_snapshots(mirror)]; assert 'current' in ids and any(i.startswith('v-') for i in ids), ids
 assert (mirror / 'WinDoesNot-Backup' / fb.host_name() / 'current/home/Documents/a.txt').read_text() == 'three'
+# system export: chain bookkeeping of the root helper (the btrfs transfer itself is tested in a VM)
+import importlib.util
+spec = importlib.util.spec_from_file_location('snapshot_export', str(Path(__file__).resolve().parent.parent / 'desktop/lib/windoesnot/snapshot_export.py'))
+se = importlib.util.module_from_spec(spec); spec.loader.exec_module(se)
+entries = []
+for i in range(1, 15):
+    name = 'snap-%d-20261101T000000-%s.btrfs.zst' % (i, 'full' if i % 4 == 1 else 'inc%d' % (i - 1))
+    (tmp / name).write_text('x'); entries.append({'id': i, 'parent': None if i % 4 == 1 else i - 1, 'file': name})
+kept = se.prune(tmp, entries)
+assert [e['id'] for e in kept] == [5, 6, 7, 8, 9, 10, 11, 12, 13, 14], [e['id'] for e in kept]
+assert not (tmp / entries[0]['file']).exists() and (tmp / entries[4]['file']).exists()
+assert se.FILE_RE.fullmatch(entries[1]['file']) and not se.FILE_RE.fullmatch('../x.btrfs.zst')
 import shutil; shutil.rmtree(tmp)
 print('PASS: filebackup engine')
