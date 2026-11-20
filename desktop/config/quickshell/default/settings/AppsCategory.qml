@@ -11,6 +11,7 @@ Column {
     width: parent.width
     spacing: 30
 
+    FileManagerSettings { width: parent.width; settingsMenu: parent.settingsMenu }
     FlatpakPermissions { width: parent.width; settingsMenu: parent.settingsMenu }
     SharedFolders { width: parent.width; settingsMenu: parent.settingsMenu }
     CustomWebApp { width: parent.width; settingsMenu: parent.settingsMenu }

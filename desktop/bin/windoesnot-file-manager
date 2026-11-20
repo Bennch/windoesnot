@@ -2,6 +2,24 @@
 # Launch file manager with current locale settings
 set -euo pipefail
 
+# Settings and the Super+E launch:
+#   windoesnot-file-manager --open-mode get|set tab|window   (stored in ~/.config/windoesnot/file-manager-open-mode)
+#   windoesnot-file-manager --launch                         (Super+E: a new window or a tab in the open window, as chosen)
+mode_file=${XDG_CONFIG_HOME:-$HOME/.config}/windoesnot/file-manager-open-mode
+read_mode() { local m; m=$(cat "$mode_file" 2>/dev/null || true); [[ $m == tab ]] && echo tab || echo window; }
+case ${1:-} in
+    --open-mode)
+        case ${2:-get} in
+            get) read_mode; exit 0 ;;
+            set) [[ ${3:-} == tab || ${3:-} == window ]] || { echo "usage: --open-mode set tab|window" >&2; exit 2; }
+                 mkdir -p -- "$(dirname "$mode_file")"; printf '%s\n' "$3" >"$mode_file"; exit 0 ;;
+            *) echo "usage: --open-mode get|set tab|window" >&2; exit 2 ;;
+        esac ;;
+    --launch)
+        shift
+        if [[ $(read_mode) == window ]]; then set -- --new-window "$@"; fi ;;
+esac
+
 # Read current locale from settings
 locale=$(grep "^LANG=" /etc/locale.conf 2>/dev/null | head -1 | cut -d= -f2 || echo "en_US.UTF-8")
 

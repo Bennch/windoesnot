@@ -2,7 +2,7 @@
 hl.bind("SUPER + Q", hl.dsp.exec_cmd("if [ -e /etc/windoesnot/lite-mode ] && command -v foot >/dev/null; then exec foot --app-id=com.mitchellh.ghostty; else exec ghostty; fi"), {}) -- legacy:272
 hl.bind("SUPER + C", hl.dsp.window.close({}), {}) -- legacy:273
 hl.bind("SUPER + M", hl.dsp.exit(), {}) -- legacy:274
-hl.bind("SUPER + E", hl.dsp.exec_cmd("nautilus"), {}) -- legacy:275
+hl.bind("SUPER + E", hl.dsp.exec_cmd("windoesnot-file-manager --launch"), {}) -- legacy:275
 hl.bind("SUPER + V", hl.dsp.window.float({["action"]="toggle"}), {}) -- legacy:276
 hl.bind("SUPER + R", hl.dsp.global("quickshell:toggle-startmenu"), {}) -- legacy:278
 hl.bind("CTRL + ALT + Delete", hl.dsp.exec_cmd("gnome-system-monitor"), {}) -- legacy:279
