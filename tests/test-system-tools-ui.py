@@ -104,10 +104,8 @@ ShellRoot {
     const liteState=JSON.parse(JSON.stringify(maintenance.state)); liteState.liteMode=true; maintenance.acceptStatus(liteState)
     testWindow.check(!hwButton.visible, "recommendation action hidden when lite mode already active")
     liteState.liteMode=false; maintenance.acceptStatus(liteState); preferences.uiLanguage="de"
-    maintenance.selectedGroup="security"
-    const firewallCard = testWindow.find(maintenance, o => o.objectName === "firewallCard")
-    const firewallToggle = testWindow.find(maintenance, o => o.objectName === "firewallOpen")
-    testWindow.check(firewallCard && firewallCard.visible && firewallToggle && firewallToggle.visible && firewallToggle.enabled, "firewall card links to the Network app")
+    maintenance.selectedGroup="repair"
+    testWindow.check(!testWindow.find(maintenance, o => o.objectName === "firewallCard"), "no firewall card in Settings (own Network app)")
     maintenance.selectedGroup="repair"
     maintenanceLoader.visible=false
     maintenance.showOrphans=true; maintenance.showFailed=true

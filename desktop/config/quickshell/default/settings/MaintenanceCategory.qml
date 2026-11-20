@@ -354,12 +354,11 @@ Item {
             Repeater {
                 model: [
                     {key: "downloads", label: page.tr("maintenance.groupDownloads")},
-                    {key: "repair", label: page.tr("maintenance.groupRepair")},
-                    {key: "security", label: page.tr("maintenance.groupSecurity")}
+                    {key: "repair", label: page.tr("maintenance.groupRepair")}
                 ]
                 delegate: Tools.SystemToolsButton {
                     required property var modelData
-                    width: (content.width - 16) / 3
+                    width: (content.width - 8) / 2
                     settingsMenu: page.settingsMenu
                     text: modelData.label
                     primary: page.selectedGroup === modelData.key
@@ -456,34 +455,6 @@ Item {
                         text: page.state.failedServices.length ? page.state.failedServices.join("\n") : page.tr("maintenance.noFailed")
                     }
                 }
-            }
-        }
-        Rectangle {
-            id: firewallCard
-            objectName: "firewallCard"
-            visible: page.selectedGroup == "security"
-            width: content.width; height: firewallContent.implicitHeight + 32
-            radius: settingsMenu ? settingsMenu.borderRadius : 10
-            color: page.dark ? "#141414" : "#f5f5f5"
-            border.width: 1; border.color: page.lineColor
-            Column {
-                id: firewallContent; x: 16; y: 16; width: parent.width - 32; spacing: 10
-                Text { width: parent.width; text: page.tr("maintenance.firewall"); color: page.foreground; font.pixelSize: 15; font.bold: true; wrapMode: Text.WordWrap }
-                Note { text: page.tr("maintenance.firewallHint") }
-                Text {
-                    width: parent.width; wrapMode: Text.WordWrap; font.pixelSize: 13; color: page.foreground
-                    text: page.state.firewall && page.state.firewall.enabled ? page.tr("maintenance.firewallOnNow") : page.tr("maintenance.firewallOffNow")
-                }
-                Tools.SystemToolsButton {
-                    id: firewallOpen
-                    objectName: "firewallOpen"
-                    settingsMenu: page.settingsMenu
-                    primary: true
-                    text: page.tr("maintenance.firewallOpenApp")
-                    onClicked: openFirewallApp.running = true
-                }
-                Process { id: openFirewallApp; command: ["windoesnot-open-network", "--page", "firewall"] }
-                Note { visible: page.ready && (page.state.firewall === null || page.state.firewall === undefined); text: page.tr("maintenance.firewallUnavailable") }
             }
         }
     }
