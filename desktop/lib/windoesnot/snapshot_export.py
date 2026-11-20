@@ -185,7 +185,7 @@ def restore(directory, number, into, uid):
                 fail(receive.stderr.strip() or 'btrfs receive failed')
         last = scratch_of(chain[-1]['id']) / 'snapshot'
         final = target / ('restore-%d' % chain[-1]['id'])
-        made_writable = subprocess.run(['/usr/bin/btrfs', 'property', 'set', '-ts', str(last), 'ro', 'false'], env=ENV, capture_output=True, text=True)
+        made_writable = subprocess.run(['/usr/bin/btrfs', 'property', 'set', '-f', '-ts', str(last), 'ro', 'false'], env=ENV, capture_output=True, text=True)
         if made_writable.returncode:
             fail(made_writable.stderr.strip() or 'The restored subvolume could not be made writable')
         os.rename(last, final)

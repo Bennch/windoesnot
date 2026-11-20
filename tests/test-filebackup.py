@@ -75,7 +75,8 @@ class FakeRun:
         if cmd[1:3] == ['receive', '-q']:
             snap = Path(cmd[3]) / 'snapshot'; snap.mkdir(); self.fs['ro'][str(snap)] = True
         elif cmd[1:3] == ['property', 'set']:
-            self.fs['ro'][cmd[4]] = False
+            assert cmd[3] == '-f', 'a received subvolume needs -f to flip ro->rw (real btrfs refuses otherwise)'
+            self.fs['ro'][cmd[5]] = False
         elif cmd[1:3] == ['subvolume', 'delete']:
             import shutil as sh; sh.rmtree(cmd[3])
         elif cmd[0].endswith('findmnt'):
