@@ -33,15 +33,32 @@ def run(*args, **kwargs):
 
 def allowed_destination(path, uid):
     user = pwd.getpwuid(uid).pw_name
+    if '..' in Path(path).parts:
+        fail('Invalid destination')
     real = Path(os.path.realpath(path))
     prefixes = [Path('/run/media') / user, Path('/media') / user, Path('/mnt')]
     if not any(real == p or p in real.parents for p in prefixes):
         fail('The destination must be on an external drive or a network share')
     if not real.is_dir():
         fail('The destination folder does not exist')
-    if os.stat(real).st_dev == os.stat('/').st_dev:
+    if same_device(real, Path('/')):
         fail('The destination is on the system disk')
     return real
+
+
+def source_device(path):
+    """The block device under a path ('/dev/vda2[/@home]' -> '/dev/vda2'): subvolumes of one btrfs have different st_dev."""
+    out = run('/usr/bin/findmnt', '-n', '-o', 'SOURCE', '-T', str(path)).stdout.strip()
+    return out.split('[')[0]
+
+
+def same_device(path, other):
+    try:
+        if os.stat(path).st_dev == os.stat(other).st_dev:
+            return True
+        return source_device(path) == source_device(other) != ''
+    except (OSError, subprocess.SubprocessError):
+        return True   # when in doubt, refuse
 
 
 def read_index(folder):
@@ -126,7 +143,7 @@ def restore(directory, number, into, uid):
     target = Path(os.path.realpath(into))
     if not target.is_dir() or run('/usr/bin/findmnt', '-n', '-o', 'FSTYPE', '-T', str(target)).stdout.strip() != 'btrfs':
         fail('The restore folder must be on a btrfs file system')
-    if os.stat(target).st_dev == os.stat('/').st_dev and not Path('/etc/windoesnot-image-build').exists():
+    if same_device(target, Path('/')) and not Path('/etc/windoesnot-image-build').exists():
         fail('Restore from the live system, not into the running system')
     entries = {e['id']: e for e in read_index(folder)}
     chain, current = [], entries.get(number)
@@ -139,13 +156,29 @@ def restore(directory, number, into, uid):
         path = folder / entry['file']
         if not FILE_RE.fullmatch(entry['file']) or not path.is_file():
             fail('A file of the chain is missing: %s' % entry['file'])
+    done = []
     for entry in chain:
-        unpack = subprocess.Popen(['/usr/bin/zstd', '-dc', str(folder / entry['file'])], stdout=subprocess.PIPE, env=ENV)
-        receive = subprocess.run(['/usr/bin/btrfs', 'receive', '-q', str(target)], stdin=unpack.stdout, env=ENV, capture_output=True, text=True)
-        unpack.stdout.close()
-        if unpack.wait() or receive.returncode:
-            fail(receive.stderr.strip() or 'btrfs receive failed')
-    return {'ok': True, 'received': [e['id'] for e in chain], 'into': str(target)}
+        # Every stream carries a subvolume called 'snapshot': receive into a scratch folder, then give it a unique name.
+        scratch = target / ('.receive-%d' % entry['id'])
+        scratch.mkdir()
+        try:
+            unpack = subprocess.Popen(['/usr/bin/zstd', '-dc', str(folder / entry['file'])], stdout=subprocess.PIPE, env=ENV)
+            receive = subprocess.run(['/usr/bin/btrfs', 'receive', '-q', str(scratch)], stdin=unpack.stdout, env=ENV, capture_output=True, text=True)
+            unpack.stdout.close()
+            if unpack.wait() or receive.returncode:
+                fail(receive.stderr.strip() or 'btrfs receive failed')
+            os.rename(scratch / 'snapshot', target / ('restore-%d' % entry['id']))
+        finally:
+            try:
+                scratch.rmdir()
+            except OSError:
+                pass
+        done.append(entry['id'])
+    final = target / ('restore-%d' % chain[-1]['id'])
+    subprocess.run(['/usr/bin/btrfs', 'property', 'set', '-ts', str(final), 'ro', 'false'], env=ENV, capture_output=True)
+    for earlier in done[:-1]:   # the final subvolume does not depend on its parents any more
+        subprocess.run(['/usr/bin/btrfs', 'subvolume', 'delete', str(target / ('restore-%d' % earlier))], env=ENV, capture_output=True)
+    return {'ok': True, 'received': done, 'into': str(target), 'subvolume': str(final)}
 
 
 def main():

@@ -376,8 +376,7 @@ def keep_set(stamps, keep, current=None):
                 seen.append(key)
                 if len(seen) <= keep.get(period, 0):
                     wanted.add(name)
-    if ordered:
-        wanted.add(ordered[0])
+    wanted.update(ordered[:3])   # the newest points always stay (several manual runs within one hour)
     return wanted
 
 

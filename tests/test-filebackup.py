@@ -34,7 +34,9 @@ fb.restore(target, points[0]['id'], 'home/Documents', destination=str(tmp / 'out
 # retention
 stamps = [(datetime.datetime(2026, 11, 20, 12) - datetime.timedelta(hours=h)).strftime(fb.STAMP) for h in range(0, 24 * 40, 6)]
 kept = fb.keep_set(stamps, {'hourly': 2, 'daily': 3, 'weekly': 2, 'monthly': 2})
-assert stamps[0] in kept and 4 <= len(kept) <= 9, len(kept)
+assert stamps[0] in kept and 4 <= len(kept) <= 10, len(kept)
+recent = [(datetime.datetime(2026, 11, 20, 12, m)).strftime(fb.STAMP) for m in (0, 5, 10)]
+assert fb.keep_set(recent, {'hourly': 1, 'daily': 1, 'weekly': 1, 'monthly': 1}) == set(recent), 'newest three always kept'
 assert fb.keep_set([], {'hourly': 1}) == set()
 # due logic
 assert not fb.due({'enabled': False, 'schedule': 'daily', 'target': {}}) and fb.due({'enabled': True, 'schedule': 'daily', 'target': {'x': 1}}, {'last_success': 0})
