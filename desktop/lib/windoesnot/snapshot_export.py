@@ -157,27 +157,44 @@ def restore(directory, number, into, uid):
         if not FILE_RE.fullmatch(entry['file']) or not path.is_file():
             fail('A file of the chain is missing: %s' % entry['file'])
     done = []
-    for entry in chain:
-        # Every stream carries a subvolume called 'snapshot': receive into a scratch folder, then give it a unique name.
-        scratch = target / ('.receive-%d' % entry['id'])
-        scratch.mkdir()
+
+    def scratch_of(entry_id):
+        return target / ('.receive-%d' % entry_id)
+
+    def drop(entry_id):
+        # A received subvolume is read-only and cannot be renamed across folders; it is deleted where it was received.
+        snap = scratch_of(entry_id) / 'snapshot'
+        if snap.exists():
+            subprocess.run(['/usr/bin/btrfs', 'subvolume', 'delete', str(snap)], env=ENV, capture_output=True)
         try:
+            scratch_of(entry_id).rmdir()
+        except OSError:
+            pass
+
+    try:
+        for entry in chain:
+            # Every stream carries a subvolume called 'snapshot': each one is received into its own scratch folder and stays there
+            # (an incremental stream finds its parent by UUID on the same file system).
+            scratch = scratch_of(entry['id'])
+            scratch.mkdir()
+            done.append(entry['id'])
             unpack = subprocess.Popen(['/usr/bin/zstd', '-dc', str(folder / entry['file'])], stdout=subprocess.PIPE, env=ENV)
             receive = subprocess.run(['/usr/bin/btrfs', 'receive', '-q', str(scratch)], stdin=unpack.stdout, env=ENV, capture_output=True, text=True)
             unpack.stdout.close()
             if unpack.wait() or receive.returncode:
                 fail(receive.stderr.strip() or 'btrfs receive failed')
-            os.rename(scratch / 'snapshot', target / ('restore-%d' % entry['id']))
-        finally:
-            try:
-                scratch.rmdir()
-            except OSError:
-                pass
-        done.append(entry['id'])
-    final = target / ('restore-%d' % chain[-1]['id'])
-    subprocess.run(['/usr/bin/btrfs', 'property', 'set', '-ts', str(final), 'ro', 'false'], env=ENV, capture_output=True)
-    for earlier in done[:-1]:   # the final subvolume does not depend on its parents any more
-        subprocess.run(['/usr/bin/btrfs', 'subvolume', 'delete', str(target / ('restore-%d' % earlier))], env=ENV, capture_output=True)
+        last = scratch_of(chain[-1]['id']) / 'snapshot'
+        final = target / ('restore-%d' % chain[-1]['id'])
+        made_writable = subprocess.run(['/usr/bin/btrfs', 'property', 'set', '-ts', str(last), 'ro', 'false'], env=ENV, capture_output=True, text=True)
+        if made_writable.returncode:
+            fail(made_writable.stderr.strip() or 'The restored subvolume could not be made writable')
+        os.rename(last, final)
+    except BaseException:
+        for entry_id in done:
+            drop(entry_id)
+        raise
+    for entry_id in done:   # the final subvolume does not depend on its parents any more
+        drop(entry_id)
     return {'ok': True, 'received': done, 'into': str(target), 'subvolume': str(final)}
 
 

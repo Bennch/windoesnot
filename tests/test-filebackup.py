@@ -64,5 +64,41 @@ kept = se.prune(tmp, entries)
 assert [e['id'] for e in kept] == [5, 6, 7, 8, 9, 10, 11, 12, 13, 14], [e['id'] for e in kept]
 assert not (tmp / entries[0]['file']).exists() and (tmp / entries[4]['file']).exists()
 assert se.FILE_RE.fullmatch(entries[1]['file']) and not se.FILE_RE.fullmatch('../x.btrfs.zst')
+
+# restore of a chain: every stream is received into its own scratch folder, only the last subvolume is made writable and moved
+# (a read-only subvolume cannot be renamed across folders: EROFS on the real kernel, found by the Codex retest)
+import os, subprocess as sp, tempfile as tf
+class FakeRun:
+    def __init__(self, fs): self.fs = fs
+    def __call__(self, *args, **kw):
+        cmd = [str(c) for c in (args[0] if len(args) == 1 and isinstance(args[0], (list, tuple)) else args)]; out = sp.CompletedProcess(cmd, 0, '', '')
+        if cmd[1:3] == ['receive', '-q']:
+            snap = Path(cmd[3]) / 'snapshot'; snap.mkdir(); self.fs['ro'][str(snap)] = True
+        elif cmd[1:3] == ['property', 'set']:
+            self.fs['ro'][cmd[4]] = False
+        elif cmd[1:3] == ['subvolume', 'delete']:
+            import shutil as sh; sh.rmtree(cmd[3])
+        elif cmd[0].endswith('findmnt'):
+            out = sp.CompletedProcess(cmd, 0, 'btrfs\n', '')
+        return out
+class FakePopen:
+    def __init__(self, cmd, **kw): self.stdout = open(os.devnull, 'rb')
+    def wait(self): return 0
+work = Path(tf.mkdtemp()); folder = work / 'backup'; into = work / 'into'; folder.mkdir(); into.mkdir()
+entries = [dict(id=2, parent=None, file='snap-2-20261120T000001-full.btrfs.zst'), dict(id=3, parent=2, file='snap-3-20261120T000002-inc2.btrfs.zst'), dict(id=4, parent=3, file='snap-4-20261120T000003-inc3.btrfs.zst')]
+for e in entries: (folder / e['file']).write_bytes(b'x')
+fs = {'ro': {}}; real_rename = os.rename
+def checked_rename(a, b):
+    assert fs['ro'].get(str(a)) is False, 'a read-only subvolume must not be renamed (EROFS)'; real_rename(a, b)
+saved = (se.run, se.subprocess.run, se.subprocess.Popen, se.allowed_destination, se.read_index, se.same_device, os.rename, se.os.path.realpath)
+se.run = FakeRun(fs); se.subprocess.run = FakeRun(fs); se.subprocess.Popen = FakePopen
+se.allowed_destination = lambda d, u: folder; se.read_index = lambda f: entries; se.same_device = lambda a, b: False; os.rename = checked_rename
+try:
+    result = se.restore(str(folder), 4, str(into), 1000)
+finally:
+    se.run, se.subprocess.run, se.subprocess.Popen, se.allowed_destination, se.read_index, se.same_device, os.rename = saved[:7]
+assert result['ok'] and result['received'] == [2, 3, 4], result
+assert sorted(p.name for p in into.iterdir()) == ['restore-4'], sorted(p.name for p in into.iterdir())
+import shutil; shutil.rmtree(work)
 import shutil; shutil.rmtree(tmp)
 print('PASS: filebackup engine')
