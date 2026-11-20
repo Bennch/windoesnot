@@ -27,6 +27,7 @@ with tempfile.TemporaryDirectory(prefix='wdn-system-ui-') as temp:
     for name in ('SystemToolsButton','SystemToolsChoice','SystemToolsToggle','SystemToolsConfirm'):
         shutil.copy2(SOURCE/('settings/'+name+'.qml'),profile/'settings')
     shutil.copy2(SOURCE/'settings/MaintenanceCategory.qml',profile/'settings')
+    shutil.copy2(SOURCE/'settings/FileBackupCard.qml',profile/'settings')
     (profile/'shell.qml').write_text('''import QtQuick
 import QtQuick.Window
 import QtQuick.Controls
@@ -40,6 +41,7 @@ ShellRoot {
   Loader { id: kernelLoader; width: 650; Component.onCompleted: setSource("settings/KernelCategory.qml", {settingsMenu:preferences,autoLoad:false}) }
   property var maintenance: maintenanceLoader.item
   Loader { id: maintenanceLoader; width: 650; visible: false; Component.onCompleted: setSource("settings/MaintenanceCategory.qml", {settingsMenu:preferences,autoLoad:false}) }
+  Loader { id: fileBackupLoader; width: 650; visible: false; Component.onCompleted: setSource("settings/FileBackupCard.qml", {settingsMenu:preferences,autoLoad:false}) }
   Loader { id: systemLoader; width: 650; visible: true; Component.onCompleted: setSource("settings/SystemCategory.qml", {settingsMenu:preferences}) }
   function check(ok,message) { if(!ok) throw new Error(message) }
   function find(o,predicate) { if(predicate(o)) return o; for(let c of (o.children || [])) { let r=find(c,predicate); if(r) return r } return null }
@@ -123,6 +125,21 @@ ShellRoot {
     preferences.uiLanguage="en"; preferences.darkMode=false
     testWindow.check(maintenance.tr("header.maintenance") === "Maintenance & Kernel", "maintenance EN")
     testWindow.check(maintenance.resultText.indexOf("Cancelled") === 0, "translated result EN")
+    const fb=fileBackupLoader.item
+    fb.acceptStatus({config:{enabled:true,target:{kind:"drive",uuid:"u1",label:"Backup",folder:""},sources:["~/Documents"],schedule:"daily"},status:{state:"idle",last_success:Math.floor(Date.now()/1000)-7200},available:true,points:3})
+    fb.acceptDrives([{kind:"drive",uuid:"u1",label:"Backup",filesystem:"ext4",size:500000000000},{kind:"drive",uuid:"u2",label:"USB",filesystem:"exFAT",size:32000000000}])
+    fb.acceptPoints([{id:"2026-11-20_100000",time:"2026-11-20T10:00:00",kind:"full"}])
+    fb.acceptBrowse([{name:"a.txt",dir:false,size:10,modified:0}])
+    fb.openBrowser(); fb.browsing=true
+    preferences.uiLanguage="de"
+    testWindow.check(!!testWindow.find(fb,o=>o.objectName==="fileBackupStatus" && o.text.indexOf("Letzte Sicherung")===0 && o.text.indexOf("3 Sicherungspunkte")>0), "file backup status DE: "+fb.statusLine)
+    testWindow.check(!!testWindow.find(fb,o=>o.objectName==="fileBackupDrive-1") && !!testWindow.find(fb,o=>o.objectName==="fileBackupRunButton" && o.enabled) && !!testWindow.find(fb,o=>o.objectName==="fileBackupSmbAddress") && !!testWindow.find(fb,o=>o.objectName==="fileBackupHome") && !!testWindow.find(fb,o=>o.objectName==="fileBackupFolder-Documents" && o.checked), "file backup controls")
+    testWindow.check(fb.tr("title")==="Datensicherung (Dateien)" && fb.tr("hintFat").indexOf("exFAT")>=0, "file backup DE")
+    fb.acceptStatus({config:{target:{kind:"drive",uuid:"u1",label:"Backup"},sources:["~"]},status:{},available:false,points:0})
+    testWindow.check(fb.statusLine.indexOf("nicht verbunden")>0, "offline hint DE")
+    preferences.uiLanguage="en"
+    testWindow.check(fb.tr("title")==="File backup" && fb.statusLine.indexOf("not connected")>0 && fb.tr("hintEncrypt").indexOf("not encrypted")>0, "file backup EN")
+    preferences.uiLanguage="de"
     finish.start()
    } catch(e) { console.error("SYSTEM_TOOLS_UI_FAIL",e); Qt.quit() }
   } }

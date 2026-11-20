@@ -459,6 +459,15 @@ var PAGES = [
  {
   "page": "backups",
   "keys": [
+   "filebackup.title",
+   "filebackup.systemTitle",
+   "filebackup.automatic",
+   "filebackup.enabled",
+   "filebackup.runNow",
+   "filebackup.target",
+   "filebackup.smbTitle",
+   "filebackup.browseTitle",
+   "filebackup.hintEncrypt",
    "backups.restoreHint",
    "backups.restoreRestart",
    "backups.restoring",

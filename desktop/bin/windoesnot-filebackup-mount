@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+"""Root helper (pkexec) for the file backup: connects a network share through an fstab automount entry.
+
+  connect smb://host/share [user]   password on stdin (empty = guest)
+  disconnect smb://host/share
+The share is mounted on demand at /mnt/windoesnot-backup/<name> with the caller as owner, so the backup itself runs
+as the user. The password is kept in a root-only file (0600) and never appears in a command line.
+"""
+import json
+import os
+import pwd
+from pathlib import Path
+import re
+import subprocess
+import sys
+
+BASE = Path('/mnt/windoesnot-backup')
+CRED = Path('/etc/windoesnot/backup-smb')
+FSTAB = Path('/etc/fstab')
+MARK = '# windoesnot-backup'
+
+
+def fail(message, code=1):
+    print(json.dumps({'error': message}))
+    sys.exit(code)
+
+
+def parts(address):
+    text = address.strip()
+    for prefix in ('smb://', 'cifs://', '//'):
+        if text.lower().startswith(prefix):
+            text = text[len(prefix):]
+            break
+    else:
+        fail('The address must look like smb://host/share')
+    items = [p for p in text.split('/') if p]
+    if len(items) != 2 or not re.fullmatch(r'[A-Za-z0-9._-]{1,253}', items[0]) or not re.fullmatch(r'[A-Za-z0-9._$-]{1,80}', items[1]):
+        fail('The address must look like smb://host/share (a folder inside the share is chosen later)')
+    return items
+
+
+def main():
+    if os.geteuid() != 0 or 'PKEXEC_UID' not in os.environ:
+        fail('Use the authorized pkexec entry point', 2)
+    uid = int(os.environ['PKEXEC_UID'])
+    if uid < 1000:
+        fail('Only regular accounts', 2)
+    gid = pwd.getpwuid(uid).pw_gid
+    if len(sys.argv) < 3 or sys.argv[1] not in ('connect', 'disconnect'):
+        fail('usage: connect|disconnect smb://host/share [user]', 2)
+    host, share = parts(sys.argv[2])
+    address = 'smb://%s/%s' % (host, share)
+    name = re.sub(r'[^A-Za-z0-9]', '_', address)
+    mount = BASE / name
+    cred = CRED / ('%d-%s' % (uid, name))
+    lines = [l for l in FSTAB.read_text().splitlines() if not (l.endswith(MARK) and (' %s ' % mount) in l)]
+    if sys.argv[1] == 'disconnect':
+        subprocess.run(['umount', str(mount)], capture_output=True)
+        FSTAB.write_text('\n'.join(lines) + '\n')
+        cred.unlink(missing_ok=True)
+        subprocess.run(['systemctl', 'daemon-reload'], capture_output=True)
+        print(json.dumps({'ok': True}))
+        return
+    user = sys.argv[3] if len(sys.argv) > 3 else ''
+    if user and not re.fullmatch(r'[A-Za-z0-9._@\\-]{1,80}', user):
+        fail('Invalid user name')
+    password = sys.stdin.readline().rstrip('\n')   # exactly one line: the UI keeps stdin open
+    if '\n' in password or '\0' in password:
+        fail('Invalid password')
+    CRED.mkdir(parents=True, exist_ok=True)
+    os.chmod(CRED, 0o700)
+    cred.write_text('username=%s\npassword=%s\n' % (user, password) if user else 'username=guest\npassword=\n')
+    os.chmod(cred, 0o600)
+    mount.mkdir(parents=True, exist_ok=True)
+    options = 'credentials=%s,uid=%d,gid=%d,file_mode=0600,dir_mode=0700,noauto,nofail,_netdev,x-systemd.automount,x-systemd.idle-timeout=120,x-systemd.mount-timeout=10,nosuid,nodev,noexec%s' % (
+        cred, uid, gid, '' if user else ',guest')
+    lines.append('//%s/%s %s cifs %s 0 0 %s' % (host, share, mount, options, MARK))
+    FSTAB.write_text('\n'.join(lines) + '\n')
+    subprocess.run(['systemctl', 'daemon-reload'], capture_output=True)
+    unit = subprocess.run(['systemd-escape', '-p', '--suffix=automount', str(mount)], capture_output=True, text=True).stdout.strip()
+    subprocess.run(['systemctl', 'start', unit], capture_output=True)
+    probe = subprocess.run(['/usr/bin/ls', str(mount)], capture_output=True, text=True, timeout=30)
+    mounted = subprocess.run(['findmnt', '-n', '-t', 'cifs', str(mount)], capture_output=True).returncode == 0
+    if probe.returncode or not mounted:
+        FSTAB.write_text('\n'.join(l for l in lines if not l.endswith(MARK)) + '\n')
+        cred.unlink(missing_ok=True)
+        subprocess.run(['systemctl', 'daemon-reload'], capture_output=True)
+        fail('Could not connect: check address, user name and password')
+    print(json.dumps({'ok': True, 'address': address, 'mountpoint': str(mount)}))
+
+
+main()

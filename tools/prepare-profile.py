@@ -237,6 +237,7 @@ def main():
     write(a / 'etc/skel/Desktop/windoesnot-installer.desktop', (a / 'usr/share/applications/windoesnot-installer.desktop').read_text(), True)
     write(a / 'usr/local/bin/windoesnot-migrate', (ROOT / 'desktop/bin/windoesnot-migrate').read_text(), True)
     write(a / 'usr/local/bin/windoesnot-finder', (ROOT / 'desktop/bin/windoesnot-finder').read_text(), True)
+    write(a / "usr/local/bin/windoesnot-kino", (ROOT / "desktop/bin/windoesnot-kino").read_text(), True)
     write(a / 'etc/xdg/xdg-desktop-portal/hyprland-portals.conf', '[preferred]\ndefault=hyprland;gtk\norg.freedesktop.impl.portal.FileChooser=gtk\n')
     # Use supported distro hooks to generate installed initramfs without archiso hooks.
     write(a / 'etc/mkinitcpio-windoesnot.conf', add_hook('MODULES=()\nBINARIES=()\nFILES=()\nHOOKS=(base systemd autodetect microcode modconf kms keyboard sd-vconsole block filesystems fsck)\n'))

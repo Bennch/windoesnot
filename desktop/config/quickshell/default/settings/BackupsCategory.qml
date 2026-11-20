@@ -10,7 +10,7 @@ Item {
     property string _lang: settingsMenu ? settingsMenu.uiLanguage : "de"
 
     width: parent.width
-    height: backupsReady ? contentColumn.height : unavailableNotice.implicitHeight
+    height: topColumn.height + 25 + (backupsReady ? contentColumn.height : unavailableNotice.implicitHeight)
     property bool backupsReady: false
     property bool liveSession: false
     property bool snapshotBoot: false
@@ -180,8 +180,22 @@ Item {
         }
     }
 
+    Column {
+        id: topColumn
+        width: parent.width
+        spacing: 25
+        Tools.FileBackupCard { settingsMenu: backupsCategory.settingsMenu }
+        Text {
+            width: parent.width
+            text: Lang.get("filebackup.systemTitle", _lang)
+            font.pixelSize: 22; font.bold: true
+            color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
+        }
+    }
+
     Text {
         id: unavailableNotice
+        y: topColumn.height + 25
         visible: !backupsReady
         width: parent.width
         text: Lang.get(snapshotBoot ? "backups.snapshotBootNotice" : liveSession ? "backups.liveNotice" : "backups.unavailablePlain", _lang) + (statusText ? "\n" + statusText : "")
@@ -192,6 +206,7 @@ Item {
 
     Column {
         id: contentColumn
+        y: topColumn.height + 25
         visible: backupsReady
         enabled: backupsReady
         width: parent.width

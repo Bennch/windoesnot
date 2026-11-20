@@ -3783,6 +3783,12 @@ class HyprDeskApp(Gtk.Application):
         self.curtain_windows = []
         self._startup_monitor_retries = 0
         self.settings_monitor = None
+        # Cinema mode for all monitors from outside: windoesnot-kino on|off|toggle (D-Bus actions kino-on, kino-off, kino-toggle on com.benni.hyprdesk)
+        for name, handler in (('kino-on', lambda *_: self.set_kino_all(True)), ('kino-off', lambda *_: self.set_kino_all(False)),
+                              ('kino-toggle', lambda *_: self.set_kino_all(None))):
+            action = Gio.SimpleAction.new(name, None)
+            action.connect('activate', handler)
+            self.add_action(action)
         # Default settings (werden beim Start überschrieben)
         self.current_icon_size = 64
         self.current_grid_size = 16
@@ -4004,6 +4010,17 @@ class HyprDeskApp(Gtk.Application):
             self.global_state["monitors"] = new_monitors
             save_state(self.global_state)
             debug(f"✅ Migration complete")
+
+    def set_kino_all(self, on):
+        """Cinema mode on every monitor; on=None toggles (off when any curtain is up)."""
+        active = any(cw.progress > 0 or cw.win.get_visible() for cw in self.curtain_windows)
+        want = (not active) if on is None else on
+        for cw in self.curtain_windows:
+            visible = cw.progress > 0 or cw.win.get_visible()
+            if want and not visible:
+                cw.show_curtain()
+            elif not want and visible:
+                cw.hide_curtain()
 
     def toggle_kino_modus(self, source_win):
         """Kino-Modus für einen bestimmten Monitor ein-/ausschalten."""

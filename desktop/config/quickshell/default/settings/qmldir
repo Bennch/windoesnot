@@ -10,6 +10,7 @@ ColorsCategory 1.0 ColorsCategory.qml
 CustomWebApp 1.0 CustomWebApp.qml
 DesktopCategory 1.0 DesktopCategory.qml
 DiagnoseCategory 1.0 DiagnoseCategory.qml
+FileBackupCard 1.0 FileBackupCard.qml
 ExportSystem 1.0 ExportSystem.qml
 FlatpakPermissions 1.0 FlatpakPermissions.qml
 HelpCategory 1.0 HelpCategory.qml

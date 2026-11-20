@@ -1,0 +1,8 @@
+#!/bin/sh
+# Cinema mode (dims every monitor): windoesnot-kino [on|off|toggle]
+case "${1:-toggle}" in
+    on|off|toggle)
+        exec gdbus call --session --dest com.benni.hyprdesk --object-path /com/benni/hyprdesk \
+            --method org.gtk.Actions.Activate "kino-${1:-toggle}" "[]" "{}" >/dev/null ;;
+    *) echo "usage: windoesnot-kino [on|off|toggle]" >&2; exit 2 ;;
+esac
