@@ -6491,11 +6491,39 @@ FloatingWindow {
     // once Hyprland has applied a resize, so using it here would keep a window that must grow at its old size
     // (the panel then ran out of the top of the window when the firewall note appeared after mapping).
     function bottomRightY() { return screen ? screen.y + screen.height - 45 - implicitHeight : 0 }
+    // The panel gets its final height a moment after loading (the firewall note, history rows). Showing the window
+    // while it grows would be visible as a jump, so it is loaded hidden and mapped once the height has stayed
+    // the same for three checks (like the battery popup).
+    property bool nearbyPreload: false
+    property int nearbyLastHeight: -1
+    property int nearbySteady: 0
+    property int nearbyTries: 0
     function openAt() {
         if (visible) return
         // Position comes from the static nearby-config rule; placeLive() corrects it once the height is known.
-        nearbyWindow.visible = true
-        nearbyPlaceTimer.restart()
+        nearbyPreload = true
+        nearbyService.command({action:"active", value:true})   // the data that sizes the panel (firewall note) loads while it is hidden
+        nearbyLastHeight = -1
+        nearbySteady = 0
+        nearbyTries = 0
+        nearbyShowTimer.restart()
+    }
+    Timer {
+        id: nearbyShowTimer
+        interval: 90
+        repeat: false
+        onTriggered: {
+            var h = nearbyLoader.item ? Math.round(nearbyLoader.height) : 0
+            nearbyWindow.nearbyTries++
+            nearbyWindow.nearbySteady = (h > 0 && h === nearbyWindow.nearbyLastHeight) ? nearbyWindow.nearbySteady + 1 : 0
+            nearbyWindow.nearbyLastHeight = h
+            if (nearbyWindow.nearbySteady >= 3 || nearbyWindow.nearbyTries >= 40) {
+                nearbyWindow.visible = true
+                nearbyPlaceTimer.restart()
+            } else {
+                nearbyShowTimer.restart()
+            }
+        }
     }
     // Moves the mapped window to its final position once the panel has its real height.
     function placeLive() {
@@ -6513,6 +6541,7 @@ FloatingWindow {
     onVisibleChanged: {
         nearbyService.command({action:"active", value:visible})
         syncNearbyGrab()
+        if (!visible) nearbyPreload = false
     }
 
     HyprlandFocusGrab {
@@ -6525,7 +6554,7 @@ FloatingWindow {
     // to the window height, which is itself derived from the panel.
     Loader {
         id: nearbyLoader
-        active: nearbyWindow.visible || item !== null
+        active: nearbyWindow.nearbyPreload || nearbyWindow.visible || item !== null
         // Hyprland can keep the window taller than the panel; pin the panel to the
         // window's bottom edge so it always sits on the taskbar. Only the bottom is
         // anchored, so the height still comes from the panel (no binding loop).
