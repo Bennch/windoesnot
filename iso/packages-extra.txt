@@ -158,5 +158,4 @@ gnome-logs
 gnome-power-manager
 papers
 
-# Image mirror ranking (optional on other Arch-based systems)
 cachyos-rate-mirrors
