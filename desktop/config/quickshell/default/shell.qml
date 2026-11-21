@@ -1885,7 +1885,8 @@ PanelWindow {
                             Image {
                                 anchors.fill: parent
                                 source: "img/Win11-dark/actions/symbolic/document-send-symbolic.svg"
-                                opacity: nearbyService.state.receiving ? 1.0 : 0.45
+                                // Same colour as the other tray icons (receiving is shown by the green dot)
+                                opacity: trayDragArea.containsMouse ? 0.7 : 1.0
                                 layer.enabled: !settingsMenu.darkMode
                                 layer.effect: MultiEffect { colorization: 1.0; colorizationColor: "#333333" }
                             }
