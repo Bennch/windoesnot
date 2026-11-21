@@ -3311,9 +3311,9 @@ FloatingWindow {
             visible = false
             run("windoesnot-open-network")
         } else if (kind === "openAudio") {
-            // The audio app (windoesnot-audio, effects and devices); the plain mixer if it is not installed
+            // The WinDoesNot audio app (the EasyEffects fork, binary "easyeffects"), the same one the audio panel opens
             visible = false
-            run("if command -v windoesnot-audio >/dev/null 2>&1; then exec windoesnot-audio; else exec pavucontrol; fi")
+            run("exec easyeffects")
         } else if (kind === "openGraphics") {
             visible = false
             panelWindow.openGraphics()
