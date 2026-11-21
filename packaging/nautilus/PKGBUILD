@@ -3,7 +3,7 @@
 # Follow the distribution: when nautilus moves to a new version, update pkgver, the tarball, the checksums and re-check the patches.
 pkgname=windoesnot-nautilus
 pkgver=51.1
-pkgrel=7
+pkgrel=8
 pkgdesc="Files with a 'This PC' sidebar entry (Nautilus with a small WinDoesNot patch)"
 url="https://apps.gnome.org/Nautilus/"
 arch=(x86_64)
@@ -24,7 +24,7 @@ sha256sums=('a703bc152d18d161d9dab957e2390a36e6246bb5c24de7b15c9624fcfa2f2816'
             '1959fa44fba5d2aa560ca952f007ae71171ba96686c3d6555a409b0d80791b54'
             '2464176ee7cd0cad0597d3362db7427eb9adee634a6f3fec1f2e0cfa91601b7a'
             '8bda30db519e8f5d418ec484dde89d4362d08762cd65bb823b6f3069986f49d1'
-            'cf6507c2d84b2b101b87141010256d6fd6726728dfe5a78c740c1a4e3da5b1b3')
+            'cb797e8444a187318febd5d1579ee3331722d9caff563e1401e159b0e484b9b8')
 
 prepare() {
   cd nautilus-$pkgver
