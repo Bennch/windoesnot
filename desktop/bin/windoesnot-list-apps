@@ -25,6 +25,33 @@ def search_terms(entry):
     return sorted(terms, key=str.casefold)
 
 
+# The Start menu grid is for programs people look for. Settings dialogs, system monitors, console tools, debug and driver helpers are
+# marked "technical": hidden in the grid, still found by the search, and shown by the "technical apps" toggle.
+TECHNICAL_CATEGORIES = {'Settings', 'DesktopSettings', 'HardwareSettings', 'X-GNOME-PersonalSettings', 'X-GNOME-SystemSettings',
+                        'X-XFCE-SettingsDialog', 'X-LXDE-Settings', 'X-KDE-settings-system', 'Monitor', 'ConsoleOnly', 'Debugger'}
+# WinDoesNot's own apps (settings, device manager, audio, ...) are real programs
+OWN_APP_PREFIXES = ('me.windoesnot.', 'windoesnot-')
+TECHNICAL_ID_PATTERN = re.compile(
+    r'^(electron\d+|jconsole|jshell|yad-|nwg-|qdbusviewer|qv4l2|qvidcap|lstopo|xgps|vamt|vrrtest|vmware-netcfg|hplip|cups\b|gnome-nettool|org\.cachyos\.(KernelManager|scx-manager)|kde4-webapp-manager)'
+    r'|(^|[-_.])(uninstall|readme|license|licence|changelog)([-_. ]|$)'
+    r'|[-_.](notifier|cachecleaner|repoeditor|settings-daemon|autostart|helper|agent|daemon|netcfg|speedtest|setup|configurator)(\.desktop)?$'
+    r'|(^|[-_.])(ColorProfileViewer|extensionmanager|tweaks|tour)(\.desktop)?$', re.IGNORECASE)
+TECHNICAL_NAME_PATTERN = re.compile(r'^(uninstall|readme|license|configure|setup)\b|\b(uninstaller|debug|daemon|setup)$|\b(java|openjdk)\b.*\b(console|shell)\b', re.IGNORECASE)
+
+
+def automatic_technical(identity, entry):
+    """True for launchers that are not programs people look for (see above); WinDoesNot's own apps never are."""
+    if identity.startswith(OWN_APP_PREFIXES):
+        return False
+    categories = {c for c in entry.get('Categories', '').split(';') if c}
+    if categories & TECHNICAL_CATEGORIES:
+        return True
+    if entry.get('Terminal', '').lower() == 'true':
+        return True
+    name = entry.get('Name', '')
+    return bool(TECHNICAL_ID_PATTERN.search(identity) or TECHNICAL_NAME_PATTERN.search(name))
+
+
 def launchers(directories, language, structured=False, technical_ids=()):
     language = language.split('.')[0].replace('-', '_')
     keys = ['Name[' + language + ']', 'Name[' + language.split('_')[0] + ']', 'Name']
@@ -60,7 +87,7 @@ def launchers(directories, language, structured=False, technical_ids=()):
                     user_data = Path.home() / '.local/share'
                     user_flatpak = Path.home() / '.var/app'
                     is_user_launcher = path.is_relative_to(user_data) or path.is_relative_to(user_flatpak)
-                    result.append({'id': identity, 'desktopPath': str(path), 'name': name, 'cmd': command, 'icon': row[2], 'names': names, 'terms': search_terms(entry), 'technical': identity in technical_ids and not is_user_launcher} if structured else '|'.join(row))
+                    result.append({'id': identity, 'desktopPath': str(path), 'name': name, 'cmd': command, 'icon': row[2], 'names': names, 'terms': search_terms(entry), 'technical': (identity in technical_ids or automatic_technical(identity, entry)) and (not is_user_launcher or identity.lower().startswith('wine-'))} if structured else '|'.join(row))
             except (OSError, UnicodeError, configparser.Error, KeyError):
                 continue
     if structured:
