@@ -82,6 +82,8 @@ _TR = {
         "hide":             "Ausblenden",
         "show_trash":       "Papierkorb anzeigen",
         "hide_trash":       "Papierkorb ausblenden",
+        "hide_icons":       "Symbole ausblenden",
+        "show_icons":       "Symbole einblenden",
         "change_wallpaper": "Hintergrund ändern",
         "restart_shell": "Oberfläche neu starten",
         "delete_n":         "{n} Icons löschen",
@@ -114,6 +116,8 @@ _TR = {
         "hide":             "Hide",
         "show_trash":       "Show Trash",
         "hide_trash":       "Hide Trash",
+        "hide_icons":       "Hide icons",
+        "show_icons":       "Show icons",
         "change_wallpaper": "Change Wallpaper",
         "restart_shell": "Restart interface",
         "delete_n":         "Delete {n} Icons",
@@ -1060,6 +1064,11 @@ def plain_menu_popover(model, action_group):
                 # in the parent menu means no spurious hover re-entry that would cause a freeze.
                 sub = Gtk.Popover()
                 sub.set_has_arrow(False)
+                # No grab for the flyout: an autohide child popover takes the pointer grab, so the rows of the main
+                # menu stop getting hover events while it is open and the menu seems stuck on the "New" row.
+                # The main popover still closes everything (closed handler below), the flyout closes on hover of
+                # another row.
+                sub.set_autohide(False)
                 sub.add_css_class("desktop-context-menu")
                 sub.set_position(Gtk.PositionType.RIGHT)
                 sub.set_offset(0, 0)
@@ -2682,6 +2691,8 @@ class MonitorWindow:
         menu.append(tr("change_wallpaper", _lang), "desktopbg.change_wallpaper")
         trash_label = tr("hide_trash", _lang) if self.show_trash else tr("show_trash", _lang)
         menu.append(trash_label, "desktopbg.toggle_trash")
+        icons_label = tr("show_icons", _lang) if getattr(self.app, "icons_hidden", False) else tr("hide_icons", _lang)
+        menu.append(icons_label, "desktopbg.toggle_icons")
         _my_curtain = next((cw for cw in self.app.curtain_windows if cw.monitor == self.monitor), None)
         kino_label = tr("kino_stop", _lang) if (_my_curtain and _my_curtain.progress > 0) else tr("kino_modus", _lang)
         menu.append(kino_label, "desktopbg.kino_modus")
@@ -2713,6 +2724,9 @@ class MonitorWindow:
         tr_action = Gio.SimpleAction.new("toggle_trash", None)
         tr_action.connect("activate", self.on_toggle_trash)
         action_group.add_action(tr_action)
+        ti_action = Gio.SimpleAction.new("toggle_icons", None)
+        ti_action.connect("activate", lambda a, p: self.app._toggle_icons())
+        action_group.add_action(ti_action)
         km_action = Gio.SimpleAction.new("kino_modus", None)
         km_action.connect("activate", lambda a, p: self.app.toggle_kino_modus(self))
         action_group.add_action(km_action)
