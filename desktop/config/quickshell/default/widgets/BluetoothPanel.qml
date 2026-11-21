@@ -557,18 +557,19 @@ Item {
 
                                         Text {
                                             text: {
-                                                var tag = (modelData.paired && String(modelData.mac).toUpperCase() === bluetoothPanel.defaultMac) ? " • " + Lang.get("bluetooth.defaultTag", uiLanguage) : ""
                                                 if (modelData.connected) {
                                                     if (modelData.battery >= 0) {
-                                                        return Lang.get("bluetooth.connected", uiLanguage) + " • " + modelData.battery + "%" + tag
+                                                        return Lang.get("bluetooth.connected", uiLanguage) + " • " + modelData.battery + "%"
                                                     }
-                                                    return Lang.get("bluetooth.connected", uiLanguage) + tag
+                                                    return Lang.get("bluetooth.connected", uiLanguage)
                                                 }
                                                 if (modelData.paired) {
-                                                    return Lang.get("bluetooth.paired", uiLanguage) + tag
+                                                    return Lang.get("bluetooth.paired", uiLanguage)
                                                 }
                                                 return Lang.get("bluetooth.available", uiLanguage)
                                             }
+                                            width: parent.width
+                                            elide: Text.ElideRight
                                             font.pixelSize: 11
                                             color: modelData.connected ? bluetoothPanel.accentColor : (modelData.paired ? (darkMode ? "#999999" : "#666666") : (darkMode ? "#444444" : "#666666"))
                                         }

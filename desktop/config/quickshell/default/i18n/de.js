@@ -1087,7 +1087,6 @@ var strings = {
     "bluetooth.available": "Verfügbar",
     "bluetooth.disconnect": "Trennen",
     "bluetooth.connect": "Verbinden",
-    "bluetooth.defaultTag": "Standard",
     "bluetooth.defaultTipSet": "Als Standardgerät festlegen: verbindet\nsich nach dem Start automatisch.",
     "bluetooth.defaultTipClear": "Standardgerät: verbindet sich nach dem\nStart automatisch. Klicken zum Entfernen.",
     "bluetooth.pair": "Koppeln",

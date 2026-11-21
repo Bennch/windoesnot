@@ -1087,7 +1087,6 @@ var strings = {
     "bluetooth.available": "Available",
     "bluetooth.disconnect": "Disconnect",
     "bluetooth.connect": "Connect",
-    "bluetooth.defaultTag": "Default",
     "bluetooth.defaultTipSet": "Make this the default device: it connects\nby itself after login.",
     "bluetooth.defaultTipClear": "Default device: connects by itself after\nlogin. Click to remove.",
     "bluetooth.pair": "Pair",
