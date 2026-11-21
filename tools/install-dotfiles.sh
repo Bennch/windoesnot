@@ -115,7 +115,7 @@ text = open(sys.argv[1], encoding='utf-8').read()
 items = set()
 for match in re.finditer(r'^\s*(?:make)?depends\+?=\(([^\n]*)\)', text, re.M):
     for value in shlex.split(match.group(1), comments=True):
-        name = re.split(r'[<>=]', value, 1)[0]
+        name = re.split(r'[<>=]', value, maxsplit=1)[0]
         if re.fullmatch(r'[a-zA-Z0-9@._+:-]+', name) and name not in {'windoesnot-desktop', 'windoesnot-tools', 'windoesnot-plugins', 'windoesnot-components'}:
             items.add(name)
 items.update(('hyprland', 'quickshell', 'base-devel', 'git', 'python', 'cmake', 'ninja'))

@@ -91,8 +91,9 @@ package_windoesnot-desktop() {
 
 package_windoesnot-tools() {
     pkgdesc='WinDoesNot session, layout, settings and user-code migration tools'
-    depends=(python python-evdev python-xlib xclip wl-clipboard python-gobject gtk4 libadwaita rsync ntfs-3g cryptsetup python-cairo hyprland polkit cachyos-rate-mirrors btrfs-progs diffutils)
-    optdepends+=("pacman-contrib: optional pacdiff tool for manual configuration comparisons")
+    depends=(python python-evdev python-xlib xclip wl-clipboard python-gobject gtk4 libadwaita rsync ntfs-3g cryptsetup python-cairo hyprland polkit btrfs-progs diffutils)
+    optdepends+=("pacman-contrib: optional pacdiff tool for manual configuration comparisons"
+                 "cachyos-rate-mirrors: rank CachyOS mirrors")
     cd "$srcdir/windoesnot-$pkgver"
     install -d "$pkgdir/usr/bin"
     for command in desktop/bin/*; do
