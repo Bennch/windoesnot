@@ -11,6 +11,7 @@ TOOL = ROOT / 'desktop/bin/windoesnot-user-dirs'
 
 def run(home, locale):
     env = {**os.environ, 'HOME': str(home), 'XDG_CONFIG_HOME': str(home / '.config')}
+    env.pop('LANGUAGE', None)
     env.pop('XDG_DOCUMENTS_DIR', None)
     subprocess.run([str(TOOL), '--locale', locale], env=env, check=True)
 
@@ -19,6 +20,7 @@ with tempfile.TemporaryDirectory() as temp:
     home = Path(temp)
     (home / '.config').mkdir()
     env = {**os.environ, 'HOME': str(home), 'XDG_CONFIG_HOME': str(home / '.config'), 'LANG': 'en_US.UTF-8', 'LC_ALL': 'en_US.UTF-8'}
+    env.pop('LANGUAGE', None)   # xdg-user-dirs-update follows LANGUAGE before LANG; the host may set it to German
     subprocess.run(['xdg-user-dirs-update', '--force'], env=env, check=True)
     assert (home / 'Documents').is_dir() and (home / 'Pictures').is_dir()
     (home / 'Documents/keep.txt').write_text('mine')
