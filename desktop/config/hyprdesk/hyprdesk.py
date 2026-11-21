@@ -1178,6 +1178,9 @@ class DesktopIcon(Gtk.Box):
 
         # Platzieren
         self.manager.overlay.put(self, self.x, self.y)
+        # Icons are hidden by the hotkey (Super + Shift + D): icons that appear meanwhile stay hidden too, the trash stays.
+        if getattr(self.manager, "icons_hidden", False) and not spec.get("is_trash"):
+            self.set_visible(False)
 
     # ---- Klicks ----
     def on_pressed(self, gesture, n_press, x, y):
@@ -1850,6 +1853,7 @@ class MonitorWindow:
         self.global_state = global_state
         self.drag_in_progress = False
         self.icons = []
+        self.icons_hidden = False
         self.show_trash = True  # Papierkorb standardmäßig anzeigen
         self.trash_icon = None
 
@@ -3573,6 +3577,14 @@ class MonitorWindow:
         self.grid_size = new_grid
         debug(f"Updated grid size to {new_grid}px on {self.monitor_id}")
 
+    def set_icons_hidden(self, hidden):
+        """Hotkey: hide every desktop icon except the trash (for screen recordings); show them again on the next press."""
+        self.icons_hidden = hidden
+        for icon in self.icons:
+            if icon is self.trash_icon or icon.spec.get("is_trash") or getattr(icon, "_being_transferred", False):
+                continue
+            icon.set_visible(not hidden)
+
     def update_trash_visibility(self, show_trash):
         """Zeigt oder versteckt den Papierkorb."""
         self.show_trash = show_trash
@@ -4099,7 +4111,7 @@ class HyprDeskApp(Gtk.Application):
         update_swaync_language(settings["uiLanguage"])
         self._setup_icon_toggle()
 
-    # Hotkey (windoesnot-desktop-icons toggle): hide every desktop icon, e.g. while recording the screen.
+    # Hotkey (windoesnot-desktop-icons toggle): hide every desktop icon except the trash, e.g. while recording the screen.
     # SIGUSR1 toggles; the pid file lets the helper find this process without matching command lines.
     def _setup_icon_toggle(self):
         if getattr(self, "_icon_toggle_ready", False):
@@ -4117,7 +4129,7 @@ class HyprDeskApp(Gtk.Application):
     def _toggle_icons(self):
         self.icons_hidden = not self.icons_hidden
         for monitor_window in self.windows:
-            monitor_window.win.set_visible(not self.icons_hidden)
+            monitor_window.set_icons_hidden(self.icons_hidden)
         return GLib.SOURCE_CONTINUE
 
     def _retry_monitor_startup(self):
