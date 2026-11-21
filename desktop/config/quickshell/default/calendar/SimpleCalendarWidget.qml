@@ -88,6 +88,10 @@ Item {
                         var full = viewingDate.toLocaleDateString(locale, "d. MMMM yyyy")
                         return dayNames[viewingDate.getDay()] + ", " + full
                     }
+                    width: parent.width - 12
+                    horizontalAlignment: Text.AlignHCenter
+                    fontSizeMode: Text.Shrink
+                    minimumPixelSize: 10
                     font.pixelSize: UiI.UiScale.px(14)
                     font.bold: true
                     color: darkMode ? "#fff" : "#1a1a1a"

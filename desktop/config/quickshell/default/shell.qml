@@ -4681,6 +4681,7 @@ FloatingWindow {
 
                 Text {
                     // Right of the search field, next to the app count (the left side is the search input).
+                    id: techAppsLabel
                     anchors.right: appCountLabel.left
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.rightMargin: 14
@@ -4847,6 +4848,9 @@ FloatingWindow {
                         Text {
                             visible: parent.text.length === 0
                             text: Lang.get("shell.searchPlaceholder", settingsMenu.uiLanguage)
+                            // Leave room for the technical-apps switch and the app count on the right (they grow with the text size).
+                            width: Math.max(60, parent.width - techAppsLabel.width - appCountLabel.width - 70)
+                            elide: Text.ElideRight
                             font.pixelSize: UiI.UiScale.px(14)
                             color: settingsMenu.darkMode ? "#999" : "#666"
                         }

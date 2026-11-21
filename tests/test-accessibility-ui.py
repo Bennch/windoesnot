@@ -22,6 +22,7 @@ with tempfile.TemporaryDirectory(prefix='wdn-a11y-ui-') as temp:
 import QtQuick.Window
 import Quickshell
 import "settings"
+import "./i18n" as UiI
 ShellRoot {
  Window {
   id: testWindow; visible: true; width: 700; height: 900
@@ -49,6 +50,7 @@ ShellRoot {
      page.run(["set", "reduceMotion", "true"])
     } else if (testWindow.step === 4) {
      testWindow.check(page.reduceMotion === true, "reduced motion read back")
+     testWindow.check(UiI.UiScale.factor === 1.5, "the text size file is watched: factor " + UiI.UiScale.factor)
      page.run(["zoom", "in"])
     } else if (testWindow.step === 5) {
      testWindow.check(page.zoom === 1.25, "zoom read back, got " + page.zoom)
