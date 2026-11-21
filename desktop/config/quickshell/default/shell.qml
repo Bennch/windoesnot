@@ -3271,6 +3271,9 @@ FloatingWindow {
             items.push({ kind: "openAudio", label: en ? "Open Audio" : "Audio öffnen" })
         } else if (kind === "weather") {
             items.push({ kind: "weatherSettings", label: en ? "Weather settings" : "Wettereinstellungen" })
+        } else if (kind === "tray") {
+            // Cinema mode (dims every monitor) without going to the desktop menu: windoesnot-kino toggle
+            items.push({ kind: "cinemaMode", label: en ? "Cinema mode" : "Kinomodus" })
         } else if (kind === "clock") {
             // Right click on the clock: straight to the calendar settings (no tray entry here)
             items.push({ kind: "calendarSettings", label: en ? "Calendar settings" : "Kalendereinstellungen" })
@@ -3340,6 +3343,9 @@ FloatingWindow {
             settingsMenu.visible = false
             settingsReopenTimer.start()
             traySettingsGuardTimer.restart()
+        } else if (kind === "cinemaMode") {
+            visible = false
+            run("windoesnot-kino toggle")
         } else if (kind === "openAudio") {
             // The WinDoesNot audio app (the EasyEffects fork, binary "easyeffects"), the same one the audio panel opens
             visible = false
