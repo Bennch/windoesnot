@@ -19,6 +19,8 @@ ShellRoot {
         property string launchError: ""
         property var checklistState: ({})
         property bool windowsPresent: false
+        property var pendingApps: []
+        readonly property bool showAtStart: !!checklistState.showAtStart
         property string uiLanguage: payload.language || "de"
         Process {
             id: checklistLoad
@@ -30,10 +32,19 @@ ShellRoot {
                 }
             }
         }
+        // Apps the installer left for later: loaded in the background or waiting in the Store
+        Process {
+            id: pendingLoad
+            running: true
+            command: ["windoesnot-pending-apps", "--status"]
+            stdout: StdioCollector {
+                onStreamFinished: { try { welcome.pendingApps = JSON.parse(text).apps || [] } catch (error) {} }
+            }
+        }
         // steps the system can see (network connected, package databases synced) tick themselves
         Timer {
             interval: 4000; repeat: true; running: welcome.visible
-            onTriggered: if (!checklistLoad.running) checklistLoad.running = true
+            onTriggered: { if (!checklistLoad.running) checklistLoad.running = true; if (!pendingLoad.running) pendingLoad.running = true }
         }
         title: "WinDoesNot"
         visible: true
@@ -69,6 +80,56 @@ ShellRoot {
                     visible: !!welcome.payload.hwcheckHint
                     width: parent.width; text: welcome.payload.hwcheckHint || ""; color: welcome.secondary
                     font.pixelSize: UiI.UiScale.px(14); wrapMode: Text.WordWrap; textFormat: Text.PlainText
+                }
+                // Apps chosen in the installer that are not in the image: shown while they are loaded or waiting
+                Rectangle {
+                    id: pendingCard
+                    visible: welcome.pendingApps.length > 0
+                    width: parent.width
+                    implicitHeight: pendingColumn.implicitHeight + 32
+                    radius: 12
+                    color: welcome.darkMode ? "#141414" : "#f5f5f5"
+                    border.width: 1; border.color: welcome.darkMode ? "#3a3a3a" : "#d0d0d0"
+                    readonly property int doneCount: welcome.pendingApps.filter(function(a) { return a.done }).length
+                    ColumnLayout {
+                        id: pendingColumn
+                        anchors { left: parent.left; right: parent.right; top: parent.top; margins: 16 }
+                        spacing: 8
+                        Text {
+                            Layout.fillWidth: true; wrapMode: Text.WordWrap
+                            text: Lang.get("welcome.pendingTitle", welcome.uiLanguage) + " (" + pendingCard.doneCount + " / " + welcome.pendingApps.length + ")"
+                            color: welcome.foreground; font.pixelSize: UiI.UiScale.px(16); font.bold: true
+                        }
+                        Text {
+                            Layout.fillWidth: true; wrapMode: Text.WordWrap
+                            text: Lang.get("welcome.pendingHint", welcome.uiLanguage)
+                            color: welcome.secondary; font.pixelSize: UiI.UiScale.px(13)
+                        }
+                        Repeater {
+                            model: welcome.pendingApps
+                            delegate: RowLayout {
+                                required property var modelData
+                                Layout.fillWidth: true; spacing: 10
+                                Text {
+                                    Layout.fillWidth: true; elide: Text.ElideRight; text: modelData.name
+                                    color: modelData.done ? welcome.secondary : welcome.foreground; font.pixelSize: UiI.UiScale.px(14)
+                                }
+                                Text {
+                                    text: modelData.done ? "✓ " + Lang.get("welcome.pendingDone", welcome.uiLanguage)
+                                          : (modelData.kind === "store" ? Lang.get("welcome.pendingStore", welcome.uiLanguage) : Lang.get("welcome.pendingLoading", welcome.uiLanguage))
+                                    color: modelData.done ? welcome.accentColor : welcome.secondary
+                                    font.pixelSize: UiI.UiScale.px(13); font.bold: modelData.done
+                                }
+                            }
+                        }
+                        Tools.SystemToolsButton {
+                            visible: welcome.pendingApps.some(function(a) { return !a.done && a.kind === "store" })
+                            settingsMenu: welcome
+                            text: Lang.get("welcome.openStore", welcome.uiLanguage)
+                            onClicked: openStore.running = true
+                        }
+                        Process { id: openStore; command: ["setsid", "--fork", "windoesnot-store"] }
+                    }
                 }
                 Text {
                     text: Lang.get("shortcuts.welcome", welcome.uiLanguage); color: welcome.foreground
@@ -423,6 +484,20 @@ ShellRoot {
                     font.pixelSize: UiI.UiScale.px(13); wrapMode: Text.WordWrap; textFormat: Text.PlainText
                 }
             }
+        }
+        // Show this window at every login instead of only the first one
+        Tools.SystemToolsToggle {
+            id: showSwitch
+            anchors { left: parent.left; verticalCenter: start.verticalCenter; leftMargin: 30 }
+            width: Math.min(250, parent.width - start.width - 80)
+            settingsMenu: welcome
+            text: welcome.payload.showAtStart || Lang.get("welcome.showAtStart", welcome.uiLanguage)
+            checked: welcome.showAtStart
+            onToggled: {
+                var state = Object.assign({}, welcome.checklistState); state.showAtStart = checked; welcome.checklistState = state
+                saveShow.command = ["windoesnot-welcome-state", "showAtStart", checked ? "true" : "false"]; saveShow.running = true
+            }
+            Process { id: saveShow }
         }
         Tools.SystemToolsButton {
             id: start

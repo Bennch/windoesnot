@@ -1089,8 +1089,8 @@
     {
       "id": "code",
       "name": {
-        "de": "Code - OSS",
-        "en": "Code - OSS"
+        "de": "Visual Studio Code",
+        "en": "Visual Studio Code"
       },
       "category": "development",
       "source": "flatpak",
@@ -1795,6 +1795,23 @@
       "flatpak_id": "ai.storyteller.artcraft-launcher",
       "flatpak_remote": "artcraft-oci",
       "license": "Apache-2.0"
+    },
+    {
+      "id": "davinci-resolve",
+      "name": {
+        "de": "DaVinci Resolve",
+        "en": "DaVinci Resolve"
+      },
+      "category": "creative",
+      "source": "aur",
+      "packages": [],
+      "description": {
+        "de": "Videoschnitt, Farbkorrektur, Effekte und Ton von Blackmagic Design (kostenlose Version, AUR, wird vor der Installation geprüft). Lädt rund 3 GB von Blackmagic; braucht eine passende Grafikkarte.",
+        "en": "Video editing, color grading, effects and audio from Blackmagic Design (free version, AUR, reviewed before installing). Downloads about 3 GB from Blackmagic; needs a suitable graphics card."
+      },
+      "required": false,
+      "aur_package": "davinci-resolve",
+      "license": "Proprietary"
     },
     {
       "id": "pdfcraft",

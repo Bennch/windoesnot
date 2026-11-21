@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-KEYS = {'wifi', 'updates', 'backup', 'view', 'migrate'}
+KEYS = {'wifi', 'updates', 'backup', 'view', 'migrate', 'showAtStart'}
 
 
 def windows_present():

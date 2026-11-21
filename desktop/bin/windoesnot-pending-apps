@@ -45,6 +45,37 @@ def remaining(catalog):
     return [known[i] for i in wanted if i in known and i not in done and known[i].get('source', 'offline') != 'offline']
 
 
+def installed_package(names):
+    return bool(names) and all(subprocess.run(['pacman', '-Q', n], capture_output=True).returncode == 0 for n in names)
+
+
+def status(catalog):
+    """Every app the installer left for later with its state, for the welcome window: kind flatpak (loaded in the background),
+    store (repository/AUR: the user installs it in the Store), web (launcher written by this service). done is True once
+    it is in place."""
+    wanted = read_json(PENDING, {}).get('pending', [])
+    done = set(read_json(STATE / 'pending-apps-done.json', {}).get('done', []))
+    known = {app['id']: app for app in catalog['apps']}
+    result = []
+    for app_id in wanted:
+        app = known.get(app_id)
+        if not app or app.get('source', 'offline') == 'offline':
+            continue
+        source = app['source']
+        label = app['name']['de' if german else 'en']
+        if source == 'flatpak':
+            kind, ready = 'flatpak', app_id in done
+        elif source in ('repo', 'aur'):
+            kind = 'store'
+            ready = app_id in done or installed_package(app.get('repo_packages') or [app.get('aur_package', '')])
+        else:
+            kind = 'web'
+            prefix = 'link' if source == 'link' else 'webapp'
+            ready = (Path.home() / '.local/share/applications' / f'windoesnot-{prefix}-{app_id}.desktop').is_file()
+        result.append({'id': app_id, 'name': label, 'kind': kind, 'done': bool(ready)})
+    return result
+
+
 def mark_done(app_id):
     STATE.mkdir(parents=True, exist_ok=True)
     path = STATE / 'pending-apps-done.json'
@@ -179,9 +210,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dry-run', action='store_true', help='print what would run, change nothing')
     parser.add_argument('--no-wait', action='store_true', help='do not wait for the network, try once')
+    parser.add_argument('--status', action='store_true', help='print the apps left for later and their state as JSON, change nothing')
     args = parser.parse_args()
     catalog = load_catalog(BASE / 'iso/software/catalog.json') if (BASE / 'iso/software/catalog.json').is_file() \
         else load_catalog(Path(__file__).resolve().parent.parent.parent / 'iso/software/catalog.json')
+    if args.status:
+        print(json.dumps({'apps': status(catalog)}))
+        return 0
     todo = remaining(catalog)
     if not todo:
         return 0

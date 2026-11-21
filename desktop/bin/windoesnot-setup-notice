@@ -99,6 +99,7 @@ def welcome_payload(data, preferences, hwcheck=None):
                  if german else 'You can also find this information in Settings under “Kernel and performance” and “Maintenance”.'),
         'hwcheckHint': ('Für dieses Gerät wird der Leichtmodus empfohlen. Du kannst ihn in Einstellungen unter Wartung einschalten.'
                         if german else 'Lite mode is recommended for this device. You can enable it under Settings → Maintenance.') if hwcheck else '',
+        'showAtStart': 'Beim Start anzeigen' if german else 'Show at startup',
         'close': 'Los geht’s' if german else 'Get started',
     }
 
@@ -118,9 +119,18 @@ def hardware_recommendation(state_dir, helper=Path('/usr/lib/windoesnot/hwcheck.
         return None
 
 
+def show_at_start():
+    """The switch in the welcome window: show it at every login instead of once."""
+    path = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'windoesnot/welcome-checklist.json'
+    try:
+        return json.loads(path.read_text()).get('showAtStart') is True
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
 def main():
     state = Path(os.environ.get('XDG_STATE_HOME', Path.home() / '.local/state')) / 'windoesnot/setup-notice-shown'
-    if state.exists() or not RECORD.is_file() or not shutil.which('quickshell'):
+    if (state.exists() and not show_at_start()) or not RECORD.is_file() or not shutil.which('quickshell'):
         return
     config = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'quickshell/default'
     window = config / 'SetupWelcome.qml'

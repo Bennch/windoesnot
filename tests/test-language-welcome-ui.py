@@ -105,9 +105,18 @@ METHODS
            'QT_QPA_PLATFORMTHEME': 'basic', 'DISPLAY': '', 'WAYLAND_DISPLAY': '',
            'DBUS_SESSION_BUS_ADDRESS': ''}
 
+    # Stubs for the helpers the window starts: three apps left for later (one done) and the "show at startup" switch on
+    stubs = base / 'stubs'
+    stubs.mkdir()
+    (stubs / 'windoesnot-pending-apps').write_text('#!/bin/sh\necho \'{"apps":[{"id":"gimp","name":"GIMP","kind":"flatpak","done":true},{"id":"krita","name":"Krita","kind":"flatpak","done":false},{"id":"davinci-resolve","name":"DaVinci Resolve","kind":"store","done":false}]}\'\n')
+    (stubs / 'windoesnot-welcome-state').write_text('#!/bin/sh\necho \'{"state":{"showAtStart":true},"windows":false}\'\n')
+    for stub in stubs.iterdir():
+        stub.chmod(0o755)
+    env['PATH'] = f"{stubs}:" + env['PATH']
+
     def run(path, extra, marker):
         result = subprocess.run(['quickshell', '--no-color', '-p', str(path)], env={**env, **extra},
-                                text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=10)
+                                text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=15)
         assert marker in result.stdout, result.stdout
         for error in ('ReferenceError', 'TypeError', 'Failed to load configuration', 'Cannot assign', 'Binding loop', '_FAIL'):
             assert error not in result.stdout, result.stdout
@@ -118,9 +127,13 @@ METHODS
     # Only add a timer: exercise the actual standalone window, sizing and shared button.
     welcome = welcome.replace('        onClosing: Qt.quit()', '''        onClosing: Qt.quit()
         Component.onCompleted: { width = 920; height = 800 }
-        Timer { interval: 100; running: true; onTriggered: {
+        Timer { interval: 900; running: true; onTriggered: {
             if (welcome.width < 600 || welcome.height < 450 || start.text !== welcome.payload.close)
                 console.error("WELCOME_UI_FAIL")
+            else if (!pendingCard.visible || pendingCard.doneCount !== 1 || welcome.pendingApps.length !== 3)
+                console.error("WELCOME_UI_FAIL pending apps card", pendingCard.visible, pendingCard.doneCount, welcome.pendingApps.length)
+            else if (!showSwitch.checked || showSwitch.text !== welcome.payload.showAtStart)
+                console.error("WELCOME_UI_FAIL show-at-startup switch", showSwitch.checked, showSwitch.text)
             else {
                 console.log("WELCOME_UI_PASS")
                 const path = Quickshell.env("WINDOESNOT_WELCOME_SCREENSHOT")
