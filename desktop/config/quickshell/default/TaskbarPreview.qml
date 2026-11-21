@@ -18,28 +18,15 @@ FloatingWindow {
     property var previewPaths: ({})
     property var captureQueue: []
     property bool captureBusy: false
-    // Last known picture per window: a hidden (minimized) window cannot be captured, so its card shows the last image taken
-    // while it was visible (hover capture or the snapshot right before minimizing), dimmed, instead of a black box.
+    // A hidden (minimized) window cannot be captured. Its card shows the picture taken by the Hyprland bridge right before
+    // it was minimized ($XDG_RUNTIME_DIR/windoesnot-hidden-previews/<address>.png), or else the last hover capture, dimmed.
     property var lastKnown: ({})
+    readonly property string hiddenPreviewDir: "file://" + (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/windoesnot-hidden-previews/"
 
     function rememberImage(address, path) {
         var known = Object.assign({}, taskbarPreview.lastKnown)
         known[address] = path
         taskbarPreview.lastKnown = known
-    }
-
-    // Shell snippet that takes the picture of a visible window just before it is minimized (and remembers it).
-    function snapshotCommand(win) {
-        if (!win || win.hidden || !win.size || win.size[0] <= 0 || win.size[1] <= 0) return ""
-        var path = "/tmp/qs-preview-last-" + win.address + "-" + Date.now() + ".png"
-        rememberImage(win.address, path)
-        return "windoesnot-bounded 4 grim -s 1 -g '" + win.at[0] + "," + win.at[1] + " " + win.size[0] + "x" + win.size[1] + "' " + path + " 2>/dev/null; "
-    }
-    function snapshotCommandFor(address) {
-        for (var i = 0; i < appWindows.length; i++) {
-            if (appWindows[i].address === address) return snapshotCommand(appWindows[i])
-        }
-        return ""
     }
 
     function captureNext() {
@@ -223,8 +210,8 @@ FloatingWindow {
             function minimizeCard(addr) {
                 taskbarPreview.visible = false
                 var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', cardRow)
-                proc.command = ["windoesnot-bounded", "12", "bash", "-c", taskbarPreview.snapshotCommandFor(addr) +
-                    "windoesnot-hyprctl dispatch movetoworkspacesilent special:minimized,address:" + addr]
+                proc.command = ["windoesnot-bounded", "8", "windoesnot-hyprctl", "dispatch", "movetoworkspacesilent",
+                    "special:minimized,address:" + addr]
                 proc.running = true
             }
 
@@ -417,14 +404,18 @@ FloatingWindow {
                         Image {
                             id: cardImage
                             anchors.fill: parent
+                            property bool bridgeFailed: false
                             readonly property string lastImage: taskbarPreview.lastKnown[modelData.address] || ""
-                            readonly property bool showsLast: modelData.hidden && lastImage !== ""
+                            readonly property string bridgeImage: taskbarPreview.hiddenPreviewDir + modelData.address + ".png"
+                            readonly property bool showsLast: modelData.hidden && status === Image.Ready
                             visible: (!modelData.hidden && modelData.size && modelData.size[0] > 0) || showsLast
-                            source: modelData.hidden ? lastImage : (taskbarPreview.previewPaths[modelData.address] || "")
+                            source: !modelData.hidden ? (taskbarPreview.previewPaths[modelData.address] || "")
+                                  : (bridgeFailed ? lastImage : bridgeImage)
                             fillMode: Image.PreserveAspectCrop
                             cache: false
                             asynchronous: true
                             opacity: showsLast ? 0.5 : 1.0
+                            onStatusChanged: if (status === Image.Error && modelData.hidden && !bridgeFailed) bridgeFailed = true
                         }
 
                         // Badge on the dimmed last picture of a hidden window

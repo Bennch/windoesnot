@@ -162,6 +162,42 @@ def require_ok(result):
     return output
 
 
+def snapshot_before_hide(args):
+    """Take a picture of a window right before it is minimized (special:minimized), for the taskbar preview card of the hidden
+    window: a hidden window is not rendered, so this is the last chance. Every minimize path ends in this bridge. Failures are
+    ignored; the file is $XDG_RUNTIME_DIR/windoesnot-hidden-previews/<address>.png."""
+    import os
+    import shutil
+    if len(args) < 3 or args[1] != 'movetoworkspacesilent' or not args[2].strip().startswith('special:minimized'):
+        return
+    if not shutil.which('grim'):
+        return
+    runtime = os.environ.get('XDG_RUNTIME_DIR')
+    if not runtime:
+        return
+    target = ' '.join(args[2:]).partition(',')[2].strip()
+    try:
+        if target.startswith('address:'):
+            wanted = target[len('address:'):]
+            clients = json.loads(subprocess.run(['hyprctl', '-j', 'clients'], capture_output=True, text=True, timeout=3).stdout)
+            client = next((c for c in clients if c.get('address') == wanted), None)
+        else:
+            client = json.loads(subprocess.run(['hyprctl', '-j', 'activewindow'], capture_output=True, text=True, timeout=3).stdout)
+        if not client or not re.fullmatch(r'0x[0-9a-fA-F]+', str(client.get('address', ''))):
+            return
+        if 'special:minimized' in str((client.get('workspace') or {}).get('name', '')):
+            return
+        (x, y), (w, h) = client['at'], client['size']
+        if w <= 0 or h <= 0:
+            return
+        folder = os.path.join(runtime, 'windoesnot-hidden-previews')
+        os.makedirs(folder, mode=0o700, exist_ok=True)
+        subprocess.run(['timeout', '3', 'grim', '-s', '1', '-g', f'{x},{y} {w}x{h}', os.path.join(folder, client['address'] + '.png')],
+                       capture_output=True, timeout=5)
+    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError):
+        pass
+
+
 def main(argv=None):
     args = list(sys.argv[1:] if argv is None else argv)
     if args and args[0] == '--':
@@ -185,6 +221,8 @@ def main(argv=None):
             main(flags + parts)
         return
     mutation = args[0] in ('dispatch', 'keyword')
+    if args[0] == 'dispatch':
+        snapshot_before_hide(args)
     if mutation:
         probe = checked_run(flags + ['eval', 'return true'])
         if probe.returncode:
