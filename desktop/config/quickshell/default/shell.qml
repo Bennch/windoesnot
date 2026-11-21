@@ -213,7 +213,7 @@ IpcHandler {
             network: networkWindow.visible, docker: dockerWindow.visible, ollama: ollamaWindow.visible,
             start: startMenu.visible, power: powerMenu.visible, settings: settingsMenu.visible,
             search: searchWindow.visible, battery: batteryWindow.visible || batteryWindow.batteryPreload,
-            nearby: nearbyWindow.visible, weather: weatherPopup.visible,
+            nearby: nearbyWindow.visible || nearbyWindow.nearbyPreload, weather: weatherPopup.visible,
             shortcuts: shortcutsWindow.visible, volume: volumeOverlay.visible,
             snap: snapLayouts.opened})
     }
@@ -224,9 +224,9 @@ IpcHandler {
             return (batteryWindow.visible || batteryWindow.batteryPreload) ? "open" : "closed"
         }
         if (name === "nearby") {
-            if (nearbyWindow.visible) nearbyWindow.visible = false
+            if (nearbyWindow.visible || nearbyWindow.nearbyPreload) nearbyWindow.closeNearby()
             else nearbyWindow.openAt()
-            return nearbyWindow.visible ? "open" : "closed"
+            return (nearbyWindow.visible || nearbyWindow.nearbyPreload) ? "open" : "closed"
         }
         if (name === "weather") {
             if (weatherPopup.visible) weatherPopup.visible = false
@@ -6498,8 +6498,13 @@ FloatingWindow {
     property int nearbyLastHeight: -1
     property int nearbySteady: 0
     property int nearbyTries: 0
+    function closeNearby() {
+        nearbyShowTimer.stop()
+        nearbyPreload = false
+        visible = false
+    }
     function openAt() {
-        if (visible) return
+        if (visible || nearbyPreload) return
         // Position comes from the static nearby-config rule; placeLive() corrects it once the height is known.
         nearbyPreload = true
         nearbyService.command({action:"active", value:true})   // the data that sizes the panel (firewall note) loads while it is hidden
