@@ -781,8 +781,18 @@ PanelWindow {
     // unable to close that window again — it just sits there looking stuck.
     // Every popup/context-menu window's onVisibleChanged calls this instead
     // of binding active directly.
+    // The grab is armed one event-loop turn later. The wish is remembered per grab, so a close that follows
+    // directly (the context menu hides first, then the Start menu) cancels the pending arming; otherwise the stale
+    // callback re-armed the grab after the close and swallowed the next click anywhere (the Store's X).
+    property var focusGrabWish: []
     function syncFocusGrab(grab, vis) {
-        if (vis) Qt.callLater(function() { grab.active = true })
+        var entry = null
+        for (var i = 0; i < focusGrabWish.length; i++) {
+            if (focusGrabWish[i].grab === grab) { entry = focusGrabWish[i]; break }
+        }
+        if (!entry) { entry = { grab: grab, vis: false }; focusGrabWish.push(entry) }
+        entry.vis = vis
+        if (vis) Qt.callLater(function() { if (entry.vis) grab.active = true })
         else grab.active = false
     }
 
