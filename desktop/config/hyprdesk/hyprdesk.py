@@ -3410,7 +3410,39 @@ class MonitorWindow:
                 ptr = getattr(self, "_last_ptr", None)
                 self.paste_clipboard(*(ptr if ptr else (None, None)))
                 return True
+            if key == Gdk.KEY_a:
+                # Select everything that is shown (the trash is left out: it can neither be deleted nor opened by Enter)
+                for icon in self.icons:
+                    if icon.get_visible() and not icon.spec.get("is_trash") and not getattr(icon, "_being_transferred", False):
+                        icon.set_selected(True)
+                self.selection_area.queue_draw()
+                return True
             return False
+        # Esc: clear the selection; F2: rename the single selected icon; Enter: open the selected icons
+        if keyval in (Gdk.KEY_Escape, Gdk.KEY_F2, Gdk.KEY_Return, Gdk.KEY_KP_Enter):
+            chosen = [icon for icon in self.icons if icon.selected and icon.get_visible() and not icon.spec.get("is_trash")]
+            if keyval == Gdk.KEY_Escape:
+                if not any(icon.selected for icon in self.icons):
+                    return False
+                for icon in self.icons:
+                    icon.set_selected(False)
+                self.selection_area.queue_draw()
+                return True
+            if keyval == Gdk.KEY_F2:
+                if len(chosen) == 1 and self._icon_being_renamed is None:
+                    chosen[0].start_rename()
+                    return True
+                return False
+            opened = False
+            for icon in chosen:
+                if icon.spec.get("cmd"):
+                    launch_command(icon.spec["cmd"])
+                    opened = True
+            if opened:
+                for icon in self.icons:
+                    icon.set_selected(False)
+                self.selection_area.queue_draw()
+            return opened
         # DEL oder BACKSPACE für Löschen
         if keyval == 65535 or keyval == 65288:  # DEL oder Backspace
             selected_icons = [icon for icon in self.icons if icon.selected]
