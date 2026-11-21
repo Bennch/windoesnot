@@ -294,7 +294,7 @@ Item {
                 Row {
                     width: parent.width; spacing: 10
                     Tools.SystemToolsButton { settingsMenu: page.settingsMenu; text: page.tr("pacnew.refresh"); enabled: !page.busyPacnew; onClicked: page.refreshPacnew() }
-                    BusyIndicator { width: 28; height: 28; running: page.busyPacnew; visible: running; palette.highlight: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
+                    Tools.SettingsSpinner { width: 28; height: 28; running: page.busyPacnew; visible: running; color: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
                 }
                 Note { visible: page.pacnewError.length > 0; text: page.tr("pacnew.failed") + " " + page.pacnewError }
                 Note { visible: !page.busyPacnew && !page.pacnewFiles.length && !page.pacnewError; text: page.tr("pacnew.empty") }
@@ -369,7 +369,7 @@ Item {
         }
         Note { visible: page.state.live === true; text: page.tr("systemTools.live") }
         Note { visible: !page.ready; text: page.busy ? page.tr("systemTools.loading") : page.tr("systemTools.unavailable") }
-        BusyIndicator { width: 32; height: 32; running: page.busy; visible: running; palette.highlight: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
+        Tools.SettingsSpinner { width: 32; height: 32; running: page.busy; visible: running; color: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
         Rectangle {
             visible: page.resultText.length > 0 || page.rebootNeeded
             width: parent.width; height: resultColumn.implicitHeight + 32

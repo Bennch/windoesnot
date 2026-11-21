@@ -163,7 +163,7 @@ Item {
         Note { text: page.tr("kernel.intro") }
         Note { visible: page.state.live === true; text: page.tr("systemTools.live") }
         Note { visible: !page.ready; text: page.busy ? page.tr("systemTools.loading") : page.tr("systemTools.unavailable") }
-        BusyIndicator { width: 32; height: 32; running: page.busy; visible: running; palette.highlight: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
+        Tools.SettingsSpinner { width: 32; height: 32; running: page.busy; visible: running; color: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
         Note { visible: page.resultText.length > 0; text: page.resultText; color: page.foreground }
         Note { visible: page.ready && page.state.catalogAvailable === false; text: page.tr("kernel.catalogMissing") }
         Note { visible: page.resultDetail.length > 0; text: page.resultDetail }

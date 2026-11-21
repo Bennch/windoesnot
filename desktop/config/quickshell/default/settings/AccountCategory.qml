@@ -210,7 +210,7 @@ Item {
             }
         }
 
-        BusyIndicator { width: 32; height: 32; running: page.busy; visible: running; palette.highlight: page.accent }
+        Tools.SettingsSpinner { width: 32; height: 32; running: page.busy; visible: running; color: page.accent }
 
         Tools.ExportSystem { settingsMenu: page.settingsMenu }
     }

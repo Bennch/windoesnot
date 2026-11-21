@@ -244,11 +244,12 @@ Item {
                 height: parent.height
                 spacing: 6
 
-                BusyIndicator {
+                Tools.SettingsSpinner {
                     visible: busy
                     running: visible
                     width: 16
                     height: 16
+                    color: settingsMenu.accentColor
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
@@ -695,7 +696,7 @@ Item {
                                 background: Rectangle {
                                     color: "transparent"
                                     border.width: 1
-                                    border.color: settingsMenu.darkMode ? "#444" : "#ccc"
+                                    border.color: settingsMenu.darkMode ? "#444" : "#999"
                                     radius: 4
                                 }
 
@@ -709,7 +710,7 @@ Item {
                                     Text {
                                         anchors.centerIn: parent
                                         text: "+"
-                                        color: settingsMenu.darkMode ? "#aaa" : "#666"
+                                        color: settingsMenu.darkMode ? "#aaa" : "#222"
                                         font.pixelSize: UiI.UiScale.px(18)
                                     }
                                 }
@@ -724,7 +725,7 @@ Item {
                                     Text {
                                         anchors.centerIn: parent
                                         text: "−"
-                                        color: settingsMenu.darkMode ? "#aaa" : "#666"
+                                        color: settingsMenu.darkMode ? "#aaa" : "#222"
                                         font.pixelSize: UiI.UiScale.px(18)
                                     }
                                 }

@@ -81,7 +81,7 @@ Column {
     Text { text: page.tr("maintenance.printers"); color: page.foreground; font.pixelSize: UiI.UiScale.px(18); font.bold: true }
     Note { text: page.tr("maintenance.printersHint") }
     Note { visible: !page.ready; text: page.busy ? page.tr("systemTools.loading") : page.tr("systemTools.unavailable") }
-    BusyIndicator { width: 28; height: 28; running: page.busy; visible: running; palette.highlight: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
+    Tools.SettingsSpinner { width: 28; height: 28; running: page.busy; visible: running; color: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
     Note { visible: page.result.length > 0; text: page.result; color: page.foreground }
     Note { visible: page.ready && page.printerState === null; text: page.tr("maintenance.printersUnavailable") }
     Note { visible: page.printerState !== null && page.printerState.cupsActive === false; text: page.tr("maintenance.printersCupsOff") }

@@ -28,6 +28,7 @@ SharedFolders 1.0 SharedFolders.qml
 ShellSettings 1.0 ShellSettings.qml
 StartOrbSettings 1.0 StartOrbSettings.qml
 SystemCategory 1.0 SystemCategory.qml
+SettingsSpinner 1.0 SettingsSpinner.qml
 SystemToolsButton 1.0 SystemToolsButton.qml
 SystemToolsChoice 1.0 SystemToolsChoice.qml
 SystemToolsConfirm 1.0 SystemToolsConfirm.qml

@@ -84,7 +84,7 @@ Item {
         spacing: 20
 
         Note { text: page.tr("power.intro") }
-        BusyIndicator { width: 32; height: 32; running: page.busy; visible: running; palette.highlight: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
+        Tools.SettingsSpinner { width: 32; height: 32; running: page.busy; visible: running; color: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
 
         Tools.SystemToolsToggle {
             settingsMenu: page.settingsMenu
