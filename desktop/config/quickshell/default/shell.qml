@@ -5915,6 +5915,9 @@ PopupWindow {
                         var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', startAppContextMenu)
                         proc.command = ["windoesnot-store", "--open-desktop", startAppContextMenu.desktopPath]
                         proc.running = true
+                        // Close the context menu too: while it stays visible it keeps the focus grab, and the first click
+                        // on the Store window (for example its close button) would only release the grab.
+                        startAppContextMenu.visible = false
                         startMenu.visible = false
                     }
                 }
