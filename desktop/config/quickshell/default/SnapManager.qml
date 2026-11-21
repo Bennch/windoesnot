@@ -86,6 +86,22 @@ Item {
     property bool eventDriven: false
     property string pendingNewWindowAddress: ""    // the window handled right now
     property var newWindowQueue: []                // addresses of windows that opened and wait for their place
+    property var placementRounds: ({})             // address -> how many placement passes the window had (max 2)
+
+    Timer {
+        id: recheckTimer
+        property var addresses: []
+        interval: 900
+        repeat: false
+        onTriggered: {
+            var queue = snapManager.newWindowQueue.slice()
+            for (var i = 0; i < addresses.length; i++)
+                if (queue.indexOf(addresses[i]) < 0 && addresses[i] !== snapManager.pendingNewWindowAddress) queue.push(addresses[i])
+            addresses = []
+            snapManager.newWindowQueue = queue
+            newWindowPlacementTimer.restart()
+        }
+    }
 
     // In floating mode new clients are centred by the rule in Hyprland.  This
     // second pass corrects apps that announce an off-screen position or a size larger than the usable screen, and
@@ -463,7 +479,18 @@ Item {
                     var clients = JSON.parse(parts[0].trim())
                     var client = clients.find(function(c) { return c.address.replace(/^0x/, "") === snapManager.pendingNewWindowAddress })
                     var monitors = JSON.parse(parts[1].trim())
+                    var handled = snapManager.pendingNewWindowAddress
                     snapManager.pendingNewWindowAddress = ""
+                    // Apps that resize themselves after opening (Files, Firefox) can end up on the centre again: look once more
+                    // a little later; the cascade is idempotent for a window that is already in its slot.
+                    var rounds = snapManager.placementRounds[handled] || 0
+                    if (handled && rounds < 2) {
+                        var counted = Object.assign({}, snapManager.placementRounds)
+                        counted[handled] = rounds + 1
+                        snapManager.placementRounds = counted
+                        recheckTimer.addresses = recheckTimer.addresses.concat([handled])
+                        recheckTimer.restart()
+                    }
                     if (snapManager.newWindowQueue.length > 0) newWindowPlacementTimer.restart()
                     // Do not reposition shell surfaces, pinned/fullscreen windows or
                     // clients that stayed tiled despite the global floating rule.
@@ -477,6 +504,8 @@ Item {
                     newWindowPlacementApplyProc.address = client.address
                     // Centred when alone; further windows step down and to the right (NewWindowCascade.js)
                     var place = Cascade.cascadePosition(usable, width, height, Cascade.neighbours(clients, client))
+                    console.log("new window placement:", client.class, client.address, "at", client.at, "->", place.x, place.y,
+                                "neighbours", Cascade.neighbours(clients, client).length)
                     newWindowPlacementApplyProc.x = place.x
                     newWindowPlacementApplyProc.y = place.y
                     newWindowPlacementApplyProc.w = Math.round(width)
