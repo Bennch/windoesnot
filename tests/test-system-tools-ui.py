@@ -24,7 +24,7 @@ with tempfile.TemporaryDirectory(prefix='wdn-system-ui-') as temp:
     shutil.copy2(SOURCE/'settings/DiagnoseCategory.qml',profile/'settings')
     shutil.copy2(SOURCE/'settings/SystemCategory.qml',profile/'settings')
     shutil.copy2(SOURCE/'settings/AccountCategory.qml',profile/'settings')
-    for name in ('SystemToolsButton','SystemToolsChoice','SystemToolsToggle','SystemToolsConfirm'):
+    for name in ('SettingsSpinner', 'SystemToolsButton','SystemToolsChoice','SystemToolsToggle','SystemToolsConfirm'):
         shutil.copy2(SOURCE/('settings/'+name+'.qml'),profile/'settings')
     shutil.copy2(SOURCE/'settings/MaintenanceCategory.qml',profile/'settings')
     shutil.copy2(SOURCE/'settings/FileBackupCard.qml',profile/'settings')

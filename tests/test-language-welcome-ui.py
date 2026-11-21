@@ -26,7 +26,7 @@ with tempfile.TemporaryDirectory(prefix='wdn-language-welcome-') as temp:
     (profile / 'settings').mkdir(parents=True)
     shutil.copytree(SOURCE / 'i18n', profile / 'i18n')
     shutil.copytree(SOURCE / 'img/brand', profile / 'img/brand')
-    for name in ('InputCategory', 'PrinterCategory', 'SystemToolsButton', 'SystemToolsConfirm', 'SystemToolsChoice', 'SystemToolsToggle'):
+    for name in ('InputCategory', 'PrinterCategory', 'SettingsSpinner', 'SystemToolsButton', 'SystemToolsConfirm', 'SystemToolsChoice', 'SystemToolsToggle'):
         shutil.copy2(SOURCE / f'settings/{name}.qml', profile / 'settings')
     shutil.copy2(SOURCE / 'LocaleNames.js', profile / 'LocaleNames.js')
     references = set(re.findall(r'settingsMenu\.(\w+)', (SOURCE / 'settings/InputCategory.qml').read_text()))
