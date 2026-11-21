@@ -1064,11 +1064,9 @@ def plain_menu_popover(model, action_group):
                 # in the parent menu means no spurious hover re-entry that would cause a freeze.
                 sub = Gtk.Popover()
                 sub.set_has_arrow(False)
-                # No grab for the flyout: an autohide child popover takes the pointer grab, so the rows of the main
-                # menu stop getting hover events while it is open and the menu seems stuck on the "New" row.
-                # The main popover still closes everything (closed handler below), the flyout closes on hover of
-                # another row.
-                sub.set_autohide(False)
+                # Keep the default (autohide) flyout: a flyout without the grab broke the menu on the desktop (clicks on
+                # its items closed the whole menu). The menu may hold on to the "New" row while the flyout is open;
+                # a proper inline submenu is planned for 34.
                 sub.add_css_class("desktop-context-menu")
                 sub.set_position(Gtk.PositionType.RIGHT)
                 sub.set_offset(0, 0)
