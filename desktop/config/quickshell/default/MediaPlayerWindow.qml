@@ -4,6 +4,7 @@ import Quickshell.Services.Mpris
 import Quickshell.Io
 import QtQuick
 import QtQuick.Controls
+import "./i18n" as UiI
 
 FloatingWindow {
     id: mediaPlayerWindow
@@ -294,7 +295,7 @@ FloatingWindow {
                 Text {
                     text: mediaPlayerWindow.player?.identity || "Media Player"
                     color: "#ffffff"
-                    font.pixelSize: 16
+                    font.pixelSize: UiI.UiScale.px(16)
                     font.bold: true
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -327,7 +328,7 @@ FloatingWindow {
                         anchors.centerIn: parent
                         text: "♫"
                         color: mediaPlayerWindow.accentColor
-                        font.pixelSize: 56
+                        font.pixelSize: UiI.UiScale.px(56)
                         visible: coverArt.status !== Image.Ready
                     }
 
@@ -352,7 +353,7 @@ FloatingWindow {
                     Text {
                         text: mediaPlayerWindow.player?.trackTitle || "Kein Titel"
                         color: "#ffffff"
-                        font.pixelSize: 18
+                        font.pixelSize: UiI.UiScale.px(18)
                         font.bold: true
                         elide: Text.ElideRight
                         width: parent.width
@@ -364,7 +365,7 @@ FloatingWindow {
                         visible: text.length > 0
                         text: mediaPlayerWindow.player?.trackArtists || ""
                         color: mediaPlayerWindow.accentColor
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         font.bold: true
                         elide: Text.ElideRight
                         width: parent.width
@@ -374,7 +375,7 @@ FloatingWindow {
                         visible: text.length > 0
                         text: mediaPlayerWindow.player?.trackAlbum || ""
                         color: "#aaaaaa"
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         elide: Text.ElideRight
                         width: parent.width
                     }
@@ -400,7 +401,7 @@ FloatingWindow {
                             return mins + ":" + (secs < 10 ? "0" : "") + secs
                         }
                         color: "#ffffff"
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         width: 50
                     }
 
@@ -417,7 +418,7 @@ FloatingWindow {
                             return mins + ":" + (secs < 10 ? "0" : "") + secs
                         }
                         color: "#aaaaaa"
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         width: 50
                         horizontalAlignment: Text.AlignRight
                     }

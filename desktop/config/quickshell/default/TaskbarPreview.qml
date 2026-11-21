@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "./i18n" as UiI
 
 FloatingWindow {
     id: taskbarPreview
@@ -293,7 +294,7 @@ FloatingWindow {
                                 verticalCenter: parent.verticalCenter
                             }
                             text: modelData.title || taskbarPreview.appName
-                            font.pixelSize: 11
+                            font.pixelSize: UiI.UiScale.px(11)
                             font.bold: modelData.focused
                             color: taskbarPreview.settingsMenu
                                 ? (taskbarPreview.settingsMenu.darkMode ? "#dddddd" : "#222222")
@@ -318,7 +319,7 @@ FloatingWindow {
                             Text {
                                 anchors.centerIn: parent
                                 text: "−"
-                                font.pixelSize: 16
+                                font.pixelSize: UiI.UiScale.px(16)
                                 color: minimizeBtnHover.hovered ? "#ffffff"
                                     : (taskbarPreview.settingsMenu
                                         ? (taskbarPreview.settingsMenu.darkMode ? "#888" : "#777")
@@ -349,7 +350,7 @@ FloatingWindow {
                             Text {
                                 anchors.centerIn: parent
                                 text: "✕"
-                                font.pixelSize: 12
+                                font.pixelSize: UiI.UiScale.px(12)
                                 color: closeBtnHover.hovered ? "#ffffff"
                                     : (taskbarPreview.settingsMenu
                                         ? (taskbarPreview.settingsMenu.darkMode ? "#888" : "#777")
@@ -406,7 +407,7 @@ FloatingWindow {
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: "⊟"
-                                font.pixelSize: 20
+                                font.pixelSize: UiI.UiScale.px(20)
                                 color: taskbarPreview.settingsMenu
                                     ? (taskbarPreview.settingsMenu.darkMode ? "#3a3a3a" : "#c0c0c0")
                                     : "#3a3a3a"
@@ -415,7 +416,7 @@ FloatingWindow {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: taskbarPreview.settingsMenu && taskbarPreview.settingsMenu.uiLanguage === "en"
                                     ? "Hidden" : "Ausgeblendet"
-                                font.pixelSize: 9
+                                font.pixelSize: UiI.UiScale.px(9)
                                 color: taskbarPreview.settingsMenu
                                     ? (taskbarPreview.settingsMenu.darkMode ? "#555" : "#999")
                                     : "#555"

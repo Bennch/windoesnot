@@ -5,6 +5,7 @@ import QtQuick.Effects
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
 import "." as Tools
+import "../i18n" as UiI
 
 Column {
     id: alignmentRoot
@@ -119,7 +120,7 @@ Column {
 
         Text {
             text: Lang.get("alignment.taskbar", _lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
@@ -147,7 +148,7 @@ Column {
                         anchors.centerIn: parent
                         text: Lang.get(labelKey)
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                     }
 
                     MouseArea {
@@ -175,7 +176,7 @@ Column {
 
         Text {
             text: Lang.get("alignment.taskbarIcons", _lang)
-            font.pixelSize: 18; font.bold: true
+            font.pixelSize: UiI.UiScale.px(18); font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
 
@@ -190,12 +191,12 @@ Column {
 
                 Text {
                     text: Lang.get("alignment.workspaceToggle", _lang)
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
                 }
                 Text {
                     text: Lang.get("alignment.workspaceToggleDesc", _lang)
-                    font.pixelSize: 12; color: settingsMenu.darkMode ? "#666" : "#888"
+                    font.pixelSize: UiI.UiScale.px(12); color: settingsMenu.darkMode ? "#666" : "#888"
                     wrapMode: Text.WordWrap; width: parent.width
                 }
             }
@@ -232,12 +233,12 @@ Column {
                 width: parent.width - 80
                 Text {
                     text: Lang.get("alignment.searchButton", _lang)
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
                 }
                 Text {
                     text: Lang.get("alignment.searchButtonDesc", _lang)
-                    font.pixelSize: 12; color: settingsMenu.darkMode ? "#666" : "#888"
+                    font.pixelSize: UiI.UiScale.px(12); color: settingsMenu.darkMode ? "#666" : "#888"
                     wrapMode: Text.WordWrap; width: parent.width
                 }
             }
@@ -271,12 +272,12 @@ Column {
                 width: parent.width - 80
                 Text {
                     text: Lang.get("alignment.storeButton", _lang)
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
                 }
                 Text {
                     text: Lang.get("alignment.storeButtonDesc", _lang)
-                    font.pixelSize: 12; color: settingsMenu.darkMode ? "#666" : "#888"
+                    font.pixelSize: UiI.UiScale.px(12); color: settingsMenu.darkMode ? "#666" : "#888"
                     wrapMode: Text.WordWrap; width: parent.width
                 }
             }
@@ -310,12 +311,12 @@ Column {
                 width: parent.width - 80
                 Text {
                     text: Lang.get("alignment.settingsButton", _lang)
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
                 }
                 Text {
                     text: Lang.get("alignment.settingsButtonDesc", _lang)
-                    font.pixelSize: 12; color: settingsMenu.darkMode ? "#666" : "#888"
+                    font.pixelSize: UiI.UiScale.px(12); color: settingsMenu.darkMode ? "#666" : "#888"
                     wrapMode: Text.WordWrap; width: parent.width
                 }
             }
@@ -347,7 +348,7 @@ Column {
 
         Text {
             text: Lang.get("alignment.weather", _lang)
-            font.pixelSize: 18; font.bold: true
+            font.pixelSize: UiI.UiScale.px(18); font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
 
@@ -360,12 +361,12 @@ Column {
                 width: parent.width - 80
                 Text {
                     text: Lang.get("alignment.weatherEnable", _lang)
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
                 }
                 Text {
                     text: Lang.get("alignment.weatherEnableDesc", _lang)
-                    font.pixelSize: 12; color: settingsMenu.darkMode ? "#666" : "#888"
+                    font.pixelSize: UiI.UiScale.px(12); color: settingsMenu.darkMode ? "#666" : "#888"
                     wrapMode: Text.WordWrap; width: parent.width
                 }
             }
@@ -404,7 +405,7 @@ Column {
 
             Text {
                 text: Lang.get("alignment.weatherPlacement", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
 
@@ -425,7 +426,7 @@ Column {
                             anchors.centerIn: parent
                             text: Lang.get(labelKey, _lang)
                             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                            font.pixelSize: 13
+                            font.pixelSize: UiI.UiScale.px(13)
                         }
                         MouseArea {
                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -449,7 +450,7 @@ Column {
 
             Text {
                 text: Lang.get("alignment.weatherLocation", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
 
@@ -465,7 +466,7 @@ Column {
                     placeholderText: Lang.get("alignment.weatherLocationHint", _lang)
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                     placeholderTextColor: settingsMenu.darkMode ? "#666" : "#999"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     background: Rectangle {
                         radius: 6
                         color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
@@ -489,7 +490,7 @@ Column {
                     Text {
                         anchors.centerIn: parent
                         text: geocodeRunning ? "…" : "Suchen"
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                     }
                     MouseArea {
@@ -519,7 +520,7 @@ Column {
                         anchors.left: parent.left; anchors.leftMargin: 10
                         anchors.right: parent.right; anchors.rightMargin: 10
                         color: suggestMa.containsMouse ? "#fff" : (settingsMenu.darkMode ? "#ddd" : "#1a1a1a")
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         elide: Text.ElideRight
                     }
                     MouseArea {
@@ -550,7 +551,7 @@ Column {
                     width: parent.width - locationPin.width - parent.spacing
                     anchors.verticalCenter: parent.verticalCenter
                     wrapMode: Text.WordWrap
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                     color: settingsMenu.darkMode ? "#888" : "#666"
                     text: currentPlaceText()
                     onTextChanged: if (text !== currentPlaceText()) geocodeStatusReset.restart()
@@ -579,7 +580,7 @@ Column {
 
         Text {
             text: Lang.get("alignment.startSidebar", _lang)
-            font.pixelSize: 18; font.bold: true
+            font.pixelSize: UiI.UiScale.px(18); font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
 
@@ -590,7 +591,7 @@ Column {
 
             Text {
                 text: Lang.get("alignment.sidebarPosition", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
 
@@ -612,7 +613,7 @@ Column {
                             anchors.centerIn: parent
                             text: Lang.get(labelKey)
                             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                            font.pixelSize: 13
+                            font.pixelSize: UiI.UiScale.px(13)
                         }
                         MouseArea {
                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -627,7 +628,7 @@ Column {
         Text {
             visible: settingsMenu.startMenuSidebarPosition !== "hidden"
             text: Lang.get("alignment.visibleLinks", _lang)
-            font.pixelSize: 14
+            font.pixelSize: UiI.UiScale.px(14)
             color: settingsMenu.darkMode ? "#aaa" : "#555"
         }
 
@@ -651,7 +652,7 @@ Column {
 
                 Text {
                     text: Lang.get(labelKey, _lang)
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
                     width: parent.width - 80
                     anchors.verticalCenter: parent.verticalCenter

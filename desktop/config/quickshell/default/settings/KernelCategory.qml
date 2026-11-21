@@ -3,6 +3,7 @@ import QtQuick.Controls
 import "." as Tools
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Item {
     id: page
@@ -141,13 +142,13 @@ Item {
         wrapMode: Text.WordWrap
         textFormat: Text.PlainText
         color: page.secondary
-        font.pixelSize: 13
+        font.pixelSize: UiI.UiScale.px(13)
     }
     component Heading: Text {
         width: parent.width
         wrapMode: Text.WordWrap
         color: page.foreground
-        font.pixelSize: 18
+        font.pixelSize: UiI.UiScale.px(18)
         font.bold: true
     }
     component ActionButton: Tools.SystemToolsButton {
@@ -196,10 +197,10 @@ Item {
                     Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: parent.radius; color: parent.color }
                     Row {
                         anchors.fill: parent
-                        Text { width: kernelTable.chooseWidth; height: parent.height; text: page.tr("kernel.choose"); color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
-                        Text { width: kernelTable.packageWidth; height: parent.height; text: page.tr("kernel.package"); color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
-                        Text { width: kernelTable.versionWidth; height: parent.height; text: page.tr("kernel.version"); color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
-                        Text { width: kernelTable.categoryWidth; height: parent.height; text: page.tr("kernel.category"); color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+                        Text { width: kernelTable.chooseWidth; height: parent.height; text: page.tr("kernel.choose"); color: page.foreground; font.pixelSize: UiI.UiScale.px(13); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
+                        Text { width: kernelTable.packageWidth; height: parent.height; text: page.tr("kernel.package"); color: page.foreground; font.pixelSize: UiI.UiScale.px(13); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+                        Text { width: kernelTable.versionWidth; height: parent.height; text: page.tr("kernel.version"); color: page.foreground; font.pixelSize: UiI.UiScale.px(13); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+                        Text { width: kernelTable.categoryWidth; height: parent.height; text: page.tr("kernel.category"); color: page.foreground; font.pixelSize: UiI.UiScale.px(13); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
                     }
                 }
                 Repeater {
@@ -225,12 +226,12 @@ Item {
                                     width: 16; height: 16; radius: 4
                                     color: chooseBox.checked ? (settingsMenu ? settingsMenu.accentColor : "#fe6f2d") : (page.dark ? "#30353a" : "#ffffff")
                                     border.width: 1; border.color: page.dark ? "#6a7176" : "#929292"
-                                    Text { anchors.centerIn: parent; visible: chooseBox.checked; text: "✓"; color: "white"; font.bold: true; font.pixelSize: 12 }
+                                    Text { anchors.centerIn: parent; visible: chooseBox.checked; text: "✓"; color: "white"; font.bold: true; font.pixelSize: UiI.UiScale.px(12) }
                                 }
                             }
-                            Text { width: kernelTable.packageWidth; height: parent.height; text: "cachyos/" + modelData.name; color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
-                            Text { width: kernelTable.versionWidth; height: parent.height; text: modelData.installed || modelData.available || "—"; color: page.foreground; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
-                            Text { width: kernelTable.categoryWidth; height: parent.height; text: modelData.running ? page.tr("kernel.current") : page.kernelCategory(modelData.name); color: modelData.running ? (settingsMenu ? settingsMenu.accentColor : "#fe6f2d") : page.secondary; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
+                            Text { width: kernelTable.packageWidth; height: parent.height; text: "cachyos/" + modelData.name; color: page.foreground; font.pixelSize: UiI.UiScale.px(13); verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
+                            Text { width: kernelTable.versionWidth; height: parent.height; text: modelData.installed || modelData.available || "—"; color: page.foreground; font.pixelSize: UiI.UiScale.px(13); verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
+                            Text { width: kernelTable.categoryWidth; height: parent.height; text: modelData.running ? page.tr("kernel.current") : page.kernelCategory(modelData.name); color: modelData.running ? (settingsMenu ? settingsMenu.accentColor : "#fe6f2d") : page.secondary; font.pixelSize: UiI.UiScale.px(13); verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
                         }
                         Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: page.dark ? "#303438" : "#dddddd" }
                     }
@@ -272,7 +273,7 @@ Item {
                     id: schedulerState
                     width: Math.min(220, implicitWidth)
                     text: page.state.scx.current || page.state.scx.state || page.tr("kernel.none")
-                    color: page.foreground; font.pixelSize: 13; horizontalAlignment: Text.AlignRight; elide: Text.ElideRight
+                    color: page.foreground; font.pixelSize: UiI.UiScale.px(13); horizontalAlignment: Text.AlignRight; elide: Text.ElideRight
                 }
             }
             ActionButton {

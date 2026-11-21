@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Column {
     property var settingsMenu: null
@@ -17,7 +18,7 @@ Column {
 
         Text {
             text: Lang.get("colors.accentColor", _lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
@@ -176,7 +177,7 @@ Column {
 
         Text {
             text: Lang.get("colors.inactiveBorder", _lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
@@ -331,7 +332,7 @@ Column {
             text: Lang.get("colors.changesApplied", _lang)
             width: parent.width
             wrapMode: Text.WordWrap
-            font.pixelSize: 11
+            font.pixelSize: UiI.UiScale.px(11)
             color: settingsMenu.darkMode ? "#666" : "#888"
             font.italic: true
         }

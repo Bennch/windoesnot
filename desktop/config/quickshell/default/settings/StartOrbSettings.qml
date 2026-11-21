@@ -3,6 +3,7 @@ import QtQuick.Dialogs as Dialogs
 import Quickshell.Io
 import "../widgets"
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Column {
     id: orbSettings
@@ -17,7 +18,7 @@ Column {
         spacing: 5
         Text {
             text: Lang.get("appearance.startOrb", orbSettings._lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: orbSettings.settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
@@ -25,7 +26,7 @@ Column {
             width: parent.width
             text: Lang.get("appearance.startOrbDesc", orbSettings._lang)
             wrapMode: Text.WordWrap
-            font.pixelSize: 12
+            font.pixelSize: UiI.UiScale.px(12)
             color: orbSettings.settingsMenu.darkMode ? "#666" : "#888"
         }
     }
@@ -73,7 +74,7 @@ Column {
                         horizontalAlignment: Text.AlignHCenter
                         wrapMode: Text.WordWrap
                         color: choice.selected ? "#fff" : (orbSettings.settingsMenu.darkMode ? "#fff" : "#1a1a1a")
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         font.bold: true
                     }
                 }
@@ -106,7 +107,7 @@ Column {
             anchors.centerIn: parent
             text: Lang.get("appearance.startOrbChoose", orbSettings._lang)
             color: "#fff"
-            font.pixelSize: 13
+            font.pixelSize: UiI.UiScale.px(13)
             font.bold: true
         }
         MouseArea {
@@ -122,7 +123,7 @@ Column {
         text: Lang.get("appearance.startOrbError", orbSettings._lang)
         wrapMode: Text.WordWrap
         color: orbSettings.settingsMenu.darkMode ? "#ff9999" : "#a82222"
-        font.pixelSize: 12
+        font.pixelSize: UiI.UiScale.px(12)
     }
     Dialogs.FileDialog {
         id: picker

@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import Quickshell.Io
 import "LookData.js" as Presets
+import "../i18n" as UiI
 
 Column {
     id: root
@@ -73,7 +74,7 @@ Column {
     Text {
         text: Lang.get("looks.title", root.lang)
         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-        font.pixelSize: 18
+        font.pixelSize: UiI.UiScale.px(18)
         font.bold: true
     }
 
@@ -110,14 +111,14 @@ Column {
                     elide: Text.ElideRight
                     text: modelData.name !== undefined ? modelData.name : (root.lang === "de" ? modelData.nameDe : modelData.nameEn)
                     color: modelData.darkMode ? "#fff" : "#1a1a1a"
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                 }
 
                 // Own looks can be removed again.
                 Text {
                     visible: modelData.name !== undefined
                     anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 6
-                    text: "✕"; color: modelData.darkMode ? "#cccccc" : "#444444"; font.pixelSize: 12
+                    text: "✕"; color: modelData.darkMode ? "#cccccc" : "#444444"; font.pixelSize: UiI.UiScale.px(12)
                     MouseArea {
                         anchors.fill: parent; anchors.margins: -6; cursorShape: Qt.PointingHandCursor
                         onClicked: { libraryProcess.command = ["python3", root.helperPath(), "delete", modelData.name]; libraryProcess.running = true }
@@ -146,27 +147,27 @@ Column {
             text: root.newName
             onTextEdited: root.newName = text
             onAccepted: root.saveCurrent()
-            color: settingsMenu.darkMode ? "#ffffff" : "#1a1a1a"; font.pixelSize: 13
+            color: settingsMenu.darkMode ? "#ffffff" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
             background: Rectangle { radius: 6; color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"; border.width: 1; border.color: parent.activeFocus ? settingsMenu.accentColor : (settingsMenu.darkMode ? "#3a3a3a" : "#d0d0d0") }
         }
         Rectangle {
             width: saveText.width + 28; height: 36; radius: 6
             color: root.newName.trim() !== "" ? settingsMenu.accentColor : (settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0")
             opacity: root.newName.trim() !== "" ? 1 : 0.6
-            Text { id: saveText; anchors.centerIn: parent; text: Lang.get("looks.saveCurrent", root.lang); font.pixelSize: 13; color: root.newName.trim() !== "" ? "#ffffff" : (settingsMenu.darkMode ? "#aaaaaa" : "#666666") }
+            Text { id: saveText; anchors.centerIn: parent; text: Lang.get("looks.saveCurrent", root.lang); font.pixelSize: UiI.UiScale.px(13); color: root.newName.trim() !== "" ? "#ffffff" : (settingsMenu.darkMode ? "#aaaaaa" : "#666666") }
             MouseArea { anchors.fill: parent; enabled: root.newName.trim() !== ""; cursorShape: Qt.PointingHandCursor; onClicked: root.saveCurrent() }
         }
     }
     Text {
         width: parent.width; wrapMode: Text.WordWrap
         text: Lang.get("looks.saveHint", root.lang)
-        color: settingsMenu.darkMode ? "#888888" : "#777777"; font.pixelSize: 12
+        color: settingsMenu.darkMode ? "#888888" : "#777777"; font.pixelSize: UiI.UiScale.px(12)
     }
 
     Text {
         text: Lang.get("looks.restore", root.lang)
         color: settingsMenu.accentColor
-        font.pixelSize: 13
+        font.pixelSize: UiI.UiScale.px(13)
         opacity: presetProcess.running ? 0.5 : 1
 
         MouseArea {
@@ -187,7 +188,7 @@ Column {
         visible: root.errorText !== ""
         text: root.errorText
         color: "#d05050"
-        font.pixelSize: 12
+        font.pixelSize: UiI.UiScale.px(12)
     }
 
     // Reads the saved looks when the page opens; save and delete answer with the new list.

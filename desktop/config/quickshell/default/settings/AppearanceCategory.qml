@@ -4,6 +4,7 @@ import QtQuick.Controls
 import Quickshell.Io
 import Qt5Compat.GraphicalEffects
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Column {
     property var settingsMenu: null
@@ -31,14 +32,14 @@ Column {
 
             Text {
                 text: Lang.get("appearance.mode", _lang)
-                font.pixelSize: 18
+                font.pixelSize: UiI.UiScale.px(18)
                 font.bold: true
                 color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
             }
 
             Text {
                 text: Lang.get("appearance.modeDesc", _lang)
-                font.pixelSize: 12
+                font.pixelSize: UiI.UiScale.px(12)
                 color: settingsMenu.darkMode ? "#666" : "#888"
                 wrapMode: Text.WordWrap
             }
@@ -98,14 +99,14 @@ Column {
 
             Text {
                 text: Lang.get("appearance.windowMode", _lang)
-                font.pixelSize: 18
+                font.pixelSize: UiI.UiScale.px(18)
                 font.bold: true
                 color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
             }
 
             Text {
                 text: Lang.get("appearance.windowModeDesc", _lang)
-                font.pixelSize: 12
+                font.pixelSize: UiI.UiScale.px(12)
                 color: settingsMenu.darkMode ? "#666" : "#888"
                 wrapMode: Text.WordWrap
             }
@@ -170,7 +171,7 @@ Column {
                             Text {
                                 text: Lang.get(labelKey)
                                 color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                                font.pixelSize: 16
+                                font.pixelSize: UiI.UiScale.px(16)
                                 font.bold: true
                                 anchors.verticalCenter: parent.verticalCenter
                             }
@@ -179,7 +180,7 @@ Column {
                         Text {
                             text: Lang.get(descKey)
                             color: settingsMenu.windowMode === value ? "#fff" : "#999"
-                            font.pixelSize: 11
+                            font.pixelSize: UiI.UiScale.px(11)
                             wrapMode: Text.WordWrap
                             width: parent.width
                             lineHeight: 1.3
@@ -230,7 +231,7 @@ Column {
 
         Text {
             text: Lang.get("alignment.borderRadius", _lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
@@ -284,7 +285,7 @@ Column {
 
             Text {
                 text: (settingsMenu ? settingsMenu.borderRadius : 0) + "px"
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
                 width: 48
                 horizontalAlignment: Text.AlignRight
@@ -300,7 +301,7 @@ Column {
 
         Text {
             text: Lang.get("alignment.windowGaps", _lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
@@ -354,7 +355,7 @@ Column {
 
             Text {
                 text: (settingsMenu ? settingsMenu.windowGaps : 0) + "px"
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
                 width: 48
                 horizontalAlignment: Text.AlignRight
@@ -370,14 +371,14 @@ Column {
 
         Text {
             text: Lang.get("appearance.gtkTheme", _lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
 
         Text {
             text: Lang.get("appearance.currentActive", _lang) + " " + settingsMenu.gtkTheme
-            font.pixelSize: 13
+            font.pixelSize: UiI.UiScale.px(13)
             color: settingsMenu.accentColor
             font.bold: true
         }
@@ -406,7 +407,7 @@ Column {
                     }
                     Text {
                         text: Lang.get("appearance.darkModeTheme", _lang)
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         color: settingsMenu.darkMode ? "#aaa" : "#555"
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -445,7 +446,7 @@ Column {
                         leftPadding: 10
                         rightPadding: gtkThemeDarkCombo.indicator.width + gtkThemeDarkCombo.spacing
                         text: gtkThemeDarkCombo.displayText
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
@@ -455,7 +456,7 @@ Column {
                         x: gtkThemeDarkCombo.width - width - 10
                         y: gtkThemeDarkCombo.topPadding + (gtkThemeDarkCombo.availableHeight - height) / 2
                         text: "▼"
-                        font.pixelSize: 9
+                        font.pixelSize: UiI.UiScale.px(9)
                         color: settingsMenu.darkMode ? "#999" : "#666"
                     }
 
@@ -486,7 +487,7 @@ Column {
                         contentItem: Text {
                             text: model.name
                             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                            font.pixelSize: 11
+                            font.pixelSize: UiI.UiScale.px(11)
                             elide: Text.ElideRight
                             verticalAlignment: Text.AlignVCenter
                             leftPadding: 10
@@ -529,7 +530,7 @@ Column {
                     }
                     Text {
                         text: Lang.get("appearance.lightModeTheme", _lang)
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         color: settingsMenu.darkMode ? "#aaa" : "#555"
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -568,7 +569,7 @@ Column {
                         leftPadding: 10
                         rightPadding: gtkThemeLightCombo.indicator.width + gtkThemeLightCombo.spacing
                         text: gtkThemeLightCombo.displayText
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
@@ -578,7 +579,7 @@ Column {
                         x: gtkThemeLightCombo.width - width - 10
                         y: gtkThemeLightCombo.topPadding + (gtkThemeLightCombo.availableHeight - height) / 2
                         text: "▼"
-                        font.pixelSize: 9
+                        font.pixelSize: UiI.UiScale.px(9)
                         color: settingsMenu.darkMode ? "#999" : "#666"
                     }
 
@@ -609,7 +610,7 @@ Column {
                         contentItem: Text {
                             text: model.name
                             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                            font.pixelSize: 11
+                            font.pixelSize: UiI.UiScale.px(11)
                             elide: Text.ElideRight
                             verticalAlignment: Text.AlignVCenter
                             leftPadding: 10
@@ -631,7 +632,7 @@ Column {
 
             Text {
                 text: Lang.get("appearance.allThemes", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
 
@@ -676,7 +677,7 @@ Column {
 
                             Text {
                                 text: model.name
-                                font.pixelSize: 13
+                                font.pixelSize: UiI.UiScale.px(13)
                                 color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                                 anchors.verticalCenter: parent.verticalCenter
                             }
@@ -701,7 +702,7 @@ Column {
 
         Text {
             text: Lang.get("common.tip", _lang) + " " + Lang.get("appearance.gtkTip", _lang)
-            font.pixelSize: 11
+            font.pixelSize: UiI.UiScale.px(11)
             color: settingsMenu.darkMode ? "#666" : "#888"
             wrapMode: Text.WordWrap
             width: parent.width
@@ -725,7 +726,7 @@ Column {
 
             Text {
                 text: Lang.get("appearance.cursorTheme", _lang)
-                font.pixelSize: 18
+                font.pixelSize: UiI.UiScale.px(18)
                 font.bold: true
                 color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                 width: parent.width - 150
@@ -734,7 +735,7 @@ Column {
 
             Text {
                 text: settingsMenu.cursorTheme
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#999" : "#666"
                 width: 150
                 horizontalAlignment: Text.AlignRight
@@ -783,7 +784,7 @@ Column {
 
                         Text {
                             text: model.name
-                            font.pixelSize: 13
+                            font.pixelSize: UiI.UiScale.px(13)
                             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                             anchors.verticalCenter: parent.verticalCenter
                         }
@@ -802,7 +803,7 @@ Column {
 
         Text {
             text: Lang.get("common.tip", _lang) + " " + Lang.get("appearance.cursorTip", _lang)
-            font.pixelSize: 11
+            font.pixelSize: UiI.UiScale.px(11)
             color: settingsMenu.darkMode ? "#666" : "#888"
             wrapMode: Text.WordWrap
             width: parent.width
@@ -826,7 +827,7 @@ Column {
 
             Text {
                 text: Lang.get("appearance.iconTheme", _lang)
-                font.pixelSize: 18
+                font.pixelSize: UiI.UiScale.px(18)
                 font.bold: true
                 color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                 width: parent.width - 150
@@ -835,7 +836,7 @@ Column {
 
             Text {
                 text: settingsMenu.iconTheme
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#999" : "#666"
                 width: 150
                 horizontalAlignment: Text.AlignRight
@@ -884,7 +885,7 @@ Column {
 
                         Text {
                             text: model.name
-                            font.pixelSize: 13
+                            font.pixelSize: UiI.UiScale.px(13)
                             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                             anchors.verticalCenter: parent.verticalCenter
                         }
@@ -924,13 +925,13 @@ Column {
 
                 Text {
                     text: Lang.get("appearance.titlebar", _lang)
-                    font.pixelSize: 16
+                    font.pixelSize: UiI.UiScale.px(16)
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
                 }
 
                 Text {
                     text: "Aktiviert/deaktiviert die Titelleiste komplett (setzt bar_height auf 0)"
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                     color: settingsMenu.darkMode ? "#666" : "#888"
                     wrapMode: Text.WordWrap
                 }
@@ -995,13 +996,13 @@ Column {
 
                 Text {
                     text: Lang.get("appearance.titlebarButtons", _lang)
-                    font.pixelSize: 16
+                    font.pixelSize: UiI.UiScale.px(16)
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
                 }
 
                 Text {
                     text: Lang.get("appearance.titlebarButtonsDesc", _lang)
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                     color: settingsMenu.darkMode ? "#666" : "#888"
                     wrapMode: Text.WordWrap
                 }
@@ -1061,7 +1062,7 @@ Column {
 
                 Text {
                     text: Lang.get("appearance.individualButtons", _lang)
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     font.bold: true
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
                 }
@@ -1073,7 +1074,7 @@ Column {
 
                     Text {
                         text: Lang.get("appearance.closeButton", _lang)
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         color: settingsMenu.darkMode ? "#aaa" : "#555"
                         width: parent.width - 80
                         anchors.verticalCenter: parent.verticalCenter
@@ -1116,7 +1117,7 @@ Column {
 
                     Text {
                         text: Lang.get("appearance.maxButton", _lang)
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         color: settingsMenu.darkMode ? "#aaa" : "#555"
                         width: parent.width - 80
                         anchors.verticalCenter: parent.verticalCenter
@@ -1159,7 +1160,7 @@ Column {
 
                     Text {
                         text: Lang.get("appearance.minButton", _lang)
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         color: settingsMenu.darkMode ? "#aaa" : "#555"
                         width: parent.width - 80
                         anchors.verticalCenter: parent.verticalCenter
@@ -1209,7 +1210,7 @@ Column {
 
                 Text {
                     text: Lang.get("appearance.titlebarHeight", _lang)
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
                 }
 
@@ -1247,7 +1248,7 @@ Column {
 
                     Text {
                         text: (settingsMenu ? settingsMenu.hyprbarsHeight : 30) + "px"
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: settingsMenu.darkMode ? "#999" : "#666"
                         width: 48; horizontalAlignment: Text.AlignRight
                         anchors.verticalCenter: parent.verticalCenter
@@ -1262,7 +1263,7 @@ Column {
 
                 Text {
                     text: Lang.get("appearance.buttonPosition", _lang)
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
                 }
 
@@ -1289,7 +1290,7 @@ Column {
                                 anchors.centerIn: parent
                                 text: Lang.get(labelKey)
                                 color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                                font.pixelSize: 13
+                                font.pixelSize: UiI.UiScale.px(13)
                             }
 
                             MouseArea {
@@ -1317,7 +1318,7 @@ Column {
 
                 Text {
                     text: Lang.get("appearance.barDesign", _lang)
-                    font.pixelSize: 15
+                    font.pixelSize: UiI.UiScale.px(15)
                     font.bold: true
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                 }
@@ -1327,7 +1328,7 @@ Column {
                     spacing: 15
                     Text {
                         text: Lang.get("appearance.barColor", _lang)
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: settingsMenu.darkMode ? "#aaa" : "#555"
                         width: 150
                         anchors.verticalCenter: parent.verticalCenter
@@ -1363,7 +1364,7 @@ Column {
                     spacing: 15
                     Text {
                         text: Lang.get("appearance.barBlur", _lang)
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: settingsMenu.darkMode ? "#aaa" : "#555"
                         width: 150
                         anchors.verticalCenter: parent.verticalCenter
@@ -1405,7 +1406,7 @@ Column {
 
                 Text {
                     text: Lang.get("appearance.textStyling", _lang)
-                    font.pixelSize: 15
+                    font.pixelSize: UiI.UiScale.px(15)
                     font.bold: true
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                 }
@@ -1415,7 +1416,7 @@ Column {
                     spacing: 15
                     Text {
                         text: Lang.get("appearance.textColor", _lang)
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: settingsMenu.darkMode ? "#aaa" : "#555"
                         width: 150
                         anchors.verticalCenter: parent.verticalCenter
@@ -1452,7 +1453,7 @@ Column {
                     spacing: 10
                     Text {
                         text: Lang.get("appearance.textSize", _lang)
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: settingsMenu.darkMode ? "#aaa" : "#555"
                     }
                     Row {
@@ -1489,7 +1490,7 @@ Column {
 
                         Text {
                             text: (settingsMenu ? settingsMenu.hyprbarsTextSize : 12) + "px"
-                            font.pixelSize: 14
+                            font.pixelSize: UiI.UiScale.px(14)
                             color: settingsMenu.darkMode ? "#999" : "#666"
                             width: 48; horizontalAlignment: Text.AlignRight
                             anchors.verticalCenter: parent.verticalCenter
@@ -1503,7 +1504,7 @@ Column {
                     spacing: 10
                     Text {
                         text: Lang.get("appearance.font", _lang)
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: settingsMenu.darkMode ? "#aaa" : "#555"
                     }
                     ComboBox {
@@ -1538,7 +1539,7 @@ Column {
                         contentItem: Text {
                             leftPadding: 10
                             text: hyprbarsTextFontBox.displayText
-                            font.pixelSize: 13
+                            font.pixelSize: UiI.UiScale.px(13)
                             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                             verticalAlignment: Text.AlignVCenter
                             elide: Text.ElideRight
@@ -1552,7 +1553,7 @@ Column {
                     spacing: 10
                     Text {
                         text: Lang.get("appearance.textAlign", _lang)
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: settingsMenu.darkMode ? "#aaa" : "#555"
                     }
                     Row {
@@ -1575,7 +1576,7 @@ Column {
                                     anchors.centerIn: parent
                                     text: Lang.get(model.labelKey)
                                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                                    font.pixelSize: 12
+                                    font.pixelSize: UiI.UiScale.px(12)
                                 }
                                 MouseArea {
                                     anchors.fill: parent
@@ -1592,7 +1593,7 @@ Column {
                     spacing: 15
                     Text {
                         text: Lang.get("appearance.showTitle", _lang)
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: settingsMenu.darkMode ? "#aaa" : "#555"
                         width: 150
                         anchors.verticalCenter: parent.verticalCenter
@@ -1634,7 +1635,7 @@ Column {
 
                 Text {
                     text: Lang.get("appearance.buttonColors", _lang)
-                    font.pixelSize: 15
+                    font.pixelSize: UiI.UiScale.px(15)
                     font.bold: true
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                 }
@@ -1644,7 +1645,7 @@ Column {
                     spacing: 15
                     Text {
                         text: "Close (X)"
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: settingsMenu.darkMode ? "#aaa" : "#555"
                         width: 150
                         anchors.verticalCenter: parent.verticalCenter
@@ -1680,7 +1681,7 @@ Column {
                     spacing: 15
                     Text {
                         text: "Maximize (□)"
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: settingsMenu.darkMode ? "#aaa" : "#555"
                         width: 150
                         anchors.verticalCenter: parent.verticalCenter
@@ -1716,7 +1717,7 @@ Column {
                     spacing: 15
                     Text {
                         text: "Minimize (—)"
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: settingsMenu.darkMode ? "#aaa" : "#555"
                         width: 150
                         anchors.verticalCenter: parent.verticalCenter
@@ -1756,7 +1757,7 @@ Column {
 
                 Text {
                     text: Lang.get("appearance.buttonTextColors", _lang)
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: settingsMenu.darkMode ? "#999" : "#666"
                 }
 
@@ -1765,7 +1766,7 @@ Column {
                     spacing: 15
                     Text {
                         text: "Close Text"
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: settingsMenu.darkMode ? "#aaa" : "#555"
                         width: 150
                         anchors.verticalCenter: parent.verticalCenter
@@ -1801,7 +1802,7 @@ Column {
                     spacing: 15
                     Text {
                         text: "Max/Min Text"
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: settingsMenu.darkMode ? "#aaa" : "#555"
                         width: 150
                         anchors.verticalCenter: parent.verticalCenter
@@ -1848,7 +1849,7 @@ Column {
 
         Text {
             text: Lang.get("appearance.fonts", _lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
@@ -1859,7 +1860,7 @@ Column {
             spacing: 10
             Text {
                 text: Lang.get("appearance.fontInterface", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
             Row {
@@ -1902,7 +1903,7 @@ Column {
                     contentItem: Text {
                         leftPadding: 10
                         text: fontInterfaceFamilyBox.displayText
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
@@ -1926,7 +1927,7 @@ Column {
                             return m ? m[1] : "11"
                         }
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         verticalAlignment: TextInput.AlignVCenter
                         validator: IntValidator { bottom: 6; top: 72 }
                         onEditingFinished: {
@@ -1938,7 +1939,7 @@ Column {
 
                 Text {
                     text: "px"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: settingsMenu.darkMode ? "#666" : "#888"
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -1951,7 +1952,7 @@ Column {
             spacing: 10
             Text {
                 text: Lang.get("appearance.fontDocument", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
             Row {
@@ -1994,7 +1995,7 @@ Column {
                     contentItem: Text {
                         leftPadding: 10
                         text: fontDocumentFamilyBox.displayText
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
@@ -2018,7 +2019,7 @@ Column {
                             return m ? m[1] : "11"
                         }
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         verticalAlignment: TextInput.AlignVCenter
                         validator: IntValidator { bottom: 6; top: 72 }
                         onEditingFinished: {
@@ -2030,7 +2031,7 @@ Column {
 
                 Text {
                     text: "px"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: settingsMenu.darkMode ? "#666" : "#888"
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -2043,7 +2044,7 @@ Column {
             spacing: 10
             Text {
                 text: Lang.get("appearance.fontMonospace", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
             Row {
@@ -2086,7 +2087,7 @@ Column {
                     contentItem: Text {
                         leftPadding: 10
                         text: fontMonospaceFamilyBox.displayText
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
@@ -2110,7 +2111,7 @@ Column {
                             return m ? m[1] : "10"
                         }
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         verticalAlignment: TextInput.AlignVCenter
                         validator: IntValidator { bottom: 6; top: 72 }
                         onEditingFinished: {
@@ -2122,7 +2123,7 @@ Column {
 
                 Text {
                     text: "px"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: settingsMenu.darkMode ? "#666" : "#888"
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -2135,7 +2136,7 @@ Column {
             spacing: 10
             Text {
                 text: Lang.get("appearance.fontScaling", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
             Row {
@@ -2170,7 +2171,7 @@ Column {
                 }
                 Text {
                     text: (settingsMenu ? settingsMenu.fontScaling.toFixed(2) : "1.00")
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: settingsMenu.darkMode ? "#999" : "#666"
                     width: 48; horizontalAlignment: Text.AlignRight
                     anchors.verticalCenter: parent.verticalCenter
@@ -2178,7 +2179,7 @@ Column {
             }
             Text {
                 text: Lang.get("appearance.textSizeRange", _lang)
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 color: settingsMenu.darkMode ? "#666" : "#888"
             }
         }
@@ -2189,7 +2190,7 @@ Column {
             spacing: 10
             Text {
                 text: Lang.get("appearance.hinting", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
             Row {
@@ -2213,7 +2214,7 @@ Column {
                             anchors.centerIn: parent
                             text: Lang.get(labelKey)
                             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                            font.pixelSize: 12
+                            font.pixelSize: UiI.UiScale.px(12)
                         }
                         MouseArea {
                             anchors.fill: parent
@@ -2231,7 +2232,7 @@ Column {
             spacing: 10
             Text {
                 text: Lang.get("appearance.antialiasing", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
             Row {
@@ -2254,7 +2255,7 @@ Column {
                             anchors.centerIn: parent
                             text: Lang.get(labelKey)
                             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                            font.pixelSize: 12
+                            font.pixelSize: UiI.UiScale.px(12)
                         }
                         MouseArea {
                             anchors.fill: parent

@@ -1,12 +1,13 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Effects
+import "../i18n" as UiI
 
 Image {
     id: icon
     property string name: "info"
     property color color: "#cccccc"
-    property font font: Qt.font({pixelSize: 20})
+    property font font: Qt.font({pixelSize: UiI.UiScale.px(20)})
     width: font.pixelSize
     height: font.pixelSize
     source: Qt.resolvedUrl("../img/project/" + name + ".svg")

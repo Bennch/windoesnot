@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Effects
 import Quickshell
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Rectangle {
     id: card
@@ -59,7 +60,7 @@ Rectangle {
             }
             Text {
                 text: card.taskActive ? card.taskTitle : Lang.get("auth.title", card.language)
-                color: card.foreground; font.pixelSize: 18; font.bold: true
+                color: card.foreground; font.pixelSize: UiI.UiScale.px(18); font.bold: true
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
@@ -72,7 +73,7 @@ Rectangle {
                     ? Lang.get("auth.deletePoint", card.language)
                     : card.flow.actionId === "org.windoesnot.snapshots.schedule"
                         ? Lang.get("auth.schedulePoints", card.language) : card.flow.message
-            color: card.foreground; wrapMode: Text.WordWrap; font.pixelSize: 13
+            color: card.foreground; wrapMode: Text.WordWrap; font.pixelSize: UiI.UiScale.px(13)
             textFormat: Text.PlainText
         }
         ComboBox {
@@ -90,7 +91,7 @@ Rectangle {
             contentItem: Text {
                 text: identityChooser.displayText
                 color: card.foreground
-                font.pixelSize: 13
+                font.pixelSize: UiI.UiScale.px(13)
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
             }
@@ -99,7 +100,7 @@ Rectangle {
                 height: 40
                 contentItem: Text {
                     text: modelData.displayName
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: card.foreground
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
@@ -132,7 +133,7 @@ Rectangle {
             width: parent.width
             visible: card.responding && text.length > 0
             text: card.flow && card.flow.selectedIdentity ? card.flow.selectedIdentity.displayName : ""
-            color: card.foreground; font.pixelSize: 12
+            color: card.foreground; font.pixelSize: UiI.UiScale.px(12)
         }
         TextField {
             id: response
@@ -159,7 +160,7 @@ Rectangle {
             visible: text.length > 0
             text: card.flow ? card.flow.supplementaryMessage : ""
             color: card.flow && card.flow.supplementaryIsError ? "#e66c59" : card.foreground
-            textFormat: Text.PlainText; wrapMode: Text.WordWrap; font.pixelSize: 12
+            textFormat: Text.PlainText; wrapMode: Text.WordWrap; font.pixelSize: UiI.UiScale.px(12)
         }
         Column {
             width: parent.width
@@ -170,7 +171,7 @@ Rectangle {
                 text: card.taskText + (card.taskBusy && card.taskStep > 0 && card.taskTotal > 0
                     ? " (" + card.taskStep + "/" + card.taskTotal + ")" : "")
                 color: card.taskError ? "#e66c59" : card.foreground
-                font.pixelSize: 13
+                font.pixelSize: UiI.UiScale.px(13)
                 wrapMode: Text.WordWrap
             }
             ProgressBar {
@@ -186,14 +187,14 @@ Rectangle {
                 width: parent.width
                 visible: card.taskError && card.taskDetail.length > 0
                 text: card.taskDetail
-                color: card.foreground; font.pixelSize: 12
+                color: card.foreground; font.pixelSize: UiI.UiScale.px(12)
                 wrapMode: Text.WordWrap; textFormat: Text.PlainText
             }
             Rectangle {
                 visible: !card.taskBusy
                 width: parent.width; height: 36; radius: 6
                 color: card.accent
-                Text { anchors.centerIn: parent; text: Lang.get("shell.close", card.language); color: "white"; font.pixelSize: 13 }
+                Text { anchors.centerIn: parent; text: Lang.get("shell.close", card.language); color: "white"; font.pixelSize: UiI.UiScale.px(13) }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: card.dismissTask() }
             }
         }
@@ -211,7 +212,7 @@ Rectangle {
                     Text {
                         anchors.centerIn: parent
                         text: Lang.get(modelData, card.language)
-                        color: index === 1 ? "#ffffff" : card.foreground; font.pixelSize: 13
+                        color: index === 1 ? "#ffffff" : card.foreground; font.pixelSize: UiI.UiScale.px(13)
                     }
                     MouseArea {
                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor

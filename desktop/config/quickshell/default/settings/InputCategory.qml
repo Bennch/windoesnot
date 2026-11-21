@@ -4,6 +4,7 @@ import Quickshell.Io
 import "." as Tools
 import "../i18n/Lang.js" as Lang
 import "../LocaleNames.js" as LocaleNames
+import "../i18n" as UiI
 
 Column {
     id: inputRoot
@@ -30,7 +31,7 @@ Column {
 
         Text {
             text: Lang.get("input.languageTitle", _lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
@@ -44,7 +45,7 @@ Column {
                 spacing: 15
                 Text {
                     text: Lang.get("input.currentLanguage", _lang)
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
                     width: parent.width - currentLanguageValue.width - parent.spacing
                 }
@@ -52,7 +53,7 @@ Column {
                     id: currentLanguageValue
                     text: LocaleNames.isLanguageLocale(settingsMenu.systemLocale)
                         ? settingsMenu.systemLocale : Lang.get("input.noSystemLanguage", _lang)
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: settingsMenu.accentColor
                     font.bold: true
                     width: Math.min(350, implicitWidth)
@@ -63,7 +64,7 @@ Column {
 
             Text {
                 text: Lang.get("input.language", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
 
@@ -102,7 +103,7 @@ Column {
                     leftPadding: 12
                     rightPadding: localeComboBox.indicator.width + localeComboBox.spacing
                     text: localeComboBox.displayText
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
@@ -112,7 +113,7 @@ Column {
                     x: localeComboBox.width - width - 12
                     y: localeComboBox.topPadding + (localeComboBox.availableHeight - height) / 2
                     text: "\u25BC"
-                    font.pixelSize: 10
+                    font.pixelSize: UiI.UiScale.px(10)
                     color: settingsMenu.darkMode ? "#999" : "#666"
                 }
 
@@ -144,7 +145,7 @@ Column {
                     contentItem: Text {
                         text: model.text
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         elide: Text.ElideRight
                         verticalAlignment: Text.AlignVCenter
                         leftPadding: 12
@@ -162,7 +163,7 @@ Column {
                 wrapMode: Text.WordWrap
                 visible: !LocaleNames.isLanguageLocale(settingsMenu.systemLocale)
                 text: Lang.get("input.noSystemLanguageHint", _lang)
-                font.pixelSize: 13
+                font.pixelSize: UiI.UiScale.px(13)
                 color: settingsMenu.darkMode ? "#bbb" : "#555"
             }
             Text {
@@ -172,7 +173,7 @@ Column {
                     && settingsMenu.systemLocale.split(/[_ .@-]/)[0] !== "de"
                     && settingsMenu.systemLocale.split(/[_ .@-]/)[0] !== "en"
                 text: Lang.get("input.languageFallback", _lang)
-                font.pixelSize: 13
+                font.pixelSize: UiI.UiScale.px(13)
                 color: settingsMenu.darkMode ? "#bbb" : "#555"
             }
             Text {
@@ -180,7 +181,7 @@ Column {
                 wrapMode: Text.WordWrap
                 visible: settingsMenu.localeChangeFailed
                 text: Lang.get("input.languageFailed", _lang)
-                font.pixelSize: 13
+                font.pixelSize: UiI.UiScale.px(13)
                 color: settingsMenu.darkMode ? "#bbb" : "#555"
             }
 
@@ -188,7 +189,7 @@ Column {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: Lang.get("input.languageEffect", _lang)
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 color: settingsMenu.darkMode ? "#999" : "#666"
                 font.italic: true
             }
@@ -208,7 +209,7 @@ Column {
 
         Text {
             text: Lang.get("input.dateTime", _lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
@@ -223,14 +224,14 @@ Column {
                 spacing: 15
                 Text {
                     text: Lang.get("input.currentTimezone", _lang)
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
                     width: parent.width - currentTimezoneValue.width - parent.spacing
                 }
                 Text {
                     id: currentTimezoneValue
                     text: settingsMenu.timeZone
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: settingsMenu.accentColor
                     font.bold: true
                     width: Math.min(350, implicitWidth)
@@ -241,7 +242,7 @@ Column {
 
             Text {
                 text: Lang.get("input.timezone", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
 
@@ -281,7 +282,7 @@ Column {
                     leftPadding: 12
                     rightPadding: timezoneComboBox.indicator.width + timezoneComboBox.spacing
                     text: timezoneComboBox.displayText
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
@@ -291,7 +292,7 @@ Column {
                     x: timezoneComboBox.width - width - 12
                     y: timezoneComboBox.topPadding + (timezoneComboBox.availableHeight - height) / 2
                     text: "\u25BC"
-                    font.pixelSize: 10
+                    font.pixelSize: UiI.UiScale.px(10)
                     color: settingsMenu.darkMode ? "#999" : "#666"
                 }
 
@@ -323,7 +324,7 @@ Column {
                     contentItem: Text {
                         text: model.text
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         elide: Text.ElideRight
                         verticalAlignment: Text.AlignVCenter
                         leftPadding: 12
@@ -343,7 +344,7 @@ Column {
             spacing: 15
             Text {
                 text: Lang.get("input.24hourFormat", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
                 width: parent.width - 65
                 anchors.verticalCenter: parent.verticalCenter
@@ -377,7 +378,7 @@ Column {
             spacing: 15
             Text {
                 text: Lang.get("input.ntpSync", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
                 width: parent.width - 65
                 anchors.verticalCenter: parent.verticalCenter
@@ -419,7 +420,7 @@ Column {
 
         Text {
             text: Lang.get("calendar.title", _lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
@@ -434,14 +435,14 @@ Column {
             width: parent.width
             text: Lang.get("calendar.holidaysHint", _lang)
             wrapMode: Text.WordWrap
-            font.pixelSize: 12
+            font.pixelSize: UiI.UiScale.px(12)
             color: settingsMenu.darkMode ? "#888" : "#777"
         }
 
         Row {
             width: parent.width; spacing: 15
             visible: (settingsMenu ? settingsMenu.calendarHolidays : false)
-            Text { text: Lang.get("calendar.region", _lang); font.pixelSize: 14; color: settingsMenu.darkMode ? "#aaa" : "#555"; width: parent.width - 260 - parent.spacing; anchors.verticalCenter: parent.verticalCenter }
+            Text { text: Lang.get("calendar.region", _lang); font.pixelSize: UiI.UiScale.px(14); color: settingsMenu.darkMode ? "#aaa" : "#555"; width: parent.width - 260 - parent.spacing; anchors.verticalCenter: parent.verticalCenter }
             Tools.SystemToolsChoice {
                 id: calendarRegionChoice
                 settingsMenu: inputRoot.settingsMenu
@@ -456,7 +457,7 @@ Column {
         Row {
             width: parent.width; spacing: 15
             visible: (settingsMenu ? settingsMenu.calendarHolidays : false) && ((settingsMenu ? settingsMenu.calendarRegion : "auto") === "DE" || ((settingsMenu ? settingsMenu.calendarRegion : "auto") === "auto" && Qt.locale().name.indexOf("_DE") > 0))
-            Text { text: Lang.get("calendar.state", _lang); font.pixelSize: 14; color: settingsMenu.darkMode ? "#aaa" : "#555"; width: parent.width - 260 - parent.spacing; anchors.verticalCenter: parent.verticalCenter }
+            Text { text: Lang.get("calendar.state", _lang); font.pixelSize: UiI.UiScale.px(14); color: settingsMenu.darkMode ? "#aaa" : "#555"; width: parent.width - 260 - parent.spacing; anchors.verticalCenter: parent.verticalCenter }
             Tools.SystemToolsChoice {
                 settingsMenu: inputRoot.settingsMenu
                 width: 260
@@ -483,7 +484,7 @@ Column {
         }
         Row {
             width: parent.width; spacing: 15
-            Text { text: Lang.get("calendar.firstDay", _lang); font.pixelSize: 14; color: settingsMenu.darkMode ? "#aaa" : "#555"; width: parent.width - 260 - parent.spacing; anchors.verticalCenter: parent.verticalCenter }
+            Text { text: Lang.get("calendar.firstDay", _lang); font.pixelSize: UiI.UiScale.px(14); color: settingsMenu.darkMode ? "#aaa" : "#555"; width: parent.width - 260 - parent.spacing; anchors.verticalCenter: parent.verticalCenter }
             Tools.SystemToolsChoice {
                 settingsMenu: inputRoot.settingsMenu
                 width: 260
@@ -514,7 +515,7 @@ Column {
 
         Text {
             text: Lang.get("input.mouse", _lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
@@ -525,7 +526,7 @@ Column {
             spacing: 10
             Text {
                 text: Lang.get("input.sensitivity", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
             Row {
@@ -560,7 +561,7 @@ Column {
                 }
                 Text {
                     text: (settingsMenu ? settingsMenu.mouseSensitivity.toFixed(2) : "0.00")
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: settingsMenu.darkMode ? "#999" : "#666"
                     width: 48; horizontalAlignment: Text.AlignRight
                     anchors.verticalCenter: parent.verticalCenter
@@ -568,7 +569,7 @@ Column {
             }
             Text {
                 text: Lang.get("input.sensitivityHint", _lang)
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 color: settingsMenu.darkMode ? "#666" : "#888"
             }
         }
@@ -579,7 +580,7 @@ Column {
             spacing: 10
             Text {
                 text: Lang.get("input.accelProfile", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
             Row {
@@ -601,7 +602,7 @@ Column {
                             anchors.centerIn: parent
                             text: Lang.get(labelKey)
                             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                            font.pixelSize: 12
+                            font.pixelSize: UiI.UiScale.px(12)
                         }
                         MouseArea {
                             anchors.fill: parent
@@ -619,7 +620,7 @@ Column {
             spacing: 10
             Text {
                 text: Lang.get("input.followMouse", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
             Row {
@@ -643,7 +644,7 @@ Column {
                             anchors.centerIn: parent
                             text: Lang.get(labelKey)
                             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                            font.pixelSize: 11
+                            font.pixelSize: UiI.UiScale.px(11)
                         }
                         MouseArea {
                             anchors.fill: parent
@@ -669,7 +670,7 @@ Column {
 
         Text {
             text: Lang.get("input.keyboard", _lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
@@ -680,7 +681,7 @@ Column {
             spacing: 10
             Text {
                 text: Lang.get("input.layout", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
 
@@ -721,7 +722,7 @@ Column {
                     leftPadding: 12
                     rightPadding: layoutComboBox.indicator.width + layoutComboBox.spacing
                     text: layoutComboBox.displayText
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
@@ -731,7 +732,7 @@ Column {
                     x: layoutComboBox.width - width - 12
                     y: layoutComboBox.topPadding + (layoutComboBox.availableHeight - height) / 2
                     text: "\u25BC"
-                    font.pixelSize: 10
+                    font.pixelSize: UiI.UiScale.px(10)
                     color: settingsMenu.darkMode ? "#999" : "#666"
                 }
 
@@ -763,7 +764,7 @@ Column {
                     contentItem: Text {
                         text: model.text
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         elide: Text.ElideRight
                         verticalAlignment: Text.AlignVCenter
                         leftPadding: 12
@@ -783,7 +784,7 @@ Column {
             spacing: 10
             Text {
                 text: Lang.get("input.repeatRate", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
             Row {
@@ -818,7 +819,7 @@ Column {
                 }
                 Text {
                     text: (settingsMenu ? settingsMenu.repeatRate : 25) + "/s"
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: settingsMenu.darkMode ? "#999" : "#666"
                     width: 48; horizontalAlignment: Text.AlignRight
                     anchors.verticalCenter: parent.verticalCenter
@@ -826,7 +827,7 @@ Column {
             }
             Text {
                 text: Lang.get("input.repeatRateHint", _lang)
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 color: settingsMenu.darkMode ? "#666" : "#888"
             }
         }
@@ -837,7 +838,7 @@ Column {
             spacing: 10
             Text {
                 text: Lang.get("input.repeatDelay", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
             Row {
@@ -872,7 +873,7 @@ Column {
                 }
                 Text {
                     text: (settingsMenu ? settingsMenu.repeatDelay : 400) + "ms"
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: settingsMenu.darkMode ? "#999" : "#666"
                     width: 48; horizontalAlignment: Text.AlignRight
                     anchors.verticalCenter: parent.verticalCenter
@@ -880,7 +881,7 @@ Column {
             }
             Text {
                 text: Lang.get("input.repeatDelayHint", _lang)
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 color: settingsMenu.darkMode ? "#666" : "#888"
             }
         }
@@ -891,7 +892,7 @@ Column {
             spacing: 15
             Text {
                 text: Lang.get("input.numlock", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
                 width: parent.width - 65
                 anchors.verticalCenter: parent.verticalCenter
@@ -933,7 +934,7 @@ Column {
 
         Text {
             text: Lang.get("input.touchpad", _lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
@@ -944,7 +945,7 @@ Column {
             spacing: 15
             Text {
                 text: Lang.get("input.naturalScroll", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
                 width: parent.width - 65
                 anchors.verticalCenter: parent.verticalCenter
@@ -979,7 +980,7 @@ Column {
             spacing: 15
             Text {
                 text: Lang.get("input.disableWhileTyping", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
                 width: parent.width - 65
                 anchors.verticalCenter: parent.verticalCenter
@@ -1013,7 +1014,7 @@ Column {
             spacing: 15
             Text {
                 text: Lang.get("input.tapToClick", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
                 width: parent.width - 65
                 anchors.verticalCenter: parent.verticalCenter

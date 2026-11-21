@@ -8,6 +8,7 @@ import "i18n/Lang.js" as Lang
 import "SearchLogic.js" as Logic
 import "EmojiData.js" as EmojiDb
 import "SpecialChars.js" as SpecialDb
+import "./i18n" as UiI
 
 FloatingWindow {
     id: root
@@ -708,7 +709,7 @@ FloatingWindow {
                 Text {
                     anchors.centerIn: parent
                     text: "="
-                    font.pixelSize: 20; font.bold: true
+                    font.pixelSize: UiI.UiScale.px(20); font.bold: true
                     color: root.accentColor
                     visible: root.modeMath
                 }
@@ -717,7 +718,7 @@ FloatingWindow {
                 Text {
                     anchors.centerIn: parent
                     text: "▶"
-                    font.pixelSize: 16; font.bold: true
+                    font.pixelSize: UiI.UiScale.px(16); font.bold: true
                     color: root.accentColor
                     visible: root.modeRun && !root.modeMath
                 }
@@ -733,7 +734,7 @@ FloatingWindow {
                     verticalCenter: parent.verticalCenter
                 }
                 color: root.fg
-                font.pixelSize: 16
+                font.pixelSize: UiI.UiScale.px(16)
                 selectionColor: root.acSel
                 selectedTextColor: root.fg
                 selectByMouse: true
@@ -794,7 +795,7 @@ FloatingWindow {
                     : root.activeChip > 0 ? Lang.get("search.placeholder." + root.chipKinds[root.activeChip], root.uiLanguage)
                     :                  Lang.get("search.placeholder",       root.uiLanguage)
                 color: root.fgSub
-                font.pixelSize: 16
+                font.pixelSize: UiI.UiScale.px(16)
                 visible: searchField.text.length === 0
                 opacity: 0.5
             }
@@ -820,7 +821,7 @@ FloatingWindow {
                         : root.showClip  ? (Lang.get("search.clipBadge", root.uiLanguage))
                         : ""
                     color: root.accentColor
-                    font.pixelSize: 11
+                    font.pixelSize: UiI.UiScale.px(11)
                     font.bold: true
                 }
             }
@@ -862,7 +863,7 @@ FloatingWindow {
                 radius: 6
                 color: GridView.isCurrentItem ? root.acSel
                      : emDelegMouse.containsMouse ? root.hover : "transparent"
-                Text { anchors.centerIn: parent; text: modelData.e; font.pixelSize: 26 }
+                Text { anchors.centerIn: parent; text: modelData.e; font.pixelSize: UiI.UiScale.px(26) }
                 ToolTip.visible: emDelegMouse.containsMouse
                 ToolTip.text: modelData.n
                 ToolTip.delay: 600
@@ -899,7 +900,7 @@ FloatingWindow {
                             anchors.centerIn: parent
                             text: Lang.get("search.chip." + (parent.modelData === "" ? "all" : parent.modelData), root.uiLanguage)
                             color: parent.active ? root.fg : root.fgSub
-                            font.pixelSize: 12; font.bold: parent.active
+                            font.pixelSize: UiI.UiScale.px(12); font.bold: parent.active
                         }
                         MouseArea {
                             id: chipMouse
@@ -925,7 +926,7 @@ FloatingWindow {
                 anchors { verticalCenter: parent.verticalCenter; left: parent.left; leftMargin: 16; right: parent.right; rightMargin: 16 }
                 elide: Text.ElideRight
                 text: root.modeEmoji ? Lang.get("search.keysEmoji", root.uiLanguage) : Lang.get("search.keys", root.uiLanguage)
-                color: root.fgSub; font.pixelSize: 11
+                color: root.fgSub; font.pixelSize: UiI.UiScale.px(11)
             }
         }
 
@@ -973,7 +974,7 @@ FloatingWindow {
                     }
                     text: model.label || ""
                     color: root.secHdr
-                    font.pixelSize: 11
+                    font.pixelSize: UiI.UiScale.px(11)
                     font.bold: true
                     font.letterSpacing: 0.8
                 }
@@ -996,7 +997,7 @@ FloatingWindow {
                         }
                         text: model.label || ""
                         color: root.fg
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                     }
 
                     Text {
@@ -1006,7 +1007,7 @@ FloatingWindow {
                         }
                         text: Lang.get("search.hint", root.uiLanguage)
                         color: root.fgSub
-                        font.pixelSize: 11
+                        font.pixelSize: UiI.UiScale.px(11)
                     }
 
                     MouseArea {
@@ -1037,20 +1038,20 @@ FloatingWindow {
                         Text {
                             text: "="
                             color: root.accentColor
-                            font.pixelSize: 22; font.bold: true
+                            font.pixelSize: UiI.UiScale.px(22); font.bold: true
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         Column {
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 2
-                            Text { text: root.query; color: root.fgSub; font.pixelSize: 11 }
-                            Text { text: model.value || ""; color: root.fg; font.pixelSize: 20; font.bold: true }
+                            Text { text: root.query; color: root.fgSub; font.pixelSize: UiI.UiScale.px(11) }
+                            Text { text: model.value || ""; color: root.fg; font.pixelSize: UiI.UiScale.px(20); font.bold: true }
                         }
                     }
                     Text {
                         anchors { right: parent.right; rightMargin: 14; verticalCenter: parent.verticalCenter }
                         text: Lang.get("search.copy", root.uiLanguage)
-                        color: root.fgSub; font.pixelSize: 12
+                        color: root.fgSub; font.pixelSize: UiI.UiScale.px(12)
                     }
                     MouseArea {
                         id: calcMouse
@@ -1088,7 +1089,7 @@ FloatingWindow {
                         Text {
                             textFormat: Text.StyledText
                             text: Logic.highlight(model.appName || "", root.searchText, root.accentColor)
-                            color: root.fg; font.pixelSize: 15
+                            color: root.fg; font.pixelSize: UiI.UiScale.px(15)
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }
@@ -1097,7 +1098,7 @@ FloatingWindow {
                         visible: root.selIdx === index
                         anchors { right: parent.right; rightMargin: 14; verticalCenter: parent.verticalCenter }
                         text: "↵  " + Lang.get("search.open", root.uiLanguage)
-                        color: root.fgSub; font.pixelSize: 11
+                        color: root.fgSub; font.pixelSize: UiI.UiScale.px(11)
                     }
                     MouseArea {
                         id: appMouse
@@ -1119,12 +1120,12 @@ FloatingWindow {
                         anchors { left: parent.left; verticalCenter: parent.verticalCenter }
                         horizontalAlignment: Text.AlignHCenter
                         text: model.type === "special" ? model.label : ""
-                        color: root.fg; font.pixelSize: 24
+                        color: root.fg; font.pixelSize: UiI.UiScale.px(24)
                     }
                     Text {
                         anchors { left: specialGlyph.right; leftMargin: 6; right: parent.right; rightMargin: 14; verticalCenter: parent.verticalCenter }
                         text: model.value || ""
-                        color: root.fgSub; font.pixelSize: 13; elide: Text.ElideRight
+                        color: root.fgSub; font.pixelSize: UiI.UiScale.px(13); elide: Text.ElideRight
                     }
                     MouseArea {
                         id: specialMouse
@@ -1191,12 +1192,12 @@ FloatingWindow {
                         Text {
                             textFormat: Text.StyledText
                             text: model.type === "file" ? Logic.highlight(root.basename(model.filePath || ""), root.searchText, root.accentColor) : ""
-                            color: root.fg; font.pixelSize: 14
+                            color: root.fg; font.pixelSize: UiI.UiScale.px(14)
                             elide: Text.ElideRight; width: parent.width
                         }
                         Text {
                             text: model.type === "file" ? root.dirpart(model.filePath || "") : ""
-                            color: root.fgSub; font.pixelSize: 11
+                            color: root.fgSub; font.pixelSize: UiI.UiScale.px(11)
                             elide: Text.ElideRight; width: parent.width
                         }
                     }
@@ -1222,7 +1223,7 @@ FloatingWindow {
                     ProjectIcon {
                         id: clipIcon
                         anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                        name: "info"; font.pixelSize: 16
+                        name: "info"; font.pixelSize: UiI.UiScale.px(16)
                     }
                     Text {
                         anchors {
@@ -1236,7 +1237,7 @@ FloatingWindow {
                             if (ti >= 0) t = t.substring(ti + 1)
                             return t.replace(/\n/g, " ")
                         }
-                        color: root.fg; font.pixelSize: 13
+                        color: root.fg; font.pixelSize: UiI.UiScale.px(13)
                         elide: Text.ElideRight
                     }
                     MouseArea {
@@ -1266,25 +1267,25 @@ FloatingWindow {
                         spacing: 10
                         Text {
                             text: model.type === "term" ? ">_" : "▶"
-                            color: root.accentColor; font.pixelSize: 14; font.bold: true
+                            color: root.accentColor; font.pixelSize: UiI.UiScale.px(14); font.bold: true
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         Column {
                             anchors.verticalCenter: parent.verticalCenter; spacing: 2
                             Text {
                                 text: Lang.get(model.type === "term" ? "search.runInTerminal" : "search.runCommand", root.uiLanguage)
-                                color: root.fgSub; font.pixelSize: 11
+                                color: root.fgSub; font.pixelSize: UiI.UiScale.px(11)
                             }
                             Text {
                                 text: model.label || ""
-                                color: root.fg; font.pixelSize: 14; font.bold: true
+                                color: root.fg; font.pixelSize: UiI.UiScale.px(14); font.bold: true
                             }
                         }
                     }
                     Text {
                         anchors { right: parent.right; rightMargin: 14; verticalCenter: parent.verticalCenter }
                         text: "↵"
-                        color: root.fgSub; font.pixelSize: 16
+                        color: root.fgSub; font.pixelSize: UiI.UiScale.px(16)
                     }
                     MouseArea {
                         id: runMouse
@@ -1310,18 +1311,18 @@ FloatingWindow {
                         spacing: 10
                         ProjectIcon {
                             name: "network"
-                            font.pixelSize: 18
+                            font.pixelSize: UiI.UiScale.px(18)
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         Column {
                             anchors.verticalCenter: parent.verticalCenter; spacing: 2
                             Text {
                                 text: Lang.get("search.webSearch", root.uiLanguage)
-                                color: root.fgSub; font.pixelSize: 11
+                                color: root.fgSub; font.pixelSize: UiI.UiScale.px(11)
                             }
                             Text {
                                 text: model.label || ""
-                                color: root.fg; font.pixelSize: 13
+                                color: root.fg; font.pixelSize: UiI.UiScale.px(13)
                             }
                         }
                     }
@@ -1340,12 +1341,12 @@ FloatingWindow {
                     spacing: 8
                     ProjectIcon {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        name: "search"; font.pixelSize: 28
+                        name: "search"; font.pixelSize: UiI.UiScale.px(28)
                     }
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: Lang.get("search.noResults", root.uiLanguage)
-                        color: root.fgSub; font.pixelSize: 14
+                        color: root.fgSub; font.pixelSize: UiI.UiScale.px(14)
                     }
                 }
 

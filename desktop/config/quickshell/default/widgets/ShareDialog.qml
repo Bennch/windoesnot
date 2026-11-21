@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Controls
 import "../settings" as Tools
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 // Share a folder in the network (Samba usershare), Windows-style: name, read/write, address to copy.
 // Backend: windoesnot-share (status, setup, add, remove, set-password). Opened with `qs ipc call windoesnot-share open <path>`.
@@ -127,33 +128,33 @@ FloatingWindow {
         id: content
         x: 24; y: 24; width: parent.width - 48; spacing: 14
 
-        Text { text: dialog.existing ? dialog.tr("titleEdit") : dialog.tr("title"); font.pixelSize: 18; font.bold: true; color: dialog.textColor }
+        Text { text: dialog.existing ? dialog.tr("titleEdit") : dialog.tr("title"); font.pixelSize: UiI.UiScale.px(18); font.bold: true; color: dialog.textColor }
         Rectangle {
             width: parent.width; height: 44; radius: 8; color: dialog.dark ? "#262626" : "#eeeeee"; border.color: dialog.lineColor; border.width: 1
             Row {
                 anchors.fill: parent; anchors.leftMargin: 12; spacing: 10
                 Image { anchors.verticalCenter: parent.verticalCenter; width: 22; height: 22; source: Qt.resolvedUrl("../img/folder.svg"); sourceSize.width: 44; sourceSize.height: 44; fillMode: Image.PreserveAspectFit }
-                Text { anchors.verticalCenter: parent.verticalCenter; width: parent.width - 50; text: dialog.folderPath; elide: Text.ElideMiddle; font.pixelSize: 13; color: dialog.mutedColor }
+                Text { anchors.verticalCenter: parent.verticalCenter; width: parent.width - 50; text: dialog.folderPath; elide: Text.ElideMiddle; font.pixelSize: UiI.UiScale.px(13); color: dialog.mutedColor }
             }
         }
 
-        Text { visible: !dialog.status.installed; width: parent.width; wrapMode: Text.WordWrap; text: dialog.tr("notInstalled"); color: "#cc4444"; font.pixelSize: 13 }
+        Text { visible: !dialog.status.installed; width: parent.width; wrapMode: Text.WordWrap; text: dialog.tr("notInstalled"); color: "#cc4444"; font.pixelSize: UiI.UiScale.px(13) }
 
         Column {
             width: parent.width; spacing: 6
-            Text { text: dialog.tr("name"); font.pixelSize: 13; color: dialog.mutedColor }
+            Text { text: dialog.tr("name"); font.pixelSize: UiI.UiScale.px(13); color: dialog.mutedColor }
             TextField {
                 width: parent.width; height: 40; text: dialog.shareName; enabled: !dialog.existing
                 maximumLength: 40; selectByMouse: true
                 onTextEdited: dialog.shareName = text
-                color: dialog.textColor; font.pixelSize: 14
+                color: dialog.textColor; font.pixelSize: UiI.UiScale.px(14)
                 background: Rectangle { radius: 6; color: dialog.dark ? "#2a2a2a" : "#f0f0f0"; border.width: 1; border.color: parent.activeFocus ? dialog.accent : dialog.lineColor }
             }
         }
 
         Column {
             width: parent.width; spacing: 6
-            Text { text: dialog.tr("access"); font.pixelSize: 13; color: dialog.mutedColor }
+            Text { text: dialog.tr("access"); font.pixelSize: UiI.UiScale.px(13); color: dialog.mutedColor }
             Row {
                 spacing: 8
                 Repeater {
@@ -178,13 +179,13 @@ FloatingWindow {
             checked: dialog.guest
             onToggled: dialog.guest = checked
         }
-        Text { visible: dialog.guest; width: parent.width; wrapMode: Text.WordWrap; text: dialog.tr("guestWarning"); font.pixelSize: 12; color: "#e8a020" }
+        Text { visible: dialog.guest; width: parent.width; wrapMode: Text.WordWrap; text: dialog.tr("guestWarning"); font.pixelSize: UiI.UiScale.px(12); color: "#e8a020" }
 
         // Password for network access (needed once, unless everyone may read without signing in)
         Column {
             visible: dialog.needsPassword && !dialog.existing
             width: parent.width; spacing: 8
-            Text { width: parent.width; wrapMode: Text.WordWrap; text: dialog.tr("passwordIntro"); font.pixelSize: 12; color: dialog.mutedColor }
+            Text { width: parent.width; wrapMode: Text.WordWrap; text: dialog.tr("passwordIntro"); font.pixelSize: UiI.UiScale.px(12); color: dialog.mutedColor }
             Row {
                 spacing: 8
                 Repeater {
@@ -193,7 +194,7 @@ FloatingWindow {
                         required property string modelData
                         width: (dialog.width - 48 - 8) / 2; height: 40; echoMode: TextInput.Password; placeholderText: dialog.tr(modelData)
                         onTextEdited: { if (modelData === "password") dialog.passwordText = text; else dialog.passwordRepeat = text }
-                        color: dialog.textColor; font.pixelSize: 14
+                        color: dialog.textColor; font.pixelSize: UiI.UiScale.px(14)
                         background: Rectangle { radius: 6; color: dialog.dark ? "#2a2a2a" : "#f0f0f0"; border.width: 1; border.color: parent.activeFocus ? dialog.accent : dialog.lineColor }
                     }
                 }
@@ -205,17 +206,17 @@ FloatingWindow {
             width: parent.width; height: 56; radius: 8; color: dialog.dark ? "#202020" : "#f3f3f3"; border.color: dialog.lineColor; border.width: 1
             Column {
                 anchors.verticalCenter: parent.verticalCenter; x: 12; width: parent.width - 120; spacing: 2
-                Text { text: dialog.tr("address"); font.pixelSize: 11; color: dialog.mutedColor }
-                Text { width: parent.width; text: dialog.unc; elide: Text.ElideMiddle; font.pixelSize: 14; font.family: "monospace"; color: dialog.textColor }
+                Text { text: dialog.tr("address"); font.pixelSize: UiI.UiScale.px(11); color: dialog.mutedColor }
+                Text { width: parent.width; text: dialog.unc; elide: Text.ElideMiddle; font.pixelSize: UiI.UiScale.px(14); font.family: "monospace"; color: dialog.textColor }
             }
             Tools.SystemToolsButton {
                 anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter
                 settingsMenu: dialog.settingsMenu; text: dialog.tr("copy"); onClicked: copyProc.running = true
             }
         }
-        Text { width: parent.width; wrapMode: Text.WordWrap; text: dialog.tr("howTo"); font.pixelSize: 12; color: dialog.mutedColor }
+        Text { width: parent.width; wrapMode: Text.WordWrap; text: dialog.tr("howTo"); font.pixelSize: UiI.UiScale.px(12); color: dialog.mutedColor }
 
-        Text { visible: dialog.message !== ""; width: parent.width; wrapMode: Text.WordWrap; text: dialog.message; font.pixelSize: 13; font.bold: true; color: dialog.failure ? "#cc4444" : "#3aa655" }
+        Text { visible: dialog.message !== ""; width: parent.width; wrapMode: Text.WordWrap; text: dialog.message; font.pixelSize: UiI.UiScale.px(13); font.bold: true; color: dialog.failure ? "#cc4444" : "#3aa655" }
 
     }
 

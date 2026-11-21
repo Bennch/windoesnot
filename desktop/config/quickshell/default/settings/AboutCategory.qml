@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Column {
     property var settingsMenu: null
@@ -42,7 +43,7 @@ Column {
 
             Text {
                 text: Lang.get("about.privacyBanner", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 font.bold: true
                 color: accent
                 width: parent.width
@@ -51,7 +52,7 @@ Column {
 
             Text {
                 text: Lang.get("about.privacyIntro", _lang)
-                font.pixelSize: 12
+                font.pixelSize: UiI.UiScale.px(12)
                 color: settingsMenu.darkMode ? "#bbbbbb" : "#555555"
                 width: parent.width
                 wrapMode: Text.WordWrap
@@ -60,7 +61,7 @@ Column {
 
             Text {
                 text: Lang.get("about.office365Joke", _lang)
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 font.italic: true
                 color: settingsMenu.darkMode ? "#666666" : "#aaaaaa"
                 width: parent.width
@@ -73,7 +74,7 @@ Column {
     // === Report Title ===
     Text {
         text: Lang.get("about.reportTitle", _lang)
-        font.pixelSize: 13
+        font.pixelSize: UiI.UiScale.px(13)
         font.bold: true
         color: settingsMenu.darkMode ? "#cccccc" : "#333333"
     }
@@ -133,7 +134,7 @@ Column {
 
                     Text {
                         text: displayLabel
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         color: settingsMenu.darkMode ? "#888888" : "#666666"
                         width: parent.width - valText.implicitWidth - checkText.implicitWidth - 8
                         elide: Text.ElideRight
@@ -141,14 +142,14 @@ Column {
                     Text {
                         id: valText
                         text: displayVal
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         font.bold: true
                         color: settingsMenu.darkMode ? "#dddddd" : "#222222"
                     }
                     Text {
                         id: checkText
                         text: "  ✓"
-                        font.pixelSize: 11
+                        font.pixelSize: UiI.UiScale.px(11)
                         color: accent
                     }
                 }
@@ -168,7 +169,7 @@ Column {
                 text: _lang === "de"
                     ? "Bericht vollständig leer — genau so soll es sein."
                     : "Report completely empty — exactly as it should be."
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 font.italic: true
                 color: accent
             }
@@ -200,14 +201,14 @@ Column {
 
         Text {
             text: installedVersion !== "" ? Lang.get("about.version", _lang).replace("{}", installedVersion) : Lang.get("about.versionDev", _lang)
-            font.pixelSize: 12
+            font.pixelSize: UiI.UiScale.px(12)
             color: settingsMenu.darkMode ? "#666666" : "#999999"
         }
     }
 
     Text {
         text: Lang.get("about.description", _lang)
-        font.pixelSize: 13
+        font.pixelSize: UiI.UiScale.px(13)
         color: settingsMenu.darkMode ? "#aaaaaa" : "#555555"
         wrapMode: Text.WordWrap
         width: parent.width
@@ -221,7 +222,7 @@ Column {
 
         Text {
             text: Lang.get("about.features", _lang)
-            font.pixelSize: 13
+            font.pixelSize: UiI.UiScale.px(13)
             font.bold: true
             color: settingsMenu.darkMode ? "#ffffff" : "#1a1a1a"
         }
@@ -264,7 +265,7 @@ Column {
                 Text {
                     id: featureText
                     text: modelData
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: settingsMenu.darkMode ? "#aaaaaa" : "#555555"
                     width: parent.width - 13
                     wrapMode: Text.WordWrap
@@ -284,7 +285,7 @@ Column {
     ProjectIcon { name: "heart"; color: settingsMenu.accentColor; anchors.horizontalCenter: parent.horizontalCenter }
     Text {
         text: Lang.get("about.builtWith", _lang)
-        font.pixelSize: 12
+        font.pixelSize: UiI.UiScale.px(12)
         color: settingsMenu.darkMode ? "#555555" : "#aaaaaa"
     }
 

@@ -4,6 +4,7 @@ import Quickshell.Io
 import "." as Tools
 import "../i18n/Lang.js" as Lang
 import "FlatpakPermissionParser.js" as Permissions
+import "../i18n" as UiI
 
 Column {
     id: page
@@ -56,7 +57,7 @@ Column {
             } else if (page.stage === "changed") page.load(page.appId)
         }
     }
-    Text { text: page.tr("title"); font.pixelSize: 18; font.bold: true; color: page.textColor }
+    Text { text: page.tr("title"); font.pixelSize: UiI.UiScale.px(18); font.bold: true; color: page.textColor }
     Text { width: parent.width; text: page.tr("intro"); wrapMode: Text.WordWrap; color: page.mutedColor }
     Text { visible: page.ready && !page.failed && page.appList.length === 0; text: page.tr("empty"); color: page.mutedColor }
     Text { visible: page.failed; text: page.tr("error"); color: "#cc4444" }
@@ -81,16 +82,16 @@ Column {
         property bool good: false
         implicitWidth: pillText.implicitWidth + 20; implicitHeight: 24; radius: 12
         color: good ? Qt.rgba(settingsMenu.accentColor.r, settingsMenu.accentColor.g, settingsMenu.accentColor.b, 0.2) : (page.dark ? "#333333" : "#e4e4e4")
-        Text { id: pillText; anchors.centerIn: parent; text: parent.label; font.pixelSize: 12; font.bold: parent.good
+        Text { id: pillText; anchors.centerIn: parent; text: parent.label; font.pixelSize: UiI.UiScale.px(12); font.bold: parent.good
                color: parent.good ? settingsMenu.accentColor : page.mutedColor }
     }
 
     Column {
         width: parent.width; spacing: 16; visible: page.appId !== "" && page.ready && !page.failed
 
-        Text { width: parent.width; text: page.tr("restart"); wrapMode: Text.WordWrap; font.pixelSize: 12; color: page.mutedColor }
+        Text { width: parent.width; text: page.tr("restart"); wrapMode: Text.WordWrap; font.pixelSize: UiI.UiScale.px(12); color: page.mutedColor }
 
-        Text { text: page.tr("section.access"); font.pixelSize: 14; font.bold: true; color: page.textColor }
+        Text { text: page.tr("section.access"); font.pixelSize: UiI.UiScale.px(14); font.bold: true; color: page.textColor }
         Card {
             Repeater {
                 model: [
@@ -106,8 +107,8 @@ Column {
                         width: parent.width; height: 58
                         Column {
                             anchors.verticalCenter: parent.verticalCenter; x: 14; width: parent.width - 100; spacing: 2
-                            Text { text: page.tr(modelData.title); font.pixelSize: 14; color: page.textColor }
-                            Text { width: parent.width; text: page.tr(modelData.detail); font.pixelSize: 12; color: page.mutedColor; elide: Text.ElideRight }
+                            Text { text: page.tr(modelData.title); font.pixelSize: UiI.UiScale.px(14); color: page.textColor }
+                            Text { width: parent.width; text: page.tr(modelData.detail); font.pixelSize: UiI.UiScale.px(12); color: page.mutedColor; elide: Text.ElideRight }
                         }
                         Tools.SystemToolsToggle {
                             settingsMenu: page.settingsMenu; text: ""; width: 50
@@ -121,7 +122,7 @@ Column {
             }
         }
 
-        Text { text: page.tr("section.others"); font.pixelSize: 14; font.bold: true; color: page.textColor }
+        Text { text: page.tr("section.others"); font.pixelSize: UiI.UiScale.px(14); font.bold: true; color: page.textColor }
         Card {
             Repeater {
                 model: [
@@ -134,7 +135,7 @@ Column {
                     width: parent.width
                     Item {
                         width: parent.width; height: 44
-                        Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: page.tr(modelData.label); font.pixelSize: 13; color: page.textColor }
+                        Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: page.tr(modelData.label); font.pixelSize: UiI.UiScale.px(13); color: page.textColor }
                         Pill {
                             anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
                             good: page.yesNo(modelData.group, modelData.value)
@@ -154,12 +155,12 @@ Column {
 
         Column {
             width: parent.width; spacing: 8; visible: page.showTech
-            Text { text: page.tr("section.tech"); font.pixelSize: 14; font.bold: true; color: page.textColor }
+            Text { text: page.tr("section.tech"); font.pixelSize: UiI.UiScale.px(14); font.bold: true; color: page.textColor }
             Card {
                 Rectangle {
                     width: parent.width; height: 32; color: page.dark ? "#2c2c2c" : "#e9e9e9"
-                    Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: page.tr("col.group"); font.pixelSize: 12; font.bold: true; color: page.mutedColor }
-                    Text { x: 130; anchors.verticalCenter: parent.verticalCenter; text: page.tr("col.value"); font.pixelSize: 12; font.bold: true; color: page.mutedColor }
+                    Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: page.tr("col.group"); font.pixelSize: UiI.UiScale.px(12); font.bold: true; color: page.mutedColor }
+                    Text { x: 130; anchors.verticalCenter: parent.verticalCenter; text: page.tr("col.value"); font.pixelSize: UiI.UiScale.px(12); font.bold: true; color: page.mutedColor }
                 }
                 Repeater {
                     model: Permissions.detailRows(page.permissions)
@@ -169,25 +170,25 @@ Column {
                         Line {}
                         Item {
                             width: parent.width; height: Math.max(36, techValue.implicitHeight + 16)
-                            Text { x: 14; y: 8; text: modelData.group; font.pixelSize: 12; font.family: "monospace"; color: page.textColor }
+                            Text { x: 14; y: 8; text: modelData.group; font.pixelSize: UiI.UiScale.px(12); font.family: "monospace"; color: page.textColor }
                             Text { id: techValue; x: 130; y: 8; width: parent.width - 144; text: modelData.values; wrapMode: Text.WrapAnywhere
-                                   font.pixelSize: 12; font.family: "monospace"; color: page.mutedColor }
+                                   font.pixelSize: UiI.UiScale.px(12); font.family: "monospace"; color: page.mutedColor }
                         }
                     }
                 }
             }
         }
 
-        Text { text: page.tr("section.portals"); font.pixelSize: 14; font.bold: true; color: page.textColor }
-        Text { width: parent.width; text: page.tr("portalHint"); wrapMode: Text.WordWrap; font.pixelSize: 12; color: page.mutedColor }
+        Text { text: page.tr("section.portals"); font.pixelSize: UiI.UiScale.px(14); font.bold: true; color: page.textColor }
+        Text { width: parent.width; text: page.tr("portalHint"); wrapMode: Text.WordWrap; font.pixelSize: UiI.UiScale.px(12); color: page.mutedColor }
         Card {
             Rectangle {
                 width: parent.width; height: 32; color: page.dark ? "#2c2c2c" : "#e9e9e9"
-                Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: page.tr("col.area"); font.pixelSize: 12; font.bold: true; color: page.mutedColor }
-                Text { x: 170; anchors.verticalCenter: parent.verticalCenter; text: page.tr("col.what"); font.pixelSize: 12; font.bold: true; color: page.mutedColor }
-                Text { anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; text: page.tr("col.access"); font.pixelSize: 12; font.bold: true; color: page.mutedColor }
+                Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: page.tr("col.area"); font.pixelSize: UiI.UiScale.px(12); font.bold: true; color: page.mutedColor }
+                Text { x: 170; anchors.verticalCenter: parent.verticalCenter; text: page.tr("col.what"); font.pixelSize: UiI.UiScale.px(12); font.bold: true; color: page.mutedColor }
+                Text { anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; text: page.tr("col.access"); font.pixelSize: UiI.UiScale.px(12); font.bold: true; color: page.mutedColor }
             }
-            Text { visible: page.portalRows.length === 0; x: 14; height: 44; verticalAlignment: Text.AlignVCenter; text: page.tr("noRows"); font.pixelSize: 13; color: page.mutedColor }
+            Text { visible: page.portalRows.length === 0; x: 14; height: 44; verticalAlignment: Text.AlignVCenter; text: page.tr("noRows"); font.pixelSize: UiI.UiScale.px(13); color: page.mutedColor }
             Repeater {
                 model: page.portalRows
                 Column {
@@ -196,12 +197,12 @@ Column {
                     Line {}
                     Item {
                         width: parent.width; height: Math.max(46, accessFlow.height + 16)
-                        Text { x: 14; width: 150; anchors.verticalCenter: parent.verticalCenter; text: page.tableName(modelData.table); font.pixelSize: 13; color: page.textColor; elide: Text.ElideRight }
+                        Text { x: 14; width: 150; anchors.verticalCenter: parent.verticalCenter; text: page.tableName(modelData.table); font.pixelSize: UiI.UiScale.px(13); color: page.textColor; elide: Text.ElideRight }
                         Column {
                             x: 170; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 170 - 190; spacing: 1
                             Text { width: parent.width; visible: text !== ""; text: modelData.path ? Permissions.baseName(modelData.path) : (/^(yes|no|0x[0-9a-fA-F]+)$/.test(modelData.data) ? "" : modelData.data)
-                                   font.pixelSize: 13; color: page.textColor; elide: Text.ElideMiddle }
-                            Text { width: parent.width; visible: modelData.path !== ""; text: modelData.path; font.pixelSize: 11; color: page.mutedColor; elide: Text.ElideMiddle }
+                                   font.pixelSize: UiI.UiScale.px(13); color: page.textColor; elide: Text.ElideMiddle }
+                            Text { width: parent.width; visible: modelData.path !== ""; text: modelData.path; font.pixelSize: UiI.UiScale.px(11); color: page.mutedColor; elide: Text.ElideMiddle }
                         }
                         Flow {
                             id: accessFlow

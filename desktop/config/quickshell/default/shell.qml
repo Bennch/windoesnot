@@ -14,6 +14,7 @@ import QtQml.Models
 import "widgets"
 import "IconMap.js" as IconMap
 import "i18n/Lang.js" as Lang
+import "./i18n" as UiI
 
 ShellRoot {
     id: desktopShell
@@ -1097,7 +1098,7 @@ PanelWindow {
                 id: tooltipText
                 text: unifiedTooltip.text
                 color: "#ffffff"
-                font.pixelSize: 12
+                font.pixelSize: UiI.UiScale.px(12)
                 anchors.centerIn: parent
             }
         }
@@ -2125,7 +2126,7 @@ PanelWindow {
         Text {
             id: clock
             color: settingsMenu.darkMode ? "#ffffff" : "#000000"
-            font.pixelSize: 14
+            font.pixelSize: UiI.UiScale.px(14)
             anchors.centerIn: parent
             horizontalAlignment: Text.AlignRight
             text: "00:00\n01.01.1970"
@@ -3356,7 +3357,7 @@ FloatingWindow {
                         anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                         text: modelData.label
                         color: settingsMenu.darkMode ? "white" : "#1a1a1a"
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                     }
                     MouseArea {
                         anchors.fill: parent
@@ -3583,7 +3584,7 @@ FloatingWindow {
                                       : (entryRow.modelData.buttonType === QsMenuButtonType.RadioButton
                                          ? (entryRow.modelData.checkState === Qt.Checked ? "●" : "") : "")
                                 color: settingsMenu.accentColor
-                                font.pixelSize: 13
+                                font.pixelSize: UiI.UiScale.px(13)
                                 font.bold: true
                             }
                             Image {
@@ -3605,7 +3606,7 @@ FloatingWindow {
                                 }
                                 text: trayMenuWindow.cleanLabel(entryRow.modelData.text)
                                 color: settingsMenu.darkMode ? "white" : "#1a1a1a"
-                                font.pixelSize: 13
+                                font.pixelSize: UiI.UiScale.px(13)
                                 elide: Text.ElideRight
                             }
                             Text {
@@ -3614,7 +3615,7 @@ FloatingWindow {
                                 visible: entryRow.modelData.hasChildren
                                 text: "›"
                                 color: settingsMenu.darkMode ? "#aaaaaa" : "#666666"
-                                font.pixelSize: 16
+                                font.pixelSize: UiI.UiScale.px(16)
                             }
                             MouseArea {
                                 id: rowArea
@@ -3750,14 +3751,14 @@ FloatingWindow {
                                       : (subRow.modelData.buttonType === QsMenuButtonType.RadioButton
                                          ? (subRow.modelData.checkState === Qt.Checked ? "●" : "") : "")
                                 color: settingsMenu.accentColor
-                                font.pixelSize: 13
+                                font.pixelSize: UiI.UiScale.px(13)
                                 font.bold: true
                             }
                             Text {
                                 anchors { left: subMark.right; leftMargin: 4; right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
                                 text: trayMenuWindow.cleanLabel(subRow.modelData.text)
                                 color: settingsMenu.darkMode ? "white" : "#1a1a1a"
-                                font.pixelSize: 13
+                                font.pixelSize: UiI.UiScale.px(13)
                                 elide: Text.ElideRight
                             }
                             MouseArea {
@@ -4565,7 +4566,7 @@ FloatingWindow {
                                     }
                                     Text {
                                         text: Lang.get("shell." + sectionId, settingsMenu.uiLanguage)
-                                        font.pixelSize: 13
+                                        font.pixelSize: UiI.UiScale.px(13)
                                         color: settingsMenu.darkMode ? "#ccc" : "#333"
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
@@ -4629,7 +4630,7 @@ FloatingWindow {
                                     }
                                     Text {
                                         text: Lang.get("shell.folder." + xdgKey, settingsMenu.uiLanguage)
-                                        font.pixelSize: 13
+                                        font.pixelSize: UiI.UiScale.px(13)
                                         color: settingsMenu.darkMode ? "#aaa" : "#555"
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
@@ -4686,7 +4687,7 @@ FloatingWindow {
                     z: 2
                     text: Lang.get("shell.showTechnicalApps", settingsMenu.uiLanguage) + (startMenu.showTechnicalApps ? " ✓" : "")
                     color: settingsMenu.darkMode ? "#bbb" : "#555"
-                    font.pixelSize: 10
+                    font.pixelSize: UiI.UiScale.px(10)
                     MouseArea {
                         anchors.fill: parent
                         onClicked: startMenu.showTechnicalApps = !startMenu.showTechnicalApps
@@ -4709,7 +4710,7 @@ FloatingWindow {
                         return visible + " Apps"
                     }
                     color: settingsMenu.darkMode ? "#999" : "#666"
-                    font.pixelSize: 10
+                    font.pixelSize: UiI.UiScale.px(10)
                 }
 
                 Rectangle {
@@ -4744,7 +4745,7 @@ FloatingWindow {
                         id: searchInput
                         anchors.verticalCenter: parent.verticalCenter
                         width: parent.width - 40
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: "#ccc"
                         text: startMenu.searchText
                         onTextChanged: startMenu.searchText = text
@@ -4846,7 +4847,7 @@ FloatingWindow {
                         Text {
                             visible: parent.text.length === 0
                             text: Lang.get("shell.searchPlaceholder", settingsMenu.uiLanguage)
-                            font.pixelSize: 14
+                            font.pixelSize: UiI.UiScale.px(14)
                             color: settingsMenu.darkMode ? "#999" : "#666"
                         }
                     }
@@ -4876,7 +4877,7 @@ FloatingWindow {
                                 if (startMenu.searchText.length > 0) return Lang.get("shell.searchResults", settingsMenu.uiLanguage)
                                 return Lang.get("shell.pinned", settingsMenu.uiLanguage)
                             }
-                            font.pixelSize: 12
+                            font.pixelSize: UiI.UiScale.px(12)
                             font.bold: true
                             color: settingsMenu.darkMode ? "#ccc" : "#333"
                             visible: {
@@ -4993,7 +4994,7 @@ FloatingWindow {
                                             Text {
                                                 id: pinnedGridLabel
                                                 text: name
-                                                font.pixelSize: 11
+                                                font.pixelSize: UiI.UiScale.px(11)
                                                 color: settingsMenu.darkMode ? "#ccc" : "#333"
                                                 anchors.horizontalCenter: parent.horizontalCenter
                                                 elide: Text.ElideRight
@@ -5012,7 +5013,7 @@ FloatingWindow {
                                                 delay: 650
                                                 timeout: -1
                                                 text: name
-                                                contentItem: Text { text: pinnedGridTip.text; color: settingsMenu.darkMode ? "#f2f2f2" : "#202124"; font.pixelSize: 12 }
+                                                contentItem: Text { text: pinnedGridTip.text; color: settingsMenu.darkMode ? "#f2f2f2" : "#202124"; font.pixelSize: UiI.UiScale.px(12) }
                                                 background: Rectangle {
                                                     color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
                                                     border.color: settingsMenu.darkMode ? "#3a3a3f" : "#c0c0c0"
@@ -5156,7 +5157,7 @@ FloatingWindow {
 
                         Text {
                             text: startMenu.searchText.length > 0 ? Lang.get("shell.pinned", settingsMenu.uiLanguage) : Lang.get("shell.allApps", settingsMenu.uiLanguage)
-                            font.pixelSize: 12
+                            font.pixelSize: UiI.UiScale.px(12)
                             font.bold: true
                             color: settingsMenu.darkMode ? "#ccc" : "#333"
                             visible: {
@@ -5239,7 +5240,7 @@ FloatingWindow {
                                             Text {
                                                 id: allAppLabel
                                                 text: name
-                                                font.pixelSize: 11
+                                                font.pixelSize: UiI.UiScale.px(11)
                                                 color: settingsMenu.darkMode ? "#ccc" : "#333"
                                                 anchors.horizontalCenter: parent.horizontalCenter
                                                 elide: Text.ElideRight
@@ -5258,7 +5259,7 @@ FloatingWindow {
                                                 delay: 650
                                                 timeout: -1
                                                 text: name
-                                                contentItem: Text { text: allAppTip.text; color: settingsMenu.darkMode ? "#f2f2f2" : "#202124"; font.pixelSize: 12 }
+                                                contentItem: Text { text: allAppTip.text; color: settingsMenu.darkMode ? "#f2f2f2" : "#202124"; font.pixelSize: UiI.UiScale.px(12) }
                                                 background: Rectangle {
                                                     color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
                                                     border.color: settingsMenu.darkMode ? "#3a3a3f" : "#c0c0c0"
@@ -5431,7 +5432,7 @@ FloatingWindow {
 
                                 Text {
                                     text: Lang.get("shell.pinned", settingsMenu.uiLanguage)
-                                    font.pixelSize: 12
+                                    font.pixelSize: UiI.UiScale.px(12)
                                     font.bold: true
                                     color: settingsMenu.darkMode ? "#ccc" : "#333"
                                     leftPadding: 20
@@ -5488,7 +5489,7 @@ FloatingWindow {
                                                     Text {
                                                         id: pinnedAppLabel
                                                         text: name
-                                                        font.pixelSize: 11
+                                                        font.pixelSize: UiI.UiScale.px(11)
                                                         color: settingsMenu.darkMode ? "#ccc" : "#333"
                                                         anchors.horizontalCenter: parent.horizontalCenter
                                                         elide: Text.ElideRight
@@ -5506,7 +5507,7 @@ FloatingWindow {
                                                         delay: 650
                                                         timeout: -1
                                                         text: name
-                                                        contentItem: Text { text: pinnedAppTip.text; color: settingsMenu.darkMode ? "#f2f2f2" : "#202124"; font.pixelSize: 12 }
+                                                        contentItem: Text { text: pinnedAppTip.text; color: settingsMenu.darkMode ? "#f2f2f2" : "#202124"; font.pixelSize: UiI.UiScale.px(12) }
                                                         background: Rectangle {
                                                             color: settingsMenu.darkMode ? "#2a2a2a" : "#f0f0f0"
                                                             border.color: settingsMenu.darkMode ? "#3a3a3f" : "#c0c0c0"
@@ -5544,7 +5545,7 @@ FloatingWindow {
 
                                 Text {
                                     text: Lang.get("shell.frequent", settingsMenu.uiLanguage)
-                                    font.pixelSize: 12
+                                    font.pixelSize: UiI.UiScale.px(12)
                                     font.bold: true
                                     color: settingsMenu.darkMode ? "#ccc" : "#333"
                                     leftPadding: 20
@@ -5552,7 +5553,7 @@ FloatingWindow {
 
                                 Text {
                                     text: Lang.get("shell.comingLater", settingsMenu.uiLanguage)
-                                    font.pixelSize: 12
+                                    font.pixelSize: UiI.UiScale.px(12)
                                     color: settingsMenu.darkMode ? "#555" : "#aaa"
                                     font.italic: true
                                     leftPadding: 20
@@ -5615,7 +5616,7 @@ FloatingWindow {
                                 visible: avatarImage.status !== Image.Ready
                                 anchors.centerIn: parent
                                 text: startMenu.currentUser ? startMenu.currentUser.substring(0, 1).toUpperCase() : "U"
-                                font.pixelSize: 16
+                                font.pixelSize: UiI.UiScale.px(16)
                                 font.bold: true
                                 color: settingsMenu.darkMode ? "white" : "#1a1a1a"
                             }
@@ -5623,7 +5624,7 @@ FloatingWindow {
 
                         Text {
                             text: startMenu.currentUser || "User"
-                            font.pixelSize: 13
+                            font.pixelSize: UiI.UiScale.px(13)
                             color: settingsMenu.darkMode ? "#ccc" : "#333"
                             anchors.verticalCenter: parent.verticalCenter
                         }
@@ -5823,7 +5824,7 @@ PopupWindow {
                         ? (settingsMenu.uiLanguage === "en" ? "Unpin" : "Lösen")
                         : (settingsMenu.uiLanguage === "en" ? "Pin to Start" : "An Start anheften")
                     color: settingsMenu.darkMode ? "white" : "#1a1a1a"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -5845,7 +5846,7 @@ PopupWindow {
                         ? (settingsMenu.uiLanguage === "en" ? "Already on taskbar" : "Bereits an Taskleiste")
                         : (settingsMenu.uiLanguage === "en" ? "Pin to taskbar" : "An Taskleiste anheften")
                     color: settingsMenu.darkMode ? "white" : "#1a1a1a"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true
@@ -5868,7 +5869,7 @@ PopupWindow {
                     anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
                     text: settingsMenu.uiLanguage === "en" ? "Uninstall…" : "Deinstallieren…"
                     color: settingsMenu.darkMode ? "white" : "#1a1a1a"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true
@@ -5938,7 +5939,7 @@ FloatingWindow {
             // Header
             Text {
                 text: Lang.get("shell.colorPicker", settingsMenu.uiLanguage)
-                font.pixelSize: 20
+                font.pixelSize: UiI.UiScale.px(20)
                 font.bold: true
                 color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
             }
@@ -6061,7 +6062,7 @@ FloatingWindow {
                     anchors.centerIn: parent
                     text: Lang.get("shell.close", settingsMenu.uiLanguage)
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                 }
 
                 MouseArea {
@@ -6717,7 +6718,7 @@ FloatingWindow {
                 // Volume text
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     font.weight: Font.Medium
                     color: "white"
                     text: Lang.get("shell.volume", settingsMenu.uiLanguage)
@@ -6726,7 +6727,7 @@ FloatingWindow {
                 // Percentage
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     font.weight: Font.Normal
                     color: "white"
                     text: volumeOverlay.isMuted ? Lang.get("shell.muted", settingsMenu.uiLanguage) :
@@ -6847,7 +6848,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("power.installedApps", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -6868,7 +6869,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("power.powerManagement", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -6889,7 +6890,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("power.eventViewer", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -6910,7 +6911,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("power.system", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -6934,7 +6935,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("power.deviceManager", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -6955,7 +6956,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("power.networkConnections", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -6976,7 +6977,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("power.diskManager", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7008,7 +7009,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("power.taskManager", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7030,7 +7031,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("power.settings", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7052,7 +7053,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("power.explorer", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7074,7 +7075,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("power.search", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7096,7 +7097,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("power.run", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7130,12 +7131,12 @@ FloatingWindow {
                     text: Lang.get("power.powerOptions", settingsMenu.uiLanguage)
                     // Leave room for the › submenu arrow on the right
                     width: parent.width - 36; elide: Text.ElideRight
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 Text {
                     anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
                     text: "›"
-                    color: settingsMenu.darkMode ? "#aaaaaa" : "#666666"; font.pixelSize: 16
+                    color: settingsMenu.darkMode ? "#aaaaaa" : "#666666"; font.pixelSize: UiI.UiScale.px(16)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7171,7 +7172,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("power.showDesktop", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7229,7 +7230,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("power.logout", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7250,7 +7251,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("power.sleep", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7271,7 +7272,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("power.shutdown", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7292,7 +7293,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("power.restart", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7403,7 +7404,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("taskbar.open", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7429,7 +7430,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("taskbar.newInstance", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7457,7 +7458,7 @@ FloatingWindow {
                     text: appContextMenu.ctxHasVisible
                           ? Lang.get("taskbar.hide", settingsMenu.uiLanguage)
                           : Lang.get("taskbar.show", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7507,7 +7508,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: Lang.get("taskbar.close", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7549,7 +7550,7 @@ FloatingWindow {
                     text: appContextMenu.ctxAppTemporary
                           ? Lang.get("taskbar.pin", settingsMenu.uiLanguage)
                           : Lang.get("taskbar.unpin", settingsMenu.uiLanguage)
-                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: 13
+                    color: settingsMenu.darkMode ? "white" : "#1a1a1a"; font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7642,7 +7643,7 @@ FloatingWindow {
                         ? (settingsMenu.uiLanguage === "en" ? "Show Windows Again" : "Fenster wieder einblenden")
                         : (settingsMenu.uiLanguage === "en" ? "Show Desktop"  : "Desktop anzeigen")
                     color: settingsMenu.darkMode ? "white" : "#1a1a1a"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7686,7 +7687,7 @@ FloatingWindow {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: settingsMenu.uiLanguage === "en" ? "Taskbar Alignment" : "Taskbar-Ausrichtung"
                     color: settingsMenu.darkMode ? "white" : "#1a1a1a"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                 }
                 MouseArea {
                     anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -7709,7 +7710,7 @@ FloatingWindow {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: settingsMenu.uiLanguage === "en" ? "Restart interface" : "Oberfläche neu starten"
                     color: settingsMenu.darkMode ? "white" : "#1a1a1a"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                 }
                 Process {
                     id: tbgRestartProc
@@ -7739,7 +7740,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: settingsMenu.uiLanguage === "en" ? "Hidden Windows" : "Versteckte Fenster"
-                    font.pixelSize: 11
+                    font.pixelSize: UiI.UiScale.px(11)
                     color: settingsMenu.darkMode ? "#666" : "#999"
                 }
             }
@@ -7752,7 +7753,7 @@ FloatingWindow {
                 Text {
                     anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
                     text: settingsMenu.uiLanguage === "en" ? "No hidden windows" : "Keine versteckten Fenster"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: settingsMenu.darkMode ? "#555" : "#aaa"
                 }
             }
@@ -7781,7 +7782,7 @@ FloatingWindow {
                             text: modelData.title !== modelData.appName
                                   ? modelData.appName + " – " + modelData.title
                                   : modelData.appName
-                            font.pixelSize: 13
+                            font.pixelSize: UiI.UiScale.px(13)
                             color: settingsMenu.darkMode ? "white" : "#1a1a1a"
                             width: 180; elide: Text.ElideRight
                             anchors.verticalCenter: parent.verticalCenter
@@ -7865,14 +7866,14 @@ FloatingWindow {
                 height: 24
                 Text {
                     text: settingsMenu.weatherCity
-                    font.pixelSize: 16; font.bold: true
+                    font.pixelSize: UiI.UiScale.px(16); font.bold: true
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                 }
                 Text {
                     text: panelWindow.weatherUpdateTime.length > 0 ? Lang.get("weather.updated", settingsMenu.uiLanguage) + " " + panelWindow.weatherUpdateTime : ""
-                    font.pixelSize: 11
+                    font.pixelSize: UiI.UiScale.px(11)
                     color: settingsMenu.darkMode ? "#666" : "#999"
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
@@ -7905,29 +7906,29 @@ FloatingWindow {
 
                     Text {
                         text: panelWindow.weatherTemp + "°C"
-                        font.pixelSize: 42; font.bold: true
+                        font.pixelSize: UiI.UiScale.px(42); font.bold: true
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                     }
                     Text {
                         text: panelWindow.wmoToDesc(panelWindow.weatherCode)
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: settingsMenu.darkMode ? "#ccc" : "#444"
                     }
                     Row {
                         spacing: 16
                         Text {
                             text: Lang.get("weather.feelsLike", settingsMenu.uiLanguage) + " " + panelWindow.weatherFeelsLike + "°C"
-                            font.pixelSize: 12; color: settingsMenu.darkMode ? "#888" : "#666"
+                            font.pixelSize: UiI.UiScale.px(12); color: settingsMenu.darkMode ? "#888" : "#666"
                         }
                         Row {
                             spacing: 5
-                            ProjectIcon { name: "drop"; font.pixelSize: 14; color: settingsMenu.darkMode ? "#aaa" : "#555" }
-                            Text { text: panelWindow.weatherHumidity + "%"; font.pixelSize: 12; color: settingsMenu.darkMode ? "#888" : "#666" }
+                            ProjectIcon { name: "drop"; font.pixelSize: UiI.UiScale.px(14); color: settingsMenu.darkMode ? "#aaa" : "#555" }
+                            Text { text: panelWindow.weatherHumidity + "%"; font.pixelSize: UiI.UiScale.px(12); color: settingsMenu.darkMode ? "#888" : "#666" }
                         }
                         Row {
                             spacing: 5
-                            ProjectIcon { name: "wind"; font.pixelSize: 14; color: settingsMenu.darkMode ? "#aaa" : "#555" }
-                            Text { text: panelWindow.weatherWindSpeed + " km/h"; font.pixelSize: 12; color: settingsMenu.darkMode ? "#888" : "#666" }
+                            ProjectIcon { name: "wind"; font.pixelSize: UiI.UiScale.px(14); color: settingsMenu.darkMode ? "#aaa" : "#555" }
+                            Text { text: panelWindow.weatherWindSpeed + " km/h"; font.pixelSize: UiI.UiScale.px(12); color: settingsMenu.darkMode ? "#888" : "#666" }
                         }
                     }
                 }
@@ -7959,7 +7960,7 @@ FloatingWindow {
                         Text {
                             anchors.centerIn: parent
                             text: Lang.get("weather.today", settingsMenu.uiLanguage)
-                            font.pixelSize: 12; font.bold: panelWindow.weatherActiveTab === 0
+                            font.pixelSize: UiI.UiScale.px(12); font.bold: panelWindow.weatherActiveTab === 0
                             color: settingsMenu.darkMode ? "#d7d7d7" : "#4a4a4a"
                         }
                         MouseArea {
@@ -7982,7 +7983,7 @@ FloatingWindow {
                         Text {
                             anchors.centerIn: parent
                             text: Lang.get("weather.forecast7", settingsMenu.uiLanguage)
-                            font.pixelSize: 12; font.bold: panelWindow.weatherActiveTab === 1
+                            font.pixelSize: UiI.UiScale.px(12); font.bold: panelWindow.weatherActiveTab === 1
                             color: settingsMenu.darkMode ? "#d7d7d7" : "#4a4a4a"
                         }
                         MouseArea {
@@ -8034,7 +8035,7 @@ FloatingWindow {
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: modelData.time
-                                font.pixelSize: 10
+                                font.pixelSize: UiI.UiScale.px(10)
                                 color: settingsMenu.darkMode ? "#aaa" : "#666"
                             }
                             Rectangle {
@@ -8053,19 +8054,19 @@ FloatingWindow {
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: modelData.temp + "°"
-                                font.pixelSize: 11; font.bold: true
+                                font.pixelSize: UiI.UiScale.px(11); font.bold: true
                                 color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                             }
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: modelData.precipProb + "%"
-                                font.pixelSize: 10
+                                font.pixelSize: UiI.UiScale.px(10)
                                 color: "#4fc3f7"
                             }
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: modelData.wind + " km/h"
-                                font.pixelSize: 10
+                                font.pixelSize: UiI.UiScale.px(10)
                                 color: settingsMenu.darkMode ? "#888" : "#777"
                             }
                         }
@@ -8095,7 +8096,7 @@ FloatingWindow {
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: index === 0 ? Lang.get("weather.today", settingsMenu.uiLanguage) : dayName
-                            font.pixelSize: 11; font.bold: index === 0
+                            font.pixelSize: UiI.UiScale.px(11); font.bold: index === 0
                             color: settingsMenu.darkMode ? "#aaa" : "#666"
                         }
 
@@ -8116,19 +8117,19 @@ FloatingWindow {
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: modelData.tempMax + "°"
-                            font.pixelSize: 12; font.bold: true
+                            font.pixelSize: UiI.UiScale.px(12); font.bold: true
                             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                         }
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: modelData.tempMin + "°"
-                            font.pixelSize: 11
+                            font.pixelSize: UiI.UiScale.px(11)
                             color: settingsMenu.darkMode ? "#888" : "#888"
                         }
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: modelData.precipProb + "%"
-                            font.pixelSize: 10
+                            font.pixelSize: UiI.UiScale.px(10)
                             color: "#4fc3f7"
                             visible: modelData.precipProb > 0
                         }
@@ -8144,7 +8145,7 @@ FloatingWindow {
                 Text {
                     anchors.centerIn: parent
                     text: Lang.get("weather.refresh", settingsMenu.uiLanguage)
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                     color: settingsMenu.darkMode ? "#888" : "#666"
                 }
                 MouseArea {

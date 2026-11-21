@@ -3,6 +3,7 @@ import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 // Updates in plain language: one status card with one button, then what the
 // update brings — WinDoesNot, programs, system — and technical details last.
@@ -218,7 +219,7 @@ Column {
                 Text {
                     anchors.centerIn: parent
                     text: checking ? "…" : (updateCount > 0 ? "↓" : neverChecked ? "?" : "✓")
-                    font.pixelSize: 20; font.bold: true
+                    font.pixelSize: UiI.UiScale.px(20); font.bold: true
                     color: "#ffffff"
                 }
             }
@@ -238,37 +239,37 @@ Column {
                         : neverChecked ? Lang.get("updates.heroNever", _lang)
                         : status.aur_error ? Lang.get("updates.aurCheckFailed", _lang)
                         : Lang.get("updates.heroCurrent", _lang)
-                    font.pixelSize: 17; font.bold: true
+                    font.pixelSize: UiI.UiScale.px(17); font.bold: true
                     color: textColor
                 }
                 Text {
                     visible: optimizedCount > 0
                     width: parent.width; wrapMode: Text.WordWrap
                     text: Lang.get("updates.optimizedNote", _lang).replace("{}", optimizedCount)
-                    font.pixelSize: 12; color: subColor
+                    font.pixelSize: UiI.UiScale.px(12); color: subColor
                 }
                 Text {
                     visible: neverChecked && updateCount === 0
                     width: parent.width; wrapMode: Text.WordWrap
                     text: Lang.get("updates.heroNeverHint", _lang)
-                    font.pixelSize: 12; color: subColor
+                    font.pixelSize: UiI.UiScale.px(12); color: subColor
                 }
                 Text {
                     visible: status !== null && !!status.databases_checked
                     text: status && status.databases_checked ? Lang.get("updates.lastChecked", _lang).replace("{}", timeText(status.databases_checked)) : ""
-                    font.pixelSize: 12; color: subColor
+                    font.pixelSize: UiI.UiScale.px(12); color: subColor
                 }
                 Text {
                     visible: updateCount > 0 && (needsReboot || needsRelogin)
                     width: parent.width; wrapMode: Text.WordWrap
                     text: needsReboot ? Lang.get("updates.afterReboot", _lang) : Lang.get("updates.afterRelogin", _lang)
-                    font.pixelSize: 12; color: warnColor
+                    font.pixelSize: UiI.UiScale.px(12); color: warnColor
                 }
                 Text {
                     visible: status !== null && (status.reboot || status.relogin)
                     width: parent.width; wrapMode: Text.WordWrap
                     text: status && status.reboot ? Lang.get("updates.rebootNow", _lang) : Lang.get("updates.relogin", _lang)
-                    font.pixelSize: 12; color: warnColor
+                    font.pixelSize: UiI.UiScale.px(12); color: warnColor
                 }
 
                 Item { width: 1; height: 6 }
@@ -283,7 +284,7 @@ Column {
                             id: updateLabel
                             anchors.centerIn: parent
                             text: Lang.get("updates.updateNow", _lang)
-                            font.pixelSize: 13; font.bold: true
+                            font.pixelSize: UiI.UiScale.px(13); font.bold: true
                             color: "#ffffff"
                         }
                         MouseArea {
@@ -310,7 +311,7 @@ Column {
                             id: checkLabel
                             anchors.centerIn: parent
                             text: checking ? Lang.get("updates.checkingShort", _lang) : Lang.get("updates.check", _lang)
-                            font.pixelSize: 13; font.bold: parent.primary
+                            font.pixelSize: UiI.UiScale.px(13); font.bold: parent.primary
                             color: parent.primary || !parent.active ? "#ffffff" : textColor
                         }
                         MouseArea {
@@ -325,7 +326,7 @@ Column {
                     visible: updateCount > 0
                     width: parent.width; wrapMode: Text.WordWrap
                     text: Lang.get("updates.oneStep", _lang)
-                    font.pixelSize: 11; color: subColor
+                    font.pixelSize: UiI.UiScale.px(11); color: subColor
                 }
             }
         }
@@ -343,7 +344,7 @@ Column {
             id: interventionColumn
             anchors { left: parent.left; right: parent.right; top: parent.top; margins: 14 }
             spacing: 8
-            Text { text: "⚠  " + Lang.get(updateCount > 0 ? "updates.importantTitle" : "updates.importantNews", _lang); font.pixelSize: 14; font.bold: true; color: warnColor }
+            Text { text: "⚠  " + Lang.get(updateCount > 0 ? "updates.importantTitle" : "updates.importantNews", _lang); font.pixelSize: UiI.UiScale.px(14); font.bold: true; color: warnColor }
             Repeater {
                 model: interventions
                 delegate: Row {
@@ -354,12 +355,12 @@ Column {
                         width: parent.width - readLink.width - 10
                         wrapMode: Text.WordWrap
                         text: modelData.title
-                        font.pixelSize: 13; color: textColor
+                        font.pixelSize: UiI.UiScale.px(13); color: textColor
                     }
                     Text {
                         id: readLink
                         text: Lang.get("updates.read", _lang) + " ›"
-                        font.pixelSize: 13; color: accent
+                        font.pixelSize: UiI.UiScale.px(13); color: accent
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Qt.openUrlExternally(modelData.link) }
                     }
                 }
@@ -390,7 +391,7 @@ Column {
                     : !parent.parent.wdn.installed ? Lang.get("updates.wdnDev", _lang)
                     : parent.parent.wdn.update ? Lang.get("updates.wdnAvailable", _lang).replace("{}", parent.parent.wdn.available)
                     : Lang.get("updates.wdnCurrent", _lang).replace("{}", parent.parent.wdn.installed)
-                font.pixelSize: 15; font.bold: true
+                font.pixelSize: UiI.UiScale.px(15); font.bold: true
                 color: textColor
             }
             Text {
@@ -400,7 +401,7 @@ Column {
                     : !parent.parent.wdn.installed ? Lang.get("updates.wdnDevHint", _lang)
                     : parent.parent.wdn.update ? Lang.get("updates.wdnWhatsNew", _lang)
                     : Lang.get("updates.wdnInstalledNew", _lang)
-                font.pixelSize: 12
+                font.pixelSize: UiI.UiScale.px(12)
                 color: subColor
             }
             Repeater {
@@ -420,7 +421,7 @@ Column {
                     width: wdnColumn.width
                     wrapMode: Text.WordWrap
                     text: "•  " + modelData
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: textColor
                 }
             }
@@ -432,7 +433,7 @@ Column {
         visible: status !== null
         width: parent.width
         spacing: 8
-        Text { text: Lang.get("updates.sectionWdnApps", _lang) + "  ·  " + (wdnRows.length + 1); font.pixelSize: 15; font.bold: true; color: textColor }
+        Text { text: Lang.get("updates.sectionWdnApps", _lang) + "  ·  " + (wdnRows.length + 1); font.pixelSize: UiI.UiScale.px(15); font.bold: true; color: textColor }
         Rectangle {
             width: parent.width
             height: wdnList.implicitHeight
@@ -447,8 +448,8 @@ Column {
                     Column {
                         anchors { left: parent.left; leftMargin: 16; right: wdnOwnState.left; rightMargin: 12; verticalCenter: parent.verticalCenter }
                         spacing: 2
-                        Text { width: parent.width; elide: Text.ElideRight; text: "WinDoesNot"; font.pixelSize: 13; color: textColor }
-                        Text { width: parent.width; elide: Text.ElideRight; text: ownVersion || Lang.get("updates.wdnAppNoVersion", _lang); font.pixelSize: 11; color: subColor }
+                        Text { width: parent.width; elide: Text.ElideRight; text: "WinDoesNot"; font.pixelSize: UiI.UiScale.px(13); color: textColor }
+                        Text { width: parent.width; elide: Text.ElideRight; text: ownVersion || Lang.get("updates.wdnAppNoVersion", _lang); font.pixelSize: UiI.UiScale.px(11); color: subColor }
                     }
                     Text {
                         id: wdnOwnState
@@ -456,7 +457,7 @@ Column {
                         text: status && status.windoesnot && status.windoesnot.update
                             ? Lang.get("updates.wdnAppUpdateTo", _lang).replace("{}", status.windoesnot.available)
                             : Lang.get("updates.wdnAppCurrent", _lang)
-                        font.pixelSize: 12; font.bold: status && status.windoesnot && status.windoesnot.update
+                        font.pixelSize: UiI.UiScale.px(12); font.bold: status && status.windoesnot && status.windoesnot.update
                         color: status && status.windoesnot && status.windoesnot.update ? accent : subColor
                     }
                 }
@@ -473,14 +474,14 @@ Column {
                         Column {
                             anchors { left: parent.left; leftMargin: 16; right: rowState.left; rightMargin: 12; verticalCenter: parent.verticalCenter }
                             spacing: 2
-                            Text { width: parent.width; elide: Text.ElideRight; text: modelData.name; font.pixelSize: 13; color: textColor }
-                            Text { width: parent.width; elide: Text.ElideRight; text: modelData.installed; font.pixelSize: 11; color: subColor }
+                            Text { width: parent.width; elide: Text.ElideRight; text: modelData.name; font.pixelSize: UiI.UiScale.px(13); color: textColor }
+                            Text { width: parent.width; elide: Text.ElideRight; text: modelData.installed; font.pixelSize: UiI.UiScale.px(11); color: subColor }
                         }
                         Text {
                             id: rowState
                             anchors { right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
                             text: modelData.available !== "" ? Lang.get("updates.wdnAppUpdateTo", _lang).replace("{}", modelData.available) : Lang.get("updates.wdnAppCurrent", _lang)
-                            font.pixelSize: 12; font.bold: modelData.available !== ""
+                            font.pixelSize: UiI.UiScale.px(12); font.bold: modelData.available !== ""
                             color: modelData.available !== "" ? accent : subColor
                         }
                     }
@@ -492,7 +493,7 @@ Column {
                         anchors { left: parent.left; leftMargin: 16; right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
                         wrapMode: Text.WordWrap
                         text: Lang.get("updates.wdnAppsNone", _lang)
-                        font.pixelSize: 12; color: subColor
+                        font.pixelSize: UiI.UiScale.px(12); color: subColor
                     }
                 }
             }
@@ -510,7 +511,7 @@ Column {
             id: onlyUpdateLabel
             anchors.centerIn: parent
             text: Lang.get("updates.onlyWdn", _lang)
-            font.pixelSize: 13; color: textColor
+            font.pixelSize: UiI.UiScale.px(13); color: textColor
         }
         MouseArea {
             anchors.fill: parent
@@ -525,7 +526,7 @@ Column {
         visible: apps.length > 0
         width: parent.width
         spacing: 8
-        Text { text: Lang.get("updates.sectionApps", _lang) + "  ·  " + apps.length; font.pixelSize: 15; font.bold: true; color: textColor }
+        Text { text: Lang.get("updates.sectionApps", _lang) + "  ·  " + apps.length; font.pixelSize: UiI.UiScale.px(15); font.bold: true; color: textColor }
         Rectangle {
             width: parent.width
             height: appList.implicitHeight
@@ -560,12 +561,12 @@ Column {
                             Text {
                                 width: parent.width; elide: Text.ElideRight
                                 text: modelData.app_name + (modelData.source === "aur" ? "  · AUR" : "")
-                                font.pixelSize: 13; color: textColor
+                                font.pixelSize: UiI.UiScale.px(13); color: textColor
                             }
                             Text {
                                 width: parent.width; elide: Text.ElideRight
                                 text: modelData.old + "  →  " + modelData.new
-                                font.pixelSize: 11; color: subColor
+                                font.pixelSize: UiI.UiScale.px(11); color: subColor
                             }
                         }
                     }
@@ -579,7 +580,7 @@ Column {
         visible: systemGroups.length > 0
         width: parent.width
         spacing: 8
-        Text { text: Lang.get("updates.sectionSystem", _lang) + "  ·  " + countText(updates.filter(function(u) { return u.category === "system" }).length); font.pixelSize: 15; font.bold: true; color: textColor }
+        Text { text: Lang.get("updates.sectionSystem", _lang) + "  ·  " + countText(updates.filter(function(u) { return u.category === "system" }).length); font.pixelSize: UiI.UiScale.px(15); font.bold: true; color: textColor }
         Rectangle {
             width: parent.width
             height: groupList.implicitHeight
@@ -607,12 +608,12 @@ Column {
                                 id: chevron
                                 x: 16; anchors.verticalCenter: parent.verticalCenter
                                 text: groupRow.expanded ? "▾" : "▸"
-                                font.pixelSize: 12; color: subColor
+                                font.pixelSize: UiI.UiScale.px(12); color: subColor
                             }
                             Text {
                                 anchors { left: chevron.right; leftMargin: 10; verticalCenter: parent.verticalCenter }
                                 text: Lang.get("updates.group." + groupRow.modelData.key, _lang)
-                                font.pixelSize: 13; color: textColor
+                                font.pixelSize: UiI.UiScale.px(13); color: textColor
                             }
                             Row {
                                 anchors { right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
@@ -627,13 +628,13 @@ Column {
                                         id: tagText
                                         anchors.centerIn: parent
                                         text: groupRow.modelData.restart === "reboot" ? Lang.get("updates.tagReboot", _lang) : Lang.get("updates.tagRelogin", _lang)
-                                        font.pixelSize: 11; color: warnColor
+                                        font.pixelSize: UiI.UiScale.px(11); color: warnColor
                                     }
                                 }
                                 Text {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: countText(groupRow.modelData.items.length)
-                                    font.pixelSize: 12; color: subColor
+                                    font.pixelSize: UiI.UiScale.px(12); color: subColor
                                 }
                             }
                             MouseArea {
@@ -652,7 +653,7 @@ Column {
                                     required property var modelData
                                     width: parent.width; elide: Text.ElideRight
                                     text: modelData.name + "   " + modelData.old + " → " + modelData.new
-                                    font.pixelSize: 11; font.family: "monospace"; color: subColor
+                                    font.pixelSize: UiI.UiScale.px(11); font.family: "monospace"; color: subColor
                                 }
                             }
                         }
@@ -668,8 +669,8 @@ Column {
         Row {
             anchors.verticalCenter: parent.verticalCenter
             spacing: 8
-            Text { text: showAdvanced ? "▾" : "▸"; font.pixelSize: 12; color: subColor; anchors.verticalCenter: parent.verticalCenter }
-            Text { text: Lang.get("updates.advanced", _lang); font.pixelSize: 14; font.bold: true; color: subColor }
+            Text { text: showAdvanced ? "▾" : "▸"; font.pixelSize: UiI.UiScale.px(12); color: subColor; anchors.verticalCenter: parent.verticalCenter }
+            Text { text: Lang.get("updates.advanced", _lang); font.pixelSize: UiI.UiScale.px(14); font.bold: true; color: subColor }
         }
         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: showAdvanced = !showAdvanced }
     }
@@ -694,23 +695,23 @@ Column {
                 Column {
                     width: parent.width - 75
                     spacing: 6
-                    Text { text: Lang.get("updates.aurTitle", _lang); color: textColor; font.pixelSize: 14; font.bold: true }
+                    Text { text: Lang.get("updates.aurTitle", _lang); color: textColor; font.pixelSize: UiI.UiScale.px(14); font.bold: true }
                     Text {
                         width: parent.width; wrapMode: Text.WordWrap
                         text: Lang.get("updates.aurHint", _lang)
-                        color: subColor; font.pixelSize: 12
+                        color: subColor; font.pixelSize: UiI.UiScale.px(12)
                     }
                     Text {
                         width: parent.width; wrapMode: Text.WordWrap
                         visible: aurEnabled && !aurAvailable
                         text: Lang.get("updates.aurNoHelper", _lang)
-                        color: warnColor; font.pixelSize: 12
+                        color: warnColor; font.pixelSize: UiI.UiScale.px(12)
                     }
                     Text {
                         width: parent.width; wrapMode: Text.WordWrap
                         visible: actionError.length > 0 || (status && !!status.aur_error)
                         text: actionError || Lang.get("updates.aurCheckFailed", _lang)
-                        color: warnColor; font.pixelSize: 12
+                        color: warnColor; font.pixelSize: UiI.UiScale.px(12)
                     }
                 }
                 Rectangle {
@@ -741,13 +742,13 @@ Column {
         Column {
             width: parent.width
             spacing: 8
-            Text { text: Lang.get("updates.news", _lang); font.pixelSize: 14; font.bold: true; color: textColor }
+            Text { text: Lang.get("updates.news", _lang); font.pixelSize: UiI.UiScale.px(14); font.bold: true; color: textColor }
             Text {
                 visible: status !== null && status.news.length === 0
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: status && status.news_unavailable ? Lang.get("updates.newsOffline", _lang) : Lang.get("updates.newsNone", _lang)
-                font.pixelSize: 12
+                font.pixelSize: UiI.UiScale.px(12)
                 color: subColor
             }
             Repeater {
@@ -767,14 +768,14 @@ Column {
                         Text {
                             visible: modelData.intervention
                             text: "⚠ " + Lang.get("updates.intervention", _lang)
-                            font.pixelSize: 11; font.bold: true
+                            font.pixelSize: UiI.UiScale.px(11); font.bold: true
                             color: warnColor
                         }
                         Text {
                             width: parent.width
                             wrapMode: Text.WordWrap
                             text: modelData.title
-                            font.pixelSize: 13
+                            font.pixelSize: UiI.UiScale.px(13)
                             color: textColor
                         }
                     }
@@ -791,7 +792,7 @@ Column {
             visible: updateCount > 0
             width: parent.width
             spacing: 4
-            Text { text: Lang.get("updates.allPackages", _lang) + " (" + updateCount + ")"; font.pixelSize: 14; font.bold: true; color: textColor }
+            Text { text: Lang.get("updates.allPackages", _lang) + " (" + updateCount + ")"; font.pixelSize: UiI.UiScale.px(14); font.bold: true; color: textColor }
             Repeater {
                 model: showAdvanced ? updates : []
                 delegate: Text {
@@ -799,7 +800,7 @@ Column {
                     width: updatesPage.width
                     elide: Text.ElideRight
                     text: modelData.name + (modelData.source === "aur" ? " (AUR)" : "") + "   " + modelData.old + " → " + modelData.new
-                    font.pixelSize: 11
+                    font.pixelSize: UiI.UiScale.px(11)
                     font.family: "monospace"
                     color: subColor
                 }

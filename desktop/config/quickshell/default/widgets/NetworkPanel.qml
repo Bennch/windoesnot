@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Effects
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Item {
     id: networkPanel
@@ -474,7 +475,7 @@ Item {
             // Header
             Text {
                 text: Lang.get("network.title", uiLanguage)
-                font.pixelSize: 16
+                font.pixelSize: UiI.UiScale.px(16)
                 font.weight: Font.DemiBold
                 color: darkMode ? "#ffffff" : "#000000"
                 antialiasing: true
@@ -527,7 +528,7 @@ Item {
 
                         Text {
                             text: networkPanel.wifiEnabled ? Lang.get("network.wifiOn", uiLanguage) : Lang.get("network.wifiOff", uiLanguage)
-                            font.pixelSize: 11
+                            font.pixelSize: UiI.UiScale.px(11)
                             color: networkPanel.wifiEnabled ? networkPanel.accentColor : (darkMode ? "#999999" : "#666666")
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
@@ -587,7 +588,7 @@ Item {
                                 : networkPanel.ethernetState === "unavailable" ? Lang.get("network.ethernetNoCable", uiLanguage)
                                 : networkPanel.ethernetState === "none" ? Lang.get("network.ethernetNoDevice", uiLanguage)
                                 : Lang.get("network.ethernetOff", uiLanguage)
-                            font.pixelSize: 11
+                            font.pixelSize: UiI.UiScale.px(11)
                             color: networkPanel.ethernetState === "connected" ? networkPanel.accentColor : (darkMode ? "#999999" : "#666666")
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
@@ -630,7 +631,7 @@ Item {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: networkPanel.ethernetMessage
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 color: networkPanel.accentColor
             }
 
@@ -647,7 +648,7 @@ Item {
 
                 Text {
                     text: Lang.get("network.currentConnection", uiLanguage)
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: darkMode ? "#999999" : "#666666"
                 }
 
@@ -695,7 +696,7 @@ Item {
 
                             Text {
                                 text: networkPanel.currentConnection.length > 0 ? networkPanel.currentConnection : Lang.get("network.notConnected", uiLanguage)
-                                font.pixelSize: 13
+                                font.pixelSize: UiI.UiScale.px(13)
                                 color: darkMode ? "#ffffff" : "#000000"
                                 elide: Text.ElideRight
                                 width: parent.width
@@ -707,7 +708,7 @@ Item {
                                     if (networkPanel.connectionType === "ethernet") return Lang.get("network.ethernetConnected", uiLanguage)
                                     return Lang.get("network.noConnection", uiLanguage)
                                 }
-                                font.pixelSize: 11
+                                font.pixelSize: UiI.UiScale.px(11)
                                 color: networkPanel.connectionType !== "none" ? networkPanel.accentColor : (darkMode ? "#666666" : "#444444")
                             }
                         }
@@ -729,7 +730,7 @@ Item {
 
                 Text {
                     text: Lang.get("network.enterPassword", uiLanguage)
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: darkMode ? "#ffffff" : "#000000"
                     font.weight: Font.DemiBold
                     antialiasing: true
@@ -762,7 +763,7 @@ Item {
 
                             Text {
                                 text: Lang.get("network.networkLabel", uiLanguage) + " " + networkPanel.selectedNetwork
-                                font.pixelSize: 12
+                                font.pixelSize: UiI.UiScale.px(12)
                                 color: darkMode ? "#999999" : "#666666"
                                 elide: Text.ElideRight
                                 width: parent.width - statusIndicator.width - 10
@@ -810,7 +811,7 @@ Item {
                                 Text {
                                     visible: networkPanel.connectionStatus === "success"
                                     text: "✓"
-                                    font.pixelSize: 16
+                                    font.pixelSize: UiI.UiScale.px(16)
                                     font.bold: true
                                     color: "#4CAF50"
                                     anchors.centerIn: parent
@@ -820,7 +821,7 @@ Item {
                                 Text {
                                     visible: networkPanel.connectionStatus === "failed"
                                     text: "✗"
-                                    font.pixelSize: 16
+                                    font.pixelSize: UiI.UiScale.px(16)
                                     font.bold: true
                                     color: "#F44336"
                                     anchors.centerIn: parent
@@ -836,7 +837,7 @@ Item {
                                 if (networkPanel.connectionStatus === "failed") return "✗ " + Lang.get("network.connectionFailed", uiLanguage)
                                 return ""
                             }
-                            font.pixelSize: 11
+                            font.pixelSize: UiI.UiScale.px(11)
                             color: networkPanel.connectionStatus === "success" ? "#4CAF50" : "#F44336"
                             font.bold: true
                             width: parent.width
@@ -856,7 +857,7 @@ Item {
                                 anchors.leftMargin: 10
                                 anchors.rightMargin: 10
                                 verticalAlignment: TextInput.AlignVCenter
-                                font.pixelSize: 12
+                                font.pixelSize: UiI.UiScale.px(12)
                                 color: darkMode ? "#ffffff" : "#000000"
                                 echoMode: TextInput.Password
                                 selectByMouse: true
@@ -876,7 +877,7 @@ Item {
                             Text {
                                 visible: passwordInput.text.length === 0 && !passwordInput.activeFocus
                                 text: Lang.get("network.password", uiLanguage)
-                                font.pixelSize: 12
+                                font.pixelSize: UiI.UiScale.px(12)
                                 color: darkMode ? "#666666" : "#999999"
                                 anchors.left: parent.left
                                 anchors.leftMargin: 10
@@ -901,7 +902,7 @@ Item {
                                 Text {
                                     anchors.centerIn: parent
                                     text: Lang.get("common.cancel", uiLanguage)
-                                    font.pixelSize: 11
+                                    font.pixelSize: UiI.UiScale.px(11)
                                     color: darkMode ? "#cccccc" : "#333333"
                                     antialiasing: true
                                     renderType: Text.NativeRendering
@@ -929,7 +930,7 @@ Item {
                                 Text {
                                     anchors.centerIn: parent
                                     text: Lang.get("network.connect", uiLanguage)
-                                    font.pixelSize: 11
+                                    font.pixelSize: UiI.UiScale.px(11)
                                     font.bold: true
                                     color: "#fff"
                                     antialiasing: true
@@ -960,7 +961,7 @@ Item {
 
                 Text {
                     text: Lang.get("network.availableNetworks", uiLanguage)
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: darkMode ? "#999999" : "#666666"
                 }
 
@@ -1026,7 +1027,7 @@ Item {
 
                                         Text {
                                             text: modelData.ssid
-                                            font.pixelSize: 13
+                                            font.pixelSize: UiI.UiScale.px(13)
                                             color: modelData.active ? (darkMode ? "#ffffff" : "#000000") : (darkMode ? "#cccccc" : "#333333")
                                             elide: Text.ElideRight
                                             width: parent.width
@@ -1035,7 +1036,7 @@ Item {
                                         Text {
                                             visible: modelData.active
                                             text: Lang.get("network.connected", uiLanguage)
-                                            font.pixelSize: 10
+                                            font.pixelSize: UiI.UiScale.px(10)
                                             color: networkPanel.accentColor
                                         }
                                     }
@@ -1057,7 +1058,7 @@ Item {
                                             Text {
                                                 anchors.centerIn: parent
                                                 text: Lang.get("network.disconnect", uiLanguage)
-                                                font.pixelSize: 10
+                                                font.pixelSize: UiI.UiScale.px(10)
                                                 color: darkMode ? "#cccccc" : "#333333"
                                                 font.bold: true
                                                 antialiasing: true
@@ -1115,7 +1116,7 @@ Item {
                         anchors.centerIn: parent
                         visible: networkPanel.availableNetworks.length === 0
                         text: networkPanel.wifiEnabled ? Lang.get("network.noKnownNetworks", uiLanguage) : Lang.get("network.wifiDisabled", uiLanguage)
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         color: darkMode ? "#666666" : "#444444"
                     }
                 }
@@ -1158,7 +1159,7 @@ Item {
 
                 Text {
                     text: Lang.get("network.settings", uiLanguage)
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                     color: darkMode ? "#cccccc" : "#333333"
                     anchors.verticalCenter: parent.verticalCenter
                 }

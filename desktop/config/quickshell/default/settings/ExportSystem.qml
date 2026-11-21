@@ -3,6 +3,7 @@ import QtQuick.Controls
 import Quickshell.Io
 import "." as Tools
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 // "Export my system": software profile, other packages, AUR, Flatpak and desktop preferences into one folder.
 Rectangle {
@@ -36,8 +37,8 @@ Rectangle {
     Column {
         id: column
         x: 16; y: 16; width: parent.width - 32; spacing: 10
-        Text { text: card.tr("title"); font.pixelSize: 15; font.bold: true; color: card.dark ? "#fff" : "#1a1a1a" }
-        Text { width: parent.width; text: card.tr("hint"); wrapMode: Text.WordWrap; font.pixelSize: 13; color: card.dark ? "#aaa" : "#555" }
+        Text { text: card.tr("title"); font.pixelSize: UiI.UiScale.px(15); font.bold: true; color: card.dark ? "#fff" : "#1a1a1a" }
+        Text { width: parent.width; text: card.tr("hint"); wrapMode: Text.WordWrap; font.pixelSize: UiI.UiScale.px(13); color: card.dark ? "#aaa" : "#555" }
         Tools.SystemToolsButton {
             settingsMenu: card.settingsMenu
             primary: true
@@ -45,6 +46,6 @@ Rectangle {
             text: card.busy ? card.tr("working") : card.tr("button")
             onClicked: { card.busy = true; card.resultText = ""; exportProc.running = true }
         }
-        Text { visible: card.resultText !== ""; width: parent.width; text: card.resultText; wrapMode: Text.WrapAnywhere; font.pixelSize: 12; color: card.failed ? "#cc4444" : (card.dark ? "#aaa" : "#555") }
+        Text { visible: card.resultText !== ""; width: parent.width; text: card.resultText; wrapMode: Text.WrapAnywhere; font.pixelSize: UiI.UiScale.px(12); color: card.failed ? "#cc4444" : (card.dark ? "#aaa" : "#555") }
     }
 }

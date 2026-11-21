@@ -7,6 +7,7 @@ import "."
 // Quickshell serves this directory as qs:@ URLs, from which Qt cannot load plugins.
 import LocalTerminal as LocalTerminal
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Item {
     id: terminalPanel
@@ -1564,7 +1565,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                         id: tabLabel; anchors.centerIn: parent
                         text: terminalPanel.profileLabel(modelData)
                         color: isActive ? terminalPanel.accentColor : terminalPanel.mutedColor
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         font.weight: isActive ? Font.DemiBold : Font.Normal
                     }
                     MouseArea {
@@ -1587,7 +1588,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                 color: chatBackMouse.containsMouse ? Qt.rgba(0.3, 0.3, 0.3, 0.45) : "transparent"
                 border.width: 1
                 border.color: Qt.rgba(terminalPanel.accentColor.r, terminalPanel.accentColor.g, terminalPanel.accentColor.b, 0.3)
-                Text { id: chatBackLabel; anchors.centerIn: parent; text: "← Chat"; color: terminalPanel.textColor; font.pixelSize: 12 }
+                Text { id: chatBackLabel; anchors.centerIn: parent; text: "← Chat"; color: terminalPanel.textColor; font.pixelSize: UiI.UiScale.px(12) }
                 MouseArea { id: chatBackMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: terminalPanel.switchToChat() }
             }
 
@@ -1597,7 +1598,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                 width: 36; height: 36; radius: 8
                 color: focusWinMouse.containsMouse ? Qt.rgba(0.3, 0.3, 0.3, 0.45) : "transparent"
                 border.width: 1; border.color: terminalPanel.borderColor
-                Text { anchors.centerIn: parent; text: ">_"; color: terminalPanel.mutedColor; font.pixelSize: 12; font.family: "monospace" }
+                Text { anchors.centerIn: parent; text: ">_"; color: terminalPanel.mutedColor; font.pixelSize: UiI.UiScale.px(12); font.family: "monospace" }
                 MouseArea { id: focusWinMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: focusProc.running = true }
             }
 
@@ -1662,7 +1663,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                         ? Qt.rgba(terminalPanel.accentColor.r, terminalPanel.accentColor.g, terminalPanel.accentColor.b, 0.18)
                         : "transparent"
                     Text { anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                           text: Lang.get("common.copy"); font.pixelSize: 13; color: terminalPanel.textColor }
+                           text: Lang.get("common.copy"); font.pixelSize: UiI.UiScale.px(13); color: terminalPanel.textColor }
                     MouseArea {
                         id: agentBubbleCopyMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: {
@@ -1693,7 +1694,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                     width: parent.width; height: 28; radius: 4
                     color: ama1.containsMouse ? Qt.rgba(terminalPanel.accentColor.r, terminalPanel.accentColor.g, terminalPanel.accentColor.b, 0.18) : "transparent"
                     Text { anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                           text: Lang.get("common.cut"); font.pixelSize: 13; color: terminalPanel.textColor }
+                           text: Lang.get("common.cut"); font.pixelSize: UiI.UiScale.px(13); color: terminalPanel.textColor }
                     MouseArea { id: ama1; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             agentCtxMenu.visible = false
@@ -1712,7 +1713,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                     width: parent.width; height: 28; radius: 4
                     color: ama2.containsMouse ? Qt.rgba(terminalPanel.accentColor.r, terminalPanel.accentColor.g, terminalPanel.accentColor.b, 0.18) : "transparent"
                     Text { anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                           text: Lang.get("common.copy"); font.pixelSize: 13; color: terminalPanel.textColor }
+                           text: Lang.get("common.copy"); font.pixelSize: UiI.UiScale.px(13); color: terminalPanel.textColor }
                     MouseArea { id: ama2; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             agentCtxMenu.visible = false
@@ -1725,7 +1726,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                     width: parent.width; height: 28; radius: 4
                     color: ama3.containsMouse ? Qt.rgba(terminalPanel.accentColor.r, terminalPanel.accentColor.g, terminalPanel.accentColor.b, 0.18) : "transparent"
                     Text { anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                           text: Lang.get("common.paste"); font.pixelSize: 13; color: terminalPanel.textColor }
+                           text: Lang.get("common.paste"); font.pixelSize: UiI.UiScale.px(13); color: terminalPanel.textColor }
                     MouseArea { id: ama3; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: { agentCtxMenu.visible = false; inputPasteProc.running = true } }
                 }
@@ -1733,7 +1734,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                     width: parent.width; height: 28; radius: 4
                     color: ama4.containsMouse ? Qt.rgba(terminalPanel.accentColor.r, terminalPanel.accentColor.g, terminalPanel.accentColor.b, 0.18) : "transparent"
                     Text { anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                           text: Lang.get("common.selectAll"); font.pixelSize: 13; color: terminalPanel.textColor }
+                           text: Lang.get("common.selectAll"); font.pixelSize: UiI.UiScale.px(13); color: terminalPanel.textColor }
                     MouseArea { id: ama4; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             agentCtxMenu.visible = false
@@ -1770,7 +1771,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                     Text {
                         anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                         text: terminalPanel.tr("agent.sessions")
-                        color: terminalPanel.textColor; font.pixelSize: 13; font.weight: Font.Medium
+                        color: terminalPanel.textColor; font.pixelSize: UiI.UiScale.px(13); font.weight: Font.Medium
                     }
 
                     Rectangle {
@@ -1778,7 +1779,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                         width: 26; height: 26; radius: 6
                         color: newSessionHover.containsMouse ? Qt.rgba(0.5, 0.5, 0.5, 0.2) : "transparent"
                         Behavior on color { ColorAnimation { duration: 100 } }
-                        Text { anchors.centerIn: parent; text: "+"; font.pixelSize: 18; color: terminalPanel.mutedColor }
+                        Text { anchors.centerIn: parent; text: "+"; font.pixelSize: UiI.UiScale.px(18); color: terminalPanel.mutedColor }
                         MouseArea {
                             id: newSessionHover
                             anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -1835,7 +1836,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                                         width: parent.width
                                         text: modelData.title
                                         color: isCurrent ? terminalPanel.accentColor : terminalPanel.textColor
-                                        font.pixelSize: 13; font.weight: isCurrent ? Font.Medium : Font.Normal
+                                        font.pixelSize: UiI.UiScale.px(13); font.weight: isCurrent ? Font.Medium : Font.Normal
                                         elide: Text.ElideRight
                                     }
                                     Text {
@@ -1843,7 +1844,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                                         text: modelData.model && modelData.model !== ""
                                             ? modelData.model + "  " + "\u00b7" + "  " + terminalPanel.formatTs(modelData.ts)
                                             : terminalPanel.formatTs(modelData.ts)
-                                        color: terminalPanel.mutedColor; font.pixelSize: 11
+                                        color: terminalPanel.mutedColor; font.pixelSize: UiI.UiScale.px(11)
                                         elide: Text.ElideRight
                                     }
                                 }
@@ -1851,7 +1852,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                                 Text {
                                     id: sessionDelBtn
                                     anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
-                                    text: "✕"; font.pixelSize: 10; color: terminalPanel.mutedColor
+                                    text: "✕"; font.pixelSize: UiI.UiScale.px(10); color: terminalPanel.mutedColor
                                     visible: hovered || isCurrent
                                     MouseArea {
                                         anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -1871,7 +1872,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                             Text {
                                 anchors.centerIn: parent
                                 text: terminalPanel.tr("agent.noSessions")
-                                color: terminalPanel.mutedColor; font.pixelSize: 11
+                                color: terminalPanel.mutedColor; font.pixelSize: UiI.UiScale.px(11)
                             }
                         }
                     }
@@ -1955,7 +1956,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                                             anchors { left: parent.left; right: parent.right; top: parent.top; margins: 10 }
                                             text: (isUser || isError) ? modelData.text : ""
                                             color: isError ? "#ff8080" : terminalPanel.textColor
-                                            font.pixelSize: 13
+                                            font.pixelSize: UiI.UiScale.px(13)
                                             wrapMode: TextEdit.Wrap
                                             textFormat: TextEdit.PlainText
                                             readOnly: true
@@ -1984,7 +1985,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                                             anchors { right: parent.right; bottom: parent.bottom; margins: 7 }
                                             text: terminalPanel.formatMsgTs(modelData.ts || 0)
                                             color: terminalPanel.mutedColor
-                                            font.pixelSize: 10
+                                            font.pixelSize: UiI.UiScale.px(10)
                                             opacity: msgHover.hovered ? 0.85 : 0.0
                                             Behavior on opacity { NumberAnimation { duration: 150 } }
                                         }
@@ -2049,7 +2050,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                                             leftPadding: 2
                                             text: terminalPanel.formatMsgTs(modelData.ts || 0)
                                             color: terminalPanel.mutedColor
-                                            font.pixelSize: 11
+                                            font.pixelSize: UiI.UiScale.px(11)
                                             opacity: msgHover.hovered ? 0.75 : 0.0
                                             Behavior on opacity { NumberAnimation { duration: 150 } }
                                         }
@@ -2077,7 +2078,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                                         anchors { left: parent.left; right: parent.right; top: parent.top; margins: 10 }
                                         text: terminalPanel.claudeStreamText !== "" ? terminalPanel.claudeStreamText : "●●●"
                                         color: terminalPanel.claudeStreamText !== "" ? terminalPanel.textColor : terminalPanel.mutedColor
-                                        font.pixelSize: 13
+                                        font.pixelSize: UiI.UiScale.px(13)
                                         wrapMode: Text.Wrap
                                         textFormat: Text.PlainText
                                     }
@@ -2092,8 +2093,8 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
 
                                 Column {
                                     anchors.centerIn: parent; spacing: 8
-                                    Text { anchors.horizontalCenter: parent.horizontalCenter; text: terminalPanel.activeProfile; color: terminalPanel.accentColor; font.pixelSize: 28; font.weight: Font.Bold; font.family: "monospace" }
-                                    Text { anchors.horizontalCenter: parent.horizontalCenter; text: terminalPanel.tr("agent.messageHint"); color: terminalPanel.mutedColor; font.pixelSize: 12 }
+                                    Text { anchors.horizontalCenter: parent.horizontalCenter; text: terminalPanel.activeProfile; color: terminalPanel.accentColor; font.pixelSize: UiI.UiScale.px(28); font.weight: Font.Bold; font.family: "monospace" }
+                                    Text { anchors.horizontalCenter: parent.horizontalCenter; text: terminalPanel.tr("agent.messageHint"); color: terminalPanel.mutedColor; font.pixelSize: UiI.UiScale.px(12) }
                                 }
                             }
                         }
@@ -2148,7 +2149,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                                         anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
                                         text: modelData
                                         color: isActive ? terminalPanel.accentColor : terminalPanel.textColor
-                                        font.pixelSize: 13; font.weight: isActive ? Font.DemiBold : Font.Normal
+                                        font.pixelSize: UiI.UiScale.px(13); font.weight: isActive ? Font.DemiBold : Font.Normal
                                     }
 
                                     MouseArea {
@@ -2186,7 +2187,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                             id: claudeStatusDot
                             anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                             text: terminalPanel.claudeRunning ? "●" : ">"
-                            color: terminalPanel.accentColor; font.pixelSize: 14; font.weight: Font.Bold; font.family: "monospace"
+                            color: terminalPanel.accentColor; font.pixelSize: UiI.UiScale.px(14); font.weight: Font.Bold; font.family: "monospace"
                         }
 
                         // Model picker pill
@@ -2211,11 +2212,11 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                                         ? terminalPanel.activeModel.split(":")[0]
                                         : terminalPanel.tr("agent.chooseModel")
                                     color: terminalPanel.activeModel !== "" ? terminalPanel.textColor : terminalPanel.mutedColor
-                                    font.pixelSize: 12
+                                    font.pixelSize: UiI.UiScale.px(12)
                                 }
                                 Text {
                                     text: terminalPanel.showModelDropdown ? "▴" : "▾"
-                                    color: terminalPanel.mutedColor; font.pixelSize: 8
+                                    color: terminalPanel.mutedColor; font.pixelSize: UiI.UiScale.px(8)
                                 }
                             }
 
@@ -2234,7 +2235,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                                 top: parent.top; topMargin: 10
                             }
                             color: terminalPanel.claudeRunning ? terminalPanel.mutedColor : terminalPanel.textColor
-                            font.family: "monospace"; font.pixelSize: 13
+                            font.family: "monospace"; font.pixelSize: UiI.UiScale.px(13)
                             selectionColor: Qt.rgba(terminalPanel.accentColor.r, terminalPanel.accentColor.g, terminalPanel.accentColor.b, 0.35)
                             selectedTextColor: terminalPanel.textColor
                             readOnly: terminalPanel.claudeRunning
@@ -2305,7 +2306,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                                         anchors.centerIn: parent
                                         text: terminalPanel.compactUsageText(modelData)
                                         color: modelData.remainingPercent >= 0 ? terminalPanel.textColor : terminalPanel.mutedColor
-                                        font.pixelSize: 10
+                                        font.pixelSize: UiI.UiScale.px(10)
                                         font.weight: modelData.remainingPercent >= 0 ? Font.DemiBold : Font.Normal
                                     }
                                 }
@@ -2331,7 +2332,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                     Text {
                         anchors.centerIn: parent
                         text: "↑"
-                        font.pixelSize: 18
+                        font.pixelSize: UiI.UiScale.px(18)
                         color: terminalPanel.textColor
                     }
 
@@ -2359,7 +2360,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                     Text {
                         anchors.centerIn: parent
                         text: "↓"
-                        font.pixelSize: 18
+                        font.pixelSize: UiI.UiScale.px(18)
                         color: terminalPanel.textColor
                     }
 
@@ -2401,7 +2402,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                     TextEdit {
                         id: shellOutputText
                         width: shellFlick.width
-                        color: terminalPanel.textColor; font.family: "monospace"; font.pixelSize: 13
+                        color: terminalPanel.textColor; font.family: "monospace"; font.pixelSize: UiI.UiScale.px(13)
                         wrapMode: TextEdit.Wrap; textFormat: TextEdit.PlainText
                         readOnly: true; selectByMouse: true
                         selectedTextColor: terminalPanel.textColor
@@ -2413,7 +2414,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                     anchors.centerIn: parent
                     visible: !terminalSession.running
                     text: "Terminal session is not running."
-                    color: terminalPanel.mutedColor; font.pixelSize: 13
+                    color: terminalPanel.mutedColor; font.pixelSize: UiI.UiScale.px(13)
                 }
             }
 
@@ -2430,11 +2431,11 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                 Row {
                     anchors { fill: parent; leftMargin: 12; rightMargin: 10 }
                     spacing: 8
-                    Text { anchors.verticalCenter: parent.verticalCenter; text: ">"; color: terminalPanel.accentColor; font.pixelSize: 14; font.weight: Font.Bold; font.family: "monospace" }
+                    Text { anchors.verticalCenter: parent.verticalCenter; text: ">"; color: terminalPanel.accentColor; font.pixelSize: UiI.UiScale.px(14); font.weight: Font.Bold; font.family: "monospace" }
                     TextInput {
                         id: shellInput
                         anchors.verticalCenter: parent.verticalCenter; width: parent.width - 30
-                        color: terminalPanel.textColor; font.family: "monospace"; font.pixelSize: 13
+                        color: terminalPanel.textColor; font.family: "monospace"; font.pixelSize: UiI.UiScale.px(13)
                         selectionColor: Qt.rgba(terminalPanel.accentColor.r, terminalPanel.accentColor.g, terminalPanel.accentColor.b, 0.35)
                         selectedTextColor: terminalPanel.textColor
                         Keys.onReturnPressed: { if (text.length > 0) { terminalSession.sendText(text + "\r"); text = "" } }
@@ -2459,7 +2460,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                 Text {
                     anchors.centerIn: parent
                     text: "↑"
-                    font.pixelSize: 18
+                    font.pixelSize: UiI.UiScale.px(18)
                     color: terminalPanel.textColor
                 }
 
@@ -2487,7 +2488,7 @@ print(json.dumps({"messages": msgs, "model": model}, ensure_ascii=False))`
                 Text {
                     anchors.centerIn: parent
                     text: "↓"
-                    font.pixelSize: 18
+                    font.pixelSize: UiI.UiScale.px(18)
                     color: terminalPanel.textColor
                 }
 

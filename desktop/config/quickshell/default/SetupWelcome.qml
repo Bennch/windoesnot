@@ -6,6 +6,7 @@ import Quickshell
 import Quickshell.Io
 import "settings" as Tools
 import "i18n/Lang.js" as Lang
+import "./i18n" as UiI
 
 ShellRoot {
     Window {
@@ -58,20 +59,20 @@ ShellRoot {
                 }
                 Text {
                     width: parent.width; text: welcome.payload.title || ""; color: welcome.foreground
-                    font.pixelSize: 28; font.bold: true; wrapMode: Text.WordWrap; textFormat: Text.PlainText
+                    font.pixelSize: UiI.UiScale.px(28); font.bold: true; wrapMode: Text.WordWrap; textFormat: Text.PlainText
                 }
                 Text {
                     width: parent.width; text: welcome.payload.intro || ""; color: welcome.secondary
-                    font.pixelSize: 14; wrapMode: Text.WordWrap; textFormat: Text.PlainText
+                    font.pixelSize: UiI.UiScale.px(14); wrapMode: Text.WordWrap; textFormat: Text.PlainText
                 }
                 Text {
                     visible: !!welcome.payload.hwcheckHint
                     width: parent.width; text: welcome.payload.hwcheckHint || ""; color: welcome.secondary
-                    font.pixelSize: 14; wrapMode: Text.WordWrap; textFormat: Text.PlainText
+                    font.pixelSize: UiI.UiScale.px(14); wrapMode: Text.WordWrap; textFormat: Text.PlainText
                 }
                 Text {
                     text: Lang.get("shortcuts.welcome", welcome.uiLanguage); color: welcome.foreground
-                    font.pixelSize: 20; font.bold: true
+                    font.pixelSize: UiI.UiScale.px(20); font.bold: true
                 }
                 Text {
                     width: parent.width; text: Lang.get("shortcuts.optional", welcome.uiLanguage)
@@ -99,7 +100,7 @@ ShellRoot {
                                 color: step.done ? welcome.accentColor : "transparent"
                                 border.width: 2; border.color: step.done ? welcome.accentColor : (welcome.darkMode ? "#6a6a6a" : "#9a9a9a")
                                 Behavior on color { ColorAnimation { duration: 220 } }
-                                Text { anchors.centerIn: parent; visible: step.done; text: "✓"; color: "#ffffff"; font.pixelSize: 17; font.bold: true }
+                                Text { anchors.centerIn: parent; visible: step.done; text: "✓"; color: "#ffffff"; font.pixelSize: UiI.UiScale.px(17); font.bold: true }
                                 Accessible.role: Accessible.CheckBox
                                 Accessible.checked: step.done
                                 Accessible.name: Lang.get("shortcuts.done", welcome.uiLanguage) + ": " + Lang.get("shortcuts." + step.modelData, welcome.uiLanguage)
@@ -115,7 +116,7 @@ ShellRoot {
                             Text {
                                 Layout.fillWidth: true; text: Lang.get("shortcuts." + step.modelData, welcome.uiLanguage)
                                 color: step.done ? welcome.secondary : welcome.foreground
-                                font.pixelSize: 16; font.bold: !step.done; elide: Text.ElideRight
+                                font.pixelSize: UiI.UiScale.px(16); font.bold: !step.done; elide: Text.ElideRight
                             }
                             Tools.SystemToolsButton {
                                 settingsMenu: welcome; text: welcome.payload.open || "Open"
@@ -200,16 +201,16 @@ ShellRoot {
                         x: 16; y: 16; width: parent.width - 32; spacing: 14
                         Text {
                             text: displayCard.texts.title || ""; color: welcome.foreground
-                            font.pixelSize: 20; font.bold: true; textFormat: Text.PlainText
+                            font.pixelSize: UiI.UiScale.px(20); font.bold: true; textFormat: Text.PlainText
                         }
                         Text {
                             width: parent.width; text: displayCard.texts.hint || ""; color: welcome.secondary
-                            font.pixelSize: 13; wrapMode: Text.WordWrap; textFormat: Text.PlainText
+                            font.pixelSize: UiI.UiScale.px(13); wrapMode: Text.WordWrap; textFormat: Text.PlainText
                         }
                         RowLayout {
                             visible: displayCard.haveDisplay && displayCard.info.modes.length > 1
                             width: parent.width; spacing: 12
-                            Text { Layout.preferredWidth: 150; text: displayCard.texts.resolution || ""; color: welcome.foreground; font.pixelSize: 14 }
+                            Text { Layout.preferredWidth: 150; text: displayCard.texts.resolution || ""; color: welcome.foreground; font.pixelSize: UiI.UiScale.px(14) }
                             Tools.SystemToolsChoice {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 40
@@ -226,7 +227,7 @@ ShellRoot {
                         RowLayout {
                             visible: displayCard.haveDisplay
                             width: parent.width; spacing: 12
-                            Text { Layout.preferredWidth: 150; text: displayCard.texts.zoom || ""; color: welcome.foreground; font.pixelSize: 14 }
+                            Text { Layout.preferredWidth: 150; text: displayCard.texts.zoom || ""; color: welcome.foreground; font.pixelSize: UiI.UiScale.px(14) }
                             Flow {
                                 Layout.fillWidth: true; spacing: 8
                                 Repeater {
@@ -244,8 +245,8 @@ ShellRoot {
                         }
                         RowLayout {
                             width: parent.width; spacing: 12
-                            Text { Layout.preferredWidth: 150; text: displayCard.texts.mouse || ""; color: welcome.foreground; font.pixelSize: 14 }
-                            Text { text: displayCard.texts.slow || ""; color: welcome.secondary; font.pixelSize: 12 }
+                            Text { Layout.preferredWidth: 150; text: displayCard.texts.mouse || ""; color: welcome.foreground; font.pixelSize: UiI.UiScale.px(14) }
+                            Text { text: displayCard.texts.slow || ""; color: welcome.secondary; font.pixelSize: UiI.UiScale.px(12) }
                             Slider {
                                 id: speed
                                 Layout.fillWidth: true
@@ -276,7 +277,7 @@ ShellRoot {
                                     mouseProc.running = true
                                 }
                             }
-                            Text { text: displayCard.texts.fast || ""; color: welcome.secondary; font.pixelSize: 12 }
+                            Text { text: displayCard.texts.fast || ""; color: welcome.secondary; font.pixelSize: UiI.UiScale.px(12) }
                         }
                         // After a change: keep it, or it is reverted, so a bad picture never sticks.
                         Rectangle {
@@ -289,7 +290,7 @@ ShellRoot {
                                 Text {
                                     Layout.fillWidth: true
                                     text: (displayCard.texts.confirm || "") + " (" + displayCard.countdown + ")"
-                                    color: welcome.foreground; font.pixelSize: 13; elide: Text.ElideRight
+                                    color: welcome.foreground; font.pixelSize: UiI.UiScale.px(13); elide: Text.ElideRight
                                 }
                                 Tools.SystemToolsButton { settingsMenu: welcome; primary: true; text: displayCard.texts.keep || ""; onClicked: displayCard.keepDisplay() }
                                 Tools.SystemToolsButton { settingsMenu: welcome; text: displayCard.texts.revert || ""; onClicked: displayCard.revertDisplay() }
@@ -299,7 +300,7 @@ ShellRoot {
                 }
                 Text {
                     text: welcome.payload.appsTitle || ""; color: welcome.foreground
-                    font.pixelSize: 20; font.bold: true; textFormat: Text.PlainText
+                    font.pixelSize: UiI.UiScale.px(20); font.bold: true; textFormat: Text.PlainText
                 }
                 GridLayout {
                     id: appGrid
@@ -331,12 +332,12 @@ ShellRoot {
                                     spacing: 6
                                     Text {
                                         Layout.fillWidth: true; text: appCard.modelData.name
-                                        color: welcome.foreground; font.pixelSize: 16; font.bold: true
+                                        color: welcome.foreground; font.pixelSize: UiI.UiScale.px(16); font.bold: true
                                         wrapMode: Text.WordWrap; textFormat: Text.PlainText
                                     }
                                     Text {
                                         Layout.fillWidth: true; text: appCard.modelData.description
-                                        color: welcome.secondary; font.pixelSize: 13
+                                        color: welcome.secondary; font.pixelSize: UiI.UiScale.px(13)
                                         wrapMode: Text.WordWrap; textFormat: Text.PlainText
                                     }
                                 }
@@ -359,19 +360,19 @@ ShellRoot {
                 }
                 Text {
                     visible: text.length > 0; text: welcome.launchError
-                    width: parent.width; color: welcome.secondary; font.pixelSize: 14; wrapMode: Text.WordWrap
+                    width: parent.width; color: welcome.secondary; font.pixelSize: UiI.UiScale.px(14); wrapMode: Text.WordWrap
                     textFormat: Text.PlainText
                 }
                 Text {
                     text: welcome.payload.setupTitle || ""; color: welcome.foreground
-                    font.pixelSize: 20; font.bold: true; textFormat: Text.PlainText
+                    font.pixelSize: UiI.UiScale.px(20); font.bold: true; textFormat: Text.PlainText
                 }
                 Repeater {
                     model: welcome.payload.lines || []
                     delegate: Text {
                         required property string modelData
                         width: parent.width; text: "•  " + modelData
-                        color: welcome.secondary; font.pixelSize: 14
+                        color: welcome.secondary; font.pixelSize: UiI.UiScale.px(14)
                         wrapMode: Text.WordWrap; textFormat: Text.PlainText
                     }
                 }
@@ -389,11 +390,11 @@ ShellRoot {
                         spacing: 8
                         Text {
                             Layout.fillWidth: true; text: welcome.payload.donateTitle || ""
-                            color: welcome.foreground; font.pixelSize: 16; font.bold: true; textFormat: Text.PlainText
+                            color: welcome.foreground; font.pixelSize: UiI.UiScale.px(16); font.bold: true; textFormat: Text.PlainText
                         }
                         Text {
                             Layout.fillWidth: true; text: welcome.payload.donateText || ""
-                            color: welcome.secondary; font.pixelSize: 13; wrapMode: Text.WordWrap; textFormat: Text.PlainText
+                            color: welcome.secondary; font.pixelSize: UiI.UiScale.px(13); wrapMode: Text.WordWrap; textFormat: Text.PlainText
                         }
                         Flow {
                             Layout.fillWidth: true
@@ -419,7 +420,7 @@ ShellRoot {
                 }
                 Text {
                     width: parent.width; text: welcome.payload.hint || ""; color: welcome.secondary
-                    font.pixelSize: 13; wrapMode: Text.WordWrap; textFormat: Text.PlainText
+                    font.pixelSize: UiI.UiScale.px(13); wrapMode: Text.WordWrap; textFormat: Text.PlainText
                 }
             }
         }

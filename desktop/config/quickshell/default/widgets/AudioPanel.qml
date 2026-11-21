@@ -4,6 +4,7 @@ import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Item {
     id: audioPanel
@@ -288,7 +289,7 @@ Item {
             // Header
             Text {
                 text: Lang.get("audio.title", uiLanguage)
-                font.pixelSize: 16
+                font.pixelSize: UiI.UiScale.px(16)
                 font.weight: Font.DemiBold
                 color: darkMode ? "#ffffff" : "#000000"
                 antialiasing: true
@@ -331,7 +332,7 @@ Item {
                 Text {
                     id: volumeLabel
                     text: Lang.get("audio.volume", uiLanguage)
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: darkMode ? "#cccccc" : "#333333"
                 }
 
@@ -343,7 +344,7 @@ Item {
                 Text {
                     id: volumePercent
                     text: audioPanel.muted ? "0%" : (audioPanel.volume + "%")
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: darkMode ? "#999999" : "#666666"
                     horizontalAlignment: Text.AlignRight
                 }
@@ -402,7 +403,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: Lang.get(modelData.key, uiLanguage)
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         font.weight: active ? Font.DemiBold : Font.Normal
                         color: active ? audioPanel.accentColor : (darkMode ? "#cccccc" : "#333333")
                     }
@@ -437,7 +438,7 @@ Item {
                     anchors.centerIn: parent
                     visible: appModel.count === 0
                     text: Lang.get("audio.noApps", uiLanguage)
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                     color: darkMode ? "#777777" : "#777777"
                 }
 
@@ -484,7 +485,7 @@ Item {
                                         anchors.centerIn: parent
                                         text: model.appName.length > 0 ? model.appName.charAt(0).toUpperCase() : "?"
                                         color: "#ffffff"
-                                        font.pixelSize: 13
+                                        font.pixelSize: UiI.UiScale.px(13)
                                         font.bold: true
                                     }
                                 }
@@ -501,13 +502,13 @@ Item {
                                         width: parent.width - appPercent.width
                                         text: model.appName
                                         elide: Text.ElideRight
-                                        font.pixelSize: 12
+                                        font.pixelSize: UiI.UiScale.px(12)
                                         color: darkMode ? "#ffffff" : "#000000"
                                     }
                                     Text {
                                         id: appPercent
                                         text: model.appMuted ? "0%" : (model.appVolume + "%")
-                                        font.pixelSize: 11
+                                        font.pixelSize: UiI.UiScale.px(11)
                                         color: darkMode ? "#999999" : "#666666"
                                     }
                                 }
@@ -622,7 +623,7 @@ Item {
 
                             ProjectIcon {
                                 name: "headphones"
-                                font.pixelSize: 20
+                                font.pixelSize: UiI.UiScale.px(20)
                                 anchors.verticalCenter: parent.verticalCenter
                             }
 
@@ -633,7 +634,7 @@ Item {
 
                                 Text {
                                     text: modelData.description
-                                    font.pixelSize: 12
+                                    font.pixelSize: UiI.UiScale.px(12)
                                     color: darkMode ? "#ffffff" : "#000000"
                                     elide: Text.ElideRight
                                     width: parent.width
@@ -641,7 +642,7 @@ Item {
 
                                 Text {
                                     text: modelData.name === audioPanel.defaultSink ? Lang.get("audio.default", uiLanguage) : "Sink " + modelData.id
-                                    font.pixelSize: 10
+                                    font.pixelSize: UiI.UiScale.px(10)
                                     color: modelData.name === audioPanel.defaultSink ? audioPanel.accentColor : (darkMode ? "#666666" : "#444444")
                                 }
                             }
@@ -708,7 +709,7 @@ Item {
 
                 Text {
                     text: Lang.get("audio.mute", uiLanguage)
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                     color: darkMode ? "#cccccc" : "#333333"
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -755,7 +756,7 @@ Item {
 
                 Text {
                     text: Lang.get("audio.mixer", uiLanguage)
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                     color: darkMode ? "#cccccc" : "#333333"
                     anchors.verticalCenter: parent.verticalCenter
                 }

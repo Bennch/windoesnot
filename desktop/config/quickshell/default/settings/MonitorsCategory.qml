@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Column {
     id: monitorsCategory
@@ -166,7 +167,7 @@ Column {
             anchors.leftMargin: 16
             text: parent.text
             color: monitorsCategory.darkMode ? "#ffffff" : "#1a1a1a"
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
         }
         Rectangle {
@@ -192,7 +193,7 @@ Column {
         bottomPadding: 8
         text: Lang.get("monitors.dragHint", uiLanguage)
         color: darkMode ? "#888888" : "#999999"
-        font.pixelSize: 11
+        font.pixelSize: UiI.UiScale.px(11)
         wrapMode: Text.WordWrap
     }
 
@@ -261,7 +262,7 @@ Column {
                         anchors.verticalCenterOffset: -7
                         text: monDelegate.m ? monDelegate.m.name : ""
                         color: monitorsCategory.darkMode ? "#eeeeee" : "#222222"
-                        font.pixelSize: 10
+                        font.pixelSize: UiI.UiScale.px(10)
                         font.bold: true
                         horizontalAlignment: Text.AlignHCenter
                         elide: Text.ElideRight
@@ -273,7 +274,7 @@ Column {
                         anchors.verticalCenterOffset: 7
                         text: monDelegate.m ? monDelegate.m.width + "x" + monDelegate.m.height : ""
                         color: monitorsCategory.darkMode ? "#888888" : "#666666"
-                        font.pixelSize: 8
+                        font.pixelSize: UiI.UiScale.px(8)
                         horizontalAlignment: Text.AlignHCenter
                     }
 
@@ -284,7 +285,7 @@ Column {
                         anchors.topMargin:   3
                         anchors.rightMargin: 5
                         text: "★"
-                        font.pixelSize: 9
+                        font.pixelSize: UiI.UiScale.px(9)
                         color: monitorsCategory.accentColor
                         visible: monDelegate.isPrimary
                     }
@@ -368,7 +369,7 @@ Column {
             anchors.centerIn: parent
             text: Lang.get("monitors.noMonitors", monitorsCategory.uiLanguage)
             color: monitorsCategory.darkMode ? "#666666" : "#aaaaaa"
-            font.pixelSize: 13
+            font.pixelSize: UiI.UiScale.px(13)
             visible: monitorsCategory.editedMonitors.length === 0
         }
     }
@@ -386,12 +387,12 @@ Column {
             Text {
                 text: Lang.get("monitors.autoAlign", monitorsCategory.uiLanguage)
                 color: monitorsCategory.darkMode ? "#eeeeee" : "#222222"
-                font.pixelSize: 13
+                font.pixelSize: UiI.UiScale.px(13)
             }
             Text {
                 text: Lang.get("monitors.autoAlignDesc", monitorsCategory.uiLanguage)
                 color: monitorsCategory.darkMode ? "#888888" : "#777777"
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
             }
         }
 
@@ -406,7 +407,7 @@ Column {
                 anchors.centerIn: parent
                 text: "⇕"
                 color: monitorsCategory.accentColor
-                font.pixelSize: 18
+                font.pixelSize: UiI.UiScale.px(18)
             }
             MouseArea {
                 anchors.fill: parent
@@ -431,7 +432,7 @@ Column {
         bottomPadding: 14
         text: Lang.get("monitors.selectMonitor", uiLanguage)
         color: darkMode ? "#888888" : "#999999"
-        font.pixelSize: 12
+        font.pixelSize: UiI.UiScale.px(12)
         visible: monitorsCategory.selectedIndex < 0 || monitorsCategory.editedMonitors.length === 0
     }
 
@@ -491,14 +492,14 @@ Column {
                         text: parent.parent.parent.parent.mon
                               ? parent.parent.parent.parent.mon.name : ""
                         color: monitorsCategory.darkMode ? "#ffffff" : "#111111"
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         font.bold: true
                     }
                     Text {
                         text: parent.parent.parent.parent.mon
                               ? parent.parent.parent.parent.mon.description : ""
                         color: monitorsCategory.darkMode ? "#888888" : "#666666"
-                        font.pixelSize: 11
+                        font.pixelSize: UiI.UiScale.px(11)
                         elide: Text.ElideRight
                         width: 400
                     }
@@ -525,7 +526,7 @@ Column {
                 Text {
                     text: Lang.get("monitors.resolution", monitorsCategory.uiLanguage)
                     color: monitorsCategory.darkMode ? "#cccccc" : "#444444"
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                 }
                 Rectangle {
                     id: resolutionDropRect
@@ -555,14 +556,14 @@ Column {
                         anchors.left: parent.left; anchors.leftMargin: 10
                         text: resolutionDropRect.mon ? resolutionDropRect.mon.width + "x" + resolutionDropRect.mon.height : ""
                         color: monitorsCategory.darkMode ? "#eeeeee" : "#222222"
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                     }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.right: parent.right; anchors.rightMargin: 8
                         text: "▾"
                         color: monitorsCategory.darkMode ? "#888888" : "#666666"
-                        font.pixelSize: 10
+                        font.pixelSize: UiI.UiScale.px(10)
                     }
                     MouseArea { anchors.fill: parent; onClicked: resolutionPopup.open() }
 
@@ -592,7 +593,7 @@ Column {
                                     anchors.left: parent.left; anchors.leftMargin: 8
                                     text: modelData
                                     color: monitorsCategory.darkMode ? "#eeeeee" : "#222222"
-                                    font.pixelSize: 12
+                                    font.pixelSize: UiI.UiScale.px(12)
                                 }
                                 MouseArea {
                                     anchors.fill: parent
@@ -622,7 +623,7 @@ Column {
                 Text {
                     text: Lang.get("monitors.refreshRate", monitorsCategory.uiLanguage)
                     color: monitorsCategory.darkMode ? "#cccccc" : "#444444"
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                 }
                 Rectangle {
                     id: refreshDropRect
@@ -655,14 +656,14 @@ Column {
                         anchors.left: parent.left; anchors.leftMargin: 10
                         text: refreshDropRect.mon ? Math.round(refreshDropRect.mon.refreshRate) + " Hz" : ""
                         color: monitorsCategory.darkMode ? "#eeeeee" : "#222222"
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                     }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.right: parent.right; anchors.rightMargin: 8
                         text: "▾"
                         color: monitorsCategory.darkMode ? "#888888" : "#666666"
-                        font.pixelSize: 10
+                        font.pixelSize: UiI.UiScale.px(10)
                     }
                     MouseArea { anchors.fill: parent; onClicked: refreshPopup.open() }
 
@@ -692,7 +693,7 @@ Column {
                                     anchors.left: parent.left; anchors.leftMargin: 8
                                     text: modelData + " Hz"
                                     color: monitorsCategory.darkMode ? "#eeeeee" : "#222222"
-                                    font.pixelSize: 12
+                                    font.pixelSize: UiI.UiScale.px(12)
                                 }
                                 MouseArea {
                                     anchors.fill: parent
@@ -733,7 +734,7 @@ Column {
                 Text {
                     text: Lang.get("monitors.rotation", monitorsCategory.uiLanguage)
                     color: monitorsCategory.darkMode ? "#cccccc" : "#444444"
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                 }
                 Rectangle {
                     width: 200; height: 32; radius: 4
@@ -751,14 +752,14 @@ Column {
                             return m ? monitorsCategory.transformLabel(m.transform) : ""
                         }
                         color: monitorsCategory.darkMode ? "#eeeeee" : "#222222"
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                     }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.right: parent.right; anchors.rightMargin: 8
                         text: "▾"
                         color: monitorsCategory.darkMode ? "#888888" : "#666666"
-                        font.pixelSize: 10
+                        font.pixelSize: UiI.UiScale.px(10)
                     }
                     MouseArea { anchors.fill: parent; onClicked: transformPopup.open() }
 
@@ -788,7 +789,7 @@ Column {
                                     anchors.left: parent.left; anchors.leftMargin: 8
                                     text: monitorsCategory.transformLabel(modelData)
                                     color: monitorsCategory.darkMode ? "#eeeeee" : "#222222"
-                                    font.pixelSize: 12
+                                    font.pixelSize: UiI.UiScale.px(12)
                                 }
                                 MouseArea {
                                     anchors.fill: parent
@@ -819,7 +820,7 @@ Column {
                            ? monitorsCategory.editedMonitors[monitorsCategory.selectedIndex].scale.toFixed(2)
                            : "1.00")
                     color: monitorsCategory.darkMode ? "#cccccc" : "#444444"
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                 }
                 Slider {
                     width: parent.width
@@ -874,12 +875,12 @@ Column {
                 Text {
                     text: Lang.get("monitors.primary", monitorsCategory.uiLanguage)
                     color: monitorsCategory.darkMode ? "#eeeeee" : "#222222"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                 }
                 Text {
                     text: Lang.get("monitors.primaryDesc", monitorsCategory.uiLanguage)
                     color: monitorsCategory.darkMode ? "#888888" : "#777777"
-                    font.pixelSize: 11
+                    font.pixelSize: UiI.UiScale.px(11)
                 }
             }
 
@@ -924,7 +925,7 @@ Column {
                 Text {
                     text: Lang.get("monitors.enabled", monitorsCategory.uiLanguage)
                     color: monitorsCategory.darkMode ? "#eeeeee" : "#222222"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                 }
             }
 
@@ -986,7 +987,7 @@ Column {
                 text: monitorsCategory.isApplying
                       ? Lang.get("monitors.applying", monitorsCategory.uiLanguage)
                       : Lang.get("monitors.apply",    monitorsCategory.uiLanguage)
-                color: "white"; font.pixelSize: 13; font.bold: true
+                color: "white"; font.pixelSize: UiI.UiScale.px(13); font.bold: true
             }
             MouseArea {
                 anchors.fill: parent
@@ -1004,7 +1005,7 @@ Column {
                 anchors.centerIn: parent
                 text: Lang.get("monitors.reset", monitorsCategory.uiLanguage)
                 color: monitorsCategory.darkMode ? "#cccccc" : "#444444"
-                font.pixelSize: 13
+                font.pixelSize: UiI.UiScale.px(13)
             }
             MouseArea {
                 anchors.fill: parent

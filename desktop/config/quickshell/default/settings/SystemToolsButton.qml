@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 // Same dimensions, colors and states as existing Settings controls.
 Button {
@@ -17,7 +18,7 @@ Button {
     contentItem: Text {
         text: control.text
         color: control.primary || control.destructive ? "#ffffff" : (control.dark ? "#cccccc" : "#444444")
-        font.pixelSize: 13; font.bold: control.primary || control.destructive
+        font.pixelSize: UiI.UiScale.px(13); font.bold: control.primary || control.destructive
         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
     }

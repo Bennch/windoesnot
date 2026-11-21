@@ -3,6 +3,7 @@ import QtQuick.Controls
 import Quickshell.Io
 import "." as Tools
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 // Turn any website into an app of its own (start menu entry with the site's icon, own window, own taskbar entry).
 Column {
@@ -45,15 +46,15 @@ Column {
         message = tr("working"); failure = false
     }
 
-    Text { text: page.tr("title"); font.pixelSize: 18; font.bold: true; color: page.textColor }
-    Text { width: parent.width; wrapMode: Text.WordWrap; text: page.tr("hint"); font.pixelSize: 12; color: page.mutedColor }
+    Text { text: page.tr("title"); font.pixelSize: UiI.UiScale.px(18); font.bold: true; color: page.textColor }
+    Text { width: parent.width; wrapMode: Text.WordWrap; text: page.tr("hint"); font.pixelSize: UiI.UiScale.px(12); color: page.mutedColor }
     Row {
         width: parent.width; spacing: 8
         TextField {
             width: (parent.width - 8) * 0.35; height: 38; maximumLength: 40; selectByMouse: true
             placeholderText: page.tr("name"); text: page.appName
             onTextEdited: page.appName = text
-            color: page.textColor; font.pixelSize: 13
+            color: page.textColor; font.pixelSize: UiI.UiScale.px(13)
             background: Rectangle { radius: 6; color: page.dark ? "#2a2a2a" : "#f0f0f0"; border.width: 1; border.color: parent.activeFocus ? page.accent : page.lineColor }
         }
         TextField {
@@ -61,7 +62,7 @@ Column {
             placeholderText: page.tr("url"); text: page.appUrl
             onTextEdited: page.appUrl = text
             onAccepted: page.create()
-            color: page.textColor; font.pixelSize: 13
+            color: page.textColor; font.pixelSize: UiI.UiScale.px(13)
             background: Rectangle { radius: 6; color: page.dark ? "#2a2a2a" : "#f0f0f0"; border.width: 1; border.color: parent.activeFocus ? page.accent : page.lineColor }
         }
     }
@@ -71,5 +72,5 @@ Column {
         text: page.tr("create")
         onClicked: page.create()
     }
-    Text { visible: page.message !== ""; width: parent.width; wrapMode: Text.WordWrap; text: page.message; font.pixelSize: 13; font.bold: true; color: page.failure ? "#cc4444" : "#3aa655" }
+    Text { visible: page.message !== ""; width: parent.width; wrapMode: Text.WordWrap; text: page.message; font.pixelSize: UiI.UiScale.px(13); font.bold: true; color: page.failure ? "#cc4444" : "#3aa655" }
 }

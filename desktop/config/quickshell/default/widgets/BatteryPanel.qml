@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Effects
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Item {
     id: batteryPanel
@@ -279,7 +280,7 @@ Item {
 
             Text {
                 text: Lang.get("nav.power", uiLanguage)
-                font.pixelSize: 16
+                font.pixelSize: UiI.UiScale.px(16)
                 font.weight: Font.DemiBold
                 color: darkMode ? "#ffffff" : "#000000"
                 antialiasing: true
@@ -300,13 +301,13 @@ Item {
 
                 Text {
                     text: batteryPanel.percentage + "%"
-                    font.pixelSize: 26
+                    font.pixelSize: UiI.UiScale.px(26)
                     font.bold: true
                     color: darkMode ? "#ffffff" : "#000000"
                 }
                 Text {
                     text: batteryPanel.batteryStateLabel(batteryPanel.state)
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: darkMode ? "#999999" : "#666666"
                 }
                 Text {
@@ -315,7 +316,7 @@ Item {
                         : (batteryPanel.timeToEmpty ? batteryPanel.tr("power.timeToEmpty") + " " + batteryPanel.timeToEmpty : "")
                     visible: remaining.length > 0
                     text: remaining
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                     color: darkMode ? "#999999" : "#666666"
                 }
             }
@@ -325,7 +326,7 @@ Item {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: batteryPanel.tr("power.noBattery")
-                font.pixelSize: 13
+                font.pixelSize: UiI.UiScale.px(13)
                 color: darkMode ? "#999999" : "#666666"
             }
 
@@ -337,7 +338,7 @@ Item {
 
                 Text {
                     text: batteryPanel.tr("power.profile")
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: darkMode ? "#999999" : "#666666"
                 }
 
@@ -359,7 +360,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: batteryPanel.tr("power.profile." + modelData)
                                 color: active ? "#ffffff" : (darkMode ? "#ffffff" : "#1a1a1a")
-                                font.pixelSize: 11
+                                font.pixelSize: UiI.UiScale.px(11)
                                 elide: Text.ElideRight
                                 width: parent.width - 8
                                 horizontalAlignment: Text.AlignHCenter
@@ -394,14 +395,14 @@ Item {
                     Text {
                         id: brightnessLabel
                         text: batteryPanel.tr("power.brightness")
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: darkMode ? "#cccccc" : "#333333"
                     }
                     Item { width: parent.width - brightnessLabel.width - brightnessPercent.width - 20 - 30; height: 1 }
                     Text {
                         id: brightnessPercent
                         text: batteryPanel.brightness + "%"
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         color: darkMode ? "#999999" : "#666666"
                     }
                 }
@@ -447,7 +448,7 @@ Item {
                 Text {
                     id: nightLightLabel
                     text: batteryPanel.tr("power.nightLight")
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: darkMode ? "#cccccc" : "#333333"
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -475,7 +476,7 @@ Item {
                 visible: batteryPanel.hasNightLight && batteryPanel.inVirtualMachine
                 width: parent.width; wrapMode: Text.WordWrap
                 text: batteryPanel.tr("power.nightLightVm")
-                font.pixelSize: 11; color: darkMode ? "#999999" : "#666666"
+                font.pixelSize: UiI.UiScale.px(11); color: darkMode ? "#999999" : "#666666"
             }
         }
     }

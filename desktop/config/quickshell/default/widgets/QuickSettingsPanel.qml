@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Rectangle {
     id: quickSettings
@@ -24,7 +25,7 @@ Rectangle {
         // Quick Settings Title
         Text {
             text: Lang.get("quickSettings.title", uiLanguage)
-            font.pixelSize: 16
+            font.pixelSize: UiI.UiScale.px(16)
             font.bold: true
             color: "#fff"
         }
@@ -54,13 +55,13 @@ Rectangle {
                     ProjectIcon {
                         anchors.horizontalCenter: parent.horizontalCenter
                         name: "audio"
-                        font.pixelSize: 24
+                        font.pixelSize: UiI.UiScale.px(24)
                     }
 
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: Lang.get("audio.title", uiLanguage)
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         color: "#ccc"
                     }
                 }
@@ -95,13 +96,13 @@ Rectangle {
                     ProjectIcon {
                         anchors.horizontalCenter: parent.horizontalCenter
                         name: "bluetooth"
-                        font.pixelSize: 24
+                        font.pixelSize: UiI.UiScale.px(24)
                     }
 
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: Lang.get("bluetooth.title", uiLanguage)
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         color: "#ccc"
                     }
                 }
@@ -136,13 +137,13 @@ Rectangle {
                     ProjectIcon {
                         anchors.horizontalCenter: parent.horizontalCenter
                         name: "network"
-                        font.pixelSize: 24
+                        font.pixelSize: UiI.UiScale.px(24)
                     }
 
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: Lang.get("network.title", uiLanguage)
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         color: "#ccc"
                     }
                 }
@@ -177,13 +178,13 @@ Rectangle {
 
                 ProjectIcon {
                     name: "brightness"
-                    font.pixelSize: 18
+                    font.pixelSize: UiI.UiScale.px(18)
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
                 Text {
                     text: Lang.get("quickSettings.brightness", uiLanguage)
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: "#ccc"
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -192,7 +193,7 @@ Rectangle {
 
                 Text {
                     text: "75%"
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                     color: "#999"
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -224,13 +225,13 @@ Rectangle {
 
                 ProjectIcon {
                     name: "audio"
-                    font.pixelSize: 18
+                    font.pixelSize: UiI.UiScale.px(18)
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
                 Text {
                     text: Lang.get("quickSettings.volume", uiLanguage)
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: "#ccc"
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -239,7 +240,7 @@ Rectangle {
 
                 Text {
                     text: "50%"
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                     color: "#999"
                     anchors.verticalCenter: parent.verticalCenter
                 }

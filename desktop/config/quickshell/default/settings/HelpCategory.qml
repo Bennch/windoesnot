@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Column {
     property var settingsMenu: null
@@ -12,7 +13,7 @@ Column {
 
     Text {
         text: Lang.get("help.shortcuts", _lang)
-        font.pixelSize: 18
+        font.pixelSize: UiI.UiScale.px(18)
         font.bold: true
         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
     }
@@ -35,14 +36,14 @@ Column {
 
     Text {
         text: Lang.get("help.startmenuManagement", _lang)
-        font.pixelSize: 18
+        font.pixelSize: UiI.UiScale.px(18)
         font.bold: true
         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
     }
 
     Text {
         text: Lang.get("help.startmenuTips", _lang)
-        font.pixelSize: 13
+        font.pixelSize: UiI.UiScale.px(13)
         color: settingsMenu.darkMode ? "#999" : "#666"
         lineHeight: 1.5
     }
@@ -59,7 +60,7 @@ Column {
 
         Text {
             text: _lang === "de" ? "Quickshell" : "Quickshell"
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
@@ -68,7 +69,7 @@ Column {
             text: _lang === "de"
                 ? "Startet die Shell neu — neue Instanz läuft zuerst, dann wird die alte beendet. Einstellungen, Pins und Taskbar bleiben erhalten."
                 : "Restarts the shell — new instance starts first, then the old one exits. Settings, pins and taskbar are preserved."
-            font.pixelSize: 12
+            font.pixelSize: UiI.UiScale.px(12)
             color: settingsMenu.darkMode ? "#777" : "#888"
             wrapMode: Text.WordWrap
             width: parent.width
@@ -105,7 +106,7 @@ Column {
                 Text {
                     id: restartLabel
                     text: _lang === "de" ? "Quickshell neu starten" : "Restart Quickshell"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: settingsMenu.darkMode ? "#cccccc" : "#444444"
                 }
             }

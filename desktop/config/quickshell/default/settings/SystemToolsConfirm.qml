@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import "." as Tools
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 // Same dimensions, colors and states as existing Settings controls.
 Popup {
@@ -26,8 +27,8 @@ Popup {
         boundsBehavior: Flickable.StopAtBounds
         Column {
             id: body; width: parent.width; spacing: 20
-            Text { width: parent.width; text: dialog.title; font.pixelSize: 18; font.bold: true; wrapMode: Text.WordWrap; color: dialog.dark ? "#ffffff" : "#1a1a1a" }
-            Text { width: parent.width; text: dialog.description; font.pixelSize: 13; wrapMode: Text.Wrap; textFormat: Text.PlainText; color: dialog.dark ? "#cccccc" : "#444444" }
+            Text { width: parent.width; text: dialog.title; font.pixelSize: UiI.UiScale.px(18); font.bold: true; wrapMode: Text.WordWrap; color: dialog.dark ? "#ffffff" : "#1a1a1a" }
+            Text { width: parent.width; text: dialog.description; font.pixelSize: UiI.UiScale.px(13); wrapMode: Text.Wrap; textFormat: Text.PlainText; color: dialog.dark ? "#cccccc" : "#444444" }
             Flow {
                 width: parent.width; spacing: 10
                 Tools.SystemToolsButton { settingsMenu: dialog.settingsMenu; text: Lang.get("common.cancel", dialog.language); onClicked: dialog.close() }

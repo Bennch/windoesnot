@@ -26,7 +26,7 @@ DEFAULTS = {'colorFilter': 'none', 'cursorSize': 24, 'textScale': 1.0, 'reduceMo
 FILTERS = ('none', 'grayscale', 'invert', 'contrast', 'protanopia', 'deuteranopia', 'tritanopia')
 CURSOR_SIZES = (24, 32, 48, 64)
 TEXT_SCALES = (1.0, 1.25, 1.5, 1.75)
-ZOOM_STEPS = (1.0, 1.5, 2.0, 3.0, 4.0)
+ZOOM_STEPS = (1.0, 1.25, 1.5, 2.0, 3.0, 4.0)
 
 HEAD = '''#version 300 es
 precision highp float;
@@ -138,6 +138,8 @@ def zoom(action):
         target = next((s for s in reversed(ZOOM_STEPS) if s < now - 0.01), ZOOM_STEPS[0])
     else:
         target = min(4.0, max(1.0, float(action)))
+    # The view follows the pointer all the time (not only at the edges), so moving the mouse to the bottom edge shows the taskbar.
+    hypr_keyword('cursor:zoom_detached_camera', 'false')
     hypr_keyword('cursor:zoom_factor', '%g' % target)
     return target
 

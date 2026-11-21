@@ -3,6 +3,7 @@ import QtQuick.Controls
 import "." as Tools
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Item {
     id: page
@@ -165,7 +166,7 @@ Item {
 
     component Note: Text {
         width: parent.width; wrapMode: Text.Wrap; textFormat: Text.PlainText
-        color: page.secondary; font.pixelSize: 13
+        color: page.secondary; font.pixelSize: UiI.UiScale.px(13)
     }
     component ActionButton: Tools.SystemToolsButton {
         settingsMenu: page.settingsMenu
@@ -184,7 +185,7 @@ Item {
             border.width: 1; border.color: page.lineColor
             Column {
                 id: mediaColumn; x: 16; y: 16; width: parent.width - 32; spacing: 8
-                Text { text: page.tr("media.title"); color: page.foreground; font.bold: true; font.pixelSize: 15 }
+                Text { text: page.tr("media.title"); color: page.foreground; font.bold: true; font.pixelSize: UiI.UiScale.px(15) }
                 Note { text: page.tr("media.hint") }
                 Tools.SystemToolsButton {
                     settingsMenu: page.settingsMenu; text: page.tr("media.check"); enabled: !mediaProc.running
@@ -207,7 +208,7 @@ Item {
             border.width: 1; border.color: page.lineColor
             Column {
                 id: hardwareColumn; x: 16; y: 16; width: parent.width - 32; spacing: 8
-                Text { text: page.tr("hwcheck.title"); color: page.foreground; font.bold: true; font.pixelSize: 15 }
+                Text { text: page.tr("hwcheck.title"); color: page.foreground; font.bold: true; font.pixelSize: UiI.UiScale.px(15) }
                 Note { visible: page.hwReport === null; text: page.hwBusy ? page.tr("systemTools.loading") : page.tr("systemTools.unavailable") }
                 Note {
                     visible: page.hwReport !== null
@@ -251,7 +252,7 @@ Item {
             border.width: 1; border.color: page.lineColor
             Column {
                 id: liteColumn; x: 16; y: 16; width: parent.width - 32; spacing: 8
-                Text { text: page.tr("maintenance.liteMode"); color: page.foreground; font.bold: true; font.pixelSize: 15 }
+                Text { text: page.tr("maintenance.liteMode"); color: page.foreground; font.bold: true; font.pixelSize: UiI.UiScale.px(15) }
                 Note { text: page.tr("maintenance.liteModeHint") }
                 Tools.SystemToolsButton {
                     settingsMenu: page.settingsMenu
@@ -269,7 +270,7 @@ Item {
             border.width: 1; border.color: page.lineColor
             Column {
                 id: removeOldColumn; x: 16; y: 16; width: parent.width - 32; spacing: 8
-                Text { text: page.tr("maintenance.removeOld"); color: page.foreground; font.bold: true; font.pixelSize: 15 }
+                Text { text: page.tr("maintenance.removeOld"); color: page.foreground; font.bold: true; font.pixelSize: UiI.UiScale.px(15) }
                 Note { text: page.tr("maintenance.removeOldHint") }
                 Tools.SystemToolsButton {
                     settingsMenu: page.settingsMenu
@@ -288,7 +289,7 @@ Item {
             border.width: 1; border.color: page.lineColor
             Column {
                 id: pacnewContent; x: 16; y: 16; width: parent.width - 32; spacing: 10
-                Text { text: page.tr("pacnew.title"); color: page.foreground; font.pixelSize: 15; font.bold: true }
+                Text { text: page.tr("pacnew.title"); color: page.foreground; font.pixelSize: UiI.UiScale.px(15); font.bold: true }
                 Note { text: page.tr("pacnew.hint") }
                 Row {
                     width: parent.width; spacing: 10
@@ -322,7 +323,7 @@ Item {
                     TextArea {
                         readOnly: true; selectByMouse: true; wrapMode: TextEdit.NoWrap
                         text: page.selectedPacnew ? page.selectedPacnew.diff : ""
-                        color: page.foreground; font.family: "monospace"; font.pixelSize: 12
+                        color: page.foreground; font.family: "monospace"; font.pixelSize: UiI.UiScale.px(12)
                         background: Rectangle { color: page.dark ? "#101010" : "#ffffff"; border.color: page.lineColor; radius: 6 }
                     }
                 }
@@ -335,7 +336,7 @@ Item {
             border.width: 1; border.color: page.lineColor
             Column {
                 id: desktopStateColumn; x: 16; y: 16; width: parent.width - 32; spacing: 8
-                Text { text: page.tr("desktopState.title"); color: page.foreground; font.bold: true; font.pixelSize: 15 }
+                Text { text: page.tr("desktopState.title"); color: page.foreground; font.bold: true; font.pixelSize: UiI.UiScale.px(15) }
                 Note {
                     text: !page.desktopStateReady ? page.tr("desktopState.unavailable")
                         : (page.desktopErrors.length ? page.desktopErrors : page.tr("desktopState.noErrors"))
@@ -379,9 +380,9 @@ Item {
                 id: resultColumn; x: 16; y: 16; width: parent.width - 32; spacing: 10
                 Note { visible: page.resultText.length > 0; text: page.resultText; color: page.foreground }
                 Note { visible: page.rebootNeeded; text: page.tr("systemTools.reboot"); color: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
-                Note { visible: page.logPath.length > 0; text: page.tr("systemTools.log") + " " + page.logPath; font.pixelSize: 11 }
+                Note { visible: page.logPath.length > 0; text: page.tr("systemTools.log") + " " + page.logPath; font.pixelSize: UiI.UiScale.px(11) }
                 Tools.SystemToolsButton { settingsMenu: page.settingsMenu; visible: page.detailText.length > 0; text: page.tr("systemTools.details"); onClicked: page.showDetails = !page.showDetails }
-                Note { visible: page.showDetails; text: page.detailText; font.pixelSize: 12 }
+                Note { visible: page.showDetails; text: page.detailText; font.pixelSize: UiI.UiScale.px(12) }
             }
         }
         Note {
@@ -412,7 +413,7 @@ Item {
                 border.width: 1; border.color: page.lineColor
                 Column {
                     id: cardContent; x: 16; y: 16; width: parent.width - 32; spacing: 10
-                    Text { width: parent.width; text: page.tr(card.modelData.title); color: page.foreground; font.pixelSize: 15; font.bold: true; wrapMode: Text.WordWrap }
+                    Text { width: parent.width; text: page.tr(card.modelData.title); color: page.foreground; font.pixelSize: UiI.UiScale.px(15); font.bold: true; wrapMode: Text.WordWrap }
                     Note { text: page.tr(card.modelData.hint) }
                     Note {
                         visible: card.modelData.action === "cache-clean" && page.ready

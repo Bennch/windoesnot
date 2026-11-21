@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Column {
     property var settingsMenu: null
@@ -17,14 +18,14 @@ Column {
 
         Text {
             text: Lang.get("desktop.iconSize", _lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
 
         Text {
             text: Lang.get("desktop.iconSizeDesc", _lang)
-            font.pixelSize: 12
+            font.pixelSize: UiI.UiScale.px(12)
             color: settingsMenu.darkMode ? "#666" : "#888"
             wrapMode: Text.WordWrap
         }
@@ -81,7 +82,7 @@ Column {
 
             Text {
                 text: iconSizeSlider.value + " px"
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#ccc" : "#555"
                 width: 60
                 horizontalAlignment: Text.AlignRight
@@ -103,14 +104,14 @@ Column {
 
         Text {
             text: Lang.get("desktop.grid", _lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
 
         Text {
             text: Lang.get("desktop.gridDesc", _lang)
-            font.pixelSize: 12
+            font.pixelSize: UiI.UiScale.px(12)
             color: settingsMenu.darkMode ? "#666" : "#888"
             wrapMode: Text.WordWrap
         }
@@ -167,7 +168,7 @@ Column {
 
             Text {
                 text: gridSizeSlider.value === 0 ? Lang.get("desktop.gridOff", _lang) : gridSizeSlider.value + " px"
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#ccc" : "#555"
                 width: 60
                 horizontalAlignment: Text.AlignRight
@@ -189,14 +190,14 @@ Column {
 
         Text {
             text: Lang.get("desktop.labelLines", _lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
 
         Text {
             text: Lang.get("desktop.labelLinesDesc", _lang)
-            font.pixelSize: 12
+            font.pixelSize: UiI.UiScale.px(12)
             color: settingsMenu.darkMode ? "#666" : "#888"
             wrapMode: Text.WordWrap
         }
@@ -221,7 +222,7 @@ Column {
                     Text {
                         anchors.centerIn: parent
                         text: modelData
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: settingsMenu && settingsMenu.desktopLabelLines === modelData
                             ? "#fff"
                             : (settingsMenu.darkMode ? "#aaa" : "#333")
@@ -258,13 +259,13 @@ Column {
 
             Text {
                 text: Lang.get("desktop.showTrash", _lang)
-                font.pixelSize: 16
+                font.pixelSize: UiI.UiScale.px(16)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
 
             Text {
                 text: Lang.get("desktop.showTrashDesc", _lang)
-                font.pixelSize: 12
+                font.pixelSize: UiI.UiScale.px(12)
                 color: settingsMenu.darkMode ? "#666" : "#888"
                 wrapMode: Text.WordWrap
             }

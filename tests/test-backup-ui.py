@@ -13,6 +13,7 @@ with tempfile.TemporaryDirectory(prefix='wdn-backup-ui-') as temp:
  (profile/'settings/BackupsCategory.qml').write_text(page)
  shutil.copy2(source/'settings/SystemToolsButton.qml',profile/'settings')
  shutil.copy2(source/'settings/SystemToolsConfirm.qml',profile/'settings')
+ for extra in ('FileBackupCard','SystemToolsToggle','SystemToolsChoice'): shutil.copy2(source/f'settings/{extra}.qml',profile/'settings')
  shutil.copy2(source/'widgets/AuthenticationCard.qml',profile/'widgets')
  (profile/'img/Win11-dark/actions/32').mkdir(parents=True)
  shutil.copy2(source/'img/Win11-dark/actions/32/system-lock-screen.svg',profile/'img/Win11-dark/actions/32')

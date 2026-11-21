@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Effects
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Item {
     id: bluetoothPanel
@@ -426,7 +427,7 @@ Item {
 
                 Text {
                     text: Lang.get("bluetooth.title", uiLanguage)
-                    font.pixelSize: 16
+                    font.pixelSize: UiI.UiScale.px(16)
                     font.weight: Font.DemiBold
                     color: darkMode ? "#ffffff" : "#000000"
                     antialiasing: true
@@ -483,7 +484,7 @@ Item {
 
                 Text {
                     text: Lang.get("bluetooth.devices", uiLanguage)
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: darkMode ? "#999999" : "#666666"
                 }
 
@@ -549,7 +550,7 @@ Item {
 
                                         Text {
                                             text: modelData.name
-                                            font.pixelSize: 13
+                                            font.pixelSize: UiI.UiScale.px(13)
                                             color: modelData.connected ? (darkMode ? "#ffffff" : "#000000") : (darkMode ? "#cccccc" : "#333333")
                                             elide: Text.ElideRight
                                             width: parent.width
@@ -570,7 +571,7 @@ Item {
                                             }
                                             width: parent.width
                                             elide: Text.ElideRight
-                                            font.pixelSize: 11
+                                            font.pixelSize: UiI.UiScale.px(11)
                                             color: modelData.connected ? bluetoothPanel.accentColor : (modelData.paired ? (darkMode ? "#999999" : "#666666") : (darkMode ? "#444444" : "#666666"))
                                         }
                                     }
@@ -597,7 +598,7 @@ Item {
                                                 Text {
                                                     anchors.centerIn: parent
                                                     text: Lang.get("bluetooth.disconnect", uiLanguage)
-                                                    font.pixelSize: 10
+                                                    font.pixelSize: UiI.UiScale.px(10)
                                                     color: darkMode ? "#cccccc" : "#333333"
                                                     font.bold: true
                                                     antialiasing: true
@@ -628,7 +629,7 @@ Item {
                                                 Text {
                                                     anchors.centerIn: parent
                                                     text: Lang.get("bluetooth.connect", uiLanguage)
-                                                    font.pixelSize: 10
+                                                    font.pixelSize: UiI.UiScale.px(10)
                                                     color: "#fff"
                                                     font.bold: true
                                                     antialiasing: true
@@ -659,7 +660,7 @@ Item {
                                                 Text {
                                                     anchors.centerIn: parent
                                                     text: Lang.get("bluetooth.pair", uiLanguage)
-                                                    font.pixelSize: 10
+                                                    font.pixelSize: UiI.UiScale.px(10)
                                                     color: "#fff"
                                                     font.bold: true
                                                     antialiasing: true
@@ -728,7 +729,7 @@ Item {
                         anchors.centerIn: parent
                         visible: bluetoothPanel.allDevices.length === 0
                         text: Lang.get("bluetooth.noDevices", uiLanguage)
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         color: darkMode ? "#666666" : "#444444"
                     }
                 }
@@ -784,7 +785,7 @@ Item {
 
                     Text {
                         text: bluetoothPanel.isScanning ? Lang.get("bluetooth.stopScan", uiLanguage) : Lang.get("bluetooth.searchDevices", uiLanguage)
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         font.bold: bluetoothPanel.isScanning
                         color: bluetoothPanel.isScanning ? (darkMode ? "#ffffff" : "#000000") : (darkMode ? "#cccccc" : "#333333")
                         anchors.verticalCenter: parent.verticalCenter
@@ -839,7 +840,7 @@ Item {
 
                     Text {
                         text: Lang.get("common.settings", uiLanguage)
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         color: darkMode ? "#cccccc" : "#333333"
                         anchors.verticalCenter: parent.verticalCenter
                     }

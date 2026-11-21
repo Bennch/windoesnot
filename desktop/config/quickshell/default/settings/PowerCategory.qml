@@ -3,6 +3,7 @@ import QtQuick.Controls
 import "." as Tools
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Item {
     id: page
@@ -67,13 +68,13 @@ Item {
         wrapMode: Text.WordWrap
         textFormat: Text.PlainText
         color: page.secondary
-        font.pixelSize: 13
+        font.pixelSize: UiI.UiScale.px(13)
     }
     component Heading: Text {
         width: parent.width
         wrapMode: Text.WordWrap
         color: page.foreground
-        font.pixelSize: 18
+        font.pixelSize: UiI.UiScale.px(18)
         font.bold: true
     }
 
@@ -110,7 +111,7 @@ Item {
                 Text {
                     text: (page.state.battery ? page.state.battery.percentage : "0") + "%"
                     color: page.foreground
-                    font.pixelSize: 28
+                    font.pixelSize: UiI.UiScale.px(28)
                     font.bold: true
                 }
                 Note { text: page.state.battery ? page.batteryStateLabel(page.state.battery.state) : "" }
@@ -149,7 +150,7 @@ Item {
                         anchors.centerIn: parent
                         text: page.tr("power.profile." + modelData)
                         color: active ? "#ffffff" : (page.dark ? "#ffffff" : "#1a1a1a")
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                     }
                     MouseArea {
                         anchors.fill: parent

@@ -3,6 +3,7 @@ import QtQuick.Controls
 import Quickshell.Io
 import "." as Tools
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 // What Super+E does while a file window is already open: a new window (like Explorer) or a tab in the open window.
 // windoesnot-file-manager keeps the choice in ~/.config/windoesnot/file-manager-open-mode.
@@ -29,10 +30,10 @@ Column {
     Process { id: writeProc }
     function setMode(value) { page.mode = value; writeProc.command = ["windoesnot-file-manager", "--open-mode", "set", value]; writeProc.running = true }
 
-    Text { text: page.tr("title"); font.pixelSize: 18; font.bold: true; color: page.dark ? "#fff" : "#1a1a1a" }
+    Text { text: page.tr("title"); font.pixelSize: UiI.UiScale.px(18); font.bold: true; color: page.dark ? "#fff" : "#1a1a1a" }
     Row {
         width: parent.width; spacing: 15
-        Text { text: page.tr("openWith"); font.pixelSize: 14; color: page.dark ? "#aaa" : "#555"; width: parent.width - 260 - parent.spacing; anchors.verticalCenter: parent.verticalCenter; wrapMode: Text.WordWrap }
+        Text { text: page.tr("openWith"); font.pixelSize: UiI.UiScale.px(14); color: page.dark ? "#aaa" : "#555"; width: parent.width - 260 - parent.spacing; anchors.verticalCenter: parent.verticalCenter; wrapMode: Text.WordWrap }
         Tools.SystemToolsChoice {
             settingsMenu: page.settingsMenu
             width: 260
@@ -43,5 +44,5 @@ Column {
             onActivated: function(index) { page.setMode(page.modes[index]) }
         }
     }
-    Text { width: parent.width; text: page.tr("hint"); wrapMode: Text.WordWrap; font.pixelSize: 12; color: page.dark ? "#888" : "#777" }
+    Text { width: parent.width; text: page.tr("hint"); wrapMode: Text.WordWrap; font.pixelSize: UiI.UiScale.px(12); color: page.dark ? "#888" : "#777" }
 }

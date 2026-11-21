@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import Quickshell.Io
 import Qt5Compat.GraphicalEffects
+import "../i18n" as UiI
 
 Column {
     property var settingsMenu: null
@@ -20,13 +21,13 @@ Column {
 
             Text {
                 text: "Fenster-Modus"
-                font.pixelSize: 16
+                font.pixelSize: UiI.UiScale.px(16)
                 color: "#aaa"
             }
 
             Text {
                 text: "Bestimmt wie neue Fenster geöffnet werden."
-                font.pixelSize: 12
+                font.pixelSize: UiI.UiScale.px(12)
                 color: "#666"
                 wrapMode: Text.WordWrap
             }
@@ -90,7 +91,7 @@ Column {
                             Text {
                                 text: label
                                 color: "#fff"
-                                font.pixelSize: 16
+                                font.pixelSize: UiI.UiScale.px(16)
                                 font.bold: true
                                 anchors.verticalCenter: parent.verticalCenter
                             }
@@ -99,7 +100,7 @@ Column {
                         Text {
                             text: description
                             color: settingsMenu.windowMode === value ? "#fff" : "#999"
-                            font.pixelSize: 11
+                            font.pixelSize: UiI.UiScale.px(11)
                             wrapMode: Text.WordWrap
                             width: parent.width
                             lineHeight: 1.3
@@ -133,13 +134,13 @@ Column {
 
             Text {
                 text: "Erscheinungsmodus"
-                font.pixelSize: 16
+                font.pixelSize: UiI.UiScale.px(16)
                 color: "#aaa"
             }
 
             Text {
                 text: "Wechsel zwischen hellem und dunklem Theme"
-                font.pixelSize: 12
+                font.pixelSize: UiI.UiScale.px(12)
                 color: "#666"
                 wrapMode: Text.WordWrap
             }
@@ -194,13 +195,13 @@ Column {
 
         Text {
             text: "GTK-Theme"
-            font.pixelSize: 16
+            font.pixelSize: UiI.UiScale.px(16)
             color: "#aaa"
         }
 
         Text {
             text: "Aktuell aktiv: " + settingsMenu.gtkTheme
-            font.pixelSize: 13
+            font.pixelSize: UiI.UiScale.px(13)
             color: settingsMenu.accentColor
             font.bold: true
         }
@@ -229,7 +230,7 @@ Column {
                     }
                     Text {
                         text: "Dark Mode Theme"
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         color: "#aaa"
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -268,7 +269,7 @@ Column {
                         leftPadding: 10
                         rightPadding: gtkThemeDarkCombo.indicator.width + gtkThemeDarkCombo.spacing
                         text: gtkThemeDarkCombo.displayText
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         color: "#fff"
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
@@ -278,7 +279,7 @@ Column {
                         x: gtkThemeDarkCombo.width - width - 10
                         y: gtkThemeDarkCombo.topPadding + (gtkThemeDarkCombo.availableHeight - height) / 2
                         text: "▼"
-                        font.pixelSize: 9
+                        font.pixelSize: UiI.UiScale.px(9)
                         color: "#999"
                     }
 
@@ -309,7 +310,7 @@ Column {
                         contentItem: Text {
                             text: model.name
                             color: "#fff"
-                            font.pixelSize: 11
+                            font.pixelSize: UiI.UiScale.px(11)
                             elide: Text.ElideRight
                             verticalAlignment: Text.AlignVCenter
                             leftPadding: 10
@@ -352,7 +353,7 @@ Column {
                     }
                     Text {
                         text: "Light Mode Theme"
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         color: "#aaa"
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -391,7 +392,7 @@ Column {
                         leftPadding: 10
                         rightPadding: gtkThemeLightCombo.indicator.width + gtkThemeLightCombo.spacing
                         text: gtkThemeLightCombo.displayText
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         color: "#fff"
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
@@ -401,7 +402,7 @@ Column {
                         x: gtkThemeLightCombo.width - width - 10
                         y: gtkThemeLightCombo.topPadding + (gtkThemeLightCombo.availableHeight - height) / 2
                         text: "▼"
-                        font.pixelSize: 9
+                        font.pixelSize: UiI.UiScale.px(9)
                         color: "#999"
                     }
 
@@ -432,7 +433,7 @@ Column {
                         contentItem: Text {
                             text: model.name
                             color: "#fff"
-                            font.pixelSize: 11
+                            font.pixelSize: UiI.UiScale.px(11)
                             elide: Text.ElideRight
                             verticalAlignment: Text.AlignVCenter
                             leftPadding: 10
@@ -454,7 +455,7 @@ Column {
 
             Text {
                 text: "Alle verfügbaren Themes"
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: "#aaa"
             }
 
@@ -498,7 +499,7 @@ Column {
 
                             Text {
                                 text: model.name
-                                font.pixelSize: 13
+                                font.pixelSize: UiI.UiScale.px(13)
                                 color: "#fff"
                                 anchors.verticalCenter: parent.verticalCenter
                             }
@@ -523,7 +524,7 @@ Column {
 
         Text {
             text: "💡 Tipp: GTK-Themes werden automatisch gewechselt wenn du zwischen Dark/Light Mode umschaltest"
-            font.pixelSize: 11
+            font.pixelSize: UiI.UiScale.px(11)
             color: "#666"
             wrapMode: Text.WordWrap
             width: parent.width
@@ -547,7 +548,7 @@ Column {
 
             Text {
                 text: "Mauszeiger-Theme"
-                font.pixelSize: 16
+                font.pixelSize: UiI.UiScale.px(16)
                 color: "#aaa"
                 width: parent.width - 150
                 anchors.verticalCenter: parent.verticalCenter
@@ -555,7 +556,7 @@ Column {
 
             Text {
                 text: settingsMenu.cursorTheme
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: "#999"
                 width: 150
                 horizontalAlignment: Text.AlignRight
@@ -603,7 +604,7 @@ Column {
 
                         Text {
                             text: model.name
-                            font.pixelSize: 13
+                            font.pixelSize: UiI.UiScale.px(13)
                             color: "#fff"
                             anchors.verticalCenter: parent.verticalCenter
                         }
@@ -622,7 +623,7 @@ Column {
 
         Text {
             text: "💡 Tipp: Weitere Cursor-Themes installieren mit: sudo pacman -S bibata-cursor-theme breeze"
-            font.pixelSize: 11
+            font.pixelSize: UiI.UiScale.px(11)
             color: "#666"
             wrapMode: Text.WordWrap
             width: parent.width
@@ -646,7 +647,7 @@ Column {
 
             Text {
                 text: "Symbol-Theme"
-                font.pixelSize: 16
+                font.pixelSize: UiI.UiScale.px(16)
                 color: "#aaa"
                 width: parent.width - 150
                 anchors.verticalCenter: parent.verticalCenter
@@ -654,7 +655,7 @@ Column {
 
             Text {
                 text: settingsMenu.iconTheme
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: "#999"
                 width: 150
                 horizontalAlignment: Text.AlignRight
@@ -702,7 +703,7 @@ Column {
 
                         Text {
                             text: model.name
-                            font.pixelSize: 13
+                            font.pixelSize: UiI.UiScale.px(13)
                             color: "#fff"
                             anchors.verticalCenter: parent.verticalCenter
                         }
@@ -742,13 +743,13 @@ Column {
 
                 Text {
                     text: "Titelleiste aktivieren"
-                    font.pixelSize: 16
+                    font.pixelSize: UiI.UiScale.px(16)
                     color: "#aaa"
                 }
 
                 Text {
                     text: "Aktiviert/deaktiviert die Titelleiste komplett (setzt bar_height auf 0)"
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                     color: "#666"
                     wrapMode: Text.WordWrap
                 }
@@ -813,13 +814,13 @@ Column {
 
                 Text {
                     text: "Titelleisten Buttons"
-                    font.pixelSize: 16
+                    font.pixelSize: UiI.UiScale.px(16)
                     color: "#aaa"
                 }
 
                 Text {
                     text: "Zeige Titelleiste mit Schließen/Maximieren/Minimieren Buttons"
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                     color: "#666"
                     wrapMode: Text.WordWrap
                 }
@@ -879,7 +880,7 @@ Column {
 
                 Text {
                     text: "Einzelne Buttons"
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     font.bold: true
                     color: "#aaa"
                 }
@@ -891,7 +892,7 @@ Column {
 
                     Text {
                         text: "Schließen Button (X)"
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         color: "#aaa"
                         width: parent.width - 80
                         anchors.verticalCenter: parent.verticalCenter
@@ -934,7 +935,7 @@ Column {
 
                     Text {
                         text: "Maximieren Button (□)"
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         color: "#aaa"
                         width: parent.width - 80
                         anchors.verticalCenter: parent.verticalCenter
@@ -977,7 +978,7 @@ Column {
 
                     Text {
                         text: "Minimieren Button (—)"
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         color: "#aaa"
                         width: parent.width - 80
                         anchors.verticalCenter: parent.verticalCenter
@@ -1031,14 +1032,14 @@ Column {
 
                     Text {
                         text: "Titelleisten-Höhe"
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: "#aaa"
                         width: parent.width - 50
                     }
 
                     Text {
                         text: settingsMenu.hyprbarsHeight + "px"
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: "#999"
                         width: 50
                         horizontalAlignment: Text.AlignRight
@@ -1081,7 +1082,7 @@ Column {
 
                 Text {
                     text: "Min: 15px • Max: 50px"
-                    font.pixelSize: 10
+                    font.pixelSize: UiI.UiScale.px(10)
                     color: "#666"
                 }
             }
@@ -1093,7 +1094,7 @@ Column {
 
                 Text {
                     text: "Button-Position"
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: "#aaa"
                 }
 
@@ -1120,7 +1121,7 @@ Column {
                                 anchors.centerIn: parent
                                 text: label
                                 color: "#fff"
-                                font.pixelSize: 13
+                                font.pixelSize: UiI.UiScale.px(13)
                             }
 
                             MouseArea {
@@ -1148,7 +1149,7 @@ Column {
 
                 Text {
                     text: "Bar Design"
-                    font.pixelSize: 15
+                    font.pixelSize: UiI.UiScale.px(15)
                     font.bold: true
                     color: "#fff"
                 }
@@ -1158,7 +1159,7 @@ Column {
                     spacing: 15
                     Text {
                         text: "Bar Farbe"
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: "#aaa"
                         width: 150
                         anchors.verticalCenter: parent.verticalCenter
@@ -1194,7 +1195,7 @@ Column {
                     spacing: 15
                     Text {
                         text: "Bar Blur"
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: "#aaa"
                         width: 150
                         anchors.verticalCenter: parent.verticalCenter
@@ -1236,7 +1237,7 @@ Column {
 
                 Text {
                     text: "Text Styling"
-                    font.pixelSize: 15
+                    font.pixelSize: UiI.UiScale.px(15)
                     font.bold: true
                     color: "#fff"
                 }
@@ -1246,7 +1247,7 @@ Column {
                     spacing: 15
                     Text {
                         text: "Text Farbe"
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: "#aaa"
                         width: 150
                         anchors.verticalCenter: parent.verticalCenter
@@ -1285,13 +1286,13 @@ Column {
                         width: parent.width
                         Text {
                             text: "Text Größe"
-                            font.pixelSize: 14
+                            font.pixelSize: UiI.UiScale.px(14)
                             color: "#aaa"
                             width: parent.width - 40
                         }
                         Text {
                             text: settingsMenu.hyprbarsTextSize + "px"
-                            font.pixelSize: 14
+                            font.pixelSize: UiI.UiScale.px(14)
                             color: "#999"
                             width: 40
                             horizontalAlignment: Text.AlignRight
@@ -1330,7 +1331,7 @@ Column {
                     spacing: 10
                     Text {
                         text: "Schriftart"
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: "#aaa"
                     }
                     Rectangle {
@@ -1346,7 +1347,7 @@ Column {
                             anchors.margins: 10
                             text: settingsMenu.hyprbarsTextFont
                             color: "#fff"
-                            font.pixelSize: 13
+                            font.pixelSize: UiI.UiScale.px(13)
                             verticalAlignment: TextInput.AlignVCenter
                             onEditingFinished: {
                                 settingsMenu.hyprbarsTextFont = text
@@ -1361,7 +1362,7 @@ Column {
                     spacing: 10
                     Text {
                         text: "Text Ausrichtung"
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: "#aaa"
                     }
                     Row {
@@ -1384,7 +1385,7 @@ Column {
                                     anchors.centerIn: parent
                                     text: label
                                     color: "#fff"
-                                    font.pixelSize: 12
+                                    font.pixelSize: UiI.UiScale.px(12)
                                 }
                                 MouseArea {
                                     anchors.fill: parent
@@ -1401,7 +1402,7 @@ Column {
                     spacing: 15
                     Text {
                         text: "Titel anzeigen"
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         color: "#aaa"
                         width: 150
                         anchors.verticalCenter: parent.verticalCenter
@@ -1443,14 +1444,14 @@ Column {
 
                 Text {
                     text: "Windows 11 Style (Transparente Buttons)"
-                    font.pixelSize: 15
+                    font.pixelSize: UiI.UiScale.px(15)
                     font.bold: true
                     color: "#fff"
                 }
 
                 Text {
                     text: "Im Windows 11 Style haben alle Buttons transparente Hintergründe und zeigen nur beim Hover Farben. Die Button-Text-Farben werden automatisch an den Dark/Light Mode angepasst."
-                    font.pixelSize: 11
+                    font.pixelSize: UiI.UiScale.px(11)
                     color: "#666"
                     wrapMode: Text.WordWrap
                     width: parent.width
@@ -1473,7 +1474,7 @@ Column {
 
         Text {
             text: "Schriftarten"
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: "#fff"
         }
@@ -1484,7 +1485,7 @@ Column {
             spacing: 10
             Text {
                 text: "Oberfläche"
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: "#aaa"
             }
             Rectangle {
@@ -1500,7 +1501,7 @@ Column {
                     anchors.margins: 10
                     text: settingsMenu.fontInterface
                     color: "#fff"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     verticalAlignment: TextInput.AlignVCenter
                     onEditingFinished: {
                         settingsMenu.fontInterface = text
@@ -1509,7 +1510,7 @@ Column {
             }
             Text {
                 text: "z.B. Cantarell 11"
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 color: "#666"
             }
         }
@@ -1520,7 +1521,7 @@ Column {
             spacing: 10
             Text {
                 text: "Dokumente"
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: "#aaa"
             }
             Rectangle {
@@ -1536,7 +1537,7 @@ Column {
                     anchors.margins: 10
                     text: settingsMenu.fontDocument
                     color: "#fff"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     verticalAlignment: TextInput.AlignVCenter
                     onEditingFinished: {
                         settingsMenu.fontDocument = text
@@ -1545,7 +1546,7 @@ Column {
             }
             Text {
                 text: "z.B. Sans 11"
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 color: "#666"
             }
         }
@@ -1556,7 +1557,7 @@ Column {
             spacing: 10
             Text {
                 text: "Konsolentext (Monospace)"
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: "#aaa"
             }
             Rectangle {
@@ -1572,7 +1573,7 @@ Column {
                     anchors.margins: 10
                     text: settingsMenu.fontMonospace
                     color: "#fff"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     verticalAlignment: TextInput.AlignVCenter
                     onEditingFinished: {
                         settingsMenu.fontMonospace = text
@@ -1581,7 +1582,7 @@ Column {
             }
             Text {
                 text: "z.B. Monospace 10 (für Terminal/Code)"
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 color: "#666"
             }
         }
@@ -1594,13 +1595,13 @@ Column {
                 width: parent.width
                 Text {
                     text: "Skalierung"
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: "#aaa"
                     width: parent.width - 50
                 }
                 Text {
                     text: settingsMenu.fontScaling.toFixed(2)
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: "#999"
                     width: 50
                     horizontalAlignment: Text.AlignRight
@@ -1633,7 +1634,7 @@ Column {
             }
             Text {
                 text: "0.5 (klein) bis 2.0 (groß)"
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 color: "#666"
             }
         }
@@ -1644,7 +1645,7 @@ Column {
             spacing: 10
             Text {
                 text: "Hinting"
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: "#aaa"
             }
             Row {
@@ -1668,7 +1669,7 @@ Column {
                             anchors.centerIn: parent
                             text: label
                             color: "#fff"
-                            font.pixelSize: 12
+                            font.pixelSize: UiI.UiScale.px(12)
                         }
                         MouseArea {
                             anchors.fill: parent
@@ -1686,7 +1687,7 @@ Column {
             spacing: 10
             Text {
                 text: "Kantenglättung"
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: "#aaa"
             }
             Row {
@@ -1709,7 +1710,7 @@ Column {
                             anchors.centerIn: parent
                             text: label
                             color: "#fff"
-                            font.pixelSize: 12
+                            font.pixelSize: UiI.UiScale.px(12)
                         }
                         MouseArea {
                             anchors.fill: parent

@@ -4,6 +4,7 @@ import QtQuick.Dialogs as Dialogs
 import Quickshell.Io
 import "." as Tools
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 // Own account only: password and profile picture. Every write runs through the pkexec helper.
 Item {
@@ -40,7 +41,7 @@ Item {
 
     component Note: Text {
         width: parent.width; wrapMode: Text.Wrap; textFormat: Text.PlainText
-        color: page.secondary; font.pixelSize: 13
+        color: page.secondary; font.pixelSize: UiI.UiScale.px(13)
     }
     component AccountField: TextField {
         width: parent.width; height: 36
@@ -48,7 +49,7 @@ Item {
         inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText
         color: page.foreground
         placeholderTextColor: page.dark ? "#666" : "#999"
-        font.pixelSize: 13
+        font.pixelSize: UiI.UiScale.px(13)
         leftPadding: 10; rightPadding: 10
         background: Rectangle {
             radius: 6
@@ -130,7 +131,7 @@ Item {
                 id: resultColumn; x: 16; y: 16; width: parent.width - 32; spacing: 10
                 Note { visible: page.resultKey.length > 0; text: page.tr(page.resultKey); color: page.foreground }
                 Note { visible: page.errorText.length > 0; text: page.errorText; color: "#e65555" }
-                Note { visible: page.logPath.length > 0; text: page.tr("systemTools.log") + " " + page.logPath; font.pixelSize: 11 }
+                Note { visible: page.logPath.length > 0; text: page.tr("systemTools.log") + " " + page.logPath; font.pixelSize: UiI.UiScale.px(11) }
             }
         }
 
@@ -143,7 +144,7 @@ Item {
             border.width: 1; border.color: page.lineColor
             Column {
                 id: passwordContent; x: 16; y: 16; width: parent.width - 32; spacing: 10
-                Text { width: parent.width; text: page.tr("account.passwordTitle"); color: page.foreground; font.pixelSize: 15; font.bold: true; wrapMode: Text.WordWrap }
+                Text { width: parent.width; text: page.tr("account.passwordTitle"); color: page.foreground; font.pixelSize: UiI.UiScale.px(15); font.bold: true; wrapMode: Text.WordWrap }
                 Note { text: page.tr("account.passwordHint") }
                 Loader { width: parent.width; sourceComponent: avatarContentComponent }
                 AccountField { id: currentField; placeholderText: page.tr("account.currentPassword"); enabled: !page.busy }
@@ -188,14 +189,14 @@ Item {
                             anchors.centerIn: parent
                             visible: avatarPreview.status !== Image.Ready
                             text: page.userName.length > 0 ? page.userName.charAt(0).toUpperCase() : "?"
-                            font.pixelSize: 24; font.bold: true
+                            font.pixelSize: UiI.UiScale.px(24); font.bold: true
                             color: page.foreground
                         }
                 }
                 Column {
                     width: parent.width - 76; spacing: 5
-                    Text { width: parent.width; text: page.tr("account.avatarTitle"); color: page.foreground; font.pixelSize: 14; font.bold: true; elide: Text.ElideRight }
-                    Note { text: page.tr("account.avatarHint"); font.pixelSize: 12 }
+                    Text { width: parent.width; text: page.tr("account.avatarTitle"); color: page.foreground; font.pixelSize: UiI.UiScale.px(14); font.bold: true; elide: Text.ElideRight }
+                    Note { text: page.tr("account.avatarHint"); font.pixelSize: UiI.UiScale.px(12) }
                     Tools.SystemToolsButton {
                         settingsMenu: page.settingsMenu
                         enabled: !page.busy

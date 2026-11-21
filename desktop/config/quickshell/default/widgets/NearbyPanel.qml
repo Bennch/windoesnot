@@ -5,6 +5,7 @@ import QtQuick.Dialogs
 import Quickshell.Io
 import "../settings" as Tools
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Rectangle {
     id: panel
@@ -46,9 +47,9 @@ Rectangle {
     Process { id: copyAddresses; command: ["wl-copy", panel.copyText]; running: false }
     component Label: Text {
         width: parent.width; wrapMode: Text.WordWrap; textFormat: Text.PlainText
-        color: panel.secondary; font.pixelSize: 13
+        color: panel.secondary; font.pixelSize: UiI.UiScale.px(13)
     }
-    component Heading: Label { color: panel.foreground; font.bold: true; font.pixelSize: 16 }
+    component Heading: Label { color: panel.foreground; font.bold: true; font.pixelSize: UiI.UiScale.px(16) }
     component Action: Tools.SystemToolsButton { settingsMenu: panel }
     // A found device: name on the first line, model and IP address on the second.
     component DeviceButton: Tools.SystemToolsButton {
@@ -60,13 +61,13 @@ Rectangle {
             spacing: 2
             Text {
                 width: parent.width; text: device.modelData.alias
-                color: device.dark ? "#eeeeee" : "#222222"; font.pixelSize: 13; font.bold: true
+                color: device.dark ? "#eeeeee" : "#222222"; font.pixelSize: UiI.UiScale.px(13); font.bold: true
                 horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
             }
             Text {
                 width: parent.width
                 text: (device.modelData.model ? device.modelData.model + "  ·  " : "") + (device.modelData.address || "")
-                color: device.dark ? "#bbbbbb" : "#555555"; font.pixelSize: 12
+                color: device.dark ? "#bbbbbb" : "#555555"; font.pixelSize: UiI.UiScale.px(12)
                 horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
             }
         }
@@ -97,10 +98,10 @@ Rectangle {
             width: parent.width; spacing: 14
 
             // Header: what this panel is, and whether it accepts files.
-            Heading { text: panel.tr("nearby.title"); font.pixelSize: 18 }
+            Heading { text: panel.tr("nearby.title"); font.pixelSize: UiI.UiScale.px(18) }
             Column {
                 width: parent.width; spacing: 6
-                Text { text: panel.tr("nearby.localAddresses"); color: panel.foreground; font.bold: true; font.pixelSize: 14 }
+                Text { text: panel.tr("nearby.localAddresses"); color: panel.foreground; font.bold: true; font.pixelSize: UiI.UiScale.px(14) }
                 Row {
                     width: parent.width; spacing: 8
                     Label { width: parent.width - copyButton.width - 8; text: (panel.viewState.addresses || []).join(", ") || "—"; color: panel.foreground }
@@ -142,7 +143,7 @@ Rectangle {
                         required property int index
                         required property string modelData
                         width: tabText.width; height: 28
-                        Text { id: tabText; text: panel.tr(modelData); font.pixelSize: 14; font.bold: panel.tab === index
+                        Text { id: tabText; text: panel.tr(modelData); font.pixelSize: UiI.UiScale.px(14); font.bold: panel.tab === index
                                color: panel.tab === index ? panel.foreground : panel.secondary }
                         Rectangle { visible: panel.tab === index; width: parent.width; height: 2; y: parent.height - 2; color: panel.accentColor }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: panel.tab = index }
@@ -195,7 +196,7 @@ Rectangle {
             // Devices: tap one to send the selected files to it.
             Row {
                 width: parent.width; spacing: 8
-                Text { text: panel.tr("nearby.devices"); color: panel.foreground; font.bold: true; font.pixelSize: 15; anchors.verticalCenter: parent.verticalCenter }
+                Text { text: panel.tr("nearby.devices"); color: panel.foreground; font.bold: true; font.pixelSize: UiI.UiScale.px(15); anchors.verticalCenter: parent.verticalCenter }
             }
             Label { visible: panel.viewState.devices.length === 0; text: panel.tr("nearby.noDevices") }
             Repeater {
@@ -256,7 +257,7 @@ Rectangle {
                         width: parent.width; spacing: 2
                         Label { color: panel.foreground; text: modelData.peer + " \u00b7 " + panel.tr("nearby.status." + modelData.status) }
                         Label { text: modelData.files.join(", ") }
-                        Label { font.pixelSize: 11; text: new Date(modelData.time * 1000).toLocaleString(Qt.locale(panel.uiLanguage), Locale.ShortFormat) }
+                        Label { font.pixelSize: UiI.UiScale.px(11); text: new Date(modelData.time * 1000).toLocaleString(Qt.locale(panel.uiLanguage), Locale.ShortFormat) }
                     }
                 }
             }

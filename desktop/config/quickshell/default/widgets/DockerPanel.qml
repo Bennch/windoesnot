@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Effects
 import Quickshell.Io
+import "../i18n" as UiI
 
 Item {
     id: dockerPanel
@@ -133,7 +134,7 @@ Item {
 
                 Text {
                     text: "Docker"
-                    font.pixelSize: 16
+                    font.pixelSize: UiI.UiScale.px(16)
                     font.weight: Font.DemiBold
                     color: dockerPanel.darkMode ? "#ffffff" : "#000000"
                     anchors.verticalCenter: parent.verticalCenter
@@ -160,7 +161,7 @@ Item {
                     id: badgeText
                     anchors.centerIn: parent
                     text: dockerPanel.runningCount + " running"
-                    font.pixelSize: 11
+                    font.pixelSize: UiI.UiScale.px(11)
                     color: dockerPanel.runningCount > 0
                         ? dockerPanel.accentColor
                         : (dockerPanel.darkMode ? "#888" : "#666")
@@ -235,7 +236,7 @@ Item {
                                 spacing: 5
                                 Text {
                                     text: model.name
-                                    font.pixelSize: 12
+                                    font.pixelSize: UiI.UiScale.px(12)
                                     font.weight: Font.Medium
                                     color: dockerPanel.darkMode ? "#ffffff" : "#111111"
                                     elide: Text.ElideRight
@@ -246,7 +247,7 @@ Item {
                                 ProjectIcon {
                                     visible: model.firstPort.length > 0
                                     name: "network"
-                                    font.pixelSize: 10
+                                    font.pixelSize: UiI.UiScale.px(10)
                                     anchors.verticalCenter: parent.verticalCenter
                                     opacity: bodyArea.containsMouse ? 1.0 : 0.4
                                     Behavior on opacity { NumberAnimation { duration: 150 } }
@@ -255,7 +256,7 @@ Item {
 
                             Text {
                                 text: model.image
-                                font.pixelSize: 11
+                                font.pixelSize: UiI.UiScale.px(11)
                                 color: dockerPanel.darkMode ? "#888888" : "#555555"
                                 elide: Text.ElideRight
                                 width: parent.width
@@ -264,7 +265,7 @@ Item {
                             Text {
                                 visible: model.ports.length > 0
                                 text: model.ports
-                                font.pixelSize: 10
+                                font.pixelSize: UiI.UiScale.px(10)
                                 color: dockerPanel.darkMode ? "#606060" : "#777777"
                             }
                         }
@@ -305,7 +306,7 @@ Item {
                             Text {
                                 anchors.centerIn: parent
                                 text: model.state === "running" ? "⏹" : "▶"
-                                font.pixelSize: 11
+                                font.pixelSize: UiI.UiScale.px(11)
                                 color: model.state === "running" ? "#ef5350" : "#66bb6a"
                             }
                             MouseArea {
@@ -330,7 +331,7 @@ Item {
                             Text {
                                 anchors.centerIn: parent
                                 text: "↺"
-                                font.pixelSize: 14
+                                font.pixelSize: UiI.UiScale.px(14)
                                 color: "#ffa726"
                             }
                             MouseArea {
@@ -354,7 +355,7 @@ Item {
                             Text {
                                 anchors.centerIn: parent
                                 text: "✕"
-                                font.pixelSize: 11
+                                font.pixelSize: UiI.UiScale.px(11)
                                 color: "#ef5350"
                             }
                             MouseArea {

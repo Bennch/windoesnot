@@ -51,7 +51,7 @@ ShellRoot {
      testWindow.check(page.reduceMotion === true, "reduced motion read back")
      page.run(["zoom", "in"])
     } else if (testWindow.step === 5) {
-     testWindow.check(page.zoom === 1.5, "zoom read back, got " + page.zoom)
+     testWindow.check(page.zoom === 1.25, "zoom read back, got " + page.zoom)
      menu.uiLanguage = "en"; page._lang = "en"
      testWindow.check(testWindow.find(page, o => o.text === "Magnifier") && testWindow.find(page, o => o.text === "Color filter"), "English labels")
      console.log("A11Y_UI_PASS"); Qt.quit()

@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell.Io
 import "." as Tools
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Column {
     id: page
@@ -43,12 +44,12 @@ Column {
         }
     }
     Text {
-        text: page.tr("apps.shellTitle"); font.pixelSize: 18; font.bold: true
+        text: page.tr("apps.shellTitle"); font.pixelSize: UiI.UiScale.px(18); font.bold: true
         color: settingsMenu && !settingsMenu.darkMode ? "#1a1a1a" : "#ffffff"
     }
     Text {
         width: parent.width; text: page.tr("apps.shellHint"); wrapMode: Text.WordWrap
-        font.pixelSize: 13; color: settingsMenu && !settingsMenu.darkMode ? "#555555" : "#bbbbbb"
+        font.pixelSize: UiI.UiScale.px(13); color: settingsMenu && !settingsMenu.darkMode ? "#555555" : "#bbbbbb"
     }
     Tools.SystemToolsChoice {
         id: choice
@@ -102,12 +103,12 @@ Column {
         }
         Text {
             width: parent.width; text: page.tr("apps.greetingDesc"); wrapMode: Text.WordWrap
-            font.pixelSize: 13; color: settingsMenu && !settingsMenu.darkMode ? "#555555" : "#bbbbbb"
+            font.pixelSize: UiI.UiScale.px(13); color: settingsMenu && !settingsMenu.darkMode ? "#555555" : "#bbbbbb"
         }
     }
     Text {
         width: parent.width; text: page.result; visible: text.length > 0
-        wrapMode: Text.WordWrap; font.pixelSize: 13
+        wrapMode: Text.WordWrap; font.pixelSize: UiI.UiScale.px(13)
         color: settingsMenu && !settingsMenu.darkMode ? "#555555" : "#bbbbbb"
     }
 }

@@ -4,6 +4,7 @@
 
 import QtQuick
 import org.kde.syntaxhighlighting
+import "../i18n" as UiI
 
 Item {
     id: root
@@ -210,7 +211,7 @@ Item {
                 anchors { right: parent.right; top: parent.top; margins: 6 }
                 text: seg.lang
                 color: root.mutedColor
-                font.pixelSize: 10
+                font.pixelSize: UiI.UiScale.px(10)
                 font.family: "monospace"
             }
 

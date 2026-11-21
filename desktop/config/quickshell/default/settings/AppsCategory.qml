@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Column {
     property var settingsMenu: null
@@ -20,7 +21,7 @@ Column {
 
     Text {
         text: Lang.get("apps.optionalTools", _lang)
-        font.pixelSize: 18
+        font.pixelSize: UiI.UiScale.px(18)
         font.bold: true
         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
     }
@@ -43,12 +44,12 @@ Column {
                 spacing: 5
                 Text {
                     text: modelData.title
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
                 }
                 Text {
                     text: Lang.get(modelData.description, _lang)
-                    font.pixelSize: 12
+                    font.pixelSize: UiI.UiScale.px(12)
                     color: settingsMenu.darkMode ? "#888" : "#666"
                     wrapMode: Text.WordWrap
                     width: parent.width
@@ -83,7 +84,7 @@ Column {
     // Standard-Anwendungen
     Text {
         text: Lang.get("apps.defaultApps", _lang)
-        font.pixelSize: 18
+        font.pixelSize: UiI.UiScale.px(18)
         font.bold: true
         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
     }
@@ -99,7 +100,7 @@ Column {
 
             Text {
                 text: Lang.get("apps.fileManager", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
 
@@ -143,7 +144,7 @@ Column {
                     leftPadding: 12
                     rightPadding: fileManagerComboBox.indicator.width + fileManagerComboBox.spacing
                     text: fileManagerComboBox.displayText
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
@@ -153,7 +154,7 @@ Column {
                     x: fileManagerComboBox.width - width - 12
                     y: fileManagerComboBox.topPadding + (fileManagerComboBox.availableHeight - height) / 2
                     text: "▼"
-                    font.pixelSize: 10
+                    font.pixelSize: UiI.UiScale.px(10)
                     color: settingsMenu.darkMode ? "#999" : "#666"
                 }
 
@@ -185,7 +186,7 @@ Column {
                     contentItem: Text {
                         text: model.name
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         elide: Text.ElideRight
                         verticalAlignment: Text.AlignVCenter
                         leftPadding: 12
@@ -200,7 +201,7 @@ Column {
 
             Text {
                 text: Lang.get("apps.fileManagerHint", _lang)
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 color: settingsMenu.darkMode ? "#666" : "#888"
             }
         }
@@ -212,7 +213,7 @@ Column {
 
             Text {
                 text: Lang.get("apps.textEditor", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
 
@@ -256,7 +257,7 @@ Column {
                     leftPadding: 12
                     rightPadding: textEditorComboBox.indicator.width + textEditorComboBox.spacing
                     text: textEditorComboBox.displayText
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
@@ -266,7 +267,7 @@ Column {
                     x: textEditorComboBox.width - width - 12
                     y: textEditorComboBox.topPadding + (textEditorComboBox.availableHeight - height) / 2
                     text: "▼"
-                    font.pixelSize: 10
+                    font.pixelSize: UiI.UiScale.px(10)
                     color: settingsMenu.darkMode ? "#999" : "#666"
                 }
 
@@ -298,7 +299,7 @@ Column {
                     contentItem: Text {
                         text: model.name
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         elide: Text.ElideRight
                         verticalAlignment: Text.AlignVCenter
                         leftPadding: 12
@@ -313,7 +314,7 @@ Column {
 
             Text {
                 text: Lang.get("apps.textEditorHint", _lang)
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 color: settingsMenu.darkMode ? "#666" : "#888"
             }
         }
@@ -325,7 +326,7 @@ Column {
 
             Text {
                 text: Lang.get("apps.imageViewer", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
 
@@ -369,7 +370,7 @@ Column {
                     leftPadding: 12
                     rightPadding: imageViewerComboBox.indicator.width + imageViewerComboBox.spacing
                     text: imageViewerComboBox.displayText
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
@@ -379,7 +380,7 @@ Column {
                     x: imageViewerComboBox.width - width - 12
                     y: imageViewerComboBox.topPadding + (imageViewerComboBox.availableHeight - height) / 2
                     text: "▼"
-                    font.pixelSize: 10
+                    font.pixelSize: UiI.UiScale.px(10)
                     color: settingsMenu.darkMode ? "#999" : "#666"
                 }
 
@@ -411,7 +412,7 @@ Column {
                     contentItem: Text {
                         text: model.name
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         elide: Text.ElideRight
                         verticalAlignment: Text.AlignVCenter
                         leftPadding: 12
@@ -426,7 +427,7 @@ Column {
 
             Text {
                 text: Lang.get("apps.imageViewerHint", _lang)
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 color: settingsMenu.darkMode ? "#666" : "#888"
             }
         }
@@ -438,7 +439,7 @@ Column {
 
             Text {
                 text: Lang.get("apps.pdfViewer", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
 
@@ -482,7 +483,7 @@ Column {
                     leftPadding: 12
                     rightPadding: pdfViewerComboBox.indicator.width + pdfViewerComboBox.spacing
                     text: pdfViewerComboBox.displayText
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
@@ -492,7 +493,7 @@ Column {
                     x: pdfViewerComboBox.width - width - 12
                     y: pdfViewerComboBox.topPadding + (pdfViewerComboBox.availableHeight - height) / 2
                     text: "▼"
-                    font.pixelSize: 10
+                    font.pixelSize: UiI.UiScale.px(10)
                     color: settingsMenu.darkMode ? "#999" : "#666"
                 }
 
@@ -524,7 +525,7 @@ Column {
                     contentItem: Text {
                         text: model.name
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         elide: Text.ElideRight
                         verticalAlignment: Text.AlignVCenter
                         leftPadding: 12
@@ -539,7 +540,7 @@ Column {
 
             Text {
                 text: Lang.get("apps.pdfViewerHint", _lang)
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 color: settingsMenu.darkMode ? "#666" : "#888"
             }
         }
@@ -551,7 +552,7 @@ Column {
 
             Text {
                 text: Lang.get("apps.webBrowser", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
 
@@ -595,7 +596,7 @@ Column {
                     leftPadding: 12
                     rightPadding: webBrowserComboBox.indicator.width + webBrowserComboBox.spacing
                     text: webBrowserComboBox.displayText
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
@@ -605,7 +606,7 @@ Column {
                     x: webBrowserComboBox.width - width - 12
                     y: webBrowserComboBox.topPadding + (webBrowserComboBox.availableHeight - height) / 2
                     text: "▼"
-                    font.pixelSize: 10
+                    font.pixelSize: UiI.UiScale.px(10)
                     color: settingsMenu.darkMode ? "#999" : "#666"
                 }
 
@@ -637,7 +638,7 @@ Column {
                     contentItem: Text {
                         text: model.name
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         elide: Text.ElideRight
                         verticalAlignment: Text.AlignVCenter
                         leftPadding: 12
@@ -652,7 +653,7 @@ Column {
 
             Text {
                 text: Lang.get("apps.webBrowserHint", _lang)
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 color: settingsMenu.darkMode ? "#666" : "#888"
             }
         }
@@ -664,7 +665,7 @@ Column {
 
             Text {
                 text: Lang.get("apps.terminal", _lang)
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 color: settingsMenu.darkMode ? "#aaa" : "#555"
             }
 
@@ -704,14 +705,14 @@ Column {
                     leftPadding: 12
                     rightPadding: terminalComboBox.indicator.width + terminalComboBox.spacing
                     text: terminalComboBox.displayText
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                     verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
                 }
                 indicator: Text {
                     x: terminalComboBox.width - width - 12
                     y: terminalComboBox.topPadding + (terminalComboBox.availableHeight - height) / 2
-                    text: "▼"; font.pixelSize: 10
+                    text: "▼"; font.pixelSize: UiI.UiScale.px(10)
                     color: settingsMenu.darkMode ? "#999" : "#666"
                 }
                 popup: Popup {
@@ -736,7 +737,7 @@ Column {
                     contentItem: Text {
                         text: model.name
                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
-                        font.pixelSize: 12; elide: Text.ElideRight
+                        font.pixelSize: UiI.UiScale.px(12); elide: Text.ElideRight
                         verticalAlignment: Text.AlignVCenter; leftPadding: 12
                     }
                     highlighted: terminalComboBox.highlightedIndex === index
@@ -749,7 +750,7 @@ Column {
 
             Text {
                 text: Lang.get("apps.terminalHint", _lang)
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 color: settingsMenu.darkMode ? "#666" : "#888"
             }
         }
@@ -765,7 +766,7 @@ Column {
     // Icon-Überschreibungen
     Text {
         text: Lang.get("apps.iconOverrides", _lang)
-        font.pixelSize: 18
+        font.pixelSize: UiI.UiScale.px(18)
         font.bold: true
         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
     }
@@ -776,7 +777,7 @@ Column {
 
         Text {
             text: Lang.get("apps.iconOverridesDesc", _lang)
-            font.pixelSize: 12
+            font.pixelSize: UiI.UiScale.px(12)
             color: settingsMenu.darkMode ? "#666" : "#888"
             wrapMode: Text.WordWrap
             width: parent.width
@@ -800,7 +801,7 @@ Column {
                     anchors.leftMargin: 12
                     anchors.rightMargin: 12
                     verticalAlignment: TextInput.AlignVCenter
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                     selectionColor: settingsMenu.accentColor
                     selectByMouse: true
@@ -810,7 +811,7 @@ Column {
                         visible: parent.text.length === 0
                         text: Lang.get("apps.searchApp", _lang)
                         color: settingsMenu.darkMode ? "#666" : "#888"
-                        font.pixelSize: 13
+                        font.pixelSize: UiI.UiScale.px(13)
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
@@ -819,7 +820,7 @@ Column {
             Text {
                 id: appCountText
                 text: "0 " + Lang.get("apps.appsCount", _lang)
-                font.pixelSize: 12
+                font.pixelSize: UiI.UiScale.px(12)
                 color: settingsMenu.darkMode ? "#666" : "#888"
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -1088,14 +1089,14 @@ Column {
 
                                 Text {
                                     text: appData.name
-                                    font.pixelSize: 14
+                                    font.pixelSize: UiI.UiScale.px(14)
                                     font.bold: hasOverride
                                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                                 }
 
                                 Text {
                                     text: hasOverride ? ("✓ " + Lang.get("apps.overridden", _lang)) : Lang.get("apps.standard", _lang)
-                                    font.pixelSize: 11
+                                    font.pixelSize: UiI.UiScale.px(11)
                                     color: hasOverride ? settingsMenu.accentColor : "#666"
                                 }
                             }
@@ -1117,7 +1118,7 @@ Column {
 
                                 Text {
                                     text: Lang.get("apps.iconPath", _lang)
-                                    font.pixelSize: 12
+                                    font.pixelSize: UiI.UiScale.px(12)
                                     color: settingsMenu.darkMode ? "#aaa" : "#555"
                                 }
 
@@ -1138,7 +1139,7 @@ Column {
                                             anchors.leftMargin: 8
                                             anchors.rightMargin: 8
                                             verticalAlignment: TextInput.AlignVCenter
-                                            font.pixelSize: 12
+                                            font.pixelSize: UiI.UiScale.px(12)
                                             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                                             selectionColor: settingsMenu.accentColor
                                             selectByMouse: true
@@ -1148,7 +1149,7 @@ Column {
                                                 visible: parent.text.length === 0
                                                 text: "z.B. img/myicon.svg oder app-name"
                                                 color: "#555"
-                                                font.pixelSize: 11
+                                                font.pixelSize: UiI.UiScale.px(11)
                                                 anchors.verticalCenter: parent.verticalCenter
                                             }
                                         }
@@ -1160,7 +1161,7 @@ Column {
 
                                         contentItem: Text {
                                             text: Lang.get("apps.customIcon", _lang)
-                                            font.pixelSize: 11
+                                            font.pixelSize: UiI.UiScale.px(11)
                                             color: settingsMenu.darkMode ? "#aaa" : "#555"
                                             leftPadding: customIconCheckbox.indicator.width + 8
                                             verticalAlignment: Text.AlignVCenter
@@ -1178,7 +1179,7 @@ Column {
                                                 visible: customIconCheckbox.checked
                                                 anchors.centerIn: parent
                                                 text: "✓"
-                                                font.pixelSize: 12
+                                                font.pixelSize: UiI.UiScale.px(12)
                                                 color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                                             }
                                         }
@@ -1193,7 +1194,7 @@ Column {
 
                                 Text {
                                     text: Lang.get("apps.command", _lang)
-                                    font.pixelSize: 12
+                                    font.pixelSize: UiI.UiScale.px(12)
                                     color: settingsMenu.darkMode ? "#aaa" : "#555"
                                 }
 
@@ -1211,7 +1212,7 @@ Column {
                                         anchors.leftMargin: 8
                                         anchors.rightMargin: 8
                                         verticalAlignment: TextInput.AlignVCenter
-                                        font.pixelSize: 12
+                                        font.pixelSize: UiI.UiScale.px(12)
                                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                                         selectionColor: settingsMenu.accentColor
                                         selectByMouse: true
@@ -1221,7 +1222,7 @@ Column {
                                             visible: parent.text.length === 0
                                             text: "z.B. my-custom-app --flag"
                                             color: "#555"
-                                            font.pixelSize: 11
+                                            font.pixelSize: UiI.UiScale.px(11)
                                             anchors.verticalCenter: parent.verticalCenter
                                         }
                                     }
@@ -1243,7 +1244,7 @@ Column {
                                     Text {
                                         anchors.centerIn: parent
                                         text: Lang.get("apps.save", _lang)
-                                        font.pixelSize: 12
+                                        font.pixelSize: UiI.UiScale.px(12)
                                         font.bold: true
                                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                                     }
@@ -1278,7 +1279,7 @@ Column {
                                     Text {
                                         anchors.centerIn: parent
                                         text: Lang.get("apps.delete", _lang)
-                                        font.pixelSize: 12
+                                        font.pixelSize: UiI.UiScale.px(12)
                                         font.bold: true
                                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                                     }
@@ -1308,7 +1309,7 @@ Column {
                                     Text {
                                         anchors.centerIn: parent
                                         text: Lang.get("apps.default", _lang)
-                                        font.pixelSize: 12
+                                        font.pixelSize: UiI.UiScale.px(12)
                                         color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                                     }
 

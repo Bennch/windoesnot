@@ -4,6 +4,7 @@ import QtQuick.Controls
 import Quickshell.Io
 import "." as Tools
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Item {
     id: root
@@ -712,7 +713,7 @@ Item {
                                       monitor.transform === 1 ? "↻90°" :
                                       monitor.transform === 2 ? "↻180°" : "↻270°"
                                 color: "#ffffff"
-                                font.pixelSize: 10
+                                font.pixelSize: UiI.UiScale.px(10)
                                 visible: monitor.transform !== 0
                             }
 
@@ -745,7 +746,7 @@ Item {
                         anchors.centerIn: parent
                         text: Lang.get("background.noMonitors", _lang) + " (monitors.length=" + monitors.length + ")"
                         color: root.dark ? "#666" : "#888"
-                        font.pixelSize: 14
+                        font.pixelSize: UiI.UiScale.px(14)
                         visible: monitors.length === 0
                     }
                 }
@@ -762,7 +763,7 @@ Item {
                 text: selectedMonitorIndex >= 0 && selectedMonitorIndex < monitors.length ?
                       Lang.get("background.wallpaperFor", _lang) + " " + monitors[selectedMonitorIndex].name : ""
                 color: root.dark ? "#ccc" : "#1a1a1a"
-                font.pixelSize: 16
+                font.pixelSize: UiI.UiScale.px(16)
                 font.bold: true
             }
 
@@ -776,7 +777,7 @@ Item {
             Text {
                 text: Lang.get("background.builtin", _lang)
                 color: root.dark ? "#aaa" : "#555"
-                font.pixelSize: 13
+                font.pixelSize: UiI.UiScale.px(13)
                 font.bold: true
                 visible: builtinWallpapers.length > 0
             }
@@ -831,7 +832,7 @@ Item {
             Text {
                 text: Lang.get("background.yourPictures", _lang)
                 color: root.dark ? "#aaa" : "#555"
-                font.pixelSize: 13
+                font.pixelSize: UiI.UiScale.px(13)
                 font.bold: true
                 visible: builtinWallpapers.length > 0
             }
@@ -913,7 +914,7 @@ Item {
                             anchors.centerIn: parent
                             text: Lang.get("background.current", _lang)
                             color: "#ffffff"
-                            font.pixelSize: 10
+                            font.pixelSize: UiI.UiScale.px(10)
                             font.bold: true
                         }
                     }
@@ -923,7 +924,7 @@ Item {
                         anchors.centerIn: parent
                         text: Lang.get("background.noImage", _lang)
                         color: root.dark ? "#666" : "#888"
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         visible: currentWallpaperImage.source === ""
                     }
                 }
@@ -979,7 +980,7 @@ Item {
                             anchors.centerIn: parent
                             text: Lang.get("background.noImage", _lang)
                             color: root.dark ? "#666" : "#888"
-                            font.pixelSize: 12
+                            font.pixelSize: UiI.UiScale.px(12)
                             visible: !wallpaperPath
                         }
 
@@ -1006,7 +1007,7 @@ Item {
                             anchors.margins: 4
                             text: wallpaperPath ? wallpaperPath.split('/').pop() : ""
                             color: "#ffffff"
-                            font.pixelSize: 9
+                            font.pixelSize: UiI.UiScale.px(9)
                             elide: Text.ElideMiddle
                             horizontalAlignment: Text.AlignHCenter
                             visible: wallpaperMouseArea.containsMouse && wallpaperPath
@@ -1057,7 +1058,7 @@ Item {
                         Text {
                             text: Lang.get("background.browse", _lang)
                             color: "#ccc"
-                            font.pixelSize: 12
+                            font.pixelSize: UiI.UiScale.px(12)
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
                     }
@@ -1082,7 +1083,7 @@ Item {
             Text {
                 text: Lang.get("background.clickOrSelect", _lang)
                 color: "#888"
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 font.italic: true
             }
         }
@@ -1097,7 +1098,7 @@ Item {
                 anchors.centerIn: parent
                 text: Lang.get("background.selectMonitor", _lang)
                 color: "#888"
-                font.pixelSize: 14
+                font.pixelSize: UiI.UiScale.px(14)
                 font.italic: true
             }
         }
@@ -1136,14 +1137,14 @@ Item {
             Text {
                 text: Lang.get("background.sddmThemeTitle", _lang)
                 color: root.dark ? "#ccc" : "#1a1a1a"
-                font.pixelSize: 16
+                font.pixelSize: UiI.UiScale.px(16)
                 font.bold: true
             }
 
             Text {
                 text: Lang.get("background.sddmThemeDesc", _lang)
                 color: "#888"
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 width: parent.width
                 wrapMode: Text.WordWrap
             }
@@ -1193,7 +1194,7 @@ Item {
                             anchors.centerIn: parent
                             text: modelData.label
                             color: isCurrent ? "#ffffff" : (root.dark ? "#ccc" : "#1a1a1a")
-                            font.pixelSize: 12
+                            font.pixelSize: UiI.UiScale.px(12)
                             font.bold: isCurrent
                         }
 
@@ -1228,7 +1229,7 @@ Item {
             Text {
                 text: sddmThemeSection.resultText
                 color: sddmThemeSection.resultText.indexOf(Lang.get("systemTools.failed", _lang)) === 0 ? "#e05050" : "#888"
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 visible: sddmThemeSection.resultText !== ""
                 width: parent.width
                 wrapMode: Text.WordWrap
@@ -1257,12 +1258,12 @@ Item {
 
             Text {
                 text: Lang.get("background.bootloaderThemeTitle", _lang)
-                font.pixelSize: 15; font.weight: Font.DemiBold
+                font.pixelSize: UiI.UiScale.px(15); font.weight: Font.DemiBold
                 color: root.dark ? "#ffffff" : "#1a1a1a"
             }
             Text {
                 text: Lang.get("background.bootloaderThemeDesc", _lang)
-                font.pixelSize: 13
+                font.pixelSize: UiI.UiScale.px(13)
                 color: root.dark ? "#aaaaaa" : "#555555"
                 width: parent.width; wrapMode: Text.WordWrap
             }
@@ -1287,7 +1288,7 @@ Item {
                 text: bootloaderThemeSection.resultText
                 color: bootloaderThemeSection.resultText.indexOf(Lang.get("systemTools.failed", _lang)) === 0
                        ? "#e05050" : "#888"
-                font.pixelSize: 11
+                font.pixelSize: UiI.UiScale.px(11)
                 visible: bootloaderThemeSection.resultText !== ""
                 width: parent.width; wrapMode: Text.WordWrap
             }

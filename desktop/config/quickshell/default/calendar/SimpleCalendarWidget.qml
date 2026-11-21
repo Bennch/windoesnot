@@ -4,6 +4,7 @@ import QtQuick.Controls
 import "calendar_layout.js" as CalendarLayout
 import "Holidays.js" as Holidays
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Item {
     id: calendarWidget
@@ -87,7 +88,7 @@ Item {
                         var full = viewingDate.toLocaleDateString(locale, "d. MMMM yyyy")
                         return dayNames[viewingDate.getDay()] + ", " + full
                     }
-                    font.pixelSize: 14
+                    font.pixelSize: UiI.UiScale.px(14)
                     font.bold: true
                     color: darkMode ? "#fff" : "#1a1a1a"
                 }
@@ -107,14 +108,14 @@ Item {
             Rectangle {
                 width: 35; height: 35; radius: 17.5
                 color: prevArea.containsMouse ? (darkMode ? "#2a2a2a" : "#e0e0e0") : "transparent"
-                Text { anchors.centerIn: parent; text: "‹"; font.pixelSize: 20; color: darkMode ? "#fff" : "#1a1a1a" }
+                Text { anchors.centerIn: parent; text: "‹"; font.pixelSize: UiI.UiScale.px(20); color: darkMode ? "#fff" : "#1a1a1a" }
                 MouseArea { id: prevArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: monthShift-- }
             }
 
             Rectangle {
                 width: 35; height: 35; radius: 17.5
                 color: nextArea.containsMouse ? (darkMode ? "#2a2a2a" : "#e0e0e0") : "transparent"
-                Text { anchors.centerIn: parent; text: "›"; font.pixelSize: 20; color: darkMode ? "#fff" : "#1a1a1a" }
+                Text { anchors.centerIn: parent; text: "›"; font.pixelSize: UiI.UiScale.px(20); color: darkMode ? "#fff" : "#1a1a1a" }
                 MouseArea { id: nextArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: monthShift++ }
             }
         }
@@ -132,7 +133,7 @@ Item {
                 Text {
                     anchors.centerIn: parent
                     text: Lang.get("calendar.weekShort", uiLanguage)
-                    font.pixelSize: 10
+                    font.pixelSize: UiI.UiScale.px(10)
                     color: darkMode ? "#777" : "#999"
                 }
             }
@@ -145,7 +146,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: (Lang.get("calendar.weekDays", uiLanguage))[(index + calendarWidget.firstDay) % 7]
-                        font.pixelSize: 11
+                        font.pixelSize: UiI.UiScale.px(11)
                         font.bold: true
                         color: darkMode ? "#999" : "#666"
                     }
@@ -174,7 +175,7 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             text: calendarWidget.weekNumbers[weekIndex] !== undefined ? calendarWidget.weekNumbers[weekIndex] : ""
-                            font.pixelSize: 11
+                            font.pixelSize: UiI.UiScale.px(11)
                             color: darkMode ? "#6f6f6f" : "#9a9a9a"
                         }
                     }
@@ -228,7 +229,7 @@ Item {
                                               : ""
                                 contentItem: Text {
                                     text: holidayTip.text
-                                    font.pixelSize: 12
+                                    font.pixelSize: UiI.UiScale.px(12)
                                     color: darkMode ? "#f0f0f0" : "#1a1a1a"
                                 }
                                 background: Rectangle {
@@ -244,7 +245,7 @@ Item {
                             Text {
                                 anchors.centerIn: parent
                                 text: dayData ? dayData.day : ""
-                                font.pixelSize: 13
+                                font.pixelSize: UiI.UiScale.px(13)
                                 font.bold: isToday
                                 color: {
                                     if (isToday) return "#fff"

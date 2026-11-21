@@ -3,6 +3,7 @@ import QtQuick.Controls
 import Quickshell.Io
 import "." as Tools
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 // Diagnosis: failed services, errors since boot, package changes before them, Hyprland problems.
 // Data comes from windoesnot-diagnose (read-only). Time proximity is shown as proximity, never as a cause.
@@ -84,13 +85,13 @@ Column {
         property bool warn: false
         implicitWidth: pillText.implicitWidth + 20; implicitHeight: 24; radius: 12
         color: warn ? Qt.rgba(0.91, 0.63, 0.13, 0.2) : (page.dark ? "#333333" : "#e4e4e4")
-        Text { id: pillText; anchors.centerIn: parent; text: parent.label; font.pixelSize: 12; font.bold: parent.warn; color: parent.warn ? page.warnColor : page.mutedColor }
+        Text { id: pillText; anchors.centerIn: parent; text: parent.label; font.pixelSize: UiI.UiScale.px(12); font.bold: parent.warn; color: parent.warn ? page.warnColor : page.mutedColor }
     }
-    component Heading: Text { font.pixelSize: 14; font.bold: true; color: page.textColor }
-    component Empty: Text { x: 14; height: 44; verticalAlignment: Text.AlignVCenter; font.pixelSize: 13; color: page.mutedColor }
+    component Heading: Text { font.pixelSize: UiI.UiScale.px(14); font.bold: true; color: page.textColor }
+    component Empty: Text { x: 14; height: 44; verticalAlignment: Text.AlignVCenter; font.pixelSize: UiI.UiScale.px(13); color: page.mutedColor }
 
-    Text { text: page.tr("title"); font.pixelSize: 18; font.bold: true; color: page.textColor }
-    Text { width: parent.width; text: page.tr("intro"); wrapMode: Text.WordWrap; color: page.mutedColor; font.pixelSize: 13 }
+    Text { text: page.tr("title"); font.pixelSize: UiI.UiScale.px(18); font.bold: true; color: page.textColor }
+    Text { width: parent.width; text: page.tr("intro"); wrapMode: Text.WordWrap; color: page.mutedColor; font.pixelSize: UiI.UiScale.px(13) }
     Text { visible: page.failedToLoad; text: page.tr("error"); color: "#cc4444" }
 
     // Summary
@@ -100,7 +101,7 @@ Column {
         color: page.findings === 0 ? Qt.rgba(0.2, 0.7, 0.35, 0.12) : Qt.rgba(0.91, 0.63, 0.13, 0.12)
         border.color: page.findings === 0 ? "#3aa655" : page.warnColor; border.width: 1
         Text {
-            id: summaryText; x: 14; y: 14; width: parent.width - 28; wrapMode: Text.WordWrap; font.pixelSize: 14; font.bold: true; color: page.textColor
+            id: summaryText; x: 14; y: 14; width: parent.width - 28; wrapMode: Text.WordWrap; font.pixelSize: UiI.UiScale.px(14); font.bold: true; color: page.textColor
             text: page.findings === 0 ? page.tr("allGood") : page.tr("findings").replace("%1", page.findings)
         }
     }
@@ -110,7 +111,7 @@ Column {
         Tools.SystemToolsButton { settingsMenu: page.settingsMenu; enabled: page.ready; text: page.tr("copy"); onClicked: page.copyReport() }
         Tools.SystemToolsButton { settingsMenu: page.settingsMenu; enabled: page.ready; text: page.tr("save"); onClicked: page.saveReport() }
     }
-    Text { visible: page.resultKey !== ""; text: page.resultKey ? page.tr("result." + page.resultKey) : ""; font.pixelSize: 12; color: page.resultKey === "failed" ? "#cc4444" : page.mutedColor }
+    Text { visible: page.resultKey !== ""; text: page.resultKey ? page.tr("result." + page.resultKey) : ""; font.pixelSize: UiI.UiScale.px(12); color: page.resultKey === "failed" ? "#cc4444" : page.mutedColor }
 
     Column {
         visible: page.ready
@@ -127,7 +128,7 @@ Column {
                     Line { visible: index > 0 }
                     Item {
                         width: parent.width; height: 44
-                        Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: page.tr("check." + modelData.id); font.pixelSize: 13; color: page.textColor }
+                        Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: page.tr("check." + modelData.id); font.pixelSize: UiI.UiScale.px(13); color: page.textColor }
                         Pill {
                             anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
                             warn: modelData.status === "warn"
@@ -136,7 +137,7 @@ Column {
                     }
                     Text {
                         visible: modelData.status === "warn"
-                        x: 14; width: parent.width - 28; bottomPadding: openButton.visible ? 6 : 10; wrapMode: Text.WordWrap; font.pixelSize: 12; color: page.warnColor
+                        x: 14; width: parent.width - 28; bottomPadding: openButton.visible ? 6 : 10; wrapMode: Text.WordWrap; font.pixelSize: UiI.UiScale.px(12); color: page.warnColor
                         text: page.tr("check." + modelData.id + "." + (modelData.detail || "warn")).replace("%1", modelData.detail)
                     }
                     Item {
@@ -167,8 +168,8 @@ Column {
                         width: parent.width; height: 46
                         Column {
                             x: 14; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 120; spacing: 1
-                            Text { width: parent.width; text: modelData.unit; font.pixelSize: 13; color: page.textColor; elide: Text.ElideMiddle }
-                            Text { width: parent.width; visible: text !== ""; text: modelData.description; font.pixelSize: 11; color: page.mutedColor; elide: Text.ElideRight }
+                            Text { width: parent.width; text: modelData.unit; font.pixelSize: UiI.UiScale.px(13); color: page.textColor; elide: Text.ElideMiddle }
+                            Text { width: parent.width; visible: text !== ""; text: modelData.description; font.pixelSize: UiI.UiScale.px(11); color: page.mutedColor; elide: Text.ElideRight }
                         }
                         Pill { anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; warn: true; label: modelData.scope === "user" ? page.tr("scopeUser") : page.tr("scopeSystem") }
                     }
@@ -177,7 +178,7 @@ Column {
         }
 
         Heading { text: page.tr("errors") }
-        Text { width: parent.width; text: page.tr("errorsHint"); wrapMode: Text.WordWrap; font.pixelSize: 12; color: page.mutedColor }
+        Text { width: parent.width; text: page.tr("errorsHint"); wrapMode: Text.WordWrap; font.pixelSize: UiI.UiScale.px(12); color: page.mutedColor }
         Card {
             Empty { visible: !page.diag.errors.available; text: page.tr("journalDenied") }
             Empty { visible: page.diag.errors.available && page.diag.errors.entries.length === 0; text: page.tr("noErrors") }
@@ -190,12 +191,12 @@ Column {
                     Line { visible: index > 0 }
                     Item {
                         width: parent.width; height: Math.max(52, msgColumn.implicitHeight + 16)
-                        Text { x: 14; y: 10; width: 86; text: page.stamp(modelData.time); font.pixelSize: 12; color: page.mutedColor }
+                        Text { x: 14; y: 10; width: 86; text: page.stamp(modelData.time); font.pixelSize: UiI.UiScale.px(12); color: page.mutedColor }
                         Column {
                             id: msgColumn
                             x: 106; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 106 - (modelData.known !== "" ? 170 : 60); spacing: 1
-                            Text { width: parent.width; text: modelData.source; font.pixelSize: 12; font.bold: true; color: modelData.known !== "" ? page.mutedColor : page.textColor; elide: Text.ElideRight }
-                            Text { width: parent.width; text: modelData.message; wrapMode: Text.WrapAnywhere; maximumLineCount: 3; elide: Text.ElideRight; font.pixelSize: 12; color: page.mutedColor }
+                            Text { width: parent.width; text: modelData.source; font.pixelSize: UiI.UiScale.px(12); font.bold: true; color: modelData.known !== "" ? page.mutedColor : page.textColor; elide: Text.ElideRight }
+                            Text { width: parent.width; text: modelData.message; wrapMode: Text.WrapAnywhere; maximumLineCount: 3; elide: Text.ElideRight; font.pixelSize: UiI.UiScale.px(12); color: page.mutedColor }
                         }
                         Row {
                             anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; spacing: 6
@@ -203,13 +204,13 @@ Column {
                             Pill { visible: modelData.known !== ""; label: page.tr("harmless") }
                         }
                     }
-                    Text { visible: modelData.known !== ""; x: 106; width: parent.width - 120; bottomPadding: 8; text: page.tr("known." + modelData.known); wrapMode: Text.WordWrap; font.pixelSize: 11; color: page.mutedColor }
+                    Text { visible: modelData.known !== ""; x: 106; width: parent.width - 120; bottomPadding: 8; text: page.tr("known." + modelData.known); wrapMode: Text.WordWrap; font.pixelSize: UiI.UiScale.px(11); color: page.mutedColor }
                 }
             }
         }
 
         Heading { text: page.tr("packages") }
-        Text { width: parent.width; text: page.tr("packagesHint"); wrapMode: Text.WordWrap; font.pixelSize: 12; color: page.mutedColor }
+        Text { width: parent.width; text: page.tr("packagesHint"); wrapMode: Text.WordWrap; font.pixelSize: UiI.UiScale.px(12); color: page.mutedColor }
         Card {
             Empty { visible: page.diag.packages.entries.length === 0; text: page.tr("noPackages") }
             Repeater {
@@ -221,8 +222,8 @@ Column {
                     Line { visible: index > 0 }
                     Item {
                         width: parent.width; height: 38
-                        Text { x: 14; anchors.verticalCenter: parent.verticalCenter; width: 86; text: page.stamp(modelData.time); font.pixelSize: 12; color: page.mutedColor }
-                        Text { x: 106; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 106 - 130; text: modelData.package + "  " + modelData.version; elide: Text.ElideRight; font.pixelSize: 12; color: page.textColor }
+                        Text { x: 14; anchors.verticalCenter: parent.verticalCenter; width: 86; text: page.stamp(modelData.time); font.pixelSize: UiI.UiScale.px(12); color: page.mutedColor }
+                        Text { x: 106; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 106 - 130; text: modelData.package + "  " + modelData.version; elide: Text.ElideRight; font.pixelSize: UiI.UiScale.px(12); color: page.textColor }
                         Pill { anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter; label: page.tr("action." + modelData.action) }
                     }
                 }
@@ -235,7 +236,7 @@ Column {
             Empty { visible: page.diag.hyprland.available && page.diag.hyprland.errors.length === 0; text: page.tr("hyprlandOk") }
             Repeater {
                 model: page.diag.hyprland.errors
-                Text { required property string modelData; x: 14; width: parent.width - 28; topPadding: 8; bottomPadding: 8; text: modelData; wrapMode: Text.WrapAnywhere; font.pixelSize: 12; color: page.warnColor }
+                Text { required property string modelData; x: 14; width: parent.width - 28; topPadding: 8; bottomPadding: 8; text: modelData; wrapMode: Text.WrapAnywhere; font.pixelSize: UiI.UiScale.px(12); color: page.warnColor }
             }
         }
 
@@ -250,7 +251,7 @@ Column {
                     Line { visible: index > 0 }
                     Item {
                         width: parent.width; height: 44
-                        Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: modelData.path; font.pixelSize: 13; color: page.textColor }
+                        Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: modelData.path; font.pixelSize: UiI.UiScale.px(13); color: page.textColor }
                         Pill {
                             anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
                             warn: modelData.free < modelData.total * 0.1

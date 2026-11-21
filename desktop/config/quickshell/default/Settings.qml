@@ -10,6 +10,7 @@ import "i18n/Lang.js" as Lang
 import "LocaleNames.js" as LocaleNames
 import "settings/Search.js" as SettingsSearch
 import "widgets"
+import "./i18n" as UiI
 
 FloatingWindow {
     id: settingsMenu
@@ -2371,7 +2372,7 @@ FloatingWindow {
 
                     Text {
                         text: Lang.get("nav.settings", settingsMenu.uiLanguage)
-                        font.pixelSize: 20
+                        font.pixelSize: UiI.UiScale.px(20)
                         font.bold: true
                         color: darkMode ? "#fff" : "#1a1a1a"
                         leftPadding: 20
@@ -2402,7 +2403,7 @@ FloatingWindow {
                                 anchors.leftMargin: 12
                                 anchors.rightMargin: 12
                                 verticalAlignment: TextInput.AlignVCenter
-                                font.pixelSize: 13
+                                font.pixelSize: UiI.UiScale.px(13)
                                 color: darkMode ? "#fff" : "#1a1a1a"
                                 selectionColor: settingsMenu.accentColor
                                 clip: true
@@ -2419,7 +2420,7 @@ FloatingWindow {
                                     verticalAlignment: Text.AlignVCenter
                                     visible: searchField.text.length === 0
                                     text: Lang.get("nav.search", settingsMenu.uiLanguage)
-                                    font.pixelSize: 13
+                                    font.pixelSize: UiI.UiScale.px(13)
                                     color: darkMode ? "#777" : "#777"
                                     elide: Text.ElideRight
                                 }
@@ -2451,7 +2452,7 @@ FloatingWindow {
                             y: 20
                             visible: searchResultsList.count === 0
                             text: Lang.get("nav.searchNone", settingsMenu.uiLanguage)
-                            font.pixelSize: 13
+                            font.pixelSize: UiI.UiScale.px(13)
                             color: darkMode ? "#888" : "#666"
                         }
 
@@ -2475,14 +2476,14 @@ FloatingWindow {
                                 Text {
                                     width: parent.width
                                     text: modelData.pageLabel
-                                    font.pixelSize: 11
+                                    font.pixelSize: UiI.UiScale.px(11)
                                     color: settingsMenu.accentColor
                                     elide: Text.ElideRight
                                 }
                                 Text {
                                     width: parent.width
                                     text: modelData.text
-                                    font.pixelSize: 13
+                                    font.pixelSize: UiI.UiScale.px(13)
                                     color: darkMode ? "#fff" : "#1a1a1a"
                                     wrapMode: Text.Wrap
                                     maximumLineCount: 3
@@ -2583,7 +2584,7 @@ FloatingWindow {
 
                                 Text {
                                     text: Lang.get(labelKey, uiLanguage)
-                                    font.pixelSize: 14
+                                    font.pixelSize: UiI.UiScale.px(14)
                                     color: darkMode ? "#aaa" : "#555"
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
@@ -2658,7 +2659,7 @@ FloatingWindow {
                             if (settingsMenu.currentCategory === "info") return Lang.get("header.info", uiLanguage)
                             return Lang.get("nav.settings", uiLanguage)
                         }
-                        font.pixelSize: 24
+                        font.pixelSize: UiI.UiScale.px(24)
                         font.bold: true
                         color: darkMode ? "#fff" : "#1a1a1a"
                     }

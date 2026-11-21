@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 // Same dimensions, colors and states as existing Settings controls.
 ComboBox {
@@ -20,13 +21,13 @@ ComboBox {
     }
     contentItem: Text {
         leftPadding: 12; rightPadding: 32
-        text: control.displayText; font.pixelSize: 13
+        text: control.displayText; font.pixelSize: UiI.UiScale.px(13)
         color: control.dark ? "#ffffff" : "#1a1a1a"
         verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
     }
     indicator: Text {
         x: control.width - width - 12; anchors.verticalCenter: parent.verticalCenter
-        text: "▼"; font.pixelSize: 10; color: control.dark ? "#999999" : "#666666"
+        text: "▼"; font.pixelSize: UiI.UiScale.px(10); color: control.dark ? "#999999" : "#666666"
     }
     popup: Popup {
         y: control.height + 2; width: control.width
@@ -45,7 +46,7 @@ ComboBox {
         width: control.width - 2; height: 36
         highlighted: control.highlightedIndex === index
         contentItem: Text {
-            text: control.valueLabel(modelData); leftPadding: 12; font.pixelSize: 13
+            text: control.valueLabel(modelData); leftPadding: 12; font.pixelSize: UiI.UiScale.px(13)
             color: parent.highlighted ? "#ffffff" : (control.dark ? "#ffffff" : "#1a1a1a")
             verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
         }

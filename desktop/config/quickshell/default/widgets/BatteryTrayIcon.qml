@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import "../i18n" as UiI
 
 // Portable UPower battery glyph: percentage, low-battery warning and AC state.
 Item {
@@ -33,5 +34,5 @@ Item {
         layer.enabled: !root.darkMode
         layer.effect: MultiEffect { colorization: 1.0; colorizationColor: "#333333" }
     }
-    Text { visible: !root.available && !root.desktopPower; anchors.centerIn: parent; text: "?"; color: root.foreground; font.pixelSize: 9 }
+    Text { visible: !root.available && !root.desktopPower; anchors.centerIn: parent; text: "?"; color: root.foreground; font.pixelSize: UiI.UiScale.px(9) }
 }

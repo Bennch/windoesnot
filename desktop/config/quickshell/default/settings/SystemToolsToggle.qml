@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 // Same dimensions, colors and states as existing Settings controls.
 Switch {
@@ -23,7 +24,7 @@ Switch {
         }
     }
     contentItem: Text {
-        text: control.text; leftPadding: 0; rightPadding: 62; font.pixelSize: 13
+        text: control.text; leftPadding: 0; rightPadding: 62; font.pixelSize: UiI.UiScale.px(13)
         color: control.dark ? "#ffffff" : "#1a1a1a"; verticalAlignment: Text.AlignVCenter
         width: control.width
     }

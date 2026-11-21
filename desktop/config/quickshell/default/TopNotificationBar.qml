@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import QtQuick
 import QtQuick.Controls
 import "i18n/Lang.js" as Lang
+import "./i18n" as UiI
 
 PanelWindow {
     id: topNotificationBar
@@ -373,7 +374,7 @@ PanelWindow {
                                     : topNotificationBar.notificationCount + " " + Lang.get("notificationBar.messages", uiLanguage))
                                 : Lang.get("notificationBar.notifications", uiLanguage)
                             color: darkMode ? "#cccccc" : "#333333"
-                            font.pixelSize: 12
+                            font.pixelSize: UiI.UiScale.px(12)
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }
@@ -519,7 +520,7 @@ PanelWindow {
                              Text {
                                  text: topNotificationBar.mediaTitle
                                  color: darkMode ? "#cccccc" : "#333333"
-                                 font.pixelSize: 12
+                                 font.pixelSize: UiI.UiScale.px(12)
                                  font.bold: topNotificationBar.isPlaying
                                  elide: Text.ElideRight
                                  width: Math.min(implicitWidth, 150)
@@ -529,7 +530,7 @@ PanelWindow {
                                  visible: topNotificationBar.mediaArtist.length > 0
                                  text: topNotificationBar.mediaArtist
                                  color: darkMode ? "#999999" : "#666666"
-                                 font.pixelSize: 10
+                                 font.pixelSize: UiI.UiScale.px(10)
                                  elide: Text.ElideRight
                                  width: Math.min(implicitWidth, 150)
                              }

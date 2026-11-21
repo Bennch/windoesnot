@@ -5,6 +5,7 @@ import Quickshell.Io
 import org.kde.syntaxhighlighting
 import "."
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Item {
     id: copilotPanel
@@ -2743,7 +2744,7 @@ Item {
                     width: parent.width; height: 28; radius: 4
                     color: ma1.containsMouse ? Qt.rgba(copilotPanel.accentColor.r, copilotPanel.accentColor.g, copilotPanel.accentColor.b, 0.18) : "transparent"
                     Text { anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                           text: Lang.get("common.cut"); font.pixelSize: 13; color: copilotPanel.textColor }
+                           text: Lang.get("common.cut"); font.pixelSize: UiI.UiScale.px(13); color: copilotPanel.textColor }
                     MouseArea { id: ma1; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             ctxMenu.visible = false
@@ -2760,7 +2761,7 @@ Item {
                     width: parent.width; height: 28; radius: 4
                     color: ma2.containsMouse ? Qt.rgba(copilotPanel.accentColor.r, copilotPanel.accentColor.g, copilotPanel.accentColor.b, 0.18) : "transparent"
                     Text { anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                           text: Lang.get("common.copy"); font.pixelSize: 13; color: copilotPanel.textColor }
+                           text: Lang.get("common.copy"); font.pixelSize: UiI.UiScale.px(13); color: copilotPanel.textColor }
                     MouseArea { id: ma2; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             ctxMenu.visible = false
@@ -2774,7 +2775,7 @@ Item {
                     width: parent.width; height: 28; radius: 4
                     color: ma3.containsMouse ? Qt.rgba(copilotPanel.accentColor.r, copilotPanel.accentColor.g, copilotPanel.accentColor.b, 0.18) : "transparent"
                     Text { anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                           text: Lang.get("common.paste"); font.pixelSize: 13; color: copilotPanel.textColor }
+                           text: Lang.get("common.paste"); font.pixelSize: UiI.UiScale.px(13); color: copilotPanel.textColor }
                     MouseArea { id: ma3; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             ctxMenu.visible = false
@@ -2786,7 +2787,7 @@ Item {
                     width: parent.width; height: 28; radius: 4
                     color: ma4.containsMouse ? Qt.rgba(copilotPanel.accentColor.r, copilotPanel.accentColor.g, copilotPanel.accentColor.b, 0.18) : "transparent"
                     Text { anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                           text: Lang.get("common.selectAll"); font.pixelSize: 13; color: copilotPanel.textColor }
+                           text: Lang.get("common.selectAll"); font.pixelSize: UiI.UiScale.px(13); color: copilotPanel.textColor }
                     MouseArea { id: ma4; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                         onClicked: { ctxMenu.visible = false; var target = ctxMenu.targetInput || inputEdit; target.selectAll() } }
                 }
@@ -2819,7 +2820,7 @@ Item {
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: "Does"
-                            font.pixelSize: 15; font.weight: Font.DemiBold
+                            font.pixelSize: UiI.UiScale.px(15); font.weight: Font.DemiBold
                             color: "#fff"
                         }
                     }
@@ -2828,7 +2829,7 @@ Item {
                         width: 26; height: 26; radius: 6
                         color: newChatHover.containsMouse ? Qt.rgba(0.35, 0.35, 0.35, 0.5) : "transparent"
                         Behavior on color { ColorAnimation { duration: 100 } }
-                        Text { anchors.centerIn: parent; text: "+"; font.pixelSize: 18; color: copilotPanel.subtextColor }
+                        Text { anchors.centerIn: parent; text: "+"; font.pixelSize: UiI.UiScale.px(18); color: copilotPanel.subtextColor }
                         MouseArea { id: newChatHover; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: copilotPanel.createNewSession() }
                     }
@@ -2841,7 +2842,7 @@ Item {
                 Text {
                     leftPadding: 14; topPadding: 10; bottomPadding: 4
                     text: Lang.get("copilot.chats")
-                    font.pixelSize: 10; font.weight: Font.Medium; font.letterSpacing: 0.8
+                    font.pixelSize: UiI.UiScale.px(10); font.weight: Font.Medium; font.letterSpacing: 0.8
                     color: copilotPanel.subtextColor
                     renderType: Text.NativeRendering
                 }
@@ -2873,14 +2874,14 @@ Item {
                         spacing: 3
                         Text {
                             text: modelData.title !== "" ? modelData.title : Lang.get("copilot.newChat")
-                            font.pixelSize: 13; font.weight: isActive ? Font.Medium : Font.Normal
+                            font.pixelSize: UiI.UiScale.px(13); font.weight: isActive ? Font.Medium : Font.Normal
                             color: isActive ? copilotPanel.accentColor : copilotPanel.textColor
                             elide: Text.ElideRight; width: parent.width
                             renderType: Text.NativeRendering
                         }
                         Text {
                             text: copilotPanel.providerLabel(modelData.provider) + (modelData.model ? " · " + modelData.model.split(":")[0] : "")
-                            font.pixelSize: 11; color: copilotPanel.subtextColor
+                            font.pixelSize: UiI.UiScale.px(11); color: copilotPanel.subtextColor
                             elide: Text.ElideRight; width: parent.width
                             renderType: Text.NativeRendering
                         }
@@ -2889,7 +2890,7 @@ Item {
                     Text {
                         id: delBtn
                         anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
-                        text: "✕"; font.pixelSize: 10; color: copilotPanel.subtextColor
+                        text: "✕"; font.pixelSize: UiI.UiScale.px(10); color: copilotPanel.subtextColor
                         visible: hovered || isActive
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                             onClicked: function(mouse) { mouse.accepted = true; copilotPanel.deleteSession(modelData.id) } }
@@ -2901,7 +2902,7 @@ Item {
                     anchors.centerIn: parent
                     visible: copilotPanel.filteredSessions.length === 0
                     text: Lang.get("copilot.noChats")
-                    font.pixelSize: 12; color: copilotPanel.subtextColor
+                    font.pixelSize: UiI.UiScale.px(12); color: copilotPanel.subtextColor
                     horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap; width: 200
                 }
             }
@@ -2946,7 +2947,7 @@ Item {
                             id: ollamaLabel
                             anchors.centerIn: parent
                             text: "Ollama"
-                            font.pixelSize: 13; font.weight: parent.isActive ? Font.DemiBold : Font.Normal
+                            font.pixelSize: UiI.UiScale.px(13); font.weight: parent.isActive ? Font.DemiBold : Font.Normal
                             color: parent.isActive ? copilotPanel.accentColor : copilotPanel.subtextColor
                         }
                         MouseArea { id: ollamaHover; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -2972,7 +2973,7 @@ Item {
                             id: openclawLabel
                             anchors.centerIn: parent
                             text: "OpenClaw"
-                            font.pixelSize: 13; font.weight: parent.isActive ? Font.DemiBold : Font.Normal
+                            font.pixelSize: UiI.UiScale.px(13); font.weight: parent.isActive ? Font.DemiBold : Font.Normal
                             color: parent.isActive ? copilotPanel.accentColor : copilotPanel.subtextColor
                         }
                         MouseArea { id: openclawHover; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -2998,7 +2999,7 @@ Item {
                             id: nvidiaLabel
                             anchors.centerIn: parent
                             text: "NVIDIA"
-                            font.pixelSize: 13; font.weight: parent.isActive ? Font.DemiBold : Font.Normal
+                            font.pixelSize: UiI.UiScale.px(13); font.weight: parent.isActive ? Font.DemiBold : Font.Normal
                             color: parent.isActive ? copilotPanel.accentColor : copilotPanel.subtextColor
                         }
                         MouseArea { id: nvidiaHover; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -3032,7 +3033,7 @@ Item {
                                     id: claudeLabel
                                     anchors.centerIn: parent
                                     text: "Claude"
-                                    font.pixelSize: 13; font.weight: parent.isActive ? Font.DemiBold : Font.Normal
+                                    font.pixelSize: UiI.UiScale.px(13); font.weight: parent.isActive ? Font.DemiBold : Font.Normal
                                     color: parent.isActive ? copilotPanel.accentColor : copilotPanel.subtextColor
                                 }
                                 MouseArea { id: claudeHover; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -3055,7 +3056,7 @@ Item {
                                     id: codeLabel
                                     anchors.centerIn: parent
                                     text: ">_ Code"
-                                    font.pixelSize: 12
+                                    font.pixelSize: UiI.UiScale.px(12)
                                     color: copilotPanel.subtextColor
                                 }
                                 MouseArea { id: codeHover; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -3091,7 +3092,7 @@ Item {
                                     id: openaiLabel
                                     anchors.centerIn: parent
                                     text: "ChatGPT"
-                                    font.pixelSize: 13; font.weight: parent.isActive ? Font.DemiBold : Font.Normal
+                                    font.pixelSize: UiI.UiScale.px(13); font.weight: parent.isActive ? Font.DemiBold : Font.Normal
                                     color: parent.isActive ? copilotPanel.accentColor : copilotPanel.subtextColor
                                 }
                                 MouseArea { id: openaiHover; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -3114,7 +3115,7 @@ Item {
                                     id: codexLabel
                                     anchors.centerIn: parent
                                     text: ">_ Codex"
-                                    font.pixelSize: 12
+                                    font.pixelSize: UiI.UiScale.px(12)
                                     color: copilotPanel.subtextColor
                                 }
                                 MouseArea { id: codexHover; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -3142,7 +3143,7 @@ Item {
                             id: perplexityLabel
                             anchors.centerIn: parent
                             text: "Perplexity"
-                            font.pixelSize: 13; font.weight: parent.isActive ? Font.DemiBold : Font.Normal
+                            font.pixelSize: UiI.UiScale.px(13); font.weight: parent.isActive ? Font.DemiBold : Font.Normal
                             color: parent.isActive ? copilotPanel.accentColor : copilotPanel.subtextColor
                         }
                         MouseArea { id: perplexityHover; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -3168,7 +3169,7 @@ Item {
                             id: geminiLabel
                             anchors.centerIn: parent
                             text: "Gemini"
-                            font.pixelSize: 13; font.weight: parent.isActive ? Font.DemiBold : Font.Normal
+                            font.pixelSize: UiI.UiScale.px(13); font.weight: parent.isActive ? Font.DemiBold : Font.Normal
                             color: parent.isActive ? copilotPanel.accentColor : copilotPanel.subtextColor
                         }
                         MouseArea { id: geminiHover; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -3230,7 +3231,7 @@ Item {
                                 ? Qt.rgba(copilotPanel.accentColor.r, copilotPanel.accentColor.g, copilotPanel.accentColor.b, 0.15)
                                 : "transparent"
                         Behavior on color { ColorAnimation { duration: 120 } }
-                        Text { anchors.centerIn: parent; text: "⚙"; font.pixelSize: 18; font.weight: Font.Bold
+                        Text { anchors.centerIn: parent; text: "⚙"; font.pixelSize: UiI.UiScale.px(18); font.weight: Font.Bold
                             color: copilotPanel.showSettings ? copilotPanel.accentColor : copilotPanel.subtextColor }
                         MouseArea { id: settingsBtnHover; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: copilotPanel.showSettings = !copilotPanel.showSettings }
@@ -3330,7 +3331,7 @@ Item {
                                 ? Qt.rgba(copilotPanel.accentColor.r, copilotPanel.accentColor.g, copilotPanel.accentColor.b, 0.18)
                                 : "transparent"
                             Text { anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
-                                   text: Lang.get("common.copy"); font.pixelSize: 13; color: copilotPanel.textColor }
+                                   text: Lang.get("common.copy"); font.pixelSize: UiI.UiScale.px(13); color: copilotPanel.textColor }
                             MouseArea {
                                 id: bubbleCtxCopyMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: {
@@ -3351,7 +3352,7 @@ Item {
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: Lang.get("copilot.emptyHint")
-                        font.pixelSize: 14; color: copilotPanel.subtextColor
+                        font.pixelSize: UiI.UiScale.px(14); color: copilotPanel.subtextColor
                         horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap; width: 340
                     }
                 }
@@ -3476,14 +3477,14 @@ Item {
                                     spacing: 6
                                     Text {
                                         text: "⏳"
-                                        font.pixelSize: 14
+                                        font.pixelSize: UiI.UiScale.px(14)
                                         color: copilotPanel.accentColor
                                     }
                                     Text {
                                         text: copilotPanel.uiLanguage === "de"
                                             ? "Denke nach" + (copilotPanel.currentToolTurn > 0 ? " (Runde " + copilotPanel.currentToolTurn + ")" : "") + "..."
                                             : "Thinking" + (copilotPanel.currentToolTurn > 0 ? " (turn " + copilotPanel.currentToolTurn + ")" : "") + "..."
-                                        font.pixelSize: 13
+                                        font.pixelSize: UiI.UiScale.px(13)
                                         color: copilotPanel.textColor
                                         font.weight: Font.DemiBold
                                     }
@@ -3504,7 +3505,7 @@ Item {
                                             // Status icon
                                             ProjectIcon {
                                                 name: modelData.status === "done" ? "check" : "wrench"
-                                                font.pixelSize: 13
+                                                font.pixelSize: UiI.UiScale.px(13)
                                                 color: modelData.status === "done"
                                                     ? Qt.rgba(0.3, 0.8, 0.3, 1.0)  // Green
                                                     : copilotPanel.accentColor
@@ -3514,7 +3515,7 @@ Item {
                                             // Tool name
                                             Text {
                                                 text: modelData.tool
-                                                font.pixelSize: 12
+                                                font.pixelSize: UiI.UiScale.px(12)
                                                 color: copilotPanel.textColor
                                                 font.weight: Font.DemiBold
                                                 anchors.verticalCenter: parent.verticalCenter
@@ -3528,7 +3529,7 @@ Item {
                                                     if (argStr.length > 40) return "(" + argStr.substring(0, 37) + "...)"
                                                     return "(" + argStr + ")"
                                                 }
-                                                font.pixelSize: 11
+                                                font.pixelSize: UiI.UiScale.px(11)
                                                 color: copilotPanel.subtextColor
                                                 font.family: "monospace"
                                                 anchors.verticalCenter: parent.verticalCenter
@@ -3540,7 +3541,7 @@ Item {
                                         Text {
                                             visible: modelData.status === "done" && modelData.result
                                             text: modelData.result ? "  ↳ " + modelData.result.substring(0, 100).replace(/\n/g, " ") + (modelData.result.length > 100 ? "..." : "") : ""
-                                            font.pixelSize: 10
+                                            font.pixelSize: UiI.UiScale.px(10)
                                             color: copilotPanel.subtextColor
                                             wrapMode: Text.Wrap
                                             width: parent.width
@@ -3558,7 +3559,7 @@ Item {
                                 text: isUser ? modelData.content : ""
                                 textFormat: TextEdit.PlainText
                                 wrapMode: TextEdit.Wrap
-                                font.pixelSize: 15
+                                font.pixelSize: UiI.UiScale.px(15)
                                 color: copilotPanel.textColor
                                 readOnly: true
                                 selectByMouse: true
@@ -3632,7 +3633,7 @@ Item {
                             anchors { right: bubbleRect.right; top: bubbleRect.bottom; topMargin: 4 }
                             text: copilotPanel.formatMsgTs(modelData.ts || 0)
                             color: copilotPanel.subtextColor
-                            font.pixelSize: 11
+                            font.pixelSize: UiI.UiScale.px(11)
                             opacity: bubbleHover.hovered ? 0.8 : 0.0
                             Behavior on opacity { NumberAnimation { duration: 150 } }
                         }
@@ -3669,7 +3670,7 @@ Item {
                                 leftPadding: 2
                                 text: copilotPanel.formatMsgTs(modelData.ts || 0)
                                 color: copilotPanel.subtextColor
-                                font.pixelSize: 11
+                                font.pixelSize: UiI.UiScale.px(11)
                                 opacity: bubbleHover.hovered ? 0.75 : 0.0
                                 Behavior on opacity { NumberAnimation { duration: 150 } }
                             }
@@ -3724,7 +3725,7 @@ Item {
                                 anchors { fill: parent; leftMargin: 10; rightMargin: 30 }
                                 verticalAlignment: TextInput.AlignVCenter
                                 color: copilotPanel.textColor
-                                font.pixelSize: 13
+                                font.pixelSize: UiI.UiScale.px(13)
                                 selectByMouse: true
                                 text: copilotPanel.modelSearchQuery
                                 onTextChanged: copilotPanel.modelSearchQuery = text
@@ -3738,13 +3739,13 @@ Item {
                                 visible: searchInput.text === ""
                                 text: "Modell suchen..."
                                 color: copilotPanel.subtextColor
-                                font.pixelSize: 13
+                                font.pixelSize: UiI.UiScale.px(13)
                             }
 
                             ProjectIcon {
                                 anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
                                 name: "search"
-                                font.pixelSize: 14
+                                font.pixelSize: UiI.UiScale.px(14)
                                 color: copilotPanel.subtextColor
                             }
                         }
@@ -3785,7 +3786,7 @@ Item {
                                     Text {
                                         text: modelData.name; width: parent.width
                                         color: isActive ? copilotPanel.accentColor : copilotPanel.textColor
-                                        font.pixelSize: 13; font.weight: isActive ? Font.DemiBold : Font.Normal
+                                        font.pixelSize: UiI.UiScale.px(13); font.weight: isActive ? Font.DemiBold : Font.Normal
                                         elide: Text.ElideRight
                                     }
                                     Text {
@@ -3806,7 +3807,7 @@ Item {
                                             }
                                             return ""
                                         }
-                                        color: copilotPanel.subtextColor; font.pixelSize: 11
+                                        color: copilotPanel.subtextColor; font.pixelSize: UiI.UiScale.px(11)
                                     }
                                 }
 
@@ -3837,7 +3838,7 @@ Item {
                                     anchors { left: parent.left; leftMargin: 14; verticalCenter: parent.verticalCenter }
                                     text: modelData
                                     color: isActive ? copilotPanel.accentColor : copilotPanel.textColor
-                                    font.pixelSize: 13; font.weight: isActive ? Font.DemiBold : Font.Normal
+                                    font.pixelSize: UiI.UiScale.px(13); font.weight: isActive ? Font.DemiBold : Font.Normal
                                 }
 
                                 MouseArea {
@@ -3863,7 +3864,7 @@ Item {
                                     : copilotPanel.activeProvider === "openclaw"
                                     ? "Keine Modelle gefunden.\nOpenClaw-URLs in den Einstellungen prüfen oder im Netz suchen."
                                     : "Keine Modelle verfügbar.")
-                            color: copilotPanel.subtextColor; font.pixelSize: 12
+                            color: copilotPanel.subtextColor; font.pixelSize: UiI.UiScale.px(12)
                             wrapMode: Text.Wrap; leftPadding: 10; topPadding: 4; bottomPadding: 4
                         }
                         }
@@ -3886,7 +3887,7 @@ Item {
                 Text {
                     id: setupText
                     anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; leftMargin: 12; rightMargin: 12 }
-                    wrapMode: Text.WordWrap; font.pixelSize: 13
+                    wrapMode: Text.WordWrap; font.pixelSize: UiI.UiScale.px(13)
                     color: copilotPanel.textColor
                     text: Lang.get(copilotPanel.setupProblem === "noKey" ? "copilot.notSetupKey" : "copilot.notSetupModel", copilotPanel.uiLanguage)
                 }
@@ -3929,7 +3930,7 @@ Item {
                                 bottomMargin: 10
                             }
                             verticalAlignment: TextEdit.AlignVCenter
-                            font.pixelSize: 15; color: copilotPanel.textColor
+                            font.pixelSize: UiI.UiScale.px(15); color: copilotPanel.textColor
                             wrapMode: TextEdit.Wrap; selectByMouse: true
                             renderType: Text.NativeRendering
 
@@ -3937,7 +3938,7 @@ Item {
                             Text {
                                 anchors.fill: parent; verticalAlignment: Text.AlignVCenter
                                 text: Lang.get("copilot.inputHint") + " …"
-                                font.pixelSize: 15; color: copilotPanel.darkMode ? "#444" : "#bbb"
+                                font.pixelSize: UiI.UiScale.px(15); color: copilotPanel.darkMode ? "#444" : "#bbb"
                                 visible: inputEdit.text === ""
                                 renderType: Text.NativeRendering
                             }
@@ -4046,7 +4047,7 @@ Item {
                                 Text {
                                     text: "Tools"
                                     color: copilotPanel.toolsEnabled ? copilotPanel.accentColor : copilotPanel.subtextColor
-                                    font.pixelSize: 11
+                                    font.pixelSize: UiI.UiScale.px(11)
                                     font.weight: copilotPanel.toolsEnabled ? Font.DemiBold : Font.Normal
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
@@ -4080,11 +4081,11 @@ Item {
                                         ? copilotPanel.activeModel.split(":")[0]
                                         : copilotPanel.providerLabel(copilotPanel.activeProvider) + " – wählen"
                                     color: copilotPanel.activeModel !== "" ? copilotPanel.textColor : copilotPanel.subtextColor
-                                    font.pixelSize: 12
+                                    font.pixelSize: UiI.UiScale.px(12)
                                 }
                                 Text {
                                     text: copilotPanel.showModelDropdown ? "▴" : "▾"
-                                    color: copilotPanel.subtextColor; font.pixelSize: 8
+                                    color: copilotPanel.subtextColor; font.pixelSize: UiI.UiScale.px(8)
                                 }
                             }
 
@@ -4160,7 +4161,7 @@ Item {
                                       copilotPanel.formatTokenCount(copilotPanel.estimatedConversationTokens) + " / " +
                                       (copilotPanel.ollamaContextLoading ? "…" : copilotPanel.formatTokenCount(copilotPanel.activeContextWindow))
                                 color: copilotPanel.textColor
-                                font.pixelSize: 10
+                                font.pixelSize: UiI.UiScale.px(10)
                                 font.weight: Font.DemiBold
                             }
                         }
@@ -4181,7 +4182,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: copilotPanel.usageCardTitle() + "  " + copilotPanel.usageCardPercent() + "  " + copilotPanel.usageCardDetail()
                                 color: copilotPanel.textColor
-                                font.pixelSize: 10
+                                font.pixelSize: UiI.UiScale.px(10)
                                 font.weight: Font.DemiBold
                                 elide: Text.ElideRight
                             }
@@ -4220,7 +4221,7 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: Lang.get("copilot.ollamaSection")
                                     color: copilotPanel.accentColor
-                                    font.pixelSize: 13
+                                    font.pixelSize: UiI.UiScale.px(13)
                                     font.weight: Font.Bold
                                 }
 
@@ -4270,7 +4271,7 @@ Item {
                                             Text {
                                                 text: copilotPanel.scanningOllama ? Lang.get("copilot.scanning") : Lang.get("copilot.scanNetwork")
                                                 color: "#4a9eff"
-                                                font.pixelSize: 11
+                                                font.pixelSize: UiI.UiScale.px(11)
                                                 font.weight: Font.DemiBold
                                                 anchors.verticalCenter: parent.verticalCenter
                                             }
@@ -4298,7 +4299,7 @@ Item {
                                             anchors.centerIn: parent
                                             text: Lang.get("copilot.checkAll")
                                             color: copilotPanel.accentColor
-                                            font.pixelSize: 12
+                                            font.pixelSize: UiI.UiScale.px(12)
                                         }
                                         MouseArea {
                                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -4321,7 +4322,7 @@ Item {
                                 Text {
                                     text: Lang.get("copilot.foundInstances")
                                     color: copilotPanel.subtextColor
-                                    font.pixelSize: 11
+                                    font.pixelSize: UiI.UiScale.px(11)
                                     font.weight: Font.DemiBold
                                     topPadding: 4
                                     bottomPadding: 4
@@ -4345,7 +4346,7 @@ Item {
                                                 Text {
                                                     text: modelData.url
                                                     color: copilotPanel.textColor
-                                                    font.pixelSize: 13
+                                                    font.pixelSize: UiI.UiScale.px(13)
                                                     font.weight: Font.DemiBold
                                                     elide: Text.ElideMiddle
                                                     width: parent.width
@@ -4353,7 +4354,7 @@ Item {
                                                 Text {
                                                     text: modelData.version || modelData.ip
                                                     color: copilotPanel.subtextColor
-                                                    font.pixelSize: 11
+                                                    font.pixelSize: UiI.UiScale.px(11)
                                                 }
                                             }
 
@@ -4365,7 +4366,7 @@ Item {
                                                     anchors.centerIn: parent
                                                     text: Lang.get("copilot.addInstance")
                                                     color: "#ffffff"
-                                                    font.pixelSize: 12
+                                                    font.pixelSize: UiI.UiScale.px(12)
                                                     font.weight: Font.DemiBold
                                                 }
                                                 MouseArea {
@@ -4422,7 +4423,7 @@ Item {
                                                 return Qt.rgba(0.9, 0.7, 0.1, 0.2)  // checking
                                             }
                                             Text {
-                                                anchors.centerIn: parent; font.pixelSize: 14
+                                                anchors.centerIn: parent; font.pixelSize: UiI.UiScale.px(14)
                                                 text: {
                                                     var s = ollamaUrlDelegate._panel.ollamaUrlStatuses[ollamaUrlDelegate.index]
                                                     if (!s) return "○"
@@ -4447,7 +4448,7 @@ Item {
                                             TextInput {
                                                 anchors { fill: parent; leftMargin: 10; rightMargin: 10; topMargin: 8; bottomMargin: 8 }
                                                 text: ollamaUrlDelegate.modelData
-                                                color: ollamaUrlDelegate._panel.textColor; font.pixelSize: 13; selectByMouse: true
+                                                color: ollamaUrlDelegate._panel.textColor; font.pixelSize: UiI.UiScale.px(13); selectByMouse: true
                                                 onEditingFinished: {
                                                     var trimmed = text.trim()
                                                     var idx = ollamaUrlDelegate.index
@@ -4466,7 +4467,7 @@ Item {
                                             width: 28; height: 36; radius: 6
                                             color: ollamaUrlDelegate._panel.surfaceColor; border.color: ollamaUrlDelegate._panel.borderColor; border.width: 1
                                             visible: ollamaUrlDelegate._panel.ollamaUrls.length > 0
-                                            Text { anchors.centerIn: parent; text: "✕"; color: "#f87171"; font.pixelSize: 13 }
+                                            Text { anchors.centerIn: parent; text: "✕"; color: "#f87171"; font.pixelSize: UiI.UiScale.px(13) }
                                             MouseArea {
                                                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                                 onClicked: {
@@ -4493,7 +4494,7 @@ Item {
                                             var s = ollamaUrlDelegate._panel.ollamaUrlStatuses[ollamaUrlDelegate.index]
                                             return s ? (s.count || 0) + " " + Lang.get("copilot.modelsAvailable") : ""
                                         }
-                                        color: "#4ade80"; font.pixelSize: 11
+                                        color: "#4ade80"; font.pixelSize: UiI.UiScale.px(11)
                                     }
                                     Text {
                                         leftPadding: 36
@@ -4502,7 +4503,7 @@ Item {
                                             return !!(s && s.status === "error")
                                         }
                                         text: Lang.get("copilot.notReachable")
-                                        color: "#f87171"; font.pixelSize: 11
+                                        color: "#f87171"; font.pixelSize: UiI.UiScale.px(11)
                                     }
                                     }
                                 }
@@ -4516,7 +4517,7 @@ Item {
                                 width: parent.width
                                 text: Lang.get("copilot.noInstancesFound")
                                 color: copilotPanel.subtextColor
-                                font.pixelSize: 11
+                                font.pixelSize: UiI.UiScale.px(11)
                                 wrapMode: Text.Wrap
                                 horizontalAlignment: Text.AlignHCenter
                                 topPadding: 4
@@ -4529,8 +4530,8 @@ Item {
                                 color: copilotPanel.surfaceColor; border.color: copilotPanel.borderColor; border.width: 1
                                 Row {
                                     anchors.centerIn: parent; spacing: 6
-                                    Text { text: "+"; color: copilotPanel.accentColor; font.pixelSize: 16; font.weight: Font.Bold }
-                                    Text { text: Lang.get("copilot.addEndpoint"); color: copilotPanel.accentColor; font.pixelSize: 13 }
+                                    Text { text: "+"; color: copilotPanel.accentColor; font.pixelSize: UiI.UiScale.px(16); font.weight: Font.Bold }
+                                    Text { text: Lang.get("copilot.addEndpoint"); color: copilotPanel.accentColor; font.pixelSize: UiI.UiScale.px(13) }
                                 }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: {
                                     var urls = copilotPanel.ollamaUrls.slice()
@@ -4549,12 +4550,12 @@ Item {
                                     spacing: 6
                                     Text {
                                         text: copilotPanel.ollamaModelDetails.length + " " + Lang.get("copilot.modelsFound")
-                                        color: copilotPanel.subtextColor; font.pixelSize: 12
+                                        color: copilotPanel.subtextColor; font.pixelSize: UiI.UiScale.px(12)
                                         bottomPadding: 4
                                     }
                                     Text {
                                         text: copilotPanel.showOllamaModels ? "▲" : "▼"
-                                        color: copilotPanel.subtextColor; font.pixelSize: 9
+                                        color: copilotPanel.subtextColor; font.pixelSize: UiI.UiScale.px(9)
                                         MouseArea {
                                             anchors.fill: parent
                                             anchors.margins: -4
@@ -4583,7 +4584,7 @@ Item {
                                                 Text {
                                                     text: modelData.name
                                                     color: copilotPanel.activeModel === modelData.name ? copilotPanel.accentColor : copilotPanel.textColor
-                                                    font.pixelSize: 13; font.weight: copilotPanel.activeModel === modelData.name ? Font.DemiBold : Font.Normal
+                                                    font.pixelSize: UiI.UiScale.px(13); font.weight: copilotPanel.activeModel === modelData.name ? Font.DemiBold : Font.Normal
                                                     elide: Text.ElideRight; width: parent.width
                                                 }
                                                 Text {
@@ -4599,14 +4600,14 @@ Item {
                                                         }
                                                         return parts.join("  ·  ")
                                                     }
-                                                    color: copilotPanel.subtextColor; font.pixelSize: 11
+                                                    color: copilotPanel.subtextColor; font.pixelSize: UiI.UiScale.px(11)
                                                 }
                                             }
 
                                             Text {
                                                 anchors.verticalCenter: parent.verticalCenter
                                                 text: "✓"
-                                                color: copilotPanel.accentColor; font.pixelSize: 14; font.weight: Font.Bold
+                                                color: copilotPanel.accentColor; font.pixelSize: UiI.UiScale.px(14); font.weight: Font.Bold
                                                 visible: copilotPanel.activeModel === modelData.name
                                             }
                                         }
@@ -4629,7 +4630,7 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: Lang.get("copilot.openclawSection")
                                     color: copilotPanel.accentColor
-                                    font.pixelSize: 13
+                                    font.pixelSize: UiI.UiScale.px(13)
                                     font.weight: Font.Bold
                                 }
 
@@ -4678,7 +4679,7 @@ Item {
                                             Text {
                                                 text: copilotPanel.scanningOpenclaw ? Lang.get("copilot.scanning") : Lang.get("copilot.scanNetwork")
                                                 color: "#4a9eff"
-                                                font.pixelSize: 11
+                                                font.pixelSize: UiI.UiScale.px(11)
                                                 font.weight: Font.DemiBold
                                                 anchors.verticalCenter: parent.verticalCenter
                                             }
@@ -4707,7 +4708,7 @@ Item {
                                             anchors.centerIn: parent
                                             text: Lang.get("copilot.checkAll")
                                             color: copilotPanel.accentColor
-                                            font.pixelSize: 12
+                                            font.pixelSize: UiI.UiScale.px(12)
                                         }
 
                                         MouseArea {
@@ -4733,7 +4734,7 @@ Item {
                                 Text {
                                     text: Lang.get("copilot.foundInstances")
                                     color: copilotPanel.subtextColor
-                                    font.pixelSize: 11
+                                    font.pixelSize: UiI.UiScale.px(11)
                                     font.weight: Font.DemiBold
                                     topPadding: 4
                                     bottomPadding: 4
@@ -4757,7 +4758,7 @@ Item {
                                                 Text {
                                                     text: (modelData.displayName || modelData.hostname || modelData.ip)
                                                     color: copilotPanel.textColor
-                                                    font.pixelSize: 11
+                                                    font.pixelSize: UiI.UiScale.px(11)
                                                     font.weight: Font.DemiBold
                                                     elide: Text.ElideMiddle
                                                     width: parent.width
@@ -4765,7 +4766,7 @@ Item {
                                                 Text {
                                                     text: modelData.ip + ":" + modelData.port
                                                     color: copilotPanel.subtextColor
-                                                    font.pixelSize: 10
+                                                    font.pixelSize: UiI.UiScale.px(10)
                                                 }
                                             }
 
@@ -4781,7 +4782,7 @@ Item {
                                                     anchors.centerIn: parent
                                                     text: Lang.get("copilot.addInstance")
                                                     color: "#ffffff"
-                                                    font.pixelSize: 11
+                                                    font.pixelSize: UiI.UiScale.px(11)
                                                     font.weight: Font.DemiBold
                                                 }
 
@@ -4843,14 +4844,14 @@ Item {
                                                     echoMode: foundTokenInput.showToken ? TextInput.Normal : TextInput.Password
                                                     property bool showToken: false
                                                     color: copilotPanel.textColor
-                                                    font.pixelSize: 11
+                                                    font.pixelSize: UiI.UiScale.px(11)
                                                     selectByMouse: true
 
                                                     Text {
                                                         visible: parent.text === ""
                                                         text: "Token"
                                                         color: copilotPanel.subtextColor
-                                                        font.pixelSize: 11
+                                                        font.pixelSize: UiI.UiScale.px(11)
                                                         opacity: 0.5
                                                     }
                                                 }
@@ -4858,7 +4859,7 @@ Item {
                                                 Text {
                                                     anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
                                                     text: foundTokenInput.showToken ? "◉" : "○"
-                                                    font.pixelSize: 13
+                                                    font.pixelSize: UiI.UiScale.px(13)
                                                     color: copilotPanel.subtextColor
                                                     MouseArea {
                                                         anchors.fill: parent
@@ -4880,7 +4881,7 @@ Item {
                                 width: parent.width
                                 text: Lang.get("copilot.noInstancesFound")
                                 color: copilotPanel.subtextColor
-                                font.pixelSize: 11
+                                font.pixelSize: UiI.UiScale.px(11)
                                 wrapMode: Text.Wrap
                                 horizontalAlignment: Text.AlignHCenter
                                 topPadding: 4
@@ -4917,7 +4918,7 @@ Item {
                                                 return Qt.rgba(0.9, 0.7, 0.1, 0.2)  // checking
                                             }
                                             Text {
-                                                anchors.centerIn: parent; font.pixelSize: 14
+                                                anchors.centerIn: parent; font.pixelSize: UiI.UiScale.px(14)
                                                 text: {
                                                     var s = openclawUrlDelegate._panel.openclawUrlStatuses[openclawUrlDelegate.index]
                                                     if (!s) return "○"
@@ -4943,7 +4944,7 @@ Item {
                                             TextInput {
                                                 anchors { fill: parent; leftMargin: 10; rightMargin: 10; topMargin: 8; bottomMargin: 8 }
                                                 text: openclawUrlDelegate.modelData
-                                                color: openclawUrlDelegate._panel.textColor; font.pixelSize: 12; selectByMouse: true
+                                                color: openclawUrlDelegate._panel.textColor; font.pixelSize: UiI.UiScale.px(12); selectByMouse: true
                                                 onEditingFinished: {
                                                     var trimmed = text.trim()
                                                     var idx = openclawUrlDelegate.index
@@ -4970,7 +4971,7 @@ Item {
                                                 echoMode: urlTokenInput.showToken ? TextInput.Normal : TextInput.Password
                                                 property bool showToken: false
                                                 color: openclawUrlDelegate._panel.textColor
-                                                font.pixelSize: 12
+                                                font.pixelSize: UiI.UiScale.px(12)
                                                 selectByMouse: true
                                                 onEditingFinished: {
                                                     var trimmed = text.trim()
@@ -4986,7 +4987,7 @@ Item {
                                             Text {
                                                 anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
                                                 text: urlTokenInput.showToken ? "◉" : "○"
-                                                font.pixelSize: 13
+                                                font.pixelSize: UiI.UiScale.px(13)
                                                 color: openclawUrlDelegate._panel.subtextColor
                                                 MouseArea {
                                                     anchors.fill: parent
@@ -5005,7 +5006,7 @@ Item {
                                             ProjectIcon {
                                                 anchors.centerIn: parent
                                                 name: "link"
-                                                font.pixelSize: 14
+                                                font.pixelSize: UiI.UiScale.px(14)
                                             }
                                             MouseArea {
                                                 anchors.fill: parent
@@ -5024,7 +5025,7 @@ Item {
                                             width: 28; height: 36; radius: 6
                                             color: openclawUrlDelegate._panel.surfaceColor; border.color: openclawUrlDelegate._panel.borderColor; border.width: 1
                                             visible: openclawUrlDelegate._panel.openclawUrls.length > 0
-                                            Text { anchors.centerIn: parent; text: "✕"; color: "#f87171"; font.pixelSize: 13 }
+                                            Text { anchors.centerIn: parent; text: "✕"; color: "#f87171"; font.pixelSize: UiI.UiScale.px(13) }
                                             MouseArea {
                                                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                                 onClicked: {
@@ -5051,7 +5052,7 @@ Item {
                                             var s = openclawUrlDelegate._panel.openclawUrlStatuses[openclawUrlDelegate.index]
                                             return s ? (s.count || 0) + " " + Lang.get("copilot.modelsAvailable") : ""
                                         }
-                                        color: "#4ade80"; font.pixelSize: 11
+                                        color: "#4ade80"; font.pixelSize: UiI.UiScale.px(11)
                                     }
                                     }
                                 }
@@ -5063,8 +5064,8 @@ Item {
                                 color: copilotPanel.surfaceColor; border.color: copilotPanel.borderColor; border.width: 1
                                 Row {
                                     anchors.centerIn: parent; spacing: 6
-                                    Text { text: "+"; color: copilotPanel.accentColor; font.pixelSize: 16; font.weight: Font.Bold }
-                                    Text { text: Lang.get("copilot.addEndpoint"); color: copilotPanel.accentColor; font.pixelSize: 13 }
+                                    Text { text: "+"; color: copilotPanel.accentColor; font.pixelSize: UiI.UiScale.px(16); font.weight: Font.Bold }
+                                    Text { text: Lang.get("copilot.addEndpoint"); color: copilotPanel.accentColor; font.pixelSize: UiI.UiScale.px(13) }
                                 }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: {
                                     var urls = copilotPanel.openclawUrls.slice()
@@ -5080,7 +5081,7 @@ Item {
 
                                 Text {
                                     text: copilotPanel.openclawModelDetails.length + " " + Lang.get("copilot.modelsFound")
-                                    color: copilotPanel.subtextColor; font.pixelSize: 12
+                                    color: copilotPanel.subtextColor; font.pixelSize: UiI.UiScale.px(12)
                                     bottomPadding: 4
                                 }
 
@@ -5103,7 +5104,7 @@ Item {
                                                 Text {
                                                     text: modelData.name
                                                     color: (copilotPanel.activeModel === modelData.name && copilotPanel.activeProvider === "openclaw") ? copilotPanel.accentColor : copilotPanel.textColor
-                                                    font.pixelSize: 13; font.weight: (copilotPanel.activeModel === modelData.name && copilotPanel.activeProvider === "openclaw") ? Font.DemiBold : Font.Normal
+                                                    font.pixelSize: UiI.UiScale.px(13); font.weight: (copilotPanel.activeModel === modelData.name && copilotPanel.activeProvider === "openclaw") ? Font.DemiBold : Font.Normal
                                                     elide: Text.ElideRight; width: parent.width
                                                 }
                                                 Text {
@@ -5124,14 +5125,14 @@ Item {
                                                         }
                                                         return ""
                                                     }
-                                                    color: copilotPanel.subtextColor; font.pixelSize: 11
+                                                    color: copilotPanel.subtextColor; font.pixelSize: UiI.UiScale.px(11)
                                                 }
                                             }
 
                                             Text {
                                                 anchors.verticalCenter: parent.verticalCenter
                                                 text: "✓"
-                                                color: copilotPanel.accentColor; font.pixelSize: 14; font.weight: Font.Bold
+                                                color: copilotPanel.accentColor; font.pixelSize: UiI.UiScale.px(14); font.weight: Font.Bold
                                                 visible: copilotPanel.activeModel === modelData.name && copilotPanel.activeProvider === "openclaw"
                                             }
                                         }
@@ -5146,7 +5147,7 @@ Item {
 
                             Text {
                                 text: "API Keys"
-                                color: copilotPanel.accentColor; font.pixelSize: 13; font.weight: Font.Bold
+                                color: copilotPanel.accentColor; font.pixelSize: UiI.UiScale.px(13); font.weight: Font.Bold
                                 bottomPadding: 10
                             }
 
@@ -5197,13 +5198,13 @@ Item {
                                         Text {
                                             anchors { left: parent.left; leftMargin: 28; verticalCenter: parent.verticalCenter }
                                             text: modelData.label
-                                            font.pixelSize: 13; color: copilotPanel.textColor
+                                            font.pixelSize: UiI.UiScale.px(13); color: copilotPanel.textColor
                                         }
 
                                         // Status text
                                         Text {
                                             anchors { right: keyToggleIcon.left; rightMargin: 8; verticalCenter: parent.verticalCenter }
-                                            font.pixelSize: 11
+                                            font.pixelSize: UiI.UiScale.px(11)
                                             text: {
                                                 var p = modelData.provId
                                                 if (copilotPanel.lastSaveProvider === p && copilotPanel.lastSaveResult === "saving") return "Speichern…"
@@ -5225,7 +5226,7 @@ Item {
                                             id: keyToggleIcon
                                             anchors { right: parent.right; rightMargin: 14; verticalCenter: parent.verticalCenter }
                                             text: copilotPanel._editingProvider === modelData.provId ? "▲" : "▼"
-                                            font.pixelSize: 9; color: copilotPanel.subtextColor
+                                            font.pixelSize: UiI.UiScale.px(9); color: copilotPanel.subtextColor
                                         }
 
                                         MouseArea {
@@ -5269,7 +5270,7 @@ Item {
                                                         text: copilotPanel[modelData.keyProp]
                                                         echoMode: showRaw ? TextInput.Normal : TextInput.Password
                                                         property bool showRaw: false
-                                                        color: copilotPanel.textColor; font.pixelSize: 13; selectByMouse: true
+                                                        color: copilotPanel.textColor; font.pixelSize: UiI.UiScale.px(13); selectByMouse: true
                                                         onTextChanged: copilotPanel[modelData.keyProp] = text
 
                                                         MouseArea {
@@ -5290,7 +5291,7 @@ Item {
                                                     Text {
                                                         anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
                                                         text: keyEditInput.showRaw ? "◉" : "○"
-                                                        font.pixelSize: 15; color: copilotPanel.subtextColor
+                                                        font.pixelSize: UiI.UiScale.px(15); color: copilotPanel.subtextColor
                                                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                                             onClicked: keyEditInput.showRaw = !keyEditInput.showRaw }
                                                     }
@@ -5300,7 +5301,7 @@ Item {
                                                     width: 92; height: 36; radius: 6
                                                     color: Qt.rgba(copilotPanel.accentColor.r, copilotPanel.accentColor.g, copilotPanel.accentColor.b, 0.15)
                                                     border.color: copilotPanel.accentColor; border.width: 1
-                                                    Text { anchors.centerIn: parent; text: "Speichern"; color: copilotPanel.accentColor; font.pixelSize: 13 }
+                                                    Text { anchors.centerIn: parent; text: "Speichern"; color: copilotPanel.accentColor; font.pixelSize: UiI.UiScale.px(13) }
                                                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: {
                                                         var key = keyEditInput.text.trim()
                                                         if (key === "") return
@@ -5322,7 +5323,7 @@ Item {
                                                     width: visible ? 130 : 0; height: 28; radius: 6
                                                     color: Qt.rgba(0.3, 0.3, 0.3, 0.2)
                                                     border.color: copilotPanel.borderColor; border.width: 1
-                                                    Text { anchors.centerIn: parent; text: "Verbindung testen"; color: copilotPanel.subtextColor; font.pixelSize: 12 }
+                                                    Text { anchors.centerIn: parent; text: "Verbindung testen"; color: copilotPanel.subtextColor; font.pixelSize: UiI.UiScale.px(12) }
                                                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: {
                                                         var key = copilotPanel[modelData.keyProp]
                                                         copilotPanel.lastTestProvider  = modelData.provId
@@ -5350,7 +5351,7 @@ Item {
 
                                                 Text {
                                                     anchors.verticalCenter: parent.verticalCenter
-                                                    font.pixelSize: 12; wrapMode: Text.Wrap; width: 200
+                                                    font.pixelSize: UiI.UiScale.px(12); wrapMode: Text.Wrap; width: 200
                                                     text: {
                                                         var p = modelData.provId
                                                         if (copilotPanel.lastSaveProvider === p && copilotPanel.lastSaveResult !== "") {
@@ -5386,7 +5387,7 @@ Item {
                             }
 
                             Text {
-                                topPadding: 10; width: parent.width; wrapMode: Text.Wrap; font.pixelSize: 11
+                                topPadding: 10; width: parent.width; wrapMode: Text.Wrap; font.pixelSize: UiI.UiScale.px(11)
                                 color: copilotPanel.subtextColor
                                 text: "Keys werden im OS-Schlüsselbund gespeichert (via secret-tool / GNOME Keyring / KDE Wallet)."
                             }
@@ -5411,7 +5412,7 @@ Item {
 
                 Text {
                     anchors.centerIn: parent
-                    text: "↑"; font.pixelSize: 18
+                    text: "↑"; font.pixelSize: UiI.UiScale.px(18)
                     color: copilotPanel.textColor
                 }
 
@@ -5438,7 +5439,7 @@ Item {
 
                 Text {
                     anchors.centerIn: parent
-                    text: "↓"; font.pixelSize: 18
+                    text: "↓"; font.pixelSize: UiI.UiScale.px(18)
                     color: copilotPanel.textColor
                 }
 

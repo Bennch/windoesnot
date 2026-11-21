@@ -3,6 +3,7 @@ import QtQuick.Controls
 import Quickshell.Io
 import "." as Tools
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Column {
     id: page
@@ -70,14 +71,14 @@ Column {
         wrapMode: Text.WordWrap
         textFormat: Text.PlainText
         color: page.secondary
-        font.pixelSize: 13
+        font.pixelSize: UiI.UiScale.px(13)
     }
     component ActionButton: Tools.SystemToolsButton {
         settingsMenu: page.settingsMenu
         enabled: page.ready && !page.busy
     }
 
-    Text { text: page.tr("maintenance.printers"); color: page.foreground; font.pixelSize: 18; font.bold: true }
+    Text { text: page.tr("maintenance.printers"); color: page.foreground; font.pixelSize: UiI.UiScale.px(18); font.bold: true }
     Note { text: page.tr("maintenance.printersHint") }
     Note { visible: !page.ready; text: page.busy ? page.tr("systemTools.loading") : page.tr("systemTools.unavailable") }
     BusyIndicator { width: 28; height: 28; running: page.busy; visible: running; palette.highlight: settingsMenu ? settingsMenu.accentColor : "#fe6f2d" }
@@ -102,8 +103,8 @@ Column {
             Column {
                 id: printerRow
                 x: 12; y: 10; width: parent.width - 24; spacing: 5
-                Text { width: parent.width; text: modelData.name + (modelData.name === page.printerState.default ? "  (" + page.tr("maintenance.printerIsDefault") + ")" : ""); color: page.foreground; font.pixelSize: 13; font.bold: true; wrapMode: Text.WordWrap }
-                Note { text: modelData.uri; font.pixelSize: 11 }
+                Text { width: parent.width; text: modelData.name + (modelData.name === page.printerState.default ? "  (" + page.tr("maintenance.printerIsDefault") + ")" : ""); color: page.foreground; font.pixelSize: UiI.UiScale.px(13); font.bold: true; wrapMode: Text.WordWrap }
+                Note { text: modelData.uri; font.pixelSize: UiI.UiScale.px(11) }
                 ActionButton {
                     visible: modelData.name !== page.printerState.default
                     text: page.tr("maintenance.printerMakeDefault")
@@ -131,7 +132,7 @@ Column {
             Column {
                 id: candidateContent
                 x: 12; y: 10; width: parent.width - 24; spacing: 6
-                Note { text: modelData; font.pixelSize: 11 }
+                Note { text: modelData; font.pixelSize: UiI.UiScale.px(11) }
                 ActionButton {
                     enabled: page.ready && !page.busy && !(page.printerState.printers.some(function(p) { return p.name === candidateCard.printerName }))
                     text: page.tr("maintenance.printerAdd")

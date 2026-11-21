@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Effects
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Item {
     id: ollamaPanel
@@ -364,7 +365,7 @@ Item {
                 }
                 Text {
                     text: "Ollama"
-                    font.pixelSize: 16; font.weight: Font.DemiBold
+                    font.pixelSize: UiI.UiScale.px(16); font.weight: Font.DemiBold
                     color: ollamaPanel.darkMode ? "#ffffff" : "#000000"
                     anchors.verticalCenter: parent.verticalCenter
                     renderType: Text.NativeRendering
@@ -394,7 +395,7 @@ Item {
                     text: !ollamaPanel.ollamaReachable ? Lang.get("ollama.statusOffline")
                           : ollamaPanel.loadedCount > 0 ? ollamaPanel.loadedCount + " " + Lang.get("ollama.statusLoaded")
                           : Lang.get("ollama.statusIdle")
-                    font.pixelSize: 11
+                    font.pixelSize: UiI.UiScale.px(11)
                     color: !ollamaPanel.ollamaReachable ? "#ef5350"
                            : ollamaPanel.loadedCount > 0 ? ollamaPanel.accentColor
                            : (ollamaPanel.darkMode ? "#888" : "#666")
@@ -414,7 +415,7 @@ Item {
                         : "transparent"
                 Behavior on color { ColorAnimation { duration: 120 } }
                 Text {
-                    anchors.centerIn: parent; text: "⚙"; font.pixelSize: 14
+                    anchors.centerIn: parent; text: "⚙"; font.pixelSize: UiI.UiScale.px(14)
                     color: !ollamaPanel.activeView ? ollamaPanel.accentColor
                            : (ollamaPanel.darkMode ? "#888" : "#555")
                 }
@@ -463,7 +464,7 @@ Item {
                         }
                         Text {
                             text: modelData === "native" ? "Native" : "Docker"
-                            font.pixelSize: 12
+                            font.pixelSize: UiI.UiScale.px(12)
                             font.weight: isActive ? Font.DemiBold : Font.Normal
                             color: isActive ? ollamaPanel.accentColor : (ollamaPanel.darkMode ? "#888" : "#666")
                             anchors.verticalCenter: parent.verticalCenter
@@ -561,7 +562,7 @@ Item {
                     anchors.topMargin: 26
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: Lang.get("ollama.loading")
-                    font.pixelSize: 11
+                    font.pixelSize: UiI.UiScale.px(11)
                     color: ollamaPanel.darkMode ? "#666" : "#999"
                 }
             }
@@ -570,27 +571,27 @@ Item {
                 anchors.centerIn: parent
                 spacing: 8
                 visible: !ollamaPanel.isLoading && !ollamaPanel.ollamaReachable
-                ProjectIcon { anchors.horizontalCenter: parent.horizontalCenter; name: "bolt"; font.pixelSize: 28; color: "#ef5350" }
+                ProjectIcon { anchors.horizontalCenter: parent.horizontalCenter; name: "bolt"; font.pixelSize: UiI.UiScale.px(28); color: "#ef5350" }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: ollamaPanel.currentSource === "docker" ? Lang.get("ollama.offlineDocker") : Lang.get("ollama.offlineNative")
-                    font.pixelSize: 13; color: ollamaPanel.darkMode ? "#888" : "#666"
+                    font.pixelSize: UiI.UiScale.px(13); color: ollamaPanel.darkMode ? "#888" : "#666"
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: ollamaPanel.apiUrl
-                    font.pixelSize: 11; color: ollamaPanel.darkMode ? "#555" : "#999"
+                    font.pixelSize: UiI.UiScale.px(11); color: ollamaPanel.darkMode ? "#555" : "#999"
                 }
             }
 
             Column {
                 anchors.centerIn: parent; spacing: 8
                 visible: !ollamaPanel.isLoading && ollamaPanel.ollamaReachable && ollamaPanel.modelsData.length === 0
-                ProjectIcon { anchors.horizontalCenter: parent.horizontalCenter; name: "assistant"; font.pixelSize: 28 }
+                ProjectIcon { anchors.horizontalCenter: parent.horizontalCenter; name: "assistant"; font.pixelSize: UiI.UiScale.px(28) }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: Lang.get("ollama.noModels")
-                    font.pixelSize: 13; color: ollamaPanel.darkMode ? "#888" : "#666"
+                    font.pixelSize: UiI.UiScale.px(13); color: ollamaPanel.darkMode ? "#888" : "#666"
                 }
             }
 
@@ -653,26 +654,26 @@ Item {
                             spacing: 3; width: parent.width - 18
 
                             Text {
-                                text: modelData.name; font.pixelSize: 12; font.weight: Font.Medium
+                                text: modelData.name; font.pixelSize: UiI.UiScale.px(12); font.weight: Font.Medium
                                 color: ollamaPanel.darkMode ? "#ffffff" : "#111111"
                                 elide: Text.ElideRight; width: parent.width
                                 renderType: Text.NativeRendering
                             }
                             Row {
                                 spacing: 6
-                                Text { text: modelData.sizeGb + " GB"; font.pixelSize: 11; color: ollamaPanel.darkMode ? "#777" : "#666" }
-                                Text { visible: modelData.params !== ""; text: modelData.params; font.pixelSize: 11; color: ollamaPanel.darkMode ? "#555" : "#999" }
-                                Text { visible: modelData.quant !== "";  text: modelData.quant;  font.pixelSize: 11; color: ollamaPanel.darkMode ? "#555" : "#999" }
+                                Text { text: modelData.sizeGb + " GB"; font.pixelSize: UiI.UiScale.px(11); color: ollamaPanel.darkMode ? "#777" : "#666" }
+                                Text { visible: modelData.params !== ""; text: modelData.params; font.pixelSize: UiI.UiScale.px(11); color: ollamaPanel.darkMode ? "#555" : "#999" }
+                                Text { visible: modelData.quant !== "";  text: modelData.quant;  font.pixelSize: UiI.UiScale.px(11); color: ollamaPanel.darkMode ? "#555" : "#999" }
                             }
                             Text {
                                 visible: modelData.loaded && modelData.vramGb !== ""
                                 text: "VRAM: " + modelData.vramGb + " GB"
-                                font.pixelSize: 10; color: "#4caf50"; opacity: 0.8
+                                font.pixelSize: UiI.UiScale.px(10); color: "#4caf50"; opacity: 0.8
                             }
                             Text {
                                 visible: !modelData.loaded
                                 text: Lang.get("ollama.onDisk")
-                                font.pixelSize: 10
+                                font.pixelSize: UiI.UiScale.px(10)
                                 color: ollamaPanel.darkMode ? "#555" : "#aaa"
                             }
                         }
@@ -697,7 +698,7 @@ Item {
                             border.width: 1
                             border.color: modelData.loaded ? Qt.rgba(0.7, 0.3, 0.3, 0.4) : Qt.rgba(0.3, 0.65, 0.3, 0.4)
                             Behavior on color { ColorAnimation { duration: 120 } }
-                            Text { anchors.centerIn: parent; text: modelData.loaded ? "⏹" : "▶"; font.pixelSize: 11; color: modelData.loaded ? "#ef5350" : "#66bb6a" }
+                            Text { anchors.centerIn: parent; text: modelData.loaded ? "⏹" : "▶"; font.pixelSize: UiI.UiScale.px(11); color: modelData.loaded ? "#ef5350" : "#66bb6a" }
                             MouseArea {
                                 id: btnLoad; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: {
@@ -715,7 +716,7 @@ Item {
                             color: btnTerminal.containsMouse ? Qt.rgba(0.2, 0.45, 0.7, 0.35) : Qt.rgba(0.18, 0.18, 0.18, 0.8)
                             border.width: 1; border.color: Qt.rgba(0.3, 0.5, 0.75, 0.4)
                             Behavior on color { ColorAnimation { duration: 120 } }
-                            Text { anchors.centerIn: parent; text: ">_"; font.pixelSize: 9; font.family: "Monospace"; color: "#64b5f6" }
+                            Text { anchors.centerIn: parent; text: ">_"; font.pixelSize: UiI.UiScale.px(9); font.family: "Monospace"; color: "#64b5f6" }
                             MouseArea {
                                 id: btnTerminal; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: {
@@ -736,7 +737,7 @@ Item {
                             color: btnDelete.containsMouse ? Qt.rgba(0.85, 0.2, 0.2, 0.35) : Qt.rgba(0.18, 0.18, 0.18, 0.8)
                             border.width: 1; border.color: Qt.rgba(0.6, 0.2, 0.2, 0.4)
                             Behavior on color { ColorAnimation { duration: 120 } }
-                            Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 11; color: "#ef5350" }
+                            Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: UiI.UiScale.px(11); color: "#ef5350" }
                             MouseArea {
                                 id: btnDelete; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                 onClicked: {
@@ -789,7 +790,7 @@ Item {
 
                         Text {
                             text: Lang.get("ollama.contextLength")
-                            font.pixelSize: 12; font.weight: Font.Medium
+                            font.pixelSize: UiI.UiScale.px(12); font.weight: Font.Medium
                             color: ollamaPanel.darkMode ? "#ccc" : "#333"
                             anchors.verticalCenter: parent.verticalCenter
                         }
@@ -798,7 +799,7 @@ Item {
 
                         Text {
                             text: ctxColumn.ctxValue.toString()
-                            font.pixelSize: 14; font.weight: Font.Bold
+                            font.pixelSize: UiI.UiScale.px(14); font.weight: Font.Bold
                             color: ctxColumn.ctxValue > 32768 ? "#f39c12" : (ctxColumn.ctxValue > 65536 ? "#e74c3c" : ollamaPanel.accentColor)
                             anchors.verticalCenter: parent.verticalCenter
                         }
@@ -813,7 +814,7 @@ Item {
                             Text {
                                 anchors.centerIn: parent
                                 text: "MAX"
-                                font.pixelSize: 9
+                                font.pixelSize: UiI.UiScale.px(9)
                                 font.weight: Font.Bold
                                 color: ollamaPanel.accentColor
                             }
@@ -908,7 +909,7 @@ Item {
                         text: parent.ctxValue > 65536
                             ? "⚠️ Very high! May cause slowness or crashes"
                             : "⚠️ High context - may impact performance"
-                        font.pixelSize: 10
+                        font.pixelSize: UiI.UiScale.px(10)
                         color: parent.ctxValue > 65536 ? "#e74c3c" : "#f39c12"
                         width: parent.width
                         wrapMode: Text.Wrap
@@ -937,7 +938,7 @@ Item {
                                 Text {
                                     anchors.centerIn: parent
                                     text: modelData >= 1024 ? (modelData / 1024) + "K" : modelData.toString()
-                                    font.pixelSize: 9
+                                    font.pixelSize: UiI.UiScale.px(9)
                                     color: ctxColumn.ctxValue === modelData
                                         ? (ollamaPanel.darkMode ? "#ffffff" : "#111111")
                                         : ollamaPanel.accentColor
@@ -970,7 +971,7 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             text: Lang.get("ollama.btnSave") + " & Restart"
-                            font.pixelSize: 11
+                            font.pixelSize: UiI.UiScale.px(11)
                             color: ollamaPanel.accentColor
                         }
 
@@ -1021,7 +1022,7 @@ Item {
 
                     Text {
                         text: "Model Location"
-                        font.pixelSize: 12; font.weight: Font.Medium
+                        font.pixelSize: UiI.UiScale.px(12); font.weight: Font.Medium
                         color: ollamaPanel.darkMode ? "#ccc" : "#333"
                     }
                     Rectangle {
@@ -1034,7 +1035,7 @@ Item {
                             text: ollamaPanel.currentSource === "docker"
                                 ? "Docker Volume: ollama"
                                 : "~/.ollama/models"
-                            font.pixelSize: 11; color: ollamaPanel.darkMode ? "#666" : "#999"
+                            font.pixelSize: UiI.UiScale.px(11); color: ollamaPanel.darkMode ? "#666" : "#999"
                         }
                     }
 
@@ -1052,7 +1053,7 @@ Item {
                             property string url: ollamaPanel.currentSource === "docker"
                                 ? ollamaPanel.dockerUrl : ollamaPanel.nativeUrl
                             text: url !== "" ? url : "nicht erkannt"
-                            font.pixelSize: 11
+                            font.pixelSize: UiI.UiScale.px(11)
                             color: ollamaPanel.darkMode ? "#555" : "#999"
                         }
                     }
@@ -1066,7 +1067,7 @@ Item {
 
                     Text {
                         text: ollamaPanel.currentSource === "docker" ? "Container" : "Service"
-                        font.pixelSize: 12; font.weight: Font.Medium
+                        font.pixelSize: UiI.UiScale.px(12); font.weight: Font.Medium
                         color: ollamaPanel.darkMode ? "#ccc" : "#333"
                     }
 
@@ -1095,7 +1096,7 @@ Item {
                                     : Qt.rgba(0.18, 0.18, 0.18, 0.6)
                                 border.width: 1; border.color: "#333"
                                 Behavior on color { ColorAnimation { duration: 120 } }
-                                Text { anchors.centerIn: parent; text: btnLabel; font.pixelSize: 11; color: btnColor }
+                                Text { anchors.centerIn: parent; text: btnLabel; font.pixelSize: UiI.UiScale.px(11); color: btnColor }
                                 MouseArea {
                                     id: svcBtnArea; anchors.fill: parent
                                     hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -1126,7 +1127,7 @@ Item {
 
             Text {
                 anchors.centerIn: parent
-                text: "↑"; font.pixelSize: 18
+                text: "↑"; font.pixelSize: UiI.UiScale.px(18)
                 color: ollamaPanel.darkMode ? "#fff" : "#333"
             }
 
@@ -1151,7 +1152,7 @@ Item {
 
             Text {
                 anchors.centerIn: parent
-                text: "↓"; font.pixelSize: 18
+                text: "↓"; font.pixelSize: UiI.UiScale.px(18)
                 color: ollamaPanel.darkMode ? "#fff" : "#333"
             }
 

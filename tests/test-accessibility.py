@@ -30,9 +30,10 @@ with tempfile.TemporaryDirectory() as t:
     log.unlink(); assert run('apply').returncode == 0
     for needle in ('decoration:screen_shader', 'setcursor Bibata 48', 'text-scaling-factor 1.5', 'animations:enabled false'): assert needle in calls(), (needle, calls())
     steps = []
-    for action in ('in', 'in', 'in', 'in', 'in', 'out', 'out', 'out', 'out', 'out', 'reset'):
+    for action in ('in', 'in', 'in', 'in', 'in', 'in', 'out', 'out', 'out', 'out', 'out', 'out', 'reset'):
         steps.append(float(run('zoom', action).stdout)); 
-    assert steps == [1.5, 2.0, 3.0, 4.0, 4.0, 3.0, 2.0, 1.5, 1.0, 1.0, 1.0], steps
+    assert steps == [1.25, 1.5, 2.0, 3.0, 4.0, 4.0, 3.0, 2.0, 1.5, 1.25, 1.0, 1.0, 1.0], steps
+    assert 'cursor:zoom_detached_camera false' in calls(), 'the view must follow the pointer so the taskbar can be reached'
     assert float(run('zoom', '2.5').stdout) == 2.5 and run('zoom', 'abc').returncode == 2
     # every shader compiles when a GLSL validator is around
     validator = shutil.which('glslangValidator')

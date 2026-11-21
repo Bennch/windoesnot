@@ -3,6 +3,7 @@ import QtQuick.Controls
 import Quickshell.Io
 import "." as Tools
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 // File backup (windoesnot-filebackup): status, target, schedule, sources, browse and restore.
 Item {
@@ -242,17 +243,17 @@ Item {
     // Reusable pieces
     component Heading: Text {
         width: parent ? parent.width : 100
-        font.pixelSize: 14; font.bold: true; wrapMode: Text.WordWrap
+        font.pixelSize: UiI.UiScale.px(14); font.bold: true; wrapMode: Text.WordWrap
         color: card.dark ? "#ffffff" : "#1a1a1a"
     }
     component Note: Text {
         width: parent ? parent.width : 100
-        font.pixelSize: 12; wrapMode: Text.WordWrap
+        font.pixelSize: UiI.UiScale.px(12); wrapMode: Text.WordWrap
         color: card.dark ? "#aaaaaa" : "#555555"
     }
     component Field: TextField {
         width: parent ? parent.width : 100
-        implicitHeight: 36; font.pixelSize: 13
+        implicitHeight: 36; font.pixelSize: UiI.UiScale.px(13)
         color: card.dark ? "#ffffff" : "#1a1a1a"
         placeholderTextColor: card.dark ? "#777777" : "#999999"
         background: Rectangle {
@@ -272,7 +273,7 @@ Item {
         width: parent.width
         spacing: 14
 
-        Heading { text: card.tr("title"); font.pixelSize: 18 }
+        Heading { text: card.tr("title"); font.pixelSize: UiI.UiScale.px(18) }
 
         // Status
         Box {
@@ -282,13 +283,13 @@ Item {
                 x: 16; y: 14; width: parent.width - 32; spacing: 8
                 Text {
                     objectName: "fileBackupStatus"
-                    width: parent.width; wrapMode: Text.WordWrap; font.pixelSize: 13
+                    width: parent.width; wrapMode: Text.WordWrap; font.pixelSize: UiI.UiScale.px(13)
                     color: card.dark ? "#eeeeee" : "#222222"
                     text: card.statusLine
                 }
                 Text {
                     visible: card.config.target !== null && card.config.target !== undefined
-                    width: parent.width; font.pixelSize: 12; wrapMode: Text.WordWrap
+                    width: parent.width; font.pixelSize: UiI.UiScale.px(12); wrapMode: Text.WordWrap
                     color: card.dark ? "#aaaaaa" : "#555555"
                     text: card.tr("targetIs").replace("%1", card.targetLabel())
                 }
@@ -301,13 +302,13 @@ Item {
                 Text {
                     objectName: "fileBackupError"
                     visible: card.errorText !== ""
-                    width: parent.width; wrapMode: Text.WordWrap; font.pixelSize: 12
+                    width: parent.width; wrapMode: Text.WordWrap; font.pixelSize: UiI.UiScale.px(12)
                     color: card.dark ? "#ff9999" : "#c23838"
                     text: card.errorText
                 }
                 Text {
                     visible: card.resultText !== ""
-                    width: parent.width; wrapMode: Text.WordWrap; font.pixelSize: 12
+                    width: parent.width; wrapMode: Text.WordWrap; font.pixelSize: UiI.UiScale.px(12)
                     color: card.accent
                     text: card.resultText
                 }
@@ -341,8 +342,8 @@ Item {
                         border.width: 1; border.color: chosen ? card.accent : (card.dark ? "#333333" : "#dddddd")
                         Column {
                             x: 12; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 130
-                            Text { width: parent.width; elide: Text.ElideRight; font.pixelSize: 13; font.bold: true; color: card.dark ? "#eeeeee" : "#222222"; text: modelData.label }
-                            Text { width: parent.width; elide: Text.ElideRight; font.pixelSize: 11; color: card.dark ? "#aaaaaa" : "#555555"; text: card.formatSize(modelData.size) + " - " + modelData.filesystem }
+                            Text { width: parent.width; elide: Text.ElideRight; font.pixelSize: UiI.UiScale.px(13); font.bold: true; color: card.dark ? "#eeeeee" : "#222222"; text: modelData.label }
+                            Text { width: parent.width; elide: Text.ElideRight; font.pixelSize: UiI.UiScale.px(11); color: card.dark ? "#aaaaaa" : "#555555"; text: card.formatSize(modelData.size) + " - " + modelData.filesystem }
                         }
                         Tools.SystemToolsButton {
                             anchors.right: parent.right; anchors.rightMargin: 8; anchors.verticalCenter: parent.verticalCenter
@@ -367,7 +368,7 @@ Item {
                     Row {
                         spacing: 10
                         Tools.SystemToolsButton { objectName: "fileBackupSmbConnect"; settingsMenu: card.settingsMenu; primary: true; text: card.tr("smbConnect"); enabled: !mountProcess.running; onClicked: card.connectSmb() }
-                        Text { anchors.verticalCenter: parent.verticalCenter; font.pixelSize: 12; color: card.dark ? "#cccccc" : "#444444"; text: card.smbMessage }
+                        Text { anchors.verticalCenter: parent.verticalCenter; font.pixelSize: UiI.UiScale.px(12); color: card.dark ? "#cccccc" : "#444444"; text: card.smbMessage }
                     }
                 }
             }
@@ -387,7 +388,7 @@ Item {
                     checked: card.config.enabled === true
                     onToggled: card.saveConfig({enabled: checked})
                 }
-                Text { font.pixelSize: 12; color: card.dark ? "#aaaaaa" : "#555555"; text: card.tr("schedule") }
+                Text { font.pixelSize: UiI.UiScale.px(12); color: card.dark ? "#aaaaaa" : "#555555"; text: card.tr("schedule") }
                 Flow {
                     width: parent.width; spacing: 8
                     Repeater {
@@ -419,13 +420,13 @@ Item {
                     enabled: card.available && !card.running
                     onClicked: card.startSystemExport()
                 }
-                Text { font.pixelSize: 12; color: card.dark ? "#aaaaaa" : "#555555"; text: card.tr("what") }
+                Text { font.pixelSize: UiI.UiScale.px(12); color: card.dark ? "#aaaaaa" : "#555555"; text: card.tr("what") }
                 CheckBox {
                     objectName: "fileBackupHome"
                     text: card.tr("home")
                     checked: card.hasSource("~")
                     onClicked: card.toggleSource("~", checked)
-                    contentItem: Text { leftPadding: 28; text: parent.text; font.pixelSize: 13; color: card.dark ? "#eeeeee" : "#222222"; verticalAlignment: Text.AlignVCenter }
+                    contentItem: Text { leftPadding: 28; text: parent.text; font.pixelSize: UiI.UiScale.px(13); color: card.dark ? "#eeeeee" : "#222222"; verticalAlignment: Text.AlignVCenter }
                 }
                 Flow {
                     width: parent.width; spacing: 4
@@ -438,7 +439,7 @@ Item {
                             text: card.tr("folder." + modelData)
                             checked: card.hasSource("~/" + modelData)
                             onClicked: card.toggleSource("~/" + modelData, checked)
-                            contentItem: Text { leftPadding: 28; rightPadding: 12; text: parent.text; font.pixelSize: 13; color: card.dark ? "#eeeeee" : "#222222"; verticalAlignment: Text.AlignVCenter; opacity: parent.enabled ? 1 : 0.5 }
+                            contentItem: Text { leftPadding: 28; rightPadding: 12; text: parent.text; font.pixelSize: UiI.UiScale.px(13); color: card.dark ? "#eeeeee" : "#222222"; verticalAlignment: Text.AlignVCenter; opacity: parent.enabled ? 1 : 0.5 }
                         }
                     }
                 }
@@ -485,7 +486,7 @@ Item {
                             readonly property bool isPoint: card.pointId === ""
                             Text {
                                 x: 8; width: parent.width - 150; height: parent.height
-                                verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight; font.pixelSize: 13
+                                verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight; font.pixelSize: UiI.UiScale.px(13)
                                 color: card.dark ? "#eeeeee" : "#222222"
                                 text: isPoint ? card.pointTitle(modelData) : (modelData.dir ? "[ ] " : "") + modelData.name
                             }

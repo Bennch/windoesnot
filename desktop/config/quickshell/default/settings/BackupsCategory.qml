@@ -3,6 +3,7 @@ import QtQuick.Controls
 import Quickshell.Io
 import "." as Tools
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Item {
     id: backupsCategory
@@ -188,7 +189,7 @@ Item {
         Text {
             width: parent.width
             text: Lang.get("filebackup.systemTitle", _lang)
-            font.pixelSize: 22; font.bold: true
+            font.pixelSize: UiI.UiScale.px(22); font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
     }
@@ -200,7 +201,7 @@ Item {
         width: parent.width
         text: Lang.get(snapshotBoot ? "backups.snapshotBootNotice" : liveSession ? "backups.liveNotice" : "backups.unavailablePlain", _lang) + (statusText ? "\n" + statusText : "")
         color: settingsMenu.darkMode ? "#aaa" : "#555"
-        font.pixelSize: 14
+        font.pixelSize: UiI.UiScale.px(14)
         wrapMode: Text.WordWrap
     }
 
@@ -219,7 +220,7 @@ Item {
 
         Text {
             text: Lang.get("backups.restoreTitle", _lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
             width: parent.width - 175
@@ -254,7 +255,7 @@ Item {
                 Text {
                     text: busy ? (_lang === "de" ? "Läuft..." : "Running...") : Lang.get("backups.createPoint", _lang)
                     color: "#fff"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     font.bold: true
                     height: parent.height
                     verticalAlignment: Text.AlignVCenter
@@ -275,7 +276,7 @@ Item {
         width: parent.width
         text: Lang.get("backups.scopePlain", _lang) + "\n\n" + Lang.get("backups.restoreHint", _lang)
         color: settingsMenu.darkMode ? "#bbb" : "#555"
-        font.pixelSize: 13
+        font.pixelSize: UiI.UiScale.px(13)
         wrapMode: Text.WordWrap
     }
 
@@ -284,7 +285,7 @@ Item {
         width: parent.width
         text: Lang.get("backups.usedSpace", _lang).replace("%1", formatSize(snapshotBytes))
         color: settingsMenu.darkMode ? "#aaa" : "#555"
-        font.pixelSize: 13
+        font.pixelSize: UiI.UiScale.px(13)
     }
 
     Rectangle {
@@ -300,7 +301,7 @@ Item {
             Text {
                 width: parent.width
                 text: Lang.get("backups.packagePointsTitle", _lang)
-                font.pixelSize: 15; font.bold: true
+                font.pixelSize: UiI.UiScale.px(15); font.bold: true
                 color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                 wrapMode: Text.WordWrap
             }
@@ -308,13 +309,13 @@ Item {
                 width: parent.width
                 text: Lang.get(packageSnapshots ? "backups.packagePointsEnabled" : "backups.packagePointsMissing", _lang)
                     + (packageSnapshots && numberLimit && importantLimit ? "\n" + Lang.get("backups.packageRetention", _lang).replace("%1", numberLimit).replace("%2", importantLimit) : "")
-                font.pixelSize: 13; color: settingsMenu.darkMode ? "#aaa" : "#555"
+                font.pixelSize: UiI.UiScale.px(13); color: settingsMenu.darkMode ? "#aaa" : "#555"
                 wrapMode: Text.WordWrap
             }
             Text {
                 width: parent.width
                 text: Lang.get("backups.bootTitle", _lang)
-                font.pixelSize: 15; font.bold: true
+                font.pixelSize: UiI.UiScale.px(15); font.bold: true
                 color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                 wrapMode: Text.WordWrap
             }
@@ -325,7 +326,7 @@ Item {
                     : !bootInfo.configured ? "backups.bootUnavailable"
                     : "backups.boot." + bootInfo.loader, _lang)
                     + (bootInfo.configured ? "\n\n" + Lang.get("backups.bootReturn", _lang) + "\n\n" + Lang.get("backups.bootFilesSeparate", _lang) : "")
-                font.pixelSize: 13; color: settingsMenu.darkMode ? "#aaa" : "#555"
+                font.pixelSize: UiI.UiScale.px(13); color: settingsMenu.darkMode ? "#aaa" : "#555"
                 wrapMode: Text.WordWrap
             }
         }
@@ -345,7 +346,7 @@ Item {
             anchors.centerIn: parent
             text: statusText
             color: settingsMenu.darkMode ? "#ff9999" : "#c23838"
-            font.pixelSize: 12
+            font.pixelSize: UiI.UiScale.px(12)
         }
 
         MouseArea {
@@ -386,7 +387,7 @@ Item {
                         width: parent.width - 190
                         text: Lang.get("backups.restoreTitle", _lang)
                         color: settingsMenu.darkMode ? "#bbb" : "#555"
-                        font.pixelSize: 11
+                        font.pixelSize: UiI.UiScale.px(11)
                         font.bold: true
                         verticalAlignment: Text.AlignVCenter
                         height: parent.height
@@ -435,20 +436,20 @@ Item {
                                 width: parent.width
                                 text: pointName(model.kind, model.date)
                                 color: settingsMenu.darkMode ? "#eee" : "#222"
-                                font.pixelSize: 13; font.bold: model.important
+                                font.pixelSize: UiI.UiScale.px(13); font.bold: model.important
                                 elide: Text.ElideRight
                             }
                             Text {
                                 text: model.date
                                 color: settingsMenu.darkMode ? "#aaa" : "#555"
-                                font.pixelSize: 12
+                                font.pixelSize: UiI.UiScale.px(12)
                             }
                             Text {
                                 width: parent.width
                                 visible: model.important
                                 text: Lang.get("backups.importantPoint", _lang)
                                 color: settingsMenu.accentColor
-                                font.pixelSize: 11; elide: Text.ElideRight
+                                font.pixelSize: UiI.UiScale.px(11); elide: Text.ElideRight
                             }
                         }
 
@@ -478,7 +479,7 @@ Item {
                                     anchors.centerIn: parent
                                     text: "✕"
                                     color: "#fff"
-                                    font.pixelSize: 16
+                                    font.pixelSize: UiI.UiScale.px(16)
                                     font.bold: true
                                 }
 
@@ -506,7 +507,7 @@ Item {
                     visible: snapshotModel.count === 0 && !busy
                     text: Lang.get("backups.emptyPoints", _lang)
                     color: settingsMenu.darkMode ? "#aaa" : "#555"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                 }
 
                 ScrollIndicator.vertical: ScrollIndicator {}
@@ -523,7 +524,7 @@ Item {
 
         Text {
             text: Lang.get("backups.schedulePlain", _lang)
-            font.pixelSize: 18
+            font.pixelSize: UiI.UiScale.px(18)
             font.bold: true
             color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
         }
@@ -533,7 +534,7 @@ Item {
             text: Lang.get("backups.scheduleExplanation", _lang) + (timelineConfigured && !timelineActive ? "\n" + Lang.get("backups.automaticInactive", _lang) : "") + (customRetention ? "\n" + Lang.get("backups.customCounts", _lang) : "")
             wrapMode: Text.WordWrap
             color: settingsMenu.darkMode ? "#aaaaaa" : "#555555"
-            font.pixelSize: 12
+            font.pixelSize: UiI.UiScale.px(12)
         }
         // Schedule Table
         Rectangle {
@@ -568,7 +569,7 @@ Item {
                             width: 100
                             text: Lang.get("backups.period", _lang)
                             color: settingsMenu.darkMode ? "#bbb" : "#555"
-                            font.pixelSize: 11
+                            font.pixelSize: UiI.UiScale.px(11)
                             font.bold: true
                             verticalAlignment: Text.AlignVCenter
                             height: parent.height
@@ -581,7 +582,7 @@ Item {
                                 anchors.right: parent.right
                                 text: Lang.get("backups.keepQuestion", _lang)
                                 color: settingsMenu.darkMode ? "#bbb" : "#555"
-                                font.pixelSize: 11
+                                font.pixelSize: UiI.UiScale.px(11)
                                 font.bold: true
                                 verticalAlignment: Text.AlignVCenter
                                 height: parent.height
@@ -642,7 +643,7 @@ Item {
                                         anchors.centerIn: parent
                                         text: "✓"
                                         color: "#fff"
-                                        font.pixelSize: 14
+                                        font.pixelSize: UiI.UiScale.px(14)
                                         font.bold: true
                                     }
                                 }
@@ -652,7 +653,7 @@ Item {
                                 width: 100
                                 text: Lang.get(modelData.nameKey, _lang)
                                 color: settingsMenu.darkMode ? "#ddd" : "#333"
-                                font.pixelSize: 13
+                                font.pixelSize: UiI.UiScale.px(13)
                                 verticalAlignment: Text.AlignVCenter
                                 height: parent.height
                             }
@@ -682,7 +683,7 @@ Item {
 
                                 contentItem: TextInput {
                                     text: spinBox.textFromValue(spinBox.value, spinBox.locale)
-                                    font.pixelSize: 12
+                                    font.pixelSize: UiI.UiScale.px(12)
                                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                                     horizontalAlignment: Qt.AlignHCenter
                                     verticalAlignment: Qt.AlignVCenter
@@ -709,7 +710,7 @@ Item {
                                         anchors.centerIn: parent
                                         text: "+"
                                         color: settingsMenu.darkMode ? "#aaa" : "#666"
-                                        font.pixelSize: 18
+                                        font.pixelSize: UiI.UiScale.px(18)
                                     }
                                 }
 
@@ -724,7 +725,7 @@ Item {
                                         anchors.centerIn: parent
                                         text: "−"
                                         color: settingsMenu.darkMode ? "#aaa" : "#666"
-                                        font.pixelSize: 18
+                                        font.pixelSize: UiI.UiScale.px(18)
                                     }
                                 }
                             }
@@ -740,14 +741,14 @@ Item {
             visible: scheduleSaveDelay.running || (busy && snapshotProcess.operation === "schedule")
             text: Lang.get("backups.applying", _lang)
             color: settingsMenu.darkMode ? "#aaa" : "#555"
-            font.pixelSize: 12
+            font.pixelSize: UiI.UiScale.px(12)
         }
 
         Text {
             width: parent.width
             text: Lang.get("backups.permissionPlain", _lang)
             color: settingsMenu.darkMode ? "#888" : "#777"
-            font.pixelSize: 11
+            font.pixelSize: UiI.UiScale.px(11)
             wrapMode: Text.WordWrap
         }
     }
@@ -782,7 +783,7 @@ Item {
 
                 Text {
                     text: Lang.get("backups.deletePointTitle", _lang)
-                    font.pixelSize: 18
+                    font.pixelSize: UiI.UiScale.px(18)
                     font.bold: true
                     color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
                 }
@@ -793,7 +794,7 @@ Item {
                         + (deleteCandidateImportant ? "\n\n" + Lang.get("backups.deleteInstallationWarning", _lang) : "")
                     wrapMode: Text.WordWrap
                     color: settingsMenu.darkMode ? "#ccc" : "#444"
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                 }
 
                 Row {
@@ -811,7 +812,7 @@ Item {
                             anchors.centerIn: parent
                             text: Lang.get("common.cancel", _lang)
                             color: settingsMenu.darkMode ? "#cccccc" : "#444444"
-                            font.pixelSize: 13
+                            font.pixelSize: UiI.UiScale.px(13)
                         }
 
                         MouseArea {
@@ -836,7 +837,7 @@ Item {
                             anchors.centerIn: parent
                             text: Lang.get("backups.deletePoint", _lang)
                             color: "#fff"
-                            font.pixelSize: 13
+                            font.pixelSize: UiI.UiScale.px(13)
                             font.bold: true
                         }
 

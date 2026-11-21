@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell.Io
 import "../i18n/Lang.js" as Lang
+import "../i18n" as UiI
 
 Item {
     id: gpuPanel
@@ -111,8 +112,8 @@ Item {
         spacing: 3
         Row {
             width: parent.width
-            Text { text: label; font.pixelSize: 12; color: gpuPanel.subColor; width: parent.width - valueLabel.implicitWidth }
-            Text { id: valueLabel; text: valueText; font.pixelSize: 12; color: gpuPanel.textColor }
+            Text { text: label; font.pixelSize: UiI.UiScale.px(12); color: gpuPanel.subColor; width: parent.width - valueLabel.implicitWidth }
+            Text { id: valueLabel; text: valueText; font.pixelSize: UiI.UiScale.px(12); color: gpuPanel.textColor }
         }
         Rectangle {
             width: parent.width; height: 5; radius: 2.5; color: gpuPanel.trackColor
@@ -135,7 +136,7 @@ Item {
 
             Text {
                 text: gpuPanel.tr("graphics.title")
-                font.pixelSize: 16
+                font.pixelSize: UiI.UiScale.px(16)
                 font.weight: Font.DemiBold
                 color: gpuPanel.textColor
             }
@@ -145,7 +146,7 @@ Item {
             Text {
                 visible: gpuPanel.loaded && gpuPanel.daemonRunning && gpuPanel.gpus.length === 0
                 text: gpuPanel.tr("graphics.noGpu")
-                font.pixelSize: 13
+                font.pixelSize: UiI.UiScale.px(13)
                 color: gpuPanel.subColor
             }
 
@@ -158,14 +159,14 @@ Item {
                     width: parent.width
                     wrapMode: Text.WordWrap
                     text: gpuPanel.lactAvailable ? gpuPanel.tr("graphics.daemonOff") : gpuPanel.tr("graphics.noLact")
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: gpuPanel.subColor
                 }
                 Rectangle {
                     visible: gpuPanel.lactAvailable
                     width: parent.width; height: 32; radius: 6
                     color: gpuPanel.accentColor
-                    Text { anchors.centerIn: parent; text: gpuPanel.tr("graphics.daemonStartNow"); font.pixelSize: 13; color: "#ffffff" }
+                    Text { anchors.centerIn: parent; text: gpuPanel.tr("graphics.daemonStartNow"); font.pixelSize: UiI.UiScale.px(13); color: "#ffffff" }
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
@@ -188,7 +189,7 @@ Item {
                         spacing: 8
                         Text {
                             text: card.modelData.name
-                            font.pixelSize: 13
+                            font.pixelSize: UiI.UiScale.px(13)
                             font.weight: Font.DemiBold
                             color: gpuPanel.textColor
                             elide: Text.ElideRight
@@ -198,7 +199,7 @@ Item {
                             id: tempText
                             visible: card.modelData.temp !== null && card.modelData.temp !== undefined
                             text: visible ? Math.round(card.modelData.temp) + " °C" + (card.modelData.tempHotspot ? " (" + Math.round(card.modelData.tempHotspot) + ")" : "") + (card.modelData.throttling ? " ⚠" : "") : ""
-                            font.pixelSize: 13
+                            font.pixelSize: UiI.UiScale.px(13)
                             font.weight: Font.DemiBold
                             color: visible ? gpuPanel.tempColor(card.modelData.temp) : gpuPanel.textColor
                         }
@@ -230,7 +231,7 @@ Item {
                         Text {
                             visible: card.modelData.fanPct !== undefined || card.modelData.fanRpm !== undefined
                             width: visible ? parent.width / 2 : 0
-                            font.pixelSize: 12
+                            font.pixelSize: UiI.UiScale.px(12)
                             color: gpuPanel.subColor
                             text: {
                                 var m = card.modelData
@@ -241,7 +242,7 @@ Item {
                         }
                         Text {
                             visible: card.modelData.clockCore !== undefined
-                            font.pixelSize: 12
+                            font.pixelSize: UiI.UiScale.px(12)
                             color: gpuPanel.subColor
                             text: visible ? gpuPanel.tr("graphics.clock") + ": " + Math.round(card.modelData.clockCore)
                                 + (card.modelData.clockMem ? " / " + Math.round(card.modelData.clockMem) : "") + " MHz" : ""
@@ -259,14 +260,14 @@ Item {
                 width: parent.width
                 spacing: 3
                 visible: gpuPanel.processes.length > 0
-                Text { text: gpuPanel.tr("graphics.apps"); font.pixelSize: 12; color: gpuPanel.subColor }
+                Text { text: gpuPanel.tr("graphics.apps"); font.pixelSize: UiI.UiScale.px(12); color: gpuPanel.subColor }
                 Repeater {
                     model: gpuPanel.processes
                     delegate: Row {
                         required property var modelData
                         width: content.width
-                        Text { text: modelData.name; font.pixelSize: 12; color: gpuPanel.textColor; width: parent.width - 70; elide: Text.ElideRight }
-                        Text { text: modelData.vram ? Math.round(modelData.vram) + " MB" : ""; font.pixelSize: 12; color: gpuPanel.subColor }
+                        Text { text: modelData.name; font.pixelSize: UiI.UiScale.px(12); color: gpuPanel.textColor; width: parent.width - 70; elide: Text.ElideRight }
+                        Text { text: modelData.vram ? Math.round(modelData.vram) + " MB" : ""; font.pixelSize: UiI.UiScale.px(12); color: gpuPanel.subColor }
                     }
                 }
             }
@@ -283,7 +284,7 @@ Item {
                 }
                 Text {
                     text: gpuPanel.tr("graphics.daemon")
-                    font.pixelSize: 13
+                    font.pixelSize: UiI.UiScale.px(13)
                     color: gpuPanel.textColor
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - 8 - 8 - 90
@@ -296,7 +297,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         text: gpuPanel.tr("graphics.daemonStop")
-                        font.pixelSize: 12
+                        font.pixelSize: UiI.UiScale.px(12)
                         color: gpuPanel.textColor
                     }
                     MouseArea {
@@ -311,7 +312,7 @@ Item {
                 visible: gpuPanel.lactAvailable && gpuPanel.daemonRunning
                 width: parent.width; height: 32; radius: 6
                 color: gpuPanel.accentColor
-                Text { anchors.centerIn: parent; text: gpuPanel.tr("graphics.open"); font.pixelSize: 13; color: "#ffffff" }
+                Text { anchors.centerIn: parent; text: gpuPanel.tr("graphics.open"); font.pixelSize: UiI.UiScale.px(13); color: "#ffffff" }
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor

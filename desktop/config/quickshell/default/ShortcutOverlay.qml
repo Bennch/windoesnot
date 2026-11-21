@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 import "i18n/Lang.js" as Lang
+import "./i18n" as UiI
 
 FloatingWindow {
     id: root
@@ -111,7 +112,7 @@ FloatingWindow {
             spacing: 12
             Row {
                 width: parent.width
-                Text { width: parent.width - closeButton.width; text: Lang.get("shortcuts.title", root.settingsMenu.uiLanguage); color: root.settingsMenu.darkMode ? "white" : "#202020"; font.pixelSize: 22; font.bold: true }
+                Text { width: parent.width - closeButton.width; text: Lang.get("shortcuts.title", root.settingsMenu.uiLanguage); color: root.settingsMenu.darkMode ? "white" : "#202020"; font.pixelSize: UiI.UiScale.px(22); font.bold: true }
                 Item {
                     id: closeButton
                     width: 32; height: 32
@@ -158,7 +159,7 @@ FloatingWindow {
                             width: parent.width
                             property var filtered: root.entries.filter(function(e) { var q = search.text.toLowerCase(); return e.group === modelData && (e.keys + " " + e.description + " " + Lang.get("shortcuts." + e.group, root.settingsMenu.uiLanguage)).toLowerCase().indexOf(q) >= 0 })
                             visible: filtered.length > 0
-                            Text { text: Lang.get("shortcuts." + parent.modelData, root.settingsMenu.uiLanguage); color: root.settingsMenu.accentColor; font.pixelSize: 16; font.bold: true; topPadding: 12; bottomPadding: 6 }
+                            Text { text: Lang.get("shortcuts." + parent.modelData, root.settingsMenu.uiLanguage); color: root.settingsMenu.accentColor; font.pixelSize: UiI.UiScale.px(16); font.bold: true; topPadding: 12; bottomPadding: 6 }
                             Repeater {
                                 model: parent.filtered
                                 delegate: Row {
@@ -174,7 +175,7 @@ FloatingWindow {
                                                 required property int index
                                                 required property string modelData
                                                 spacing: 5
-                                                Text { visible: index > 0; text: "+"; color: root.settingsMenu.darkMode ? "#8a8f94" : "#8a8a8a"; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
+                                                Text { visible: index > 0; text: "+"; color: root.settingsMenu.darkMode ? "#8a8f94" : "#8a8a8a"; font.pixelSize: UiI.UiScale.px(12); anchors.verticalCenter: parent.verticalCenter }
                                                 Item {
                                                     width: capLabel.implicitWidth + 18; height: 26
                                                     // darker underlay offset by 2 px gives the key its raised edge
@@ -183,7 +184,7 @@ FloatingWindow {
                                                         x: 0; y: 0; width: parent.width; height: 24; radius: 6
                                                         color: root.settingsMenu.darkMode ? "#33373b" : "#ffffff"
                                                         border.width: 1; border.color: root.settingsMenu.darkMode ? "#4b5157" : "#d2d2d2"
-                                                        Text { id: capLabel; anchors.centerIn: parent; text: modelData; font.pixelSize: 12; font.bold: true; color: root.settingsMenu.darkMode ? "#f1f1f1" : "#202020" }
+                                                        Text { id: capLabel; anchors.centerIn: parent; text: modelData; font.pixelSize: UiI.UiScale.px(12); font.bold: true; color: root.settingsMenu.darkMode ? "#f1f1f1" : "#202020" }
                                                     }
                                                 }
                                             }
