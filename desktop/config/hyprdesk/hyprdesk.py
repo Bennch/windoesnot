@@ -2332,6 +2332,36 @@ class MonitorWindow:
         self.file_monitor.connect("changed", self.on_desktop_changed)
         debug(f"monitoring {DESKTOP_DIR} with WATCH_MOVES")
 
+        # The trash icon follows the real trash (emptied in the file manager, filled by gio trash, ...): without this
+        # it only changed when the desktop folder itself changed.
+        trash_files = Path.home() / ".local/share/Trash/files"
+        try:
+            trash_files.mkdir(parents=True, exist_ok=True)
+            self.trash_monitor = Gio.File.new_for_path(str(trash_files)).monitor_directory(Gio.FileMonitorFlags.NONE, None)
+            self.trash_monitor.connect("changed", self._on_trash_changed)
+        except (OSError, GLib.Error) as error:
+            debug(f"cannot watch the trash: {error}", file=sys.stderr)
+
+    def _on_trash_changed(self, monitor, file, other_file, event_type):
+        if getattr(self, "_trash_refresh_pending", False):
+            return
+        self._trash_refresh_pending = True
+        GLib.timeout_add(300, self._refresh_trash_icon)
+
+    def _refresh_trash_icon(self):
+        """Swap the trash picture between empty and full without reloading the desktop."""
+        self._trash_refresh_pending = False
+        icon = self.trash_icon
+        if icon is None or not hasattr(icon, "icon_image"):
+            return False
+        base = Path.home() / ".config/quickshell/default/img"
+        path = str(base / ("icons8-full-bin-windows.svg" if self.is_trash_full() else "icons8-bin-windows-96.png"))
+        if icon.spec.get("icon_name") != path:
+            icon.spec["icon_name"] = path
+            icon.icon_image.set_from_file(path)
+            icon.icon_image.set_pixel_size(getattr(self, "icon_size", 64))
+        return False
+
     def setup_desktop_polling(self):
         """Richtet periodisches Polling des Desktop-Ordners ein (Fallback für FileMonitor)."""
         # Aktuellen Zustand speichern

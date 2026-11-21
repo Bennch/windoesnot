@@ -18,6 +18,29 @@ FloatingWindow {
     property var previewPaths: ({})
     property var captureQueue: []
     property bool captureBusy: false
+    // Last known picture per window: a hidden (minimized) window cannot be captured, so its card shows the last image taken
+    // while it was visible (hover capture or the snapshot right before minimizing), dimmed, instead of a black box.
+    property var lastKnown: ({})
+
+    function rememberImage(address, path) {
+        var known = Object.assign({}, taskbarPreview.lastKnown)
+        known[address] = path
+        taskbarPreview.lastKnown = known
+    }
+
+    // Shell snippet that takes the picture of a visible window just before it is minimized (and remembers it).
+    function snapshotCommand(win) {
+        if (!win || win.hidden || !win.size || win.size[0] <= 0 || win.size[1] <= 0) return ""
+        var path = "/tmp/qs-preview-last-" + win.address + "-" + Date.now() + ".png"
+        rememberImage(win.address, path)
+        return "windoesnot-bounded 4 grim -s 1 -g '" + win.at[0] + "," + win.at[1] + " " + win.size[0] + "x" + win.size[1] + "' " + path + " 2>/dev/null; "
+    }
+    function snapshotCommandFor(address) {
+        for (var i = 0; i < appWindows.length; i++) {
+            if (appWindows[i].address === address) return snapshotCommand(appWindows[i])
+        }
+        return ""
+    }
 
     function captureNext() {
         if (captureBusy || captureQueue.length === 0) return
@@ -32,6 +55,7 @@ FloatingWindow {
                 var paths = Object.assign({}, taskbarPreview.previewPaths)
                 paths[item.address] = item.path
                 taskbarPreview.previewPaths = paths
+                taskbarPreview.rememberImage(item.address, item.path)
             }
             taskbarPreview.captureBusy = false
             proc.destroy()
@@ -199,8 +223,8 @@ FloatingWindow {
             function minimizeCard(addr) {
                 taskbarPreview.visible = false
                 var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', cardRow)
-                proc.command = ["windoesnot-bounded", "8", "windoesnot-hyprctl", "dispatch", "movetoworkspacesilent",
-                    "special:minimized,address:" + addr]
+                proc.command = ["windoesnot-bounded", "12", "bash", "-c", taskbarPreview.snapshotCommandFor(addr) +
+                    "windoesnot-hyprctl dispatch movetoworkspacesilent special:minimized,address:" + addr]
                 proc.running = true
             }
 
@@ -391,16 +415,31 @@ FloatingWindow {
                         layer.enabled: true
 
                         Image {
+                            id: cardImage
                             anchors.fill: parent
-                            visible: !modelData.hidden && modelData.size && modelData.size[0] > 0
-                            source: taskbarPreview.previewPaths[modelData.address] || ""
+                            readonly property string lastImage: taskbarPreview.lastKnown[modelData.address] || ""
+                            readonly property bool showsLast: modelData.hidden && lastImage !== ""
+                            visible: (!modelData.hidden && modelData.size && modelData.size[0] > 0) || showsLast
+                            source: modelData.hidden ? lastImage : (taskbarPreview.previewPaths[modelData.address] || "")
                             fillMode: Image.PreserveAspectCrop
                             cache: false
                             asynchronous: true
+                            opacity: showsLast ? 0.5 : 1.0
+                        }
+
+                        // Badge on the dimmed last picture of a hidden window
+                        Text {
+                            visible: cardImage.showsLast
+                            anchors { right: parent.right; bottom: parent.bottom; margins: 4 }
+                            text: "⊟ " + (taskbarPreview.settingsMenu && taskbarPreview.settingsMenu.uiLanguage === "en" ? "Hidden" : "Ausgeblendet")
+                            font.pixelSize: UiI.UiScale.px(9)
+                            color: "#ffffff"
+                            style: Text.Outline
+                            styleColor: "#000000"
                         }
 
                         Column {
-                            visible: modelData.hidden || !modelData.size || modelData.size[0] === 0
+                            visible: (modelData.hidden && !cardImage.showsLast) || (!modelData.hidden && (!modelData.size || modelData.size[0] === 0))
                             anchors.centerIn: parent
                             spacing: 5
 

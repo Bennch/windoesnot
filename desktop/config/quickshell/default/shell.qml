@@ -3090,6 +3090,8 @@ PanelWindow {
                                                 console.log("Minimizing", visibleWindows.length, "visible window(s):", model.name)
                                                 var minimizeCommands = []
                                                 for (var j = 0; j < visibleWindows.length; j++) {
+                                                    // Last picture for the taskbar preview card of the hidden window
+                                                    minimizeCommands.push("{ " + taskbarPreview.snapshotCommand(visibleWindows[j]) + "true; }")
                                                     minimizeCommands.push("windoesnot-hyprctl dispatch movetoworkspacesilent special:minimized,address:" + visibleWindows[j].address)
                                                 }
                                                 clickProc.command = ["windoesnot-bounded", "8", "bash", "-c", minimizeCommands.join(" && ")]

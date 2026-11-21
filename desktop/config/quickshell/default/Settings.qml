@@ -1460,6 +1460,9 @@ FloatingWindow {
             windowModeTransitionAfterApply = windowMode
             saveSettings()
             updateWindowMode()
+            // Applying the mode reloads the compositor config; an open Settings window then lost its focus grab and
+            // kept eating pointer input (windows resized on a normal drag). Close it as soon as the mode is switched.
+            settingsMenu.visible = false
         }
     }
 
