@@ -64,6 +64,8 @@ sed -i 's/--gtk-single-instance=true/--gtk-single-instance=false/' /usr/share/ap
 install -Dm755 "$project/iso/ghostty-wrapper.sh" /usr/local/bin/ghostty
 # Version-matched signed optional apps; no online access needed during installation.
 python3 "$project/iso/software/prepare.py"
+# Firefox defaults follow the system; per-profile choices still take precedence.
+install -Dm644 "$project/iso/firefox-defaults.js" /usr/lib/firefox/defaults/pref/windoesnot.js
 # Bootstrap both skel and the live account using the exact shared code/defaults.
 HOME=/etc/skel XDG_CONFIG_HOME=/etc/skel/.config XDG_STATE_HOME=/etc/skel/.local/state /usr/bin/windoesnot-initialize
 # Terminal greeting (wordmark, slogan, info boxes) in every shell offered by the
