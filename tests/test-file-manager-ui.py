@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The Files card in Settings > Apps loads without QML warnings, shows the open mode, the start page and the sidebar places, and writes changes through windoesnot-file-manager."""
+"""The Files card in Settings > Apps loads without QML warnings, shows the open mode and the sidebar places (the start page is fixed to This PC, no setting), and writes changes through windoesnot-file-manager."""
 import os, shutil, subprocess, tempfile
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,7 +16,6 @@ with tempfile.TemporaryDirectory(prefix='wdn-files-ui-') as temp:
 echo "$*" >> {log}
 case "$1 $2" in
   "--open-mode get") echo tab;;
-  "--start-page get") echo computer;;
   "--sidebar available") exit 0;;
   "--sidebar get") echo "recent network";;
 esac
@@ -38,7 +37,7 @@ ShellRoot {
    try {
     const page = loader.item
     if (w.step === 1) {
-     w.check(page.mode === "tab" && page.startPage === "computer", "open mode and start page read: " + page.mode + " " + page.startPage)
+     w.check(page.mode === "tab", "open mode read: " + page.mode)
      w.check(page.sidebarAvailable && page.hiddenPlaces.length === 2, "sidebar places read: " + page.hiddenPlaces)
      w.check(w.find(page, o => o.text === "Papierkorb") && w.find(page, o => o.text === "Zuletzt verwendet") && w.find(page, o => o.text === "In der Seitenleiste anzeigen"), "German labels")
      page.setPlace("trash", false)
@@ -59,4 +58,4 @@ ShellRoot {
     for error in ('ReferenceError', 'TypeError', 'Failed to load configuration', 'Cannot assign', 'Binding loop', 'Non-existent attached object', 'FILES_UI_FAIL'):
         assert error not in result.stdout, error
     assert '--sidebar hide trash' in log.read_text(), log.read_text()
-print('PASS: Files card (open mode, start page, sidebar places) loads without warnings and writes through windoesnot-file-manager')
+print('PASS: Files card (open mode, sidebar places) loads without warnings and writes through windoesnot-file-manager')
