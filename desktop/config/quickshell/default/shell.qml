@@ -3220,6 +3220,7 @@ FloatingWindow {
     implicitHeight: 12 + menuItems.length * 36 + Math.max(0, menuItems.length - 1)
 
     property string contextType: "network"
+    property var contextIconItem: null   // the taskbar icon the menu was opened for (the weather popup opens at it)
     // [{ kind, label }]; built per icon in openFor().
     property var menuItems: []
 
@@ -3250,6 +3251,9 @@ FloatingWindow {
             items.push({ kind: "openGraphics", label: en ? "Open Graphics" : "Grafik öffnen" })
         } else if (kind === "audio") {
             items.push({ kind: "openAudio", label: en ? "Open Audio" : "Audio öffnen" })
+        } else if (kind === "weather") {
+            items.push({ kind: "openWeather", label: en ? "Open Weather" : "Wetter öffnen" })
+            items.push({ kind: "weatherSettings", label: en ? "Weather settings" : "Wettereinstellungen" })
         } else if (kind === "clock") {
             // Right click on the clock: straight to the calendar settings (no tray entry here)
             items.push({ kind: "calendarSettings", label: en ? "Calendar settings" : "Kalendereinstellungen" })
@@ -3263,6 +3267,7 @@ FloatingWindow {
         desktopShell.closeTaskbarContextMenus()
         var requestSerial = desktopShell.contextMenuRequestSerial
         contextType = kind
+        contextIconItem = iconItem
         menuItems = itemsFor(kind)
 
         // Above the taskbar, centred on the icon, kept inside the screen.
@@ -3310,6 +3315,17 @@ FloatingWindow {
             // Opens the Network app itself, not the quick panel.
             visible = false
             run("windoesnot-open-network")
+        } else if (kind === "openWeather") {
+            visible = false
+            if (contextIconItem) panelWindow.openWeatherPopup(contextIconItem)
+        } else if (kind === "weatherSettings") {
+            // Settings > Apps, scrolled to the weather switch; same hand-over as the calendar settings
+            visible = false
+            settingsMenu.openSearchResult({ page: "apps", text: Lang.get("weather.label", settingsMenu.uiLanguage), isCategory: false })
+            settingsMenu.fileDialogOpen = true
+            settingsMenu.visible = false
+            settingsReopenTimer.start()
+            traySettingsGuardTimer.restart()
         } else if (kind === "openAudio") {
             // The WinDoesNot audio app (the EasyEffects fork, binary "easyeffects"), the same one the audio panel opens
             visible = false
