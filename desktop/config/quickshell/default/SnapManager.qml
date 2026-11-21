@@ -503,9 +503,9 @@ Item {
                     var height = Math.min(client.size[1], usable.h)
                     newWindowPlacementApplyProc.address = client.address
                     // Centred when alone; further windows step down and to the right (NewWindowCascade.js)
-                    var place = Cascade.cascadePosition(usable, width, height, Cascade.neighbours(clients, client))
+                    var place = Cascade.placeWindow(usable, width, height, Cascade.neighbourRects(clients, client))
                     console.log("new window placement:", client.class, client.address, "at", client.at, "->", place.x, place.y,
-                                "neighbours", Cascade.neighbours(clients, client).length)
+                                "neighbours", Cascade.neighbourRects(clients, client).length)
                     newWindowPlacementApplyProc.x = place.x
                     newWindowPlacementApplyProc.y = place.y
                     newWindowPlacementApplyProc.w = Math.round(width)

@@ -37,3 +37,52 @@ function neighbours(clients, client) {
             && String(c.class || "").indexOf("quickshell") < 0 && String(c.title || "").indexOf("quickshell-") !== 0
     }).map(function(c) { return { x: c.at[0], y: c.at[1] } })
 }
+
+
+// Overlap-aware placement: look for a spot where the new window hides as little of the existing windows as possible (beside, above or
+// below them, in the corners, in the centre), so windows of different size no longer sit exactly behind each other. If every spot would
+// still cover more than half of the window, fall back to the cascade. others: [{x, y, w, h}].
+var GAP = 16
+
+function overlapArea(x, y, w, h, o) {
+    var dx = Math.min(x + w, o.x + o.w) - Math.max(x, o.x)
+    var dy = Math.min(y + h, o.y + o.h) - Math.max(y, o.y)
+    return dx > 0 && dy > 0 ? dx * dy : 0
+}
+
+function placeWindow(usable, width, height, others) {
+    if (!others || others.length === 0) return cascadePosition(usable, width, height, [])
+    var minX = usable.x, maxX = usable.x + usable.w - width
+    var minY = usable.y, maxY = usable.y + usable.h - height
+    if (maxX < minX || maxY < minY) return cascadePosition(usable, width, height, others)
+    var cx = usable.x + (usable.w - width) / 2, cy = usable.y + (usable.h - height) / 2
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)) }
+    var xs = [cx, minX + GAP, maxX - GAP], ys = [cy, minY + GAP, maxY - GAP]
+    others.forEach(function(o) {
+        xs.push(o.x - width - GAP, o.x + o.w + GAP, o.x)
+        ys.push(o.y - height - GAP, o.y + o.h + GAP, o.y)
+    })
+    xs = xs.map(function(v) { return clamp(v, minX, maxX) })
+    ys = ys.map(function(v) { return clamp(v, minY, maxY) })
+    var best = null, bestScore = Infinity, area = width * height
+    xs.forEach(function(x) {
+        ys.forEach(function(y) {
+            var covered = 0
+            others.forEach(function(o) { covered += overlapArea(x, y, width, height, o) })
+            // overlap first, then how far from the centre (small tie-breaker)
+            var score = covered + Math.hypot(x - cx, y - cy) * 50
+            if (score < bestScore) { bestScore = score; best = { x: x, y: y, covered: covered } }
+        })
+    })
+    if (best === null || best.covered > area / 2) return cascadePosition(usable, width, height, others)
+    return { x: Math.round(best.x), y: Math.round(best.y) }
+}
+
+// Same filter as neighbours(), but with sizes
+function neighbourRects(clients, client) {
+    return clients.filter(function(c) {
+        return c.address !== client.address && c.mapped !== false && !c.hidden && c.floating && !c.fullscreen
+            && c.monitor === client.monitor && c.workspace && client.workspace && c.workspace.id === client.workspace.id
+            && String(c.class || "").indexOf("quickshell") < 0 && String(c.title || "").indexOf("quickshell-") !== 0
+    }).map(function(c) { return { x: c.at[0], y: c.at[1], w: c.size[0], h: c.size[1] } })
+}
