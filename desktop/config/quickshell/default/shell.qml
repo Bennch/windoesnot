@@ -2609,7 +2609,8 @@ PanelWindow {
                     sourceSize.width: 28; sourceSize.height: 28
                     fillMode: Image.PreserveAspectFit
                     smooth: true; antialiasing: true; mipmap: true
-                    layer.enabled: true; layer.smooth: true
+                    layer.enabled: !settingsMenu.darkMode; layer.smooth: true
+                    layer.effect: MultiEffect { colorization: 1.0; colorizationColor: "#333333" }
                     opacity: searchTaskbarButton.hovered ? 0.75 : 1.0
                 }
 
