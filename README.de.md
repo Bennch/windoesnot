@@ -21,10 +21,8 @@ und [Quickshell](https://quickshell.org).
 </div>
 
 > [!WARNING]
-> **Öffentliche Vorschau: 0.1.0-29.** [ISO herunterladen](https://windoesnot.me/download/).
-> Live-System und Installer sind in UEFI-VMs und auf einem Laptop von 2010 getestet
-> (BIOS-Start, Installation neben vorhandenen Daten). Secure Boot und AMD-Grafik sind noch
-> ungetestet. Mit Ecken, Kanten und größeren Änderungen ist zu rechnen.
+> **Version 0.1.0-33.** [ISO herunterladen](https://windoesnot.me/download/).
+> Getestet in UEFI-VMs und auf einem Laptop von 2010 (BIOS-Start). Secure Boot und AMD-Grafik sind noch nicht getestet.
 
 ## Worum es geht
 
@@ -42,31 +40,38 @@ Dieses Repository enthält alles, um ihn zu bauen:
 ## Funktionen
 
 **Desktop**
-- Startmenü, zentrierte Taskleiste mit angehefteten Apps, Infobereich, Uhr und Kalender
-- Frei platzierbare Desktopsymbole, Papierkorb, Drag & Drop
-- Fenstertitelleisten mit Schließen/Maximieren, Einrast-Vorschau beim Ziehen
-- Alt+Tab-Fensterwechsler und Arbeitsflächen-Übersicht
-- Helles und dunkles Erscheinungsbild mit passenden GTK-Farben; Hintergrund und Akzentfarben
-- Schnelleinstellungen für WLAN, Bluetooth und Audio, Wetter, Benachrichtigungen
+- Startmenü mit Suche (Dateien, Apps, Rechner, Emoji), mittige Taskleiste mit angehefteten Apps, Infobereich, Uhr und Kalender mit Feiertagen
+- Kachel- oder Floating-Fenster, mit Snapping und Layouts am Maximieren-Knopf (wie unter Windows 11)
+- Desktop-Symbole frei platzierbar, Papierkorb, Drag & Drop; Symbole mit Super + Umschalt + D ausblenden
+- Fenstertitel mit Knöpfen, Alt+Tab, Arbeitsflächen-Übersicht; Web-Apps im eigenen Fenster
+- Hell und Dunkel mit passenden GTK-Farben, Akzentfarbe, Eckenradius, Hintergrund; eigene Looks speichern
+- Schnelleinstellungen für WLAN, Bluetooth (mit Standardgerät), Ton, Wetter und Benachrichtigungen
+- Lite-Modus für ältere Rechner und geringere Grundlast auf schwacher Hardware
 
 **Einstellungen**
-- Hintergrund, Aussehen, Farben, Ausrichtung, Eingabe, Monitore, Apps, Desktop
-- **Updates**: anstehende Paketupdates, Arch-News (mit Warnung bei manuellem Eingriff),
-  Hinweise auf Neustart/Neuanmeldung und ein optionaler AUR-Schalter
-- **Sicherungen**: Btrfs-Snapshots mit eingebetteter Passwortabfrage
+- Aussehen, Farben, Eingabe, Monitore, Apps, Desktop, Netzwerk, Bluetooth, Ton und mehr
+- **Barrierefreiheit**: Lupe, Farbfilter (auch für Farbfehlsichtigkeit und hohen Kontrast), Zeiger- und Textgröße, weniger Bewegung
+- **Umzug von Windows**: findet Profile, Passwörter, Einstellungen und Projekte; du bestätigst Schritt für Schritt, was mitkommt. Umzugspakete auf einer externen Platte oder im Netzwerk
+- **Dateisicherung**: Kopien deines persönlichen Ordners auf Platte oder Netzwerkfreigabe, mit Aufbewahrung und Wiederherstellung (die ersetzte Datei landet im Papierkorb)
+- **Firewall** mit Profilen (Zuhause, Öffentlich, Nur vertrauenswürdig) und erklärten Ports
+- **Diagnose** und Gerätekarte mit Empfehlung, Bericht ohne persönliche Daten
+- **Updates**: ausstehende Paket-Updates, Arch-Nachrichten, Hinweise zu Neustart und Neuanmeldung
 - Eingebaute Hilfe mit allen Tastenkürzeln
 
-**Does** – ein optionales Assistenten-Panel für lokale Modelle (Ollama) oder
-Cloud-Anbieter mit eigenem API-Schlüssel. Ohne Einrichtung wird nichts gesendet.
+**Dateimanager**
+- **Dieser PC** mit Laufwerken in Kategorien und Füllbalken; die Systemplatte erscheint einmal
+- Freigaben im Netzwerk (Samba) für Windows und Mac; Rechtsklick-Aktionen und „Senden an“
 
-**[WinDoesNot Store](https://github.com/Bennch/windoesnot-store)** – ein GTK-App-Store für
-pacman, AUR (standardmäßig aus) und Flatpak, mit einer Passwortabfrage pro Update und
-Arch-News vor dem Systemupdate.
+**[WinDoesNot Store](https://github.com/Bennch/windoesnot-store)** — ein GTK-App-Store für
+pacman, AUR (standardmäßig aus) und Flatpak, mit Entfernungsvorschau und einer Passwortabfrage pro Update.
+
+**Does** — ein optionales Assistenten-Panel, das mit lokalen Modellen (Ollama) oder Cloud-Anbietern
+mit eigenem API-Schlüssel sprechen kann. Ohne deine Einrichtung wird nichts gesendet.
 
 **Live-ISO und Installer**
-- Offline-Installation (alles vom Medium) oder Online-Installation
-- GRUB, Limine, rEFInd oder systemd-boot
-- App-Auswahl während der Installation
+- Offline-Installation (alles vom Datenträger) oder Online-Installation
+- GRUB, Limine, rEFInd oder systemd-boot; Installation neben einem bestehenden Windows
+- Programmauswahl bei der Installation (auch Emulatoren und Entwicklungswerkzeuge)
 - Ruhiger Startbildschirm mit Logo; die Fehlerkonsole öffnet sich automatisch oder mit Esc
 
 ## Stand
@@ -78,7 +83,7 @@ Arch-News vor dem Systemupdate.
 | Signierte Komponentenupdates | [Einmalige Einrichtung](UPDATE-CHANNEL.md#deutsch) · Update in einer UEFI-VM geprüft |
 | Echte Hardware: BIOS-Start, alte CPU und Grafik (Laptop von 2010, Leichtmodus), Rechner des Autors mit mehreren Monitoren | Getestet |
 | Secure Boot, AMD-Grafik, andere Laptops | **Noch nicht getestet** |
-| Öffentlicher ISO-Download | [Download-Seite](https://windoesnot.me/download/) · aktuelle Version 0.1.0-29 |
+| Öffentlicher ISO-Download | [Download-Seite](https://windoesnot.me/download/) · aktuelle Version 0.1.0-33 |
 
 ## Bauen
 

@@ -21,10 +21,8 @@ built on [CachyOS](https://cachyos.org), [Hyprland](https://hypr.land) and
 </div>
 
 > [!WARNING]
-> **Public preview: VERSION.** [Download the ISO](https://windoesnot.me/en/download/).
-> The live system and installer are tested in UEFI virtual machines and on a 2010 laptop
-> (BIOS boot, install next to existing data). Secure Boot and AMD graphics are still untested.
-> Expect rough edges and breaking changes.
+> **Version 0.1.0-33.** [Download the ISO](https://windoesnot.me/en/download/).
+> Tested in UEFI virtual machines and on a 2010 laptop (BIOS boot). Secure Boot and AMD graphics are not tested yet.
 
 ## What it is
 
@@ -41,31 +39,38 @@ This repository contains everything needed to build it:
 ## Features
 
 **Desktop**
-- Start menu, centered taskbar with pinned apps, system tray, clock and calendar
-- Desktop icons you can place freely, recycle bin, drag and drop
-- Window title bars with close/maximize buttons, snap preview when dragging windows
-- Alt+Tab window switcher and workspace overview
-- Light and dark appearance with matching GTK colors; wallpaper and accent colors
-- Quick settings with Wi-Fi, Bluetooth and audio, weather, notifications
+- Start menu with search (files, apps, calculator, emoji), centered taskbar with pinned apps, system tray, clock and calendar with holidays
+- Tiling or floating windows, with snapping and layouts on the maximize button (like Windows 11)
+- Desktop icons you can place freely, recycle bin, drag and drop, hide them with Super + Shift + D
+- Window title bars, Alt+Tab, workspace overview; web apps in their own window
+- Light and dark appearance with matching GTK colors, accent colour, corner radius and wallpaper; saved looks
+- Quick settings with Wi-Fi, Bluetooth (with a default device), audio, weather and notifications
+- Lite mode for older computers, and a lighter background load on weak hardware
 
 **Settings app**
-- Background, appearance, colors, alignment, input, monitors, apps, desktop
-- **Updates**: pending package updates, Arch news (with a warning for manual
-  interventions), reboot/re-login hints and an optional AUR switch
-- **Backups**: Btrfs snapshots with an embedded password prompt
+- Appearance, colours, input, monitors, apps, desktop, network, Bluetooth, sound and more
+- **Accessibility**: magnifier, colour filters (including colour blindness and high contrast), cursor and text size, less motion
+- **Moving from Windows**: finds profiles, passwords, settings and projects, you confirm step by step what comes along; transfer packages on an external disk or a network share
+- **Backups**: copies of your home folder to a disk or a network share, with retention and restore (a replaced file goes to the trash)
+- **Firewall** with profiles (home, public, trusted only) and open ports explained
+- **Diagnosis** and a device overview with a recommendation, a report without personal data
+- **Updates**: pending package updates, Arch news, reboot and re-login hints
 - Built-in help with all keyboard shortcuts
+
+**File manager**
+- **This PC** with drives in categories and fill bars; the system disk appears once
+- Share folders in the network (Samba) for Windows and Mac; right-click and send-to actions
+
+**[WinDoesNot Store](https://github.com/Bennch/windoesnot-store)** — a GTK app store for
+pacman, AUR (off by default) and Flatpak, with a removal preview and one password prompt per update.
 
 **Does** — an optional assistant panel that can talk to local models (Ollama) or
 cloud providers with your own API key. Nothing is sent anywhere unless you set it up.
 
-**[WinDoesNot Store](https://github.com/Bennch/windoesnot-store)** — a GTK app store for
-pacman, AUR (off by default) and Flatpak, with one password prompt per update and
-Arch news shown before system updates.
-
 **Live ISO and installer**
 - Offline installation (everything from the medium) or online installation
-- GRUB, Limine, rEFInd or systemd-boot
-- App selection during installation
+- GRUB, Limine, rEFInd or systemd-boot; installation next to an existing Windows
+- App selection during installation (including emulators and development tools)
 - Quiet boot screen with logo; the error console opens automatically or with Esc
 
 ## First-run welcome
@@ -88,7 +93,7 @@ provides access to common applications and setup information.
 | Signed component updates | [One-time setup](UPDATE-CHANNEL.md) · upgrade checked in a UEFI VM |
 | Real hardware: BIOS boot, old CPU and graphics (2010 laptop, light mode), author's PC with several monitors | Tested |
 | Secure Boot, AMD graphics, other laptops | **Not tested yet** |
-| Public ISO download | [Download page](https://windoesnot.me/en/download/) · current version 0.1.0-29 |
+| Public ISO download | [Download page](https://windoesnot.me/en/download/) · current version 0.1.0-33 |
 
 ## Building
 
