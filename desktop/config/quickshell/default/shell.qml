@@ -2013,18 +2013,8 @@ PanelWindow {
                                         audioWindow.visible = false
                                         networkWindow.visible = false
                                         bluetoothWindow.visible = false
-                                        if (model.iconType === "audio" && panelWindow.audioTrayItem
-                                                && panelWindow.audioTrayItem.hasMenu) {
-                                            desktopShell.closeTaskbarContextMenus()
-                                            var audioPos = trayIconDelegate.mapToItem(panelWindow.contentItem, 0, 0)
-                                            audioMenuAnchor.anchor.rect.x = audioPos.x
-                                            audioMenuAnchor.anchor.rect.y = audioPos.y
-                                            audioMenuAnchor.anchor.rect.width = trayIconDelegate.width
-                                            audioMenuAnchor.anchor.rect.height = trayIconDelegate.height
-                                            audioMenuAnchor.open()
-                                        } else {
-                                            quickSettingsContextMenu.openFor(model.iconType, trayIconDelegate)
-                                        }
+                                        // Audio too uses the shared context menu now (entry: open the audio app)
+                                        quickSettingsContextMenu.openFor(model.iconType, trayIconDelegate)
                                         dragActive = false
                                         trayIconDelegate.isBeingDragged = false
                                         return
@@ -2152,7 +2142,13 @@ PanelWindow {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: {
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            onClicked: function(mouse) {
+                if (mouse.button === Qt.RightButton) {
+                    calendarWindow.visible = false
+                    quickSettingsContextMenu.openFor("clock", clockMouseArea)
+                    return
+                }
                 startMenu.visible = false
                 settingsMenu.visible = false
                 audioWindow.visible = false
@@ -3252,6 +3248,12 @@ FloatingWindow {
             items.push({ kind: "openFirewall", label: en ? "Open Firewall" : "Firewall öffnen" })
         } else if (kind === "graphics") {
             items.push({ kind: "openGraphics", label: en ? "Open Graphics" : "Grafik öffnen" })
+        } else if (kind === "audio") {
+            items.push({ kind: "openAudio", label: en ? "Open Audio" : "Audio öffnen" })
+        } else if (kind === "clock") {
+            // Right click on the clock: straight to the calendar settings (no tray entry here)
+            items.push({ kind: "calendarSettings", label: en ? "Calendar settings" : "Kalendereinstellungen" })
+            return items
         }
         items.push({ kind: "traySettings", label: en ? "Tray settings" : "Tray-Einstellungen" })
         return items
@@ -3308,9 +3310,21 @@ FloatingWindow {
             // Opens the Network app itself, not the quick panel.
             visible = false
             run("windoesnot-open-network")
+        } else if (kind === "openAudio") {
+            // The audio app (windoesnot-audio, effects and devices); the plain mixer if it is not installed
+            visible = false
+            run("if command -v windoesnot-audio >/dev/null 2>&1; then exec windoesnot-audio; else exec pavucontrol; fi")
         } else if (kind === "openGraphics") {
             visible = false
             panelWindow.openGraphics()
+        } else if (kind === "calendarSettings") {
+            // Settings > Input, language & time, scrolled to the calendar section; same hand-over as the tray settings
+            visible = false
+            settingsMenu.openSearchResult({ page: "input", text: Lang.get("calendar.title", settingsMenu.uiLanguage), isCategory: false })
+            settingsMenu.fileDialogOpen = true
+            settingsMenu.visible = false
+            settingsReopenTimer.start()
+            traySettingsGuardTimer.restart()
         } else if (kind === "traySettings") {
             visible = false
             settingsMenu.currentCategory = "apps"
