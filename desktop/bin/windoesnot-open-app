@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+"""Start menu and search: open an app, or bring it to the front when it is already running.
+
+  windoesnot-open-app --cmd '<command line>' [--name 'Name'] [--desktop /path/app.desktop]
+
+The running window is found through the app's desktop entry (StartupWMClass, desktop id, executable). A minimized window is
+brought back to the current workspace, a floating one is raised, the most recently used window wins when there are several.
+Without a running window the command is started as before. A deliberate "New window" (context menus, the app's own shortcut)
+does not go through this helper."""
+import argparse
+import json
+import os
+from pathlib import Path
+import re
+import shlex
+import subprocess
+import sys
+
+# Executables that say nothing about the window class
+GENERIC = {'sh', 'bash', 'zsh', 'env', 'xdg-open', 'gtk-launch', 'gio', 'flatpak', 'snap', 'python', 'python3', 'java', 'wine',
+           'windoesnot-webapp', 'windoesnot-open-app', 'setsid', 'nohup', 'sudo', 'pkexec', 'kdesu', 'uwsm', 'dbus-launch', 'systemd-run',
+           'ghostty-launcher', 'x-terminal-emulator'}
+IGNORED_CLASSES = ('quickshell',)
+
+
+def applications_dirs():
+    data = os.environ.get('XDG_DATA_HOME') or str(Path.home() / '.local/share')
+    dirs = [Path(data) / 'applications']
+    dirs += [Path(p) / 'applications' for p in (os.environ.get('XDG_DATA_DIRS') or '/usr/local/share:/usr/share').split(':') if p]
+    dirs.append(Path('/var/lib/flatpak/exports/share/applications'))
+    dirs.append(Path.home() / '.local/share/flatpak/exports/share/applications')
+    return dirs
+
+
+def parse_desktop(path):
+    """Name, Exec, StartupWMClass of the [Desktop Entry] group."""
+    entry = {}
+    try:
+        in_entry = False
+        for line in Path(path).read_text(errors='replace').splitlines():
+            if line.startswith('['):
+                in_entry = line.strip() == '[Desktop Entry]'
+            elif in_entry and '=' in line and not line.lstrip().startswith('#'):
+                key, _, value = line.partition('=')
+                if key in ('Name', 'Exec', 'StartupWMClass') and key not in entry:
+                    entry[key] = value.strip()
+    except OSError:
+        pass
+    return entry
+
+
+def find_desktop_by_name(name, dirs=None):
+    for directory in dirs or applications_dirs():
+        try:
+            for path in sorted(directory.glob('*.desktop')):
+                if parse_desktop(path).get('Name') == name:
+                    return path
+        except OSError:
+            continue
+    return None
+
+
+def executable_of(command):
+    """The program a command line starts: skips env assignments, env/setsid/sh -c wrappers and flatpak run (then the app id)."""
+    try:
+        words = shlex.split(command)
+    except ValueError:
+        words = command.split()
+    while words and ('=' in words[0] and not words[0].startswith('/')):
+        words.pop(0)
+    while words and os.path.basename(words[0]) in ('env', 'setsid', 'nohup', 'exec'):
+        words.pop(0)
+        while words and ('=' in words[0] or words[0].startswith('-')):
+            words.pop(0)
+    if not words:
+        return ''
+    if os.path.basename(words[0]) == 'flatpak' and 'run' in words:
+        rest = [w for w in words[words.index('run') + 1:] if not w.startswith('-')]
+        return rest[0] if rest else ''
+    return os.path.basename(words[0])
+
+
+def app_keys(desktop_path=None, command='', name='', startup_class=''):
+    """The lower-case names under which the app's window may show up (window class), from its desktop entry and command."""
+    keys = set()
+    entry = parse_desktop(desktop_path) if desktop_path else {}
+    exec_line = entry.get('Exec') or command
+    candidates = [startup_class, entry.get('StartupWMClass', ''), Path(desktop_path).stem if desktop_path else '', executable_of(exec_line),
+                  executable_of(command)]
+    for value in candidates:
+        value = (value or '').strip().lower()
+        if value and value not in GENERIC:
+            keys.add(value)
+            if '.' in value:
+                keys.add(value.rsplit('.', 1)[-1])   # org.gnome.Nautilus -> nautilus
+    return keys
+
+
+def class_matches(client, keys):
+    for cls in (client.get('class'), client.get('initialClass')):
+        cls = (cls or '').lower()
+        if not cls or cls.startswith(IGNORED_CLASSES):
+            continue
+        if cls in keys or any(cls.endswith('.' + k) for k in keys):
+            return True
+    return False
+
+
+def pick_window(clients, keys):
+    """The window to bring forward: most recently used (focusHistoryID 0 is the newest) of the mapped clients that match."""
+    found = [c for c in clients if c.get('mapped', True) and class_matches(c, keys)]
+    return min(found, key=lambda c: c.get('focusHistoryID', 1 << 30)) if found else None
+
+
+def focus_commands(client, active_workspace_id):
+    """hyprctl dispatches that bring the window forward (restore from special:minimized, focus - which also switches to its workspace -, raise a floating window)."""
+    address = client['address']
+    commands = []
+    if 'special:minimized' in str((client.get('workspace') or {}).get('name', '')):
+        commands.append(f'movetoworkspace {active_workspace_id},address:{address}' if active_workspace_id else f'movetoworkspace e+0,address:{address}')
+    commands.append(f'focuswindow address:{address}')
+    if client.get('floating'):
+        commands.append('bringactivetotop')
+    return commands
+
+
+def hyprctl_json(*args):
+    result = subprocess.run(['hyprctl', '-j', *args], capture_output=True, text=True, timeout=4)
+    return json.loads(result.stdout)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--cmd', required=True)
+    parser.add_argument('--name', default='')
+    parser.add_argument('--desktop', default='')
+    args = parser.parse_args(argv)
+    desktop = args.desktop if args.desktop and Path(args.desktop).is_file() else None
+    if desktop is None and args.name:
+        found = find_desktop_by_name(args.name)
+        desktop = str(found) if found else None
+    keys = app_keys(desktop, args.cmd, args.name)
+    if keys:
+        try:
+            client = pick_window(hyprctl_json('clients'), keys)
+            if client:
+                active = (hyprctl_json('activeworkspace') or {}).get('id')
+                for command in focus_commands(client, active):
+                    subprocess.run(['windoesnot-hyprctl', 'dispatch', *command.split(' ', 1)], capture_output=True, timeout=6)
+                return 0
+        except (OSError, ValueError, subprocess.SubprocessError):
+            pass   # no compositor answer: just start the app
+    subprocess.Popen(['bash', '-c', 'setsid ' + args.cmd + ' >/dev/null 2>&1 &'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                     start_new_session=True)
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

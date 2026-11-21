@@ -781,6 +781,14 @@ PanelWindow {
     // unable to close that window again — it just sits there looking stuck.
     // Every popup/context-menu window's onVisibleChanged calls this instead
     // of binding active directly.
+    // Start menu and search: bring the app forward when it already runs, start it otherwise (windoesnot-open-app).
+    function launchOrFocus(name, cmd, desktopPath) {
+        var launcher = Qt.createQmlObject('import Quickshell.Io; Process {}', panelWindow)
+        launcher.command = ["windoesnot-open-app", "--cmd", String(cmd), "--name", String(name || ""), "--desktop", String(desktopPath || "")]
+        launcher.exited.connect(function() { launcher.destroy() })
+        launcher.running = true
+    }
+
     // The grab is armed one event-loop turn later. The wish is remembered per grab, so a close that follows
     // directly (the context menu hides first, then the Start menu) cancels the pending arming; otherwise the stale
     // callback re-armed the grab after the close and swallowed the next click anywhere (the Store's X).
@@ -4308,12 +4316,7 @@ FloatingWindow {
                 var app = allAppsModel.get(startMenu.selectedAppIndex)
                 if (app) {
                     console.log("=== Starting app:", app.name, "cmd:", app.cmd)
-                    var safeCmd = app.cmd.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
-                    Qt.createQmlObject(
-                        'import Quickshell.Io; Process { command: ["bash", "-c", "setsid ' +
-                        safeCmd + ' >/dev/null 2>&1 &"]; running: true }',
-                        startMenu
-                    )
+                    panelWindow.launchOrFocus(app.name, app.cmd, app.desktopPath)
                     startMenu.visible = false
                 } else {
                     console.log("=== ERROR: No app found at index:", startMenu.selectedAppIndex)
@@ -4802,12 +4805,7 @@ FloatingWindow {
                                     var app = allAppsModel.get(startMenu.selectedAppIndex)
                                     if (app) {
                                         console.log("=== Starting app:", app.name, "cmd:", app.cmd)
-                                        var safeCmd = app.cmd.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
-                                        Qt.createQmlObject(
-                                            'import Quickshell.Io; Process { command: ["bash", "-c", "' +
-                                            safeCmd + ' & disown"]; running: true }',
-                                            startMenu
-                                        )
+                                        panelWindow.launchOrFocus(app.name, app.cmd, app.desktopPath)
                                         startMenu.visible = false
                                     } else {
                                         console.log("=== ERROR: No app at index:", startMenu.selectedAppIndex)
@@ -5167,12 +5165,7 @@ FloatingWindow {
                                                         startAppContextMenu.openFor(myName, pinned, desktopPath, myCmd, myIcon, myCustomIcon, dragArea)
                                                     } else if (mouse.button === Qt.LeftButton) {
                                                         startAppContextMenu.visible = false
-                                                        var safeCmd = myCmd.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
-                                                        Qt.createQmlObject(
-                                                            'import Quickshell.Io; Process { command: ["bash", "-c", "setsid ' +
-                                                            safeCmd + ' >/dev/null 2>&1 &"]; running: true }',
-                                                            startMenu
-                                                        )
+                                                        panelWindow.launchOrFocus(myName, myCmd, desktopPath)
                                                         startMenu.visible = false
                                                     }
                                                 }
@@ -5376,12 +5369,7 @@ FloatingWindow {
                                                         startAppContextMenu.openFor(myName, pinned, desktopPath, myCmd, myIcon, myCustomIcon, allAppDragArea)
                                                     } else {
                                                         startAppContextMenu.visible = false
-                                                        var safeCmd = myCmd.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
-                                                        Qt.createQmlObject(
-                                                            'import Quickshell.Io; Process { command: ["bash", "-c", "setsid ' +
-                                                            safeCmd + ' >/dev/null 2>&1 &"]; running: true }',
-                                                            startMenu
-                                                        )
+                                                        panelWindow.launchOrFocus(myName, myCmd, desktopPath)
                                                         startMenu.visible = false
                                                     }
                                                 }
@@ -5562,11 +5550,7 @@ FloatingWindow {
                                                             startAppContextMenu.openFor(name, pinned, desktopPath, cmd, icon, customIcon, this)
                                                         } else {
                                                             startAppContextMenu.visible = false
-                                                            var safeCmd = cmd.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
-                                                            Qt.createQmlObject(
-                                                                'import Quickshell.Io; Process { command: ["bash", "-c", "setsid ' + safeCmd + ' >/dev/null 2>&1 &"]; running: true }',
-                                                                startMenu
-                                                            )
+                                                            panelWindow.launchOrFocus(name, cmd, desktopPath)
                                                             startMenu.visible = false
                                                         }
                                                     }

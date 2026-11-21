@@ -455,8 +455,9 @@ FloatingWindow {
         usageSave.stdinText = JSON.stringify(usage)
         usageSave.running = true
         closeSearch()
+        // An app that already runs is brought to the front instead of being started again
         var p = Qt.createQmlObject('import Quickshell.Io; Process {}', root)
-        p.command = ["bash", "-c", item.appCmd + " & disown"]
+        p.command = ["windoesnot-open-app", "--cmd", String(item.appCmd), "--name", String(item.appName || ""), "--desktop", String(item.desktopPath || "")]
         p.running = true
     }
 
