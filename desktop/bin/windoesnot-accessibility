@@ -195,7 +195,10 @@ def main(argv):
     elif action == 'keyboard' and len(argv) == 3 and argv[2] in ('show', 'hide', 'toggle'):
         return keyboard(argv[2])
     elif action == 'apply':
-        apply_all(load())
+        data = load()
+        if not CONFIG.exists():
+            save(data)   # so the desktop can watch the file from the first login on
+        apply_all(data)
     else:
         print(__doc__, file=sys.stderr)
         return 2

@@ -29,6 +29,8 @@ with tempfile.TemporaryDirectory() as t:
     assert saved == {'colorFilter': 'none', 'cursorSize': 48, 'textScale': 1.5, 'reduceMotion': True}, saved
     log.unlink(); assert run('apply').returncode == 0
     for needle in ('decoration:screen_shader', 'setcursor Bibata 48', 'text-scaling-factor 1.5', 'animations:enabled false'): assert needle in calls(), (needle, calls())
+    fresh = dict(env, XDG_CONFIG_HOME=str(t / 'fresh')); assert subprocess.run([str(SCRIPT), 'apply'], env=fresh, capture_output=True, text=True).returncode == 0
+    assert (t / 'fresh/windoesnot/accessibility.json').is_file(), 'apply writes the defaults so the desktop can watch the file'
     steps = []
     for action in ('in', 'in', 'in', 'in', 'in', 'in', 'out', 'out', 'out', 'out', 'out', 'out', 'reset'):
         steps.append(float(run('zoom', action).stdout)); 

@@ -24,6 +24,7 @@ Singleton {
         id: file
         path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/windoesnot/accessibility.json"
         watchChanges: true
+        printErrors: false   // the file only exists after the first choice (or the first autostart)
         onFileChanged: reload()
         onLoaded: { root.fileKnown = true; root.parse(text()) }
         onLoadFailed: root.fileKnown = false

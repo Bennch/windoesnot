@@ -90,7 +90,7 @@ Item {
                     }
                     width: parent.width - 12
                     horizontalAlignment: Text.AlignHCenter
-                    fontSizeMode: Text.Shrink
+                    fontSizeMode: Text.HorizontalFit
                     minimumPixelSize: 10
                     font.pixelSize: UiI.UiScale.px(14)
                     font.bold: true
