@@ -1,0 +1,204 @@
+#!/usr/bin/env python3
+"""Accessibility options of the desktop: magnifier, colour filters, cursor and text size, reduced motion, on-screen keyboard.
+
+  windoesnot-accessibility get                        JSON with the current choices
+  windoesnot-accessibility set <key> <value>          colorFilter none|grayscale|invert|contrast|protanopia|deuteranopia|tritanopia,
+                                                      cursorSize 24|32|48|64, textScale 1.0|1.25|1.5|1.75, reduceMotion true|false
+  windoesnot-accessibility zoom in|out|reset|<1-4>    magnifier (Hyprland cursor:zoom_factor); not remembered across logins
+  windoesnot-accessibility keyboard show|hide|toggle  on-screen keyboard (squeekboard)
+  windoesnot-accessibility apply                      autostart: apply the saved choices
+
+The choices live in ~/.config/windoesnot/accessibility.json; colour filters are small GLSL files in ~/.config/windoesnot/shaders/."""
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+CONFIG_DIR = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'windoesnot'
+CONFIG = CONFIG_DIR / 'accessibility.json'
+SHADERS = CONFIG_DIR / 'shaders'
+HYPRCTL = os.environ.get('WINDOESNOT_HYPRCTL', 'windoesnot-hyprctl')
+GSETTINGS = os.environ.get('WINDOESNOT_GSETTINGS', 'gsettings')
+KEYBOARD = os.environ.get('WINDOESNOT_OSK', 'squeekboard')
+DEFAULTS = {'colorFilter': 'none', 'cursorSize': 24, 'textScale': 1.0, 'reduceMotion': False}
+FILTERS = ('none', 'grayscale', 'invert', 'contrast', 'protanopia', 'deuteranopia', 'tritanopia')
+CURSOR_SIZES = (24, 32, 48, 64)
+TEXT_SCALES = (1.0, 1.25, 1.5, 1.75)
+ZOOM_STEPS = (1.0, 1.5, 2.0, 3.0, 4.0)
+
+HEAD = '''#version 300 es
+precision highp float;
+in vec2 v_texcoord;
+uniform sampler2D tex;
+layout(location = 0) out vec4 fragColor;
+void main() {
+    vec4 pixel = texture(tex, v_texcoord);
+    vec3 c = pixel.rgb;
+'''
+TAIL = '    fragColor = vec4(clamp(c, 0.0, 1.0), pixel.a);\n}\n'
+# Colour blindness: the colours the viewer cannot tell apart are simulated, the lost difference is shifted into channels
+# that can be seen (daltonization). Simulation matrices after Machado et al. 2009, severity 1.0.
+def daltonize(rows):
+    r0, r1, r2 = rows
+    return ('    vec3 sim = vec3(dot(vec3(%s), c), dot(vec3(%s), c), dot(vec3(%s), c));\n'
+            '    vec3 lost = c - sim;\n'
+            '    c = c + vec3(0.0, 0.7 * lost.r + lost.g, 0.7 * lost.r + lost.b);\n' % (r0, r1, r2))
+BODY = {
+    'grayscale': '    float g = dot(c, vec3(0.2126, 0.7152, 0.0722));\n    c = vec3(g);\n',
+    'invert': '    c = vec3(1.0) - c;\n',
+    'contrast': '    c = (c - 0.5) * 1.7 + 0.5;\n    float g = dot(c, vec3(0.2126, 0.7152, 0.0722));\n    c = mix(vec3(g), c, 1.3);\n',
+    'protanopia': daltonize(('0.152286, 1.052583, -0.204868', '0.114503, 0.786281, 0.099216', '-0.003882, -0.048116, 1.051998')),
+    'deuteranopia': daltonize(('0.367322, 0.860646, -0.227968', '0.280085, 0.672501, 0.047413', '-0.011820, 0.042940, 0.968881')),
+    'tritanopia': daltonize(('1.255528, -0.076749, -0.178779', '-0.078411, 0.930809, 0.147602', '0.004733, 0.691367, 0.303900')),
+}
+
+
+def load():
+    try:
+        data = json.loads(CONFIG.read_text())
+    except (OSError, ValueError):
+        data = {}
+    out = dict(DEFAULTS)
+    if data.get('colorFilter') in FILTERS: out['colorFilter'] = data['colorFilter']
+    if data.get('cursorSize') in CURSOR_SIZES: out['cursorSize'] = data['cursorSize']
+    if data.get('textScale') in TEXT_SCALES: out['textScale'] = data['textScale']
+    if isinstance(data.get('reduceMotion'), bool): out['reduceMotion'] = data['reduceMotion']
+    return out
+
+
+def save(data):
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    CONFIG.write_text(json.dumps(data, indent=1) + '\n')
+
+
+def run(*args, capture=False):
+    try:
+        done = subprocess.run(list(args), capture_output=True, text=True, timeout=10)
+        return done.returncode, done.stdout
+    except (OSError, subprocess.SubprocessError):
+        return 1, ''
+
+
+def hypr_keyword(option, value):
+    run(HYPRCTL, 'keyword', option, value)
+
+
+def shader_path(name):
+    SHADERS.mkdir(parents=True, exist_ok=True)
+    path = SHADERS / (name + '.frag')
+    text = HEAD + BODY[name] + TAIL
+    if not path.exists() or path.read_text() != text:
+        path.write_text(text)
+    return path
+
+
+def apply_filter(name):
+    hypr_keyword('decoration:screen_shader', str(shader_path(name)) if name != 'none' else '')
+
+
+def apply_cursor(size):
+    code, theme = run(GSETTINGS, 'get', 'org.gnome.desktop.interface', 'cursor-theme')
+    theme = theme.strip().strip("'") or 'Adwaita'
+    run(HYPRCTL, 'setcursor', theme, str(size))
+    run(GSETTINGS, 'set', 'org.gnome.desktop.interface', 'cursor-size', str(size))
+
+
+def apply_text(scale):
+    run(GSETTINGS, 'set', 'org.gnome.desktop.interface', 'text-scaling-factor', str(scale))
+
+
+def apply_motion(reduce):
+    hypr_keyword('animations:enabled', 'false' if reduce else 'true')
+
+
+def apply_all(data):
+    apply_filter(data['colorFilter'])
+    apply_cursor(data['cursorSize'])
+    apply_text(data['textScale'])
+    apply_motion(data['reduceMotion'])
+
+
+def current_zoom():
+    code, out = run('hyprctl', 'getoption', 'cursor:zoom_factor', '-j')
+    try:
+        return float(json.loads(out)['float'])
+    except (ValueError, KeyError, TypeError):
+        return 1.0
+
+
+def zoom(action):
+    now = current_zoom()
+    if action == 'reset':
+        target = 1.0
+    elif action == 'in':
+        target = next((s for s in ZOOM_STEPS if s > now + 0.01), ZOOM_STEPS[-1])
+    elif action == 'out':
+        target = next((s for s in reversed(ZOOM_STEPS) if s < now - 0.01), ZOOM_STEPS[0])
+    else:
+        target = min(4.0, max(1.0, float(action)))
+    hypr_keyword('cursor:zoom_factor', '%g' % target)
+    return target
+
+
+def keyboard_visible():
+    code, out = run('busctl', '--user', 'get-property', 'sm.puri.OSK0', '/sm/puri/OSK0', 'sm.puri.OSK0', 'Visible')
+    return code == 0 and out.strip().endswith('true')
+
+
+def keyboard(action):
+    if not shutil.which(KEYBOARD):
+        print('The on-screen keyboard is not installed', file=sys.stderr)
+        return 1
+    if run('pgrep', '-x', Path(KEYBOARD).name)[0] != 0:
+        subprocess.Popen([KEYBOARD], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        import time
+        for _ in range(20):
+            time.sleep(0.25)
+            if run('busctl', '--user', 'status', 'sm.puri.OSK0')[0] == 0:
+                break
+    show = {'show': True, 'hide': False, 'toggle': not keyboard_visible()}[action]
+    run('busctl', '--user', 'call', 'sm.puri.OSK0', '/sm/puri/OSK0', 'sm.puri.OSK0', 'SetVisible', 'b', 'true' if show else 'false')
+    return 0
+
+
+def main(argv):
+    action = argv[1] if len(argv) > 1 else 'get'
+    if action == 'get':
+        data = load()
+        data['zoom'] = current_zoom()
+        data['keyboardInstalled'] = bool(shutil.which(KEYBOARD))
+        print(json.dumps(data))
+    elif action == 'set' and len(argv) == 4:
+        key, value = argv[2], argv[3]
+        data = load()
+        if key == 'colorFilter' and value in FILTERS:
+            data[key] = value; apply_filter(value)
+        elif key == 'cursorSize' and value.isdigit() and int(value) in CURSOR_SIZES:
+            data[key] = int(value); apply_cursor(data[key])
+        elif key == 'textScale' and value.replace('.', '', 1).isdigit() and float(value) in TEXT_SCALES:
+            data[key] = float(value); apply_text(data[key])
+        elif key == 'reduceMotion' and value in ('true', 'false'):
+            data[key] = value == 'true'; apply_motion(data[key])
+        else:
+            print(__doc__, file=sys.stderr)
+            return 2
+        save(data)
+    elif action == 'zoom' and len(argv) == 3:
+        try:
+            print('%g' % zoom(argv[2]))
+        except ValueError:
+            return 2
+    elif action == 'keyboard' and len(argv) == 3 and argv[2] in ('show', 'hide', 'toggle'):
+        return keyboard(argv[2])
+    elif action == 'apply':
+        apply_all(load())
+    else:
+        print(__doc__, file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv))

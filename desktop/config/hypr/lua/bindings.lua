@@ -14,6 +14,12 @@ hl.bind("SUPER + H", hl.dsp.exec_cmd("~/.config/hypr/hide_windows.sh"), {}) -- l
 hl.bind("SUPER + D", hl.dsp.exec_cmd("~/.config/hypr/hide_windows.sh"), {})
 hl.bind("SUPER + N", hl.dsp.exec_cmd("swaync-client -t -sw"), {}) -- legacy:283
 hl.bind("SUPER + P", hl.dsp.exec_cmd("hyprpicker -a -f hex"), {}) -- legacy:284
+hl.bind("SUPER + EQUAL", hl.dsp.exec_cmd("windoesnot-accessibility zoom in"), {})
+hl.bind("SUPER + KP_ADD", hl.dsp.exec_cmd("windoesnot-accessibility zoom in"), {})
+hl.bind("SUPER + MINUS", hl.dsp.exec_cmd("windoesnot-accessibility zoom out"), {})
+hl.bind("SUPER + KP_SUBTRACT", hl.dsp.exec_cmd("windoesnot-accessibility zoom out"), {})
+hl.bind("SUPER + ESCAPE", hl.dsp.exec_cmd("windoesnot-accessibility zoom reset"), {})
+hl.bind("SUPER + CTRL + O", hl.dsp.exec_cmd("windoesnot-accessibility keyboard toggle"), {})
 hl.bind("SUPER + F", hl.dsp.window.fullscreen({["mode"]="fullscreen"}), {}) -- legacy:285
 hl.bind("SUPER + J", hl.dsp.layout("togglesplit"), {}) -- legacy:288
 hl.bind("PRINT", hl.dsp.exec_cmd("windoesnot-screenshot region"), {}) -- legacy:291

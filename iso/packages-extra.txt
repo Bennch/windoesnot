@@ -6,6 +6,7 @@ hyprpicker
 hyprlock
 hypridle
 hyprsunset
+squeekboard
 ddcutil
 imagemagick
 upower

@@ -248,6 +248,30 @@ var PAGES = [
   "extra": {}
  },
  {
+  "page": "accessibility",
+  "keys": [
+   "a11y.magnifier",
+   "a11y.zoomReset",
+   "a11y.magnifierHint",
+   "a11y.keyboard",
+   "a11y.keyboardToggle",
+   "a11y.keyboardHint",
+   "a11y.keyboardMissing",
+   "a11y.colors",
+   "a11y.filter",
+   "a11y.filterHint",
+   "a11y.size",
+   "a11y.cursor",
+   "a11y.text",
+   "a11y.textHint",
+   "a11y.motion",
+   "a11y.reduceMotion",
+   "a11y.motionHint"
+  ],
+  "texts": [],
+  "extra": {}
+ },
+ {
   "page": "power",
   "keys": [
    "power.intro",

@@ -21,6 +21,7 @@ MaintenanceCategory 1.0 MaintenanceCategory.qml
 MonitorsCategory 1.0 MonitorsCategory.qml
 NotificationSettings 1.0 NotificationSettings.qml
 FileManagerSettings 1.0 FileManagerSettings.qml
+AccessibilityCategory 1.0 AccessibilityCategory.qml
 PowerCategory 1.0 PowerCategory.qml
 PrinterCategory 1.0 PrinterCategory.qml
 SharedFolders 1.0 SharedFolders.qml

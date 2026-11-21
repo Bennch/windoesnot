@@ -86,7 +86,7 @@ FloatingWindow {
     }
     function currentPageItem() {
         var loaders = { desktop: desktopLoader, monitors: monitorsLoader, background: backgroundSettingsLoader,
-                        appearance: appearanceLoader, alignment: alignmentLoader, input: inputLoader,
+                        appearance: appearanceLoader, alignment: alignmentLoader, input: inputLoader, accessibility: accessibilityLoader,
                         power: powerLoader, apps: appsLoader, maintenance: maintenanceLoader,
                         backups: backupsLoader, updates: updatesLoader, info: infoLoader }
         var loader = loaders[currentCategory]
@@ -1180,7 +1180,7 @@ FloatingWindow {
             return enabled ? "dark" : "light"
         }
         function setCategory(category: string): string {
-            var valid = ["desktop", "background", "appearance", "alignment", "input", "power", "apps", "maintenance", "backups", "updates"]
+            var valid = ["desktop", "background", "appearance", "alignment", "input", "accessibility", "power", "apps", "maintenance", "backups", "updates"]
             if (valid.indexOf(category) < 0) return "unsupported"
             settingsMenu.currentCategory = category
             return category
@@ -2527,6 +2527,7 @@ FloatingWindow {
                             ListElement { category: "appearance"; labelKey: "nav.appearance"; icon: "img/Win11-dark/actions/symbolic/builder-appearance-symbolic.svg" }
                             ListElement { category: "alignment";  labelKey: "nav.alignment";  icon: "img/Win11-dark/actions/symbolic/align-on-canvas-symbolic.svg" }
                             ListElement { category: "input";      labelKey: "nav.input";      icon: "img/Win11-dark/devices/symbolic/input-mouse-symbolic.svg" }
+                            ListElement { category: "accessibility"; labelKey: "nav.accessibility"; icon: "img/Win11-dark/apps/symbolic/preferences-desktop-accessibility-symbolic.svg" }
                             ListElement { category: "power";      labelKey: "nav.power";      icon: "img/Win11-dark/devices/symbolic/battery-symbolic.svg" }
                             ListElement { category: "apps";       labelKey: "nav.apps";       icon: "img/Win11-dark/actions/symbolic/view-app-grid-symbolic.svg" }
                             ListElement { category: "maintenance"; labelKey: "nav.maintenance"; icon: "img/Win11-dark/categories/symbolic/preferences-system-symbolic.svg" }
@@ -2647,6 +2648,7 @@ FloatingWindow {
                             if (settingsMenu.currentCategory === "appearance") return Lang.get("header.appearance", uiLanguage)
                             if (settingsMenu.currentCategory === "alignment") return Lang.get("header.alignment", uiLanguage)
                             if (settingsMenu.currentCategory === "input") return Lang.get("header.input", uiLanguage)
+                            if (settingsMenu.currentCategory === "accessibility") return Lang.get("header.accessibility", uiLanguage)
                             if (settingsMenu.currentCategory === "power") return Lang.get("header.power", uiLanguage)
                             if (settingsMenu.currentCategory === "apps") return Lang.get("header.apps", uiLanguage)
                             if (settingsMenu.currentCategory === "maintenance") return Lang.get("header.maintenance", uiLanguage)
@@ -2724,6 +2726,7 @@ FloatingWindow {
                                 if (settingsMenu.currentCategory === "appearance") return appearanceLoader.item ? appearanceLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "alignment") return alignmentLoader.item ? alignmentLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "input") return inputLoader.item ? inputLoader.item.height + padding : height
+                                if (settingsMenu.currentCategory === "accessibility") return accessibilityLoader.item ? accessibilityLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "power") return powerLoader.item ? powerLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "apps") return appsLoader.item ? appsLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "maintenance") return maintenanceLoader.item ? maintenanceLoader.item.height + padding : height
@@ -2830,6 +2833,17 @@ FloatingWindow {
                             asynchronous: false
                             Component.onCompleted: if (active) setSource("settings/SystemCategory.qml", {"settingsMenu": settingsMenu})
                             onActiveChanged: if (active && !item) setSource("settings/SystemCategory.qml", {"settingsMenu": settingsMenu})
+                        }
+
+                        // Accessibility
+                        Loader {
+                            id: accessibilityLoader
+                            active: settingsMenu.currentCategory === "accessibility" && settingsMenu.visible
+                            visible: settingsMenu.currentCategory === "accessibility"
+                            width: parent.width
+                            asynchronous: false
+                            Component.onCompleted: if (active) setSource("settings/AccessibilityCategory.qml", {"settingsMenu": settingsMenu})
+                            onActiveChanged: if (active) setSource("settings/AccessibilityCategory.qml", {"settingsMenu": settingsMenu})
                         }
 
                         // Backup Settings
