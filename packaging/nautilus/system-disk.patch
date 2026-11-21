@@ -35,7 +35,7 @@ diff --color -ruN '--exclude=build' -x '*.orig' nautilus-51.1/src/nautilus-compu
      percent_text = nautilus_file_get_string_attribute_q (file, percent_q);
 diff --color -ruN '--exclude=build' -x '*.orig' nautilus-51.1/src/nautilus-computer-view.c ../nautilus-51.1/src/nautilus-computer-view.c
 --- a/src/nautilus-computer-view.c	2026-11-21 16:33:39.503902960 +0100
-+++ b/src/nautilus-computer-view.c	2026-11-21 16:37:11.457565351 +0100
++++ b/src/nautilus-computer-view.c	2026-11-21 16:39:17.589344202 +0100
 @@ -23,6 +23,9 @@
      GtkListView *view_ui;
      guint collapsed_mask;   /* bit n set: section n is folded */
@@ -116,7 +116,7 @@ diff --color -ruN '--exclude=build' -x '*.orig' nautilus-51.1/src/nautilus-compu
  static void
  on_model_changed (NautilusComputerView *self)
  {
-@@ -409,6 +468,11 @@
+@@ -409,6 +468,12 @@
  
      if (model != NULL)
      {
@@ -124,7 +124,8 @@ diff --color -ruN '--exclude=build' -x '*.orig' nautilus-51.1/src/nautilus-compu
 +        self->filter = GTK_FILTER (gtk_custom_filter_new (computer_item_visible, NULL, NULL));
 +        nautilus_view_model_set_filter (model, self->filter);
 +        /* The extension fills in its attributes a moment after an item is added: look again when items change */
-+        g_signal_connect_swapped (model, "items-changed", G_CALLBACK (on_items_changed), self);
++        /* connect_object: the handler is dropped when this view goes away (the model can outlive it while the folder changes) */
++        g_signal_connect_object (model, "items-changed", G_CALLBACK (on_items_changed), self, G_CONNECT_SWAPPED);
          g_autoptr (GtkCustomSorter) sorter = gtk_custom_sorter_new (sort_computer_items, self, NULL);
          g_autoptr (GtkCustomSorter) sections_sorter = gtk_custom_sorter_new (sort_computer_sections, self, NULL);
  
