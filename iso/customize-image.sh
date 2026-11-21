@@ -40,6 +40,7 @@ project=/usr/share/windoesnot
 "$project/tools/build-image-boot-language.sh"
 "$project/tools/build-image-device-manager.sh"
 "$project/tools/build-image-connectivity.sh"
+"$project/tools/build-image-nautilus.sh"
 "$project/tools/build-image-packages.sh"
 "$project/tools/build-calamares.sh"
 # Configure the image after package hooks have created the resolver and

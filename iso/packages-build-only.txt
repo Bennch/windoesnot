@@ -14,3 +14,7 @@ patch
 # Native Bluetooth Blueprint templates.
 blueprint-compiler
 python-jinja
+
+# Files (Nautilus) build, tools/build-image-nautilus.sh (meson, blueprint-compiler and appstream are listed above or in packages-extra).
+gobject-introspection
+glib2-devel

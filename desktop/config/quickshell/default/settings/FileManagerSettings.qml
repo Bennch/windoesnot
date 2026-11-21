@@ -29,7 +29,7 @@ Column {
         stdout: StdioCollector { id: readOut }
         onExited: function(code) { var m = readOut.text.trim(); if (m === "tab" || m === "window") page.mode = m; page.loaded = true }
     }
-    // Built-in places of the sidebar (Recent, Starred, Network, Trash) can be hidden; needs the adapted Files (windoesnot-nautilus)
+    // Built-in places of the sidebar (Recent, Starred, Network, Trash) can be hidden; needs the adapted Files package
     Process {
         id: sidebarAvailProc
         command: ["windoesnot-file-manager", "--sidebar", "available"]

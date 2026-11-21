@@ -20,6 +20,7 @@ SAFE_MATCHES = {
     "tools/build-image-boot-language.sh": "s/-march=native/-march=x86-64 -mtune=generic/g",
     "tools/build-image-connectivity.sh": "s/-march=native/-march=x86-64 -mtune=generic/g",
     "tools/build-image-device-manager.sh": "s/-march=native/-march=x86-64 -mtune=generic/g",
+    "tools/build-image-nautilus.sh": "s/-march=native/-march=x86-64 -mtune=generic/g",
     "tools/build-image-packages.sh": "s/-march=native/-march=x86-64 -mtune=generic/g",
     "tools/check-packages.py": "'-march=native' not in flags",
 }
