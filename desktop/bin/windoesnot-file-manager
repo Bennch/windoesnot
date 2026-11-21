@@ -18,6 +18,8 @@ prepare_computer() {
     gio set -t stringv computer:/// metadata::nautilus-list-view-column-order name WinDoesNot::usage type size date_modified >/dev/null 2>&1 || true
 }
 add_bookmark() {
+    # With the patched Files (windoesnot-nautilus) "This PC" is a built-in sidebar entry; a bookmark would show it twice
+    if command -v pacman >/dev/null 2>&1 && pacman -Q windoesnot-nautilus >/dev/null 2>&1; then remove_bookmark; return 0; fi
     mkdir -p -- "$(dirname "$bookmarks_file")"
     grep -q '^computer:///' "$bookmarks_file" 2>/dev/null || printf 'computer:/// %s\n' "$bookmark_name" >>"$bookmarks_file"
 }

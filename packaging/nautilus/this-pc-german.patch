@@ -1,0 +1,14 @@
+--- a/po/de.po
++++ b/po/de.po
+@@ -7175,3 +7175,11 @@
+ 
+ #~ msgid "Prefere_nces"
+ #~ msgstr "_Einstellungen"
++
++#: src/nautilus-sidebar.c
++msgid "This PC"
++msgstr "Dieser PC"
++
++#: src/nautilus-sidebar.c
++msgid "Open all drives"
++msgstr "Alle Laufwerke öffnen"

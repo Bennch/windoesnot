@@ -16,6 +16,7 @@ with tempfile.TemporaryDirectory() as t:
     run('/tmp'); assert (t / 'out').read_text().strip() == '/tmp', 'direct calls are unchanged'
     # start page: "This PC" replaces the home folder for the Super+E launch, never for a folder that was asked for
     assert run('--start-page', 'get').stdout.strip() == 'home'
+    pacman = t / 'bin/pacman'; pacman.write_text('#!/bin/sh\nexit 1\n'); pacman.chmod(0o755)   # the patched Files is not installed
     gio = t / 'bin/gio'; gio.write_text('#!/bin/sh\necho "$*" >> "$STUB_OUT.gio"\n'); gio.chmod(0o755)
     assert run('--start-page', 'set', 'computer').returncode == 0 and run('--start-page', 'get').stdout.strip() == 'computer'
     assert run('--start-page', 'set', 'bogus').returncode == 2
@@ -23,6 +24,8 @@ with tempfile.TemporaryDirectory() as t:
     assert bookmarks.read_text().count('computer:///') == 1, 'one sidebar bookmark, added once'
     run('--start-page', 'set', 'computer'); assert bookmarks.read_text().count('computer:///') == 1
     assert 'metadata::nautilus-list-view-visible-columns name WinDoesNot::usage' in (t / 'out.gio').read_text()
+    pacman.write_text('#!/bin/sh\nexit 0\n'); run('--start-page', 'set', 'computer'); assert 'computer:///' not in bookmarks.read_text(), 'no bookmark next to the built-in sidebar entry'
+    pacman.write_text('#!/bin/sh\nexit 1\n'); run('--start-page', 'set', 'computer'); assert bookmarks.read_text().count('computer:///') == 1
     run('--open-mode', 'set', 'window')
     run('--launch'); assert (t / 'out').read_text().strip() == '--new-window computer:///', (t / 'out').read_text()
     run('--launch', '/tmp'); assert (t / 'out').read_text().strip() == '--new-window /tmp', (t / 'out').read_text()

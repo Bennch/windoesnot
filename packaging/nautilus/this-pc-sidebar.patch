@@ -1,0 +1,18 @@
+--- a/src/nautilus-sidebar.c
++++ b/src/nautilus-sidebar.c
+@@ -701,6 +701,15 @@
+     g_object_unref (start_icon);
+     g_free (home_uri);
+ 
++    /* WinDoesNot: "This PC", the drives of the computer (computer:///), right below Home as in Windows Explorer */
++    start_icon = g_themed_icon_new_with_default_fallbacks ("computer-symbolic");
++    add_place (sidebar, NAUTILUS_SIDEBAR_ROW_BUILT_IN,
++               NAUTILUS_SIDEBAR_SECTION_DEFAULT_LOCATIONS,
++               _("This PC"), start_icon, NULL, "computer:///",
++               NULL, NULL, NULL, NULL, 0,
++               _("Open all drives"));
++    g_object_unref (start_icon);
++
+     if (should_show_recent (sidebar))
+     {
+         start_icon = g_themed_icon_new_with_default_fallbacks ("document-open-recent-symbolic");

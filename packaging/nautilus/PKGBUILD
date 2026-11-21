@@ -1,0 +1,52 @@
+# Files (Nautilus) with a "This PC" entry in the sidebar, directly below Home (opens computer:///).
+# Upstream 51.1 plus two small patches (sidebar row, German translation); replaces the distribution's nautilus package.
+# Follow the distribution: when nautilus moves to a new version, update pkgver, the tarball, the checksums and re-check the patches.
+pkgname=windoesnot-nautilus
+pkgver=51.1
+pkgrel=1
+pkgdesc="Files with a 'This PC' sidebar entry (Nautilus with a small WinDoesNot patch)"
+url="https://apps.gnome.org/Nautilus/"
+arch=(x86_64)
+license=(GPL-3.0-or-later)
+depends=(
+  cairo dconf gdk-pixbuf2 gexiv2 glib2 glibc glycin glycin-gtk4 gnome-autoar gnome-desktop-4 graphene gst-plugins-base-libs
+  gstreamer gtk4 gvfs hicolor-icon-theme icu libadwaita libcloudproviders libgcc libportal libportal-gtk4 libx11 localsearch
+  pango tinysparql wayland xdg-user-dirs-gtk libnautilus-extension.so
+)
+makedepends=(appstream blueprint-compiler gobject-introspection glib2-devel meson)
+provides=("nautilus=$pkgver")
+conflicts=(nautilus)
+source=("nautilus-$pkgver.tar.xz" this-pc-sidebar.patch this-pc-german.patch)
+sha256sums=('a703bc152d18d161d9dab957e2390a36e6246bb5c24de7b15c9624fcfa2f2816'
+            'f6061fd5446b81c2e2a15e81e937afee76d27f0a792dbc6f6a87f230b7426a18'
+            '09aadd09e81b903252e0d566e513883c5b8d4f211f35e443f4bac200feacf28b')
+
+prepare() {
+  cd nautilus-$pkgver
+  patch -Np1 -i ../this-pc-sidebar.patch
+  patch -Np1 -i ../this-pc-german.patch
+}
+
+build() {
+  arch-meson nautilus-$pkgver build -D docs=false -D packagekit=false -D selinux=false -D tests=none
+  meson compile -C build
+}
+
+_pick() {
+  local f d
+  for f; do
+    d="$srcdir/dropped/${f#$pkgdir/}"
+    mkdir -p "$(dirname "$d")"
+    mv "$f" "$d"
+    rmdir -p --ignore-fail-on-non-empty "$(dirname "$f")"
+  done
+}
+
+package() {
+  meson install -C build --no-rebuild --destdir "$pkgdir"
+  cd "$pkgdir"
+  # The extension interface (headers, library, typelib) stays with the distribution's libnautilus-extension package.
+  _pick usr/include
+  _pick usr/lib/{girepository-1.0,libnautilus-extension*,pkgconfig}
+  _pick usr/share/gir-1.0
+}
