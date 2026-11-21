@@ -1,0 +1,67 @@
+diff --color -ruN '--exclude=build' nautilus-51.1/data/org.gnome.nautilus.gschema.xml ../nautilus-51.1/data/org.gnome.nautilus.gschema.xml
+--- a/data/org.gnome.nautilus.gschema.xml	2026-11-21 14:28:20.232590006 +0100
++++ b/data/org.gnome.nautilus.gschema.xml	2026-11-21 14:28:13.385801835 +0100
+@@ -82,6 +82,11 @@
+       <summary>Always use the location entry, instead of the pathbar</summary>
+       <description>If set to true, Files will always use a textual input entry for the location toolbar, instead of the pathbar.</description>
+     </key>
++    <key name="start-page" type="s">
++      <default>'computer'</default>
++      <summary>Where a new window starts</summary>
++      <description>"computer" opens This PC (all drives), "home" opens the home folder. A folder given on the command line always wins.</description>
++    </key>
+     <key name="computer-view-zoom-level" type="i">
+       <default>1</default>
+       <range min="0" max="2"/>
+diff --color -ruN '--exclude=build' nautilus-51.1/src/nautilus-application.c ../nautilus-51.1/src/nautilus-application.c
+--- a/src/nautilus-application.c	2026-10-11 21:22:57.000000000 +0200
++++ b/src/nautilus-application.c	2026-11-21 14:28:13.383440722 +0100
+@@ -550,6 +550,21 @@
+     }
+ }
+ 
++/* WinDoesNot: where a new window starts when no folder was asked for. "This PC" (computer:///) is the default; the GSettings
++ * key org.gnome.nautilus.preferences start-page ("computer" or "home") switches back to the home folder. */
++static GFile *
++get_default_start_location (void)
++{
++    g_autofree char *start_page = g_settings_get_string (nautilus_preferences, "start-page");
++
++    if (g_strcmp0 (start_page, "home") != 0)
++    {
++        return g_file_new_for_uri ("computer:///");
++    }
++
++    return g_file_new_for_path (g_get_home_dir ());
++}
++
+ static void
+ action_new_window (GSimpleAction *action,
+                    GVariant      *parameter,
+@@ -559,7 +574,7 @@
+     g_autoptr (GFile) home = NULL;
+ 
+     application = NAUTILUS_APPLICATION (user_data);
+-    home = g_file_new_for_path (g_get_home_dir ());
++    home = get_default_start_location ();
+ 
+     nautilus_application_open_location_full (application, home,
+                                              NAUTILUS_OPEN_FLAG_NEW_WINDOW,
+@@ -722,7 +737,7 @@
+     }
+ 
+     files = g_malloc0 (2 * sizeof (GFile *));
+-    files[0] = g_file_new_for_path (g_get_home_dir ());
++    files[0] = get_default_start_location ();
+     nautilus_application_open (app, files, 1, NULL);
+ 
+     g_object_unref (files[0]);
+@@ -778,7 +793,7 @@
+     }
+     else if (g_variant_dict_contains (options, "new-window"))
+     {
+-        file = g_file_new_for_path (g_get_home_dir ());
++        file = get_default_start_location ();
+         g_ptr_array_add (file_array, file);
+     }
+     else

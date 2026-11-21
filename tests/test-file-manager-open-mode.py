@@ -8,6 +8,8 @@ with tempfile.TemporaryDirectory() as t:
     stub = t / 'bin/nautilus'; stub.write_text('#!/bin/sh\nprintf "%s\\n" "$*" > "$STUB_OUT"\n'); stub.chmod(0o755)
     env = dict(os.environ, PATH=f'{t}/bin:' + os.environ['PATH'], XDG_CONFIG_HOME=str(t / 'cfg'), STUB_OUT=str(t / 'out'), HOME=str(t))
     run = lambda *a: subprocess.run([str(SCRIPT), *a], env=env, capture_output=True, text=True)
+    gs = t / 'bin/gsettings'
+    gs.write_text('#!/bin/sh\nF="$STUB_OUT.gs"\ncase "$1" in\n list-keys) echo sidebar-hidden-places;;\n get) cat "$F" 2>/dev/null || echo "@as []";;\n set) echo "$4" > "$F";;\nesac\n'); gs.chmod(0o755)
     assert run('--open-mode', 'get').stdout.strip() == 'window'
     run('--launch'); assert (t / 'out').read_text().strip() == '--new-window', (t / 'out').read_text()
     assert run('--open-mode', 'set', 'tab').returncode == 0 and run('--open-mode', 'get').stdout.strip() == 'tab'
@@ -34,8 +36,6 @@ with tempfile.TemporaryDirectory() as t:
     run('--start-page', 'set', 'home'); run('--launch'); assert (t / 'out').read_text().strip() == '--new-window', 'back to the home folder'
     assert 'computer:///' not in bookmarks.read_text(), 'the bookmark goes away with the choice'
     # sidebar places: hide/show through gsettings (the stub keeps the value in a file)
-    gs = t / 'bin/gsettings'
-    gs.write_text('#!/bin/sh\nF="$STUB_OUT.gs"\ncase "$1" in\n list-keys) echo sidebar-hidden-places;;\n get) cat "$F" 2>/dev/null || echo "@as []";;\n set) echo "$4" > "$F";;\nesac\n'); gs.chmod(0o755)
     assert run('--sidebar', 'available').returncode == 0 and run('--sidebar', 'get').stdout.strip() == ''
     assert run('--sidebar', 'hide', 'recent').returncode == 0 and run('--sidebar', 'hide', 'network').returncode == 0
     assert run('--sidebar', 'get').stdout.split() == ['recent', 'network'], run('--sidebar', 'get').stdout
@@ -43,4 +43,9 @@ with tempfile.TemporaryDirectory() as t:
     run('--sidebar', 'show', 'recent'); assert run('--sidebar', 'get').stdout.split() == ['network']
     run('--sidebar', 'show', 'network'); assert run('--sidebar', 'get').stdout.strip() == ''
     assert run('--sidebar', 'hide', 'bogus').returncode == 2
+    # with windoesnot-nautilus the start page is the GSettings key start-page: every launcher follows it
+    gs.write_text('#!/bin/sh\nF="$STUB_OUT.gs"\ncase "$1 $2" in\n "list-keys "*) printf "start-page\\nsidebar-hidden-places\\n";;\n "get "*) if [ "$3" = start-page ]; then cat "$F.start" 2>/dev/null || echo "\'computer\'"; else cat "$F" 2>/dev/null || echo "@as []"; fi;;\n "set "*) if [ "$3" = start-page ]; then echo "\'$4\'" > "$F.start"; else echo "$4" > "$F"; fi;;\nesac\n'); gs.chmod(0o755)
+    assert run('--start-page', 'get').stdout.strip() == 'computer'
+    run('--start-page', 'set', 'home'); assert run('--start-page', 'get').stdout.strip() == 'home' and (t / 'out.gs.start').read_text().strip() == "'home'"
+    run('--start-page', 'set', 'computer'); assert run('--start-page', 'get').stdout.strip() == 'computer'
 print('PASS: file manager open mode (window by default, tab when chosen, stored, direct calls unchanged)')

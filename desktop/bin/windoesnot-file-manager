@@ -33,7 +33,15 @@ add_bookmark() {
     grep -q '^computer:///' "$bookmarks_file" 2>/dev/null || printf 'computer:/// %s\n' "$bookmark_name" >>"$bookmarks_file"
 }
 remove_bookmark() { [[ -f $bookmarks_file ]] && sed -i '/^computer:\/\/\/ /d' "$bookmarks_file" || true; }
-read_start() { local m; m=$(cat "$start_file" 2>/dev/null || true); [[ $m == computer ]] && echo computer || echo home; }
+# With windoesnot-nautilus the start page is a GSettings key (every launcher follows it, not only Super+E); the file is the fallback
+read_start() {
+    local m
+    if gsettings list-keys org.gnome.nautilus.preferences 2>/dev/null | grep -qx start-page; then
+        m=$(gsettings get org.gnome.nautilus.preferences start-page 2>/dev/null | tr -d "'")
+        [[ $m == home ]] && echo home || echo computer; return
+    fi
+    m=$(cat "$start_file" 2>/dev/null || true); [[ $m == computer ]] && echo computer || echo home
+}
 read_mode() { local m; m=$(cat "$mode_file" 2>/dev/null || true); [[ $m == tab ]] && echo tab || echo window; }
 case ${1:-} in
     --open-mode)
@@ -61,6 +69,7 @@ case ${1:-} in
             get) read_start; exit 0 ;;
             set) [[ ${3:-} == home || ${3:-} == computer ]] || { echo "usage: --start-page set home|computer" >&2; exit 2; }
                  mkdir -p -- "$(dirname "$start_file")"; printf '%s\n' "$3" >"$start_file"
+                 gsettings set org.gnome.nautilus.preferences start-page "$3" >/dev/null 2>&1 || true
                  if [[ $3 == computer ]]; then prepare_computer; add_bookmark; else remove_bookmark; fi
                  exit 0 ;;
             *) echo "usage: --start-page get|set home|computer" >&2; exit 2 ;;
