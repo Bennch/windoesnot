@@ -12,6 +12,7 @@ hl.bind("SUPER + L", hl.dsp.exec_cmd("~/.config/quickshell/default/hyprlock/lock
 hl.bind("SUPER + S", hl.dsp.exec_cmd("echo 1 > /tmp/qs-search-toggle"), {}) -- legacy:281
 hl.bind("SUPER + H", hl.dsp.exec_cmd("~/.config/hypr/hide_windows.sh"), {}) -- legacy:282
 hl.bind("SUPER + D", hl.dsp.exec_cmd("~/.config/hypr/hide_windows.sh"), {})
+hl.bind("SUPER + SHIFT + D", hl.dsp.exec_cmd("windoesnot-desktop-icons toggle"), {})
 hl.bind("SUPER + N", hl.dsp.exec_cmd("swaync-client -t -sw"), {}) -- legacy:283
 hl.bind("SUPER + P", hl.dsp.exec_cmd("hyprpicker -a -f hex"), {}) -- legacy:284
 hl.bind("SUPER + EQUAL", hl.dsp.exec_cmd("windoesnot-accessibility zoom in"), {})

@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+"""Hide or show the icons on the desktop (hotkey Super + Shift + D), for example while recording the screen.
+
+  windoesnot-desktop-icons toggle
+
+Sends SIGUSR1 to the desktop icon layer (hyprdesk). The process is found through the pid file it writes into
+$XDG_RUNTIME_DIR and checked against /proc before the signal is sent."""
+import os
+from pathlib import Path
+import signal
+import sys
+
+
+def main(argv):
+    if len(argv) != 2 or argv[1] != 'toggle':
+        print(__doc__, file=sys.stderr)
+        return 2
+    runtime = os.environ.get('XDG_RUNTIME_DIR')
+    if not runtime:
+        print('No runtime directory', file=sys.stderr)
+        return 1
+    try:
+        pid = int(Path(runtime, 'hyprdesk.pid').read_text().strip())
+        command = Path(f'/proc/{pid}/cmdline').read_bytes()
+    except (OSError, ValueError):
+        print('The desktop icon layer is not running', file=sys.stderr)
+        return 1
+    if b'hyprdesk' not in command:
+        print('The pid file is stale', file=sys.stderr)
+        return 1
+    os.kill(pid, signal.SIGUSR1)
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv))

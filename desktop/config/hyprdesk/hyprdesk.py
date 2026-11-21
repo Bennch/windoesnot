@@ -4097,6 +4097,28 @@ class HyprDeskApp(Gtk.Application):
         # Initiales swaync CSS + Sprache setzen
         update_swaync_css(settings["accentColor"], settings["borderRadius"], settings["darkMode"])
         update_swaync_language(settings["uiLanguage"])
+        self._setup_icon_toggle()
+
+    # Hotkey (windoesnot-desktop-icons toggle): hide every desktop icon, e.g. while recording the screen.
+    # SIGUSR1 toggles; the pid file lets the helper find this process without matching command lines.
+    def _setup_icon_toggle(self):
+        if getattr(self, "_icon_toggle_ready", False):
+            return
+        self._icon_toggle_ready = True
+        self.icons_hidden = False
+        runtime = os.environ.get("XDG_RUNTIME_DIR")
+        if runtime:
+            try:
+                Path(runtime, "hyprdesk.pid").write_text(str(os.getpid()) + "\n")
+            except OSError:
+                pass
+        GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGUSR1, self._toggle_icons)
+
+    def _toggle_icons(self):
+        self.icons_hidden = not self.icons_hidden
+        for monitor_window in self.windows:
+            monitor_window.win.set_visible(not self.icons_hidden)
+        return GLib.SOURCE_CONTINUE
 
     def _retry_monitor_startup(self):
         """GDK can publish its first monitor shortly after application activation."""
