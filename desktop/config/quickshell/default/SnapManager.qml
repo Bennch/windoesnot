@@ -1,5 +1,4 @@
 import "DisplayGeometry.js" as DisplayGeometry
-import "NewWindowCascade.js" as Cascade
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -84,38 +83,16 @@ Item {
     // stay off. They ended drags early (a window pushed against a screen edge stops moving while the pointer still does,
     // which looked like a release exactly when dragging up to maximize or sideways to tile) and snapped from stale data.
     property bool eventDriven: false
-    property string pendingNewWindowAddress: ""    // the window handled right now
-    property var newWindowQueue: []                // addresses of windows that opened and wait for their place
-    property var placementRounds: ({})             // address -> how many placement passes the window had (max 2)
-
-    Timer {
-        id: recheckTimer
-        property var addresses: []
-        interval: 900
-        repeat: false
-        onTriggered: {
-            var queue = snapManager.newWindowQueue.slice()
-            for (var i = 0; i < addresses.length; i++)
-                if (queue.indexOf(addresses[i]) < 0 && addresses[i] !== snapManager.pendingNewWindowAddress) queue.push(addresses[i])
-            addresses = []
-            snapManager.newWindowQueue = queue
-            newWindowPlacementTimer.restart()
-        }
-    }
+    property string pendingNewWindowAddress: ""
 
     // In floating mode new clients are centred by the rule in Hyprland.  This
-    // second pass corrects apps that announce an off-screen position or a size larger than the usable screen, and
-    // cascades windows that would otherwise open exactly on top of each other.
+    // second pass is intentionally small and defensive: it corrects apps that
+    // announce an off-screen position or a size larger than the usable screen.
     Timer {
         id: newWindowPlacementTimer
         interval: 180
         repeat: false
         onTriggered: {
-            if (!snapManager.pendingNewWindowAddress && snapManager.newWindowQueue.length > 0) {
-                var queue = snapManager.newWindowQueue.slice()
-                snapManager.pendingNewWindowAddress = queue.shift()
-                snapManager.newWindowQueue = queue
-            }
             if (snapManager.pendingNewWindowAddress && !newWindowPlacementProc.running)
                 newWindowPlacementProc.running = true
         }
@@ -184,11 +161,7 @@ Item {
 
             if (name === "openwindow") {
                 // Hyprland event data starts with the client address.
-                // Several windows can open within the timer's interval: each gets its turn (one after the other, so
-                // the cascade sees where the previous one went)
-                var opened = data.split(",")[0].replace(/^0x/, "")
-                if (opened && snapManager.newWindowQueue.indexOf(opened) < 0 && opened !== snapManager.pendingNewWindowAddress)
-                    snapManager.newWindowQueue = snapManager.newWindowQueue.concat([opened])
+                snapManager.pendingNewWindowAddress = data.split(",")[0].replace(/^0x/, "")
                 newWindowPlacementTimer.restart()
                 return
             }
@@ -479,19 +452,7 @@ Item {
                     var clients = JSON.parse(parts[0].trim())
                     var client = clients.find(function(c) { return c.address.replace(/^0x/, "") === snapManager.pendingNewWindowAddress })
                     var monitors = JSON.parse(parts[1].trim())
-                    var handled = snapManager.pendingNewWindowAddress
                     snapManager.pendingNewWindowAddress = ""
-                    // Apps that resize themselves after opening (Files, Firefox) can end up on the centre again: look once more
-                    // a little later; the cascade is idempotent for a window that is already in its slot.
-                    var rounds = snapManager.placementRounds[handled] || 0
-                    if (handled && rounds < 2) {
-                        var counted = Object.assign({}, snapManager.placementRounds)
-                        counted[handled] = rounds + 1
-                        snapManager.placementRounds = counted
-                        recheckTimer.addresses = recheckTimer.addresses.concat([handled])
-                        recheckTimer.restart()
-                    }
-                    if (snapManager.newWindowQueue.length > 0) newWindowPlacementTimer.restart()
                     // Do not reposition shell surfaces, pinned/fullscreen windows or
                     // clients that stayed tiled despite the global floating rule.
                     if (!client || !client.floating || client.fullscreen || client.pinned ||
@@ -502,21 +463,13 @@ Item {
                     var width = Math.min(client.size[0], usable.w)
                     var height = Math.min(client.size[1], usable.h)
                     newWindowPlacementApplyProc.address = client.address
-                    // Centred when alone; further windows step down and to the right (NewWindowCascade.js)
-                    var place = Cascade.placeWindow(usable, width, height, Cascade.neighbourRects(clients, client))
-                    console.log("new window placement:", client.class, client.address, "at", client.at, "->", place.x, place.y,
-                                "neighbours", Cascade.neighbourRects(clients, client).length)
-                    newWindowPlacementApplyProc.x = place.x
-                    newWindowPlacementApplyProc.y = place.y
+                    newWindowPlacementApplyProc.x = Math.round(usable.x + (usable.w - width) / 2)
+                    newWindowPlacementApplyProc.y = Math.round(usable.y + (usable.h - height) / 2)
                     newWindowPlacementApplyProc.w = Math.round(width)
                     newWindowPlacementApplyProc.h = Math.round(height)
                     newWindowPlacementApplyProc.resize = width !== client.size[0] || height !== client.size[1]
                     newWindowPlacementApplyProc.running = true
-                } catch (error) {
-                    console.log("new window placement failed:", error)
-                    snapManager.pendingNewWindowAddress = ""
-                    if (snapManager.newWindowQueue.length > 0) newWindowPlacementTimer.restart()
-                }
+                } catch (error) { console.log("new window placement failed:", error) }
             }
         }
     }
