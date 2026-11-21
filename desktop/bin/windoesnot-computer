@@ -1,0 +1,292 @@
+#!/usr/bin/env python3
+"""This PC: all drives at a glance, like "My Computer" on Windows.
+
+Internal disks, removable media (USB sticks, SD cards, optical drives) and network drives, each with a fill bar and the
+free space. A click opens the drive in the file manager; a drive that is not mounted is mounted first (udisks).
+Removable drives have an eject button. The list refreshes by itself.
+
+  windoesnot-computer            open the window
+  windoesnot-computer --list     print the drives as JSON (for tests and scripts)
+"""
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+ESP = 'c12a7328-f81f-11d2-ba4b-00a0c93ec93b'
+SYSTEM_PARTITION_TYPES = {ESP, 'de94bba4-06d1-4d40-a16a-bfd50179d6ac', 'e3c9e316-0b5c-4db8-817d-f92df00215ae'}   # EFI, Windows recovery, Microsoft reserved
+HIDDEN_FS = {None, '', 'swap', 'linux_raid_member', 'LVM2_member', 'crypto_LUKS', 'squashfs', 'bcache', 'zfs_member'}
+SYSTEM_MOUNT_PREFIXES = ('/boot', '/efi', '/run/archiso', '/run/media/archiso')
+NETWORK_FS = ('cifs', 'smb3', 'nfs', 'nfs4', 'sshfs', 'fuse.sshfs', 'davfs', 'fuse.davfs', '9p')
+
+
+def human(value):
+    if value is None:
+        return ''
+    for unit, shift in (('TB', 40), ('GB', 30), ('MB', 20), ('KB', 10)):
+        if value >= 1 << shift:
+            return f'{value / (1 << shift):.1f}'.replace('.0', '') + ' ' + unit if unit in ('TB', 'GB') else f'{value / (1 << shift):.0f} {unit}'
+    return f'{value} B'
+
+
+def flatten(nodes, parent=None):
+    for node in nodes:
+        yield node, parent
+        yield from flatten(node.get('children') or [], node if node.get('type') in ('disk', 'rom', 'loop', 'mpath') else parent)
+
+
+def drives_from_lsblk(data):
+    """Drives with a file system worth showing. data is `lsblk -J -b` output (dict)."""
+    result = []
+    for node, parent in flatten(data.get('blockdevices', [])):
+        kind = node.get('type')
+        fstype = node.get('fstype')
+        mounts = [m for m in (node.get('mountpoints') or []) if m and m != '[SWAP]']
+        if kind in ('loop',) or fstype in HIDDEN_FS:
+            continue
+        if (node.get('parttype') or '').lower() in SYSTEM_PARTITION_TYPES and not any(not m.startswith(SYSTEM_MOUNT_PREFIXES) for m in mounts):
+            continue
+        if mounts and all(m.startswith(SYSTEM_MOUNT_PREFIXES) for m in mounts):
+            continue
+        disk = parent or node
+        removable = bool(disk.get('rm') or disk.get('hotplug') or node.get('rm') or node.get('hotplug')) or disk.get('tran') in ('usb', 'mmc')
+        category = 'optical' if kind == 'rom' or disk.get('type') == 'rom' else ('removable' if removable else 'internal')
+        main = '/' if '/' in mounts else (mounts[0] if mounts else '')
+        size, used, free = node.get('size'), node.get('fsused'), node.get('fsavail')
+        percent = None
+        if size and used is not None and free is not None:
+            total = used + free
+            percent = round(100 * used / total) if total else None
+        result.append({
+            'path': node.get('path'), 'disk': disk.get('path'), 'category': category,
+            'label': node.get('label') or node.get('partlabel') or '', 'fstype': fstype or '',
+            'model': ' '.join(filter(None, [(disk.get('vendor') or '').strip(), (disk.get('model') or '').strip()])),
+            'size': size, 'used': used, 'free': free, 'percent': percent, 'mount': main, 'mounted': bool(mounts),
+            'ejectable': category in ('removable', 'optical'),
+        })
+    order = {'internal': 0, 'removable': 1, 'optical': 2}
+    result.sort(key=lambda d: (order[d['category']], d['path'] or ''))
+    return result
+
+
+def network_from_findmnt(data):
+    result = []
+    for entry in data.get('filesystems', []):
+        if entry.get('fstype') in NETWORK_FS:
+            size, used, avail = (int(entry.get(k) or 0) for k in ('size', 'used', 'avail'))
+            total = used + avail
+            result.append({'path': entry.get('source'), 'disk': '', 'category': 'network', 'label': Path(entry['target']).name or entry['target'],
+                           'fstype': entry['fstype'], 'model': entry.get('source') or '', 'size': size or None, 'used': used if size else None,
+                           'free': avail if size else None, 'percent': round(100 * used / total) if total else None,
+                           'mount': entry['target'], 'mounted': True, 'ejectable': False})
+    return result
+
+
+def run_json(command):
+    try:
+        done = subprocess.run(command, capture_output=True, text=True, timeout=8)
+        return json.loads(done.stdout) if done.returncode == 0 and done.stdout.strip() else {}
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return {}
+
+
+def current_drives():
+    lsblk = run_json(['lsblk', '-J', '-b', '-o', 'NAME,PATH,TYPE,SIZE,FSTYPE,LABEL,PARTLABEL,PARTTYPE,MOUNTPOINTS,RM,HOTPLUG,TRAN,MODEL,VENDOR,FSAVAIL,FSUSED'])
+    findmnt = run_json(['findmnt', '-J', '-b', '-t', ','.join(NETWORK_FS), '-o', 'TARGET,SOURCE,FSTYPE,SIZE,AVAIL,USED'])
+    return drives_from_lsblk(lsblk) + network_from_findmnt(findmnt)
+
+
+def ui_language():
+    settings = Path(os.environ.get('XDG_CONFIG_HOME') or Path.home() / '.config') / 'quickshell/default/settings.txt'
+    try:
+        for line in settings.read_text(errors='replace').splitlines():
+            if line.startswith('uiLanguage='):
+                return line.split('=', 1)[1].strip()[:2]
+    except OSError:
+        pass
+    return (os.environ.get('LANG') or 'en')[:2]
+
+
+GERMAN = ui_language() == 'de'
+
+
+def tr(de, en):
+    return de if GERMAN else en
+
+
+def title_of(drive):
+    if drive['category'] == 'network':
+        return drive['label'] or drive['path']
+    if drive['mount'] == '/':
+        return tr('Linux-System', 'Linux system')
+    name = drive['label'] or drive['model'] or drive['fstype'].upper() or drive['path']
+    return name
+
+
+def subtitle_of(drive):
+    parts = []
+    if drive['category'] == 'optical' and not drive['mounted']:
+        parts.append(tr('Wechselmedium', 'Removable media'))
+    if drive['fstype']:
+        parts.append(drive['fstype'].upper() if drive['fstype'] != 'ntfs3' else 'NTFS')
+    if drive['model'] and drive['label']:
+        parts.append(drive['model'])
+    return ' · '.join(parts)
+
+
+def space_text(drive):
+    if drive['free'] is not None and drive['size']:
+        total = (drive['used'] or 0) + drive['free']
+        return tr(f"{human(drive['free'])} frei von {human(total)}", f"{human(drive['free'])} free of {human(total)}")
+    if drive['size']:
+        return tr(f"{human(drive['size'])} · nicht eingehängt", f"{human(drive['size'])} · not mounted")
+    return ''
+
+
+CSS_TEMPLATE = '''
+window, .pc-root { background: %(bg)s; color: %(text)s; }
+.pc-title { font-size: 26px; font-weight: 800; }
+.pc-section { font-size: 15px; font-weight: 700; color: %(dim)s; margin-top: 14px; }
+.pc-card { background: %(card)s; border: 1px solid %(line)s; border-radius: 12px; padding: 14px 16px; }
+.pc-card:hover { border-color: #fe6f2d; }
+.pc-name { font-size: 15px; font-weight: 700; }
+.pc-sub, .pc-space { color: %(dim)s; font-size: 12px; }
+.pc-bar trough { background: %(trough)s; border-radius: 5px; min-height: 10px; }
+.pc-bar block.filled { background: #fe6f2d; border-radius: 5px; }
+.pc-bar.pc-full block.filled { background: #d83a3a; }
+.pc-eject { padding: 4px 10px; }
+.pc-hint { color: %(dim)s; }
+'''
+PALETTES = {'dark': dict(bg='#202020', card='#141414', line='#3a3a3a', text='#eeeeee', dim='#aaaaaa', trough='#3a3a3a'),
+            'light': dict(bg='#f6f6f6', card='#ffffff', line='#d6d6d6', text='#202020', dim='#5f5f5f', trough='#dcdcdc')}
+
+
+def main_window():
+    import gi
+    gi.require_version('Gtk', '4.0')
+    gi.require_version('Adw', '1')
+    from gi.repository import Adw, Gdk, GLib, Gtk
+
+    def launch_open(path):
+        subprocess.Popen(['xdg-open', path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+
+    def open_drive(drive, on_done):
+        if drive['mounted'] and drive['mount']:
+            launch_open(drive['mount']); return
+        def work():
+            done = subprocess.run(['udisksctl', 'mount', '-b', drive['path']], capture_output=True, text=True)
+            text = done.stdout + done.stderr
+            where = text.split(' at ', 1)[1].strip().rstrip('.').strip('`\'"') if ' at ' in text and done.returncode == 0 else ''
+            if not where and 'already mounted' in text and ' at ' in text:
+                where = text.rsplit(' at ', 1)[1].strip().rstrip('.').strip('`\'"')
+            GLib.idle_add(on_done, where)
+        import threading
+        threading.Thread(target=work, daemon=True).start()
+
+    def eject(drive, on_done):
+        def work():
+            if drive['mounted']:
+                subprocess.run(['udisksctl', 'unmount', '-b', drive['path']], capture_output=True)
+            if drive['disk']:
+                subprocess.run(['udisksctl', 'power-off', '-b', drive['disk']], capture_output=True)
+            GLib.idle_add(on_done)
+        import threading
+        threading.Thread(target=work, daemon=True).start()
+
+    class Window(Adw.ApplicationWindow):
+        def __init__(self, app):
+            super().__init__(application=app, title=tr('Dieser PC', 'This PC'), default_width=760, default_height=720)
+            self.snapshot = None
+            outer = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+            outer.add_css_class('pc-root')
+            self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10, margin_top=24, margin_bottom=24, margin_start=28, margin_end=28)
+            outer.set_child(self.box)
+            self.set_content(outer)
+            self.refresh()
+            GLib.timeout_add_seconds(4, self.refresh)
+
+        def refresh(self):
+            def work():
+                drives = current_drives()
+                GLib.idle_add(self.show, drives)
+            import threading
+            threading.Thread(target=work, daemon=True).start()
+            return True
+
+        def show(self, drives):
+            key = json.dumps(drives, sort_keys=True)
+            if key == self.snapshot:
+                return False
+            self.snapshot = key
+            child = self.box.get_first_child()
+            while child:
+                nxt = child.get_next_sibling(); self.box.remove(child); child = nxt
+            self.box.append(Gtk.Label(label=tr('Dieser PC', 'This PC'), xalign=0, css_classes=['pc-title']))
+            sections = [('internal', tr('Festplatten und Laufwerke', 'Hard drives and volumes')),
+                        ('removable', tr('Geräte mit Wechselmedien', 'Devices with removable storage')),
+                        ('optical', tr('CD- und DVD-Laufwerke', 'CD and DVD drives')),
+                        ('network', tr('Netzwerkadressen', 'Network locations'))]
+            for category, heading in sections:
+                group = [d for d in drives if d['category'] == category]
+                if not group:
+                    continue
+                self.box.append(Gtk.Label(label=heading, xalign=0, css_classes=['pc-section']))
+                for drive in group:
+                    self.box.append(self.card(drive))
+            if not drives:
+                self.box.append(Gtk.Label(label=tr('Keine Laufwerke gefunden.', 'No drives found.'), xalign=0, css_classes=['pc-hint']))
+            return False
+
+        def card(self, drive):
+            card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, css_classes=['pc-card'])
+            top = Gtk.Box(spacing=10)
+            names = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, hexpand=True)
+            names.append(Gtk.Label(label=title_of(drive), xalign=0, css_classes=['pc-name']))
+            if subtitle_of(drive):
+                names.append(Gtk.Label(label=subtitle_of(drive), xalign=0, css_classes=['pc-sub']))
+            top.append(names)
+            if drive['percent'] is not None:
+                top.append(Gtk.Label(label=f"{drive['percent']} %", css_classes=['pc-sub']))
+            if drive['ejectable']:
+                button = Gtk.Button(label=tr('Auswerfen', 'Eject'), css_classes=['pc-eject'], valign=Gtk.Align.CENTER)
+                button.connect('clicked', lambda *_: eject(drive, self.refresh))
+                top.append(button)
+            card.append(top)
+            if drive['percent'] is not None:
+                bar = Gtk.LevelBar(min_value=0, max_value=100, value=drive['percent'], css_classes=['pc-bar'] + (['pc-full'] if drive['percent'] >= 90 else []))
+                card.append(bar)
+            if space_text(drive):
+                card.append(Gtk.Label(label=space_text(drive), xalign=0, css_classes=['pc-space']))
+            click = Gtk.GestureClick()
+            click.connect('released', lambda *_: open_drive(drive, lambda where: (launch_open(where) if where else None) or self.refresh()))
+            card.add_controller(click)
+            card.set_cursor(Gdk.Cursor.new_from_name('pointer'))
+            return card
+
+    class App(Adw.Application):
+        def __init__(self):
+            super().__init__(application_id='me.windoesnot.Computer')
+
+        def css(self, *_):
+            self.provider.load_from_string(CSS_TEMPLATE % PALETTES['dark' if Adw.StyleManager.get_default().get_dark() else 'light']) if hasattr(self.provider, 'load_from_string') \
+                else self.provider.load_from_data((CSS_TEMPLATE % PALETTES['dark' if Adw.StyleManager.get_default().get_dark() else 'light']).encode())
+
+        def do_activate(self):
+            manager = Adw.StyleManager.get_default()
+            manager.set_color_scheme(Adw.ColorScheme.DEFAULT)
+            self.provider = Gtk.CssProvider()
+            self.css()
+            manager.connect('notify::dark', self.css)
+            Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), self.provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+            window = self.props.active_window or Window(self)
+            window.present()
+
+    return App().run([sys.argv[0]])
+
+
+if __name__ == '__main__':
+    if '--list' in sys.argv:
+        print(json.dumps(current_drives(), indent=1))
+    else:
+        raise SystemExit(main_window())

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=This PC
+Name[de]=Dieser PC
+Comment=All drives at a glance: disks, USB sticks and network drives with free space
+Comment[de]=Alle Laufwerke auf einen Blick: Festplatten, USB-Sticks und Netzlaufwerke mit freiem Speicher
+Keywords=My Computer;Mein Computer;Computer;Drives;Laufwerke;Festplatten;Disks;USB;Network drives;Netzlaufwerke;
+Exec=windoesnot-computer
+Icon=drive-harddisk
+Terminal=false
+Categories=System;FileManager;

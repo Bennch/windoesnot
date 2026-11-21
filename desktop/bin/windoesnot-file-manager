@@ -5,7 +5,10 @@ set -euo pipefail
 # Settings and the Super+E launch:
 #   windoesnot-file-manager --open-mode get|set tab|window   (stored in ~/.config/windoesnot/file-manager-open-mode)
 #   windoesnot-file-manager --launch                         (Super+E: a new window or a tab in the open window, as chosen)
+#   windoesnot-file-manager --start-page get|set home|computer   (what Super+E opens: the home folder or "This PC" with all drives)
 mode_file=${XDG_CONFIG_HOME:-$HOME/.config}/windoesnot/file-manager-open-mode
+start_file=${XDG_CONFIG_HOME:-$HOME/.config}/windoesnot/file-manager-start-page
+read_start() { local m; m=$(cat "$start_file" 2>/dev/null || true); [[ $m == computer ]] && echo computer || echo home; }
 read_mode() { local m; m=$(cat "$mode_file" 2>/dev/null || true); [[ $m == tab ]] && echo tab || echo window; }
 case ${1:-} in
     --open-mode)
@@ -15,8 +18,17 @@ case ${1:-} in
                  mkdir -p -- "$(dirname "$mode_file")"; printf '%s\n' "$3" >"$mode_file"; exit 0 ;;
             *) echo "usage: --open-mode get|set tab|window" >&2; exit 2 ;;
         esac ;;
+    --start-page)
+        case ${2:-get} in
+            get) read_start; exit 0 ;;
+            set) [[ ${3:-} == home || ${3:-} == computer ]] || { echo "usage: --start-page set home|computer" >&2; exit 2; }
+                 mkdir -p -- "$(dirname "$start_file")"; printf '%s\n' "$3" >"$start_file"; exit 0 ;;
+            *) echo "usage: --start-page get|set home|computer" >&2; exit 2 ;;
+        esac ;;
     --launch)
         shift
+        # No folder given and "This PC" chosen: open the drive overview instead of the home folder
+        if [[ $# -eq 0 && $(read_start) == computer ]] && command -v windoesnot-computer >/dev/null 2>&1; then exec windoesnot-computer; fi
         if [[ $(read_mode) == window ]]; then set -- --new-window "$@"; fi ;;
 esac
 
