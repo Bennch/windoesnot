@@ -19,7 +19,14 @@
         "Barrierefreiheit: neue Seite in den Einstellungen mit Lupe (Super + Plus, Super + Minus, Super + Esc), Bildschirmtastatur (Super + Strg + O), Farbfiltern (Graustufen, Umkehren, hoher Kontrast, Rot-, Grün- und Blauschwäche), Größe von Mauszeiger und Text sowie weniger Animationen.",
         "Bluetooth: Im Fenster der Taskleiste kannst du ein Standardgerät festlegen (zweiter Teil am Verbinden-Knopf); es verbindet sich nach der Anmeldung von selbst.",
         "Super + E öffnet ein neues Dateifenster; in den Einstellungen unter Apps kannst du stattdessen einen Tab im offenen Fenster wählen.",
-        "Behoben: Bildschirmfoto aus dem Startmenü zeigte das Startmenü im Bild; das Teilen-Fenster springt nach dem Öffnen nicht mehr."
+        "Behoben: Bildschirmfoto aus dem Startmenü zeigte das Startmenü im Bild; das Teilen-Fenster springt nach dem Öffnen nicht mehr.",
+        "Dieser PC im Dateimanager: Laufwerke in Kategorien mit Füllbalken und freiem Platz; die Systemplatte erscheint einmal, und Dieser PC ist die Startseite.",
+        "Fenster-Modus Floating: Beim Wechsel von Tiling bleiben Fenster nebeneinander. Mit dem neuen Schalter „Neue Fenster nicht überdecken“ (Einstellungen, Aussehen) werden neue Fenster so platziert, dass sie die anderen am wenigsten verdecken.",
+        "Startmenü und Suche: Ist eine App schon offen, wird das vorhandene Fenster nach vorn geholt, statt sie noch einmal zu starten.",
+        "Desktop: Symbole mit Super + Umschalt + D ausblenden (der Papierkorb bleibt), Strg + A markiert alle Symbole, Esc hebt die Auswahl auf, F2 benennt um. Das Papierkorb-Symbol zeigt voll oder leer.",
+        "Taskleiste: Kinomodus im Rechtsklick-Menü der Symbolleiste. Dunkle Symbole im dunklen Modus werden automatisch heller, damit man sie sieht.",
+        "Einstellungen: Ladeanzeigen in Akzentfarbe und Symbole im hellen Modus mit mehr Kontrast. Die Einstellungen schließen sich beim Wechsel zwischen Tiling und Floating.",
+        "Firefox: Für neue Benutzer folgen Theme und Websites dem System. Behoben: Ein Tab blieb nach dem Zurückholen eines minimierten Fensters am Mauszeiger hängen."
       ],
       "en": [
         "Backup like Time Machine on a Mac: Settings, Backups. Save your personal folder to an external drive or a NAS (SMB), hourly, daily, weekly or by hand. Browse earlier states and bring back single files or folders; the current file goes to the trash. Unchanged files take no extra space.",
@@ -36,7 +43,14 @@
         "Accessibility: a new Settings page with a magnifier (Super + Plus, Super + Minus, Super + Esc), an on-screen keyboard (Super + Ctrl + O), colour filters (grayscale, invert, high contrast, red, green and blue weakness), mouse pointer and text size, and reduced animations.",
         "Bluetooth: in the taskbar window you can choose a default device (second part of the Connect button); it connects by itself after login.",
         "Super + E opens a new file window; in Settings under Apps you can choose a tab in the open window instead.",
-        "Fixed: a screenshot taken from the start menu showed the start menu; the sharing window no longer jumps after opening."
+        "Fixed: a screenshot taken from the start menu showed the start menu; the sharing window no longer jumps after opening.",
+        "Files: This PC shows the drives in categories with fill bars and free space; the system disk appears once, and This PC is the start page.",
+        "Floating mode: when you switch from tiling, windows stay side by side. With the new switch “Keep new windows off the others” (Settings, Appearance), new windows are placed where they cover the others the least.",
+        "Start menu and search: if an app is already open, its window is brought to the front instead of starting it again.",
+        "Desktop: hide the icons with Super + Shift + D (the recycle bin stays), Ctrl + A selects all icons, Esc clears the selection, F2 renames. The recycle bin icon shows full or empty.",
+        "Taskbar: cinema mode in the right-click menu of the tray. Dark tray icons are lightened automatically in dark mode so they stay visible.",
+        "Settings: loading indicators in the accent colour and icons with more contrast in light mode. Settings closes when you switch between tiling and floating.",
+        "Firefox: for new users, theme and websites follow the system. Fixed: a tab stayed attached to the pointer after restoring a minimized window."
       ]
     },
     {
