@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""Default Bluetooth device that connects by itself after login.
+
+  windoesnot-bluetooth-default get            print the MAC address of the default device (empty when none)
+  windoesnot-bluetooth-default set <MAC>      choose the default device (it must already be paired)
+  windoesnot-bluetooth-default clear          no default device
+  windoesnot-bluetooth-default connect        autostart: wait for the controller, then try to connect until it works
+
+The choice lives in ~/.config/windoesnot/bluetooth-default (one MAC address). Nothing is paired or powered on here:
+a device that is not paired, or a controller the user switched off, is left alone."""
+import os
+import re
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+MAC = re.compile(r'^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$')
+CONFIG = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'windoesnot' / 'bluetooth-default'
+CTL = os.environ.get('WINDOESNOT_BLUETOOTHCTL', 'bluetoothctl')
+WAIT = float(os.environ.get('WINDOESNOT_BT_WAIT', '5'))        # seconds between attempts
+TRIES = int(os.environ.get('WINDOESNOT_BT_TRIES', '36'))       # 36 x 5 s = three minutes
+
+
+def read():
+    try:
+        value = CONFIG.read_text().strip()
+    except OSError:
+        return ''
+    return value.upper() if MAC.match(value) else ''
+
+
+def ctl(*args, timeout=20):
+    try:
+        done = subprocess.run([CTL, *args], capture_output=True, text=True, timeout=timeout)
+        return done.returncode, done.stdout
+    except (OSError, subprocess.SubprocessError):
+        return 1, ''
+
+
+def field(text, name):
+    for line in text.splitlines():
+        line = line.strip()
+        if line.startswith(name + ':'):
+            return line.split(':', 1)[1].strip()
+    return ''
+
+
+def connect():
+    mac = read()
+    if not mac:
+        return 0
+    for attempt in range(TRIES):
+        _, show = ctl('show', timeout=8)
+        if field(show, 'Powered') == 'yes':
+            _, info = ctl('info', mac, timeout=8)
+            if field(info, 'Paired') != 'yes':
+                return 0                      # not paired (any more): never pair on our own
+            if field(info, 'Connected') == 'yes':
+                return 0
+            code, _ = ctl('connect', mac, timeout=20)
+            if code == 0:
+                return 0
+        elif show and attempt >= min(6, TRIES - 1):
+            return 0                          # the controller is there but switched off: respect that
+        time.sleep(WAIT)
+    return 1
+
+
+def main(argv):
+    action = argv[1] if len(argv) > 1 else 'get'
+    if action == 'get':
+        print(read())
+    elif action == 'set' and len(argv) == 3 and MAC.match(argv[2]):
+        CONFIG.parent.mkdir(parents=True, exist_ok=True)
+        CONFIG.write_text(argv[2].upper() + '\n')
+    elif action == 'clear':
+        CONFIG.unlink(missing_ok=True)
+    elif action == 'connect':
+        return connect()
+    else:
+        print(__doc__, file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv))

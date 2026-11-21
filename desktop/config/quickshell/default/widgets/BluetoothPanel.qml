@@ -19,11 +19,14 @@ Item {
     property bool bluetoothControllerAvailable: false
     property var allDevices: []  // Combined list of paired and available devices
     property bool isScanning: false
+    property string defaultMac: ""   // device that connects by itself after login (windoesnot-bluetooth-default)
 
     // Don't query Bluetooth until the panel is actually open.
     onWindowVisibleChanged: {
-        if (windowVisible)
+        if (windowVisible) {
+            readDefaultProc.running = true
             updateBluetoothState()
+        }
     }
 
     Timer {
@@ -202,6 +205,22 @@ Item {
                 console.log("Bluetooth devices loaded:", devices.length, "(paired + available)")
             }
         }
+    }
+
+    // Default device: chosen here, connected by the autostart helper after login.
+    Process {
+        id: readDefaultProc
+        command: ["windoesnot-bluetooth-default", "get"]
+        stdout: StdioCollector { id: readDefaultOut }
+        onExited: function(code) { if (code === 0) bluetoothPanel.defaultMac = readDefaultOut.text.trim().toUpperCase() }
+    }
+    Process {
+        id: setDefaultProc
+        onExited: readDefaultProc.running = true
+    }
+    function toggleDefault(mac) {
+        setDefaultProc.command = ["windoesnot-bluetooth-default", String(mac).toUpperCase() === defaultMac ? "clear" : "set"].concat(String(mac).toUpperCase() === defaultMac ? [] : [mac])
+        setDefaultProc.running = true
     }
 
     // Connect/Disconnect device
@@ -525,7 +544,7 @@ Item {
                                     Column {
                                         anchors.verticalCenter: parent.verticalCenter
                                         spacing: 4
-                                        width: parent.width - 24 - 12 - 80 - 12
+                                        width: parent.width - 24 - 106 - 24
 
                                         Text {
                                             text: modelData.name
@@ -537,14 +556,15 @@ Item {
 
                                         Text {
                                             text: {
+                                                var tag = (modelData.paired && String(modelData.mac).toUpperCase() === bluetoothPanel.defaultMac) ? " • " + Lang.get("bluetooth.defaultTag", uiLanguage) : ""
                                                 if (modelData.connected) {
                                                     if (modelData.battery >= 0) {
-                                                        return Lang.get("bluetooth.connected", uiLanguage) + " • " + modelData.battery + "%"
+                                                        return Lang.get("bluetooth.connected", uiLanguage) + " • " + modelData.battery + "%" + tag
                                                     }
-                                                    return Lang.get("bluetooth.connected", uiLanguage)
+                                                    return Lang.get("bluetooth.connected", uiLanguage) + tag
                                                 }
                                                 if (modelData.paired) {
-                                                    return Lang.get("bluetooth.paired", uiLanguage)
+                                                    return Lang.get("bluetooth.paired", uiLanguage) + tag
                                                 }
                                                 return Lang.get("bluetooth.available", uiLanguage)
                                             }
@@ -554,100 +574,137 @@ Item {
                                     }
 
                                     Item {
-                                        width: 80
+                                        width: 106
                                         height: 24
                                         anchors.verticalCenter: parent.verticalCenter
 
-                                        // Disconnect button for connected device
-                                        Rectangle {
-                                            visible: modelData.connected
-                                            anchors.fill: parent
-                                            radius: 4
-                                            color: darkMode
-                                                ? (disconnectMouseArea.containsMouse ? "#5a5a5a" : "#4a4a4a")
-                                                : (disconnectMouseArea.containsMouse ? "#c0c0c0" : "#d0d0d0")
+                                        Item {
+                                            width: 80
+                                            height: 24
+                                            anchors.top: parent.top
 
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: Lang.get("bluetooth.disconnect", uiLanguage)
-                                                font.pixelSize: 10
-                                                color: darkMode ? "#cccccc" : "#333333"
-                                                font.bold: true
-                                                antialiasing: true
-                                                renderType: Text.NativeRendering
+                                            // Disconnect button for connected device
+                                            Rectangle {
+                                                visible: modelData.connected
+                                                anchors.fill: parent
+                                                radius: 4
+                                                color: darkMode
+                                                    ? (disconnectMouseArea.containsMouse ? "#5a5a5a" : "#4a4a4a")
+                                                    : (disconnectMouseArea.containsMouse ? "#c0c0c0" : "#d0d0d0")
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: Lang.get("bluetooth.disconnect", uiLanguage)
+                                                    font.pixelSize: 10
+                                                    color: darkMode ? "#cccccc" : "#333333"
+                                                    font.bold: true
+                                                    antialiasing: true
+                                                    renderType: Text.NativeRendering
+                                                }
+
+                                                MouseArea {
+                                                    id: disconnectMouseArea
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        console.log("Disconnect device:", modelData.mac)
+                                                        toggleDeviceConnectionProc.command = ["windoesnot-bounded", "8", "bash", "-c", "bluetoothctl disconnect " + modelData.mac]
+                                                        toggleDeviceConnectionProc.running = true
+                                                        mouse.accepted = true
+                                                    }
+                                                }
                                             }
 
-                                            MouseArea {
-                                                id: disconnectMouseArea
+                                            // Connect button for paired but disconnected device
+                                            Rectangle {
+                                                visible: modelData.paired && !modelData.connected
                                                 anchors.fill: parent
-                                                hoverEnabled: true
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: {
-                                                    console.log("Disconnect device:", modelData.mac)
-                                                    toggleDeviceConnectionProc.command = ["windoesnot-bounded", "8", "bash", "-c", "bluetoothctl disconnect " + modelData.mac]
-                                                    toggleDeviceConnectionProc.running = true
-                                                    mouse.accepted = true
+                                                radius: 4
+                                                color: connectMouseArea.containsMouse ? Qt.rgba(bluetoothPanel.accentColor.r, bluetoothPanel.accentColor.g, bluetoothPanel.accentColor.b, 0.8) : bluetoothPanel.accentColor
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: Lang.get("bluetooth.connect", uiLanguage)
+                                                    font.pixelSize: 10
+                                                    color: "#fff"
+                                                    font.bold: true
+                                                    antialiasing: true
+                                                    renderType: Text.NativeRendering
+                                                }
+
+                                                MouseArea {
+                                                    id: connectMouseArea
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        console.log("Connect device:", modelData.mac)
+                                                        toggleDeviceConnectionProc.command = ["windoesnot-bounded", "8", "bash", "-c", "bluetoothctl connect " + modelData.mac]
+                                                        toggleDeviceConnectionProc.running = true
+                                                        mouse.accepted = true
+                                                    }
+                                                }
+                                            }
+
+                                            // Pair button for available (not paired) device
+                                            Rectangle {
+                                                visible: !modelData.paired
+                                                anchors.fill: parent
+                                                radius: 4
+                                                color: pairButtonMouseArea.containsMouse ? Qt.rgba(bluetoothPanel.accentColor.r, bluetoothPanel.accentColor.g, bluetoothPanel.accentColor.b, 0.8) : bluetoothPanel.accentColor
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: Lang.get("bluetooth.pair", uiLanguage)
+                                                    font.pixelSize: 10
+                                                    color: "#fff"
+                                                    font.bold: true
+                                                    antialiasing: true
+                                                    renderType: Text.NativeRendering
+                                                }
+
+                                                MouseArea {
+                                                    id: pairButtonMouseArea
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        bluetoothPanel.pairDevice(modelData.mac)
+                                                        mouse.accepted = true
+                                                    }
                                                 }
                                             }
                                         }
 
-                                        // Connect button for paired but disconnected device
+                                        // Second part of the button: makes this device the default (connects by itself after login).
                                         Rectangle {
-                                            visible: modelData.paired && !modelData.connected
-                                            anchors.fill: parent
+                                            id: defaultSegment
+                                            visible: modelData.paired
+                                            anchors.right: parent.right
+                                            anchors.top: parent.top
+                                            anchors.bottom: parent.bottom
+                                            width: 24
                                             radius: 4
-                                            color: connectMouseArea.containsMouse ? Qt.rgba(bluetoothPanel.accentColor.r, bluetoothPanel.accentColor.g, bluetoothPanel.accentColor.b, 0.8) : bluetoothPanel.accentColor
-
-                                            Text {
+                                            readonly property bool isDefault: String(modelData.mac).toUpperCase() === bluetoothPanel.defaultMac
+                                            color: isDefault ? bluetoothPanel.accentColor : (segmentMouseArea.containsMouse
+                                                ? (darkMode ? "#5a5a5a" : "#c0c0c0") : (darkMode ? "#4a4a4a" : "#d0d0d0"))
+                                            Rectangle {   // radio dot: ring = not the default, filled = the default
                                                 anchors.centerIn: parent
-                                                text: Lang.get("bluetooth.connect", uiLanguage)
-                                                font.pixelSize: 10
-                                                color: "#fff"
-                                                font.bold: true
-                                                antialiasing: true
-                                                renderType: Text.NativeRendering
+                                                width: 10; height: 10; radius: 5
+                                                color: defaultSegment.isDefault ? "#ffffff" : "transparent"
+                                                border.width: 2
+                                                border.color: defaultSegment.isDefault ? "#ffffff" : (darkMode ? "#cccccc" : "#444444")
                                             }
-
                                             MouseArea {
-                                                id: connectMouseArea
+                                                id: segmentMouseArea
                                                 anchors.fill: parent
                                                 hoverEnabled: true
                                                 cursorShape: Qt.PointingHandCursor
-                                                onClicked: {
-                                                    console.log("Connect device:", modelData.mac)
-                                                    toggleDeviceConnectionProc.command = ["windoesnot-bounded", "8", "bash", "-c", "bluetoothctl connect " + modelData.mac]
-                                                    toggleDeviceConnectionProc.running = true
-                                                    mouse.accepted = true
-                                                }
-                                            }
-                                        }
-
-                                        // Pair button for available (not paired) device
-                                        Rectangle {
-                                            visible: !modelData.paired
-                                            anchors.fill: parent
-                                            radius: 4
-                                            color: pairButtonMouseArea.containsMouse ? Qt.rgba(bluetoothPanel.accentColor.r, bluetoothPanel.accentColor.g, bluetoothPanel.accentColor.b, 0.8) : bluetoothPanel.accentColor
-
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: Lang.get("bluetooth.pair", uiLanguage)
-                                                font.pixelSize: 10
-                                                color: "#fff"
-                                                font.bold: true
-                                                antialiasing: true
-                                                renderType: Text.NativeRendering
-                                            }
-
-                                            MouseArea {
-                                                id: pairButtonMouseArea
-                                                anchors.fill: parent
-                                                hoverEnabled: true
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: {
-                                                    bluetoothPanel.pairDevice(modelData.mac)
-                                                    mouse.accepted = true
-                                                }
+                                                onClicked: bluetoothPanel.toggleDefault(modelData.mac)
+                                                ToolTip.visible: containsMouse
+                                                ToolTip.delay: 400
+                                                ToolTip.text: Lang.get(defaultSegment.isDefault ? "bluetooth.defaultTipClear" : "bluetooth.defaultTipSet", uiLanguage)
                                             }
                                         }
                                     }
