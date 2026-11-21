@@ -841,6 +841,8 @@ var strings = {
     "appearance.tilingDesc": "Fenster werden automatisch gekachelt und füllen den Bildschirm ohne Überlappung",
     "appearance.floating": "Floating",
     "appearance.floatingDesc": "Fenster schweben frei und können beliebig positioniert werden (wie Windows)",
+    "appearance.avoidOverlap": "Neue Fenster nicht überdecken",
+    "appearance.avoidOverlapDesc": "Im Floating-Modus öffnet ein neues Fenster dort, wo es die offenen Fenster am wenigsten verdeckt, statt immer in der Mitte.",
     "appearance.titlebar": "Titelleiste aktivieren",
     "appearance.titlebarDesc": "Aktiviert/deaktiviert die Titelleiste komplett (setzt bar_height auf 0)",
     "appearance.titlebarButtons": "Titelleisten Buttons",

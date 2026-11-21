@@ -197,6 +197,57 @@ Column {
                 }
             }
         }
+
+        // Floating only: do new windows avoid sitting on top of the open ones?
+        Row {
+            width: parent.width
+            spacing: 15
+            visible: settingsMenu.windowMode === "floating"
+
+            Column {
+                spacing: 5
+                width: parent.width - 80
+
+                Text {
+                    text: Lang.get("appearance.avoidOverlap", _lang)
+                    font.pixelSize: UiI.UiScale.px(16)
+                    color: settingsMenu.darkMode ? "#aaa" : "#555"
+                }
+
+                Text {
+                    width: parent.width
+                    text: Lang.get("appearance.avoidOverlapDesc", _lang)
+                    font.pixelSize: UiI.UiScale.px(12)
+                    color: settingsMenu.darkMode ? "#666" : "#888"
+                    wrapMode: Text.WordWrap
+                }
+            }
+
+            Rectangle {
+                width: 50
+                height: 26
+                radius: 13
+                color: settingsMenu.floatingAvoidOverlap ? settingsMenu.accentColor : (settingsMenu.darkMode ? "#3a3a3a" : "#c0c0c0")
+                anchors.verticalCenter: parent.verticalCenter
+                Behavior on color { ColorAnimation { duration: 150 } }
+
+                Rectangle {
+                    width: 20
+                    height: 20
+                    radius: 10
+                    color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
+                    x: settingsMenu.floatingAvoidOverlap ? parent.width - width - 3 : 3
+                    anchors.verticalCenter: parent.verticalCenter
+                    Behavior on x { NumberAnimation { duration: 150 } }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: settingsMenu.floatingAvoidOverlap = !settingsMenu.floatingAvoidOverlap
+                }
+            }
+        }
     }
 
     Rectangle {

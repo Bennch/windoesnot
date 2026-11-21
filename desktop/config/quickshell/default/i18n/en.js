@@ -841,6 +841,8 @@ var strings = {
     "appearance.tilingDesc": "Windows are automatically tiled and fill the screen without overlap",
     "appearance.floating": "Floating",
     "appearance.floatingDesc": "Windows float freely and can be positioned anywhere (like Windows)",
+    "appearance.avoidOverlap": "Keep new windows off the others",
+    "appearance.avoidOverlapDesc": "In floating mode a new window opens where it hides the open windows the least, instead of always in the centre.",
     "appearance.titlebar": "Enable Titlebar",
     "appearance.titlebarDesc": "Enables/disables the titlebar completely (sets bar_height to 0)",
     "appearance.titlebarButtons": "Titlebar Buttons",

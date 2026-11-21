@@ -201,6 +201,7 @@ FloatingWindow {
     property string cursorTheme: "Adwaita"
     property string iconTheme: "Win11"
     property string windowMode: "tiling"  // "tiling" or "floating"
+    property bool floatingAvoidOverlap: false  // floating: new windows go where they hide the least of the open ones
     property bool hyprbarsPluginEnabled: true  // Enable/disable titlebar via bar_height
     property bool hyprbarsEnabled: false
     property int hyprbarsHeight: 30
@@ -1064,6 +1065,7 @@ FloatingWindow {
             'else if (key === "cursorTheme") settingsMenu.cursorTheme = value; ' +
             'else if (key === "iconTheme") settingsMenu.iconTheme = value; ' +
             'else if (key === "windowMode") settingsMenu.windowMode = value; ' +
+            'else if (key === "floatingAvoidOverlap") settingsMenu.floatingAvoidOverlap = (value === "true"); ' +
             'else if (key === "hyprbarsPluginEnabled") settingsMenu.hyprbarsPluginEnabled = (value === "true"); ' +
             'else if (key === "hyprbarsEnabled") settingsMenu.hyprbarsEnabled = (value === "true"); ' +
             'else if (key === "hyprbarsHeight") settingsMenu.hyprbarsHeight = parseInt(value); ' +
@@ -1241,6 +1243,7 @@ FloatingWindow {
                       "cursorTheme=" + cursorTheme + "\\n" +
                       "iconTheme=" + iconTheme + "\\n" +
                       "windowMode=" + windowMode + "\\n" +
+                      "floatingAvoidOverlap=" + (floatingAvoidOverlap ? "true" : "false") + "\\n" +
                       "hyprbarsPluginEnabled=" + (hyprbarsPluginEnabled ? "true" : "false") + "\\n" +
                       "hyprbarsEnabled=" + (hyprbarsEnabled ? "true" : "false") + "\\n" +
                       "hyprbarsHeight=" + hyprbarsHeight + "\\n" +
@@ -1370,6 +1373,7 @@ FloatingWindow {
     onDesktopIconSizeChanged: saveSettings()
     onDesktopGridSizeChanged: saveSettings()
     onDesktopShowTrashChanged: saveSettings()
+    onFloatingAvoidOverlapChanged: if (!isLoadingSettings) saveSettings()
     onDesktopLabelLinesChanged: saveSettings()
     onTaskbarAlignmentSettingChanged: {
         console.log("=== taskbarAlignmentSetting changed to:", taskbarAlignmentSetting)
