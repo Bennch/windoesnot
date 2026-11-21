@@ -14,8 +14,8 @@ bookmarks_file=${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/bookmarks
 # windoesnot-computer.py. The folder's view (columns) and a sidebar bookmark are set for the user, idempotent.
 prepare_computer() {
     command -v gio >/dev/null 2>&1 || return 0
-    gio set -t stringv computer:/// metadata::nautilus-list-view-visible-columns name WinDoesNot::usage >/dev/null 2>&1 || true
-    gio set -t stringv computer:/// metadata::nautilus-list-view-column-order name WinDoesNot::usage type size date_modified >/dev/null 2>&1 || true
+    gio set -t stringv computer:/// metadata::nautilus-list-view-visible-columns name WinDoesNot::kind WinDoesNot::usage >/dev/null 2>&1 || true
+    gio set -t stringv computer:/// metadata::nautilus-list-view-column-order name WinDoesNot::kind WinDoesNot::usage type size date_modified >/dev/null 2>&1 || true
 }
 add_bookmark() {
     # With the patched Files (windoesnot-nautilus) "This PC" is a built-in sidebar entry; a bookmark would show it twice

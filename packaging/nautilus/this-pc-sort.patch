@@ -1,0 +1,53 @@
+--- a/src/nautilus-file.c
++++ b/src/nautilus-file.c
+@@ -3611,6 +3611,37 @@
+     return 0;
+ }
+ 
++/* WinDoesNot: the drives at computer:/// are ordered like in Windows Explorer (local disks, removable media, optical
++ * drives, network). The Files extension windoesnot-computer.py sets "wdn_order" on them; without it the order is by name. */
++static int
++compare_computer_order (NautilusFile *file_1,
++                        NautilusFile *file_2)
++{
++    static GQuark order_q = 0;
++    g_autofree char *scheme = nautilus_file_get_uri_scheme (file_1);
++    g_autofree char *order_1 = NULL;
++    g_autofree char *order_2 = NULL;
++
++    if (g_strcmp0 (scheme, "computer") != 0)
++    {
++        return 0;
++    }
++
++    if (order_q == 0)
++    {
++        order_q = g_quark_from_static_string ("wdn_order");
++    }
++
++    order_1 = nautilus_file_get_string_attribute_q (file_1, order_q);
++    order_2 = nautilus_file_get_string_attribute_q (file_2, order_q);
++    if (order_1 == NULL || order_2 == NULL || order_1[0] == '\0' || order_2[0] == '\0')
++    {
++        return 0;
++    }
++
++    return g_strcmp0 (order_1, order_2);
++}
++
+ /**
+  * nautilus_file_compare_for_sort:
+  * @file_1: A file object
+@@ -3648,7 +3679,11 @@
+         {
+             case NAUTILUS_FILE_SORT_BY_DISPLAY_NAME:
+             {
+-                result = compare_by_display_name (file_1, file_2);
++                result = compare_computer_order (file_1, file_2);
++                if (result == 0)
++                {
++                    result = compare_by_display_name (file_1, file_2);
++                }
+                 if (result == 0)
+                 {
+                     result = compare_by_directory_name (file_1, file_2);

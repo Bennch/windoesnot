@@ -14,6 +14,7 @@ except (ImportError, ValueError):           # imported by the tests without Naut
 
 ATTRIBUTE = 'wdn_usage'
 COLUMN = 'WinDoesNot::usage'
+KIND_COLUMN = 'WinDoesNot::kind'
 
 
 def german():
@@ -86,7 +87,7 @@ def walk(nodes):
 
 
 def disks_from_lsblk(data):
-    """name (vendor + model, as Files shows the drive) -> ('usage', size, free) | ('unmounted', size) | ('empty',)."""
+    """name (vendor + model, as Files shows the drive) -> {'entry': ('usage', size, free) | ('unmounted', size) | ('empty',), 'category': ...}."""
     result = {}
     for disk in data.get('blockdevices', []):
         if disk.get('type') not in ('disk', 'rom'):
@@ -106,8 +107,10 @@ def disks_from_lsblk(data):
                 free += node['fsavail']
             elif not mounts:
                 unmounted += node.get('size') or 0
+        removable = bool(disk.get('rm') or disk.get('hotplug')) or disk.get('tran') in ('usb', 'mmc')
+        category = 'optical' if disk.get('type') == 'rom' else ('removable' if removable else 'internal')
         if name:
-            result[name] = ('usage', size, free) if size else (('unmounted', unmounted) if unmounted else ('empty',))
+            result[name] = {'entry': ('usage', size, free) if size else (('unmounted', unmounted) if unmounted else ('empty',)), 'category': category}
     return result
 
 
@@ -115,7 +118,7 @@ def lsblk():
     import json
     import subprocess
     try:
-        out = subprocess.run(['lsblk', '-J', '-b', '-o', 'NAME,PATH,TYPE,SIZE,FSTYPE,PARTTYPE,MOUNTPOINTS,VENDOR,MODEL,FSAVAIL,FSUSED'],
+        out = subprocess.run(['lsblk', '-J', '-b', '-o', 'NAME,PATH,TYPE,SIZE,FSTYPE,PARTTYPE,MOUNTPOINTS,RM,HOTPLUG,TRAN,VENDOR,MODEL,FSAVAIL,FSUSED'],
                              capture_output=True, text=True, timeout=5)
         return json.loads(out.stdout) if out.returncode == 0 else {}
     except (OSError, ValueError, Exception):
@@ -133,31 +136,55 @@ def text_for_disk(entry, de):
     return usage_text(entry[1], entry[2], de)
 
 
-def text_for(name, de, disks=None):
-    """Column text for an item at computer:/// (name is the item's file name, e.g. 'Samsung SSD 980 PRO 1TB.drive')."""
+KINDS = {'system': ('Lokaler Datenträger', 'Local disk'), 'internal': ('Lokaler Datenträger', 'Local disk'),
+         'removable': ('Wechseldatenträger', 'Removable disk'), 'optical': ('CD-/DVD-Laufwerk', 'CD/DVD drive'),
+         'network': ('Netzwerkadresse', 'Network location')}
+ORDER = {'system': 0, 'internal': 1, 'removable': 2, 'optical': 3, 'network': 4}
+
+
+def item_info(name, de, disks=None):
+    """(usage text, kind text, sort key) for an item at computer:/// (name is the item's file name, e.g. 'Samsung SSD 980 PRO 1TB.drive').
+    The sort key puts the items in the order of Windows Explorer: the system disk, local disks, removable disks, optical drives, network."""
+    category, usage = None, ''
     if name == 'root.link':
+        category = 'system'
         values = sum_filesystems([Gio.File.new_for_path('/')])
-        return usage_text(*values, de=de) if values else ''
-    if name.endswith('.drive'):
+        usage = usage_text(*values, de=de) if values else ''
+    elif name.endswith('.drive'):
         if disks is None:
             import time
             if time.monotonic() - _cache['at'] > 3:
                 _cache.update(at=time.monotonic(), disks=disks_from_lsblk(lsblk()))
             disks = _cache['disks']
-        return text_for_disk(disks.get(name[:-len('.drive')]), de)
-    return ''
+        info = disks.get(name[:-len('.drive')])
+        category = info['category'] if info else 'internal'
+        usage = text_for_disk(info['entry'] if info else None, de)
+    elif name.endswith('.mount'):
+        category = 'network'   # mounted network shares (GVfs); local partitions are part of their drive
+    if category is None:
+        return '', '', ''
+    return usage, KINDS[category][0 if de else 1], f'{ORDER[category]}{name.lower()}'
+
+
+def text_for(name, de, disks=None):
+    return item_info(name, de, disks)[0]
 
 
 if Nautilus is not None:
     class WinDoesNotComputer(GObject.GObject, Nautilus.ColumnProvider, Nautilus.InfoProvider):
         def get_columns(self):
-            return (Nautilus.Column(name=COLUMN, attribute=ATTRIBUTE, label='Belegung' if german() else 'Usage',
-                                    description='Wie voll das Laufwerk ist' if german() else 'How full the drive is'),)
+            return (Nautilus.Column(name=KIND_COLUMN, attribute='wdn_kind', label='Art' if german() else 'Kind',
+                                    description='Art des Laufwerks' if german() else 'Kind of drive'),
+                    Nautilus.Column(name=COLUMN, attribute=ATTRIBUTE, label='Belegung' if german() else 'Usage',
+                                    description='Wie voll das Laufwerk ist' if german() else 'How full the drive is'))
 
         def update_file_info(self, file):
             try:
                 if file.get_uri_scheme() != 'computer':
                     return
-                file.add_string_attribute(ATTRIBUTE, text_for(file.get_name(), german()))
+                usage, kind, order = item_info(file.get_name(), german())
+                file.add_string_attribute(ATTRIBUTE, usage)
+                file.add_string_attribute('wdn_kind', kind)
+                file.add_string_attribute('wdn_order', order)   # the patched Files sorts computer:/// by this
             except Exception:
                 pass

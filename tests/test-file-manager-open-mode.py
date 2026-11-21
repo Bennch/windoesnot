@@ -23,7 +23,7 @@ with tempfile.TemporaryDirectory() as t:
     bookmarks = t / 'cfg/gtk-3.0/bookmarks'
     assert bookmarks.read_text().count('computer:///') == 1, 'one sidebar bookmark, added once'
     run('--start-page', 'set', 'computer'); assert bookmarks.read_text().count('computer:///') == 1
-    assert 'metadata::nautilus-list-view-visible-columns name WinDoesNot::usage' in (t / 'out.gio').read_text()
+    assert 'metadata::nautilus-list-view-visible-columns name WinDoesNot::kind WinDoesNot::usage' in (t / 'out.gio').read_text()
     pacman.write_text('#!/bin/sh\nexit 0\n'); run('--start-page', 'set', 'computer'); assert 'computer:///' not in bookmarks.read_text(), 'no bookmark next to the built-in sidebar entry'
     pacman.write_text('#!/bin/sh\nexit 1\n'); run('--start-page', 'set', 'computer'); assert bookmarks.read_text().count('computer:///') == 1
     run('--open-mode', 'set', 'window')
