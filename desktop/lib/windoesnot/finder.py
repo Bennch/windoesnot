@@ -660,7 +660,17 @@ def connect_smb(address, user=None, password=None, runner=subprocess.run):
     if password:
         # mount.cifs reads PASSWD from the environment: the password never appears in a command line or file.
         environment['PASSWD'] = password
-    result = runner(['mount', '-t', 'cifs', '//%s/%s' % (host, share), str(target), '-o', options], capture_output=True, timeout=60, env=environment)
+    try:
+        result = runner(['mount', '-t', 'cifs', '//%s/%s' % (host, share), str(target), '-o', options], capture_output=True, timeout=60, env=environment)
+    except subprocess.TimeoutExpired:
+        # The server did not answer in time (found by the final test: a visible traceback although the share came up later):
+        # release a half-finished mount and report a readable error instead of an exception.
+        runner(['umount', '-l', str(target)], capture_output=True, timeout=30)
+        try:
+            target.rmdir()
+        except OSError:
+            pass
+        raise OSError('The share did not answer in time. Check the address and the network and try again.')
     if result.returncode:
         try:
             target.rmdir()

@@ -50,4 +50,19 @@ with tempfile.TemporaryDirectory() as tmp:
         return Result()
     hits = f.connect_smb('smb://nas/umzug', None, None, runner=with_package)
     assert len(hits) == 1 and hits[0]['filesystem'] == 'cifs' and hits[0]['user'] == 'anna' and share.is_dir()
+    # A server that does not answer: a readable error, the half-finished mount is released and the folder removed
+    import subprocess as sp
+    calls = []
+    def hanging(command, **kwargs):
+        calls.append(command[0])
+        if command[0] == 'mount':
+            raise sp.TimeoutExpired(command, 60)
+        return Result()
+    before = set(Path(tmp).iterdir())
+    try:
+        f.connect_smb('smb://slow/umzug', None, None, runner=hanging)
+        raise AssertionError('timeout ignored')
+    except OSError as error:
+        assert 'did not answer' in str(error), error
+    assert calls == ['mount', 'umount'] and set(Path(tmp).iterdir()) == before
 print('PASS package smb')
