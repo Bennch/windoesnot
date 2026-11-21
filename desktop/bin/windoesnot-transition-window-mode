@@ -59,11 +59,16 @@ def main():
             if geometry:
                 monitor, mx, my, mw, mh = geometry
                 reserved = monitor.get("reserved") or [0, 0, 0, 0]
-                # Detached, slightly smaller, centred. Keep titlebar/taskbar visible.
-                usable_h = mh - int(reserved[3] if len(reserved) > 3 else 0) - 45
+                # Detached and slightly smaller, but around the window's OWN centre: the tiled layout has no overlaps, so the floating
+                # windows keep their places beside each other (centring every window on the monitor stacked them on top of each other).
+                top = int(reserved[1]) if len(reserved) > 1 else 0
                 width = min(round(client["size"][0] * 0.88), round(mw * 0.88))
-                height = min(round(client["size"][1] * 0.88), round(usable_h * 0.88))
-                x, y = mx + (mw - width) // 2, my + (usable_h - height) // 2 + 30
+                height = min(round(client["size"][1] * 0.88), round((mh - top) * 0.88))
+                x = client["at"][0] + (client["size"][0] - width) // 2
+                y = client["at"][1] + (client["size"][1] - height) // 2
+                # stay on the monitor and keep the title bar below the reserved top area
+                x = max(mx, min(x, mx + mw - width))
+                y = max(my + top + 8, min(y, my + mh - height - 45))
                 subprocess.run(["windoesnot-hyprctl", "--batch",
                     f"dispatch resizewindowpixel exact {width} {height},address:{address}; "
                     f"dispatch movewindowpixel exact {x} {y},address:{address}; "
