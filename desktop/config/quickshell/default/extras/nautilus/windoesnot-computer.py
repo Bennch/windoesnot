@@ -36,6 +36,18 @@ def human(value):
     return f'{max(value >> 10, 0)} KB'
 
 
+def usage_parts(size, free, de=True):
+    """('87', '248 GB frei von 1,8 TB'): the percentage and the free-space text for the categorised This PC view."""
+    if not size or size <= 0 or free is None:
+        return '', ''
+    percent = round(100 * max(size - free, 0) / size)
+    total, free_text = human(size), human(free)
+    if de:
+        total, free_text = total.replace('.', ','), free_text.replace('.', ',')
+        return str(percent), f'{free_text} frei von {total}'
+    return str(percent), f'{free_text} free of {total}'
+
+
 def usage_text(size, free, de=True):
     """'████████░░  87 %  ·  248 GB frei von 1,8 TB'; empty when the size is unknown."""
     if not size or size <= 0 or free is None:
@@ -166,6 +178,25 @@ def item_info(name, de, disks=None):
     return usage, KINDS[category][0 if de else 1], f'{ORDER[category]}{name.lower()}'
 
 
+def view_info(name, de, disks=None):
+    """(percent, space text) of an item for the This PC view; both empty when the fill is unknown (unmounted drive: the size only)."""
+    if name == 'root.link':
+        values = sum_filesystems([Gio.File.new_for_path('/')])
+        return usage_parts(*values, de=de) if values else ('', '')
+    if name.endswith('.drive'):
+        if disks is None:
+            item_info(name, de)   # refreshes the lsblk cache
+            disks = _cache['disks']
+        info = disks.get(name[:-len('.drive')])
+        if not info:
+            return '', ''
+        entry = info['entry']
+        if entry[0] == 'usage':
+            return usage_parts(entry[1], entry[2], de)
+        return '', text_for_disk(entry, de)
+    return '', ''
+
+
 def text_for(name, de, disks=None):
     return item_info(name, de, disks)[0]
 
@@ -186,5 +217,8 @@ if Nautilus is not None:
                 file.add_string_attribute(ATTRIBUTE, usage)
                 file.add_string_attribute('wdn_kind', kind)
                 file.add_string_attribute('wdn_order', order)   # the patched Files sorts computer:/// by this
+                percent, space = view_info(file.get_name(), german())
+                file.add_string_attribute('wdn_percent', percent)   # fill bar and free space of the categorised view
+                file.add_string_attribute('wdn_space', space)
             except Exception:
                 pass

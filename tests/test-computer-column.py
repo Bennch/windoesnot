@@ -38,4 +38,10 @@ ordered = sorted(items, key=lambda n: items[n][2])
 assert ordered == ['root.link', 'Samsung SSD 980 PRO 1TB.drive', 'WD Blue SN580 2TB.drive', 'Generic USB3.2.drive', 'ASUS SDRW-08D2S-U.drive', 'nas.mount'], ordered
 assert [items[n][1] for n in ordered] == ['Lokaler Datenträger', 'Lokaler Datenträger', 'Lokaler Datenträger', 'Wechseldatenträger', 'CD-/DVD-Laufwerk', 'Netzwerkadresse']
 assert col.item_info('x.txt', True, full) == ('', '', '')
+# numbers for the categorised view: fill bar value and free-space text
+assert col.view_info('WD Blue SN580 2TB.drive', True, full) == ('89', '200 GB frei von ' + col.human(1900 * GB).replace('.', ',')), col.view_info('WD Blue SN580 2TB.drive', True, full)
+assert col.view_info('Generic USB3.2.drive', False, full) == ('95', '3 GB free of 58 GB')
+assert col.view_info('Samsung SSD 980 PRO 1TB.drive', True, full) == ('', 'nicht eingehängt  ·  930 GB')
+assert col.view_info('ASUS SDRW-08D2S-U.drive', True, full) == ('', 'kein Medium') and col.view_info('x.txt', True, full) == ('', '')
+assert col.usage_parts(0, 0) == ('', '')
 print('PASS: This PC usage column (fill bar, percent, free space, unmounted and empty drives, system partitions ignored)')
