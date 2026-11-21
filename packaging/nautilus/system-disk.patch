@@ -1,0 +1,75 @@
+diff --color -ruN '--exclude=build' -x '*.orig' nautilus-51.1/src/nautilus-computer-cell.c ../nautilus-51.1/src/nautilus-computer-cell.c
+--- a/src/nautilus-computer-cell.c	2026-11-21 16:33:39.503810180 +0100
++++ b/src/nautilus-computer-cell.c	2026-11-21 16:33:14.044003948 +0100
+@@ -90,11 +90,12 @@
+ update_from_file (NautilusComputerCell *self)
+ {
+     g_autoptr (NautilusViewItem) item = nautilus_view_cell_get_item (NAUTILUS_VIEW_CELL (self));
+-    static GQuark percent_q = 0, space_q = 0;
++    static GQuark percent_q = 0, space_q = 0, label_q = 0;
+     NautilusFile *file;
+     g_autoptr (GIcon) icon = NULL;
+     g_autofree char *percent_text = NULL;
+     g_autofree char *space_text = NULL;
++    g_autofree char *label_text = NULL;
+     const char *name = NULL;
+ 
+     g_return_if_fail (item != NULL);
+@@ -103,13 +104,16 @@
+     {
+         percent_q = g_quark_from_static_string ("wdn_percent");
+         space_q = g_quark_from_static_string ("wdn_space");
++        label_q = g_quark_from_static_string ("wdn_label");
+     }
+ 
+     file = nautilus_view_item_get_file (item);
+     icon = nautilus_file_get_gicon (file, NAUTILUS_FILE_ICON_FLAGS_NONE);
+     gtk_image_set_from_gicon (GTK_IMAGE (self->icon), icon);
+ 
+-    name = nautilus_file_get_display_name (file);
++    /* The extension may give the item a better name (the system disk: "<disk name> (System disk)") */
++    label_text = nautilus_file_get_string_attribute_q (file, label_q);
++    name = (label_text != NULL && label_text[0] != '\0') ? label_text : nautilus_file_get_display_name (file);
+     gtk_label_set_label (GTK_LABEL (self->name), name);
+ 
+     percent_text = nautilus_file_get_string_attribute_q (file, percent_q);
+diff --color -ruN '--exclude=build' -x '*.orig' nautilus-51.1/src/nautilus-computer-view.c ../nautilus-51.1/src/nautilus-computer-view.c
+--- a/src/nautilus-computer-view.c	2026-11-21 16:33:39.503902960 +0100
++++ b/src/nautilus-computer-view.c	2026-11-21 16:29:35.950415904 +0100
+@@ -402,6 +402,26 @@
+     gtk_list_header_set_child (listheader, button);
+ }
+ 
++/* The extension sets "wdn_hide" = "1" on the drive of the system disk: it is shown once, as the root filesystem item
++ * ("<disk name> (System disk)"), so there is no second entry that cannot be mounted. */
++static gboolean
++computer_item_visible (gpointer item,
++                       gpointer user_data)
++{
++    static GQuark hide_q = 0;
++    NautilusFile *file = nautilus_view_item_get_file (NAUTILUS_VIEW_ITEM (item));
++    g_autofree char *hide = NULL;
++
++    if (hide_q == 0)
++    {
++        hide_q = g_quark_from_static_string ("wdn_hide");
++    }
++
++    hide = nautilus_file_get_string_attribute_q (file, hide_q);
++
++    return !(hide != NULL && hide[0] == '1');
++}
++
+ static void
+ on_model_changed (NautilusComputerView *self)
+ {
+@@ -409,6 +429,9 @@
+ 
+     if (model != NULL)
+     {
++        g_autoptr (GtkCustomFilter) filter = gtk_custom_filter_new (computer_item_visible, NULL, NULL);
++
++        nautilus_view_model_set_filter (model, GTK_FILTER (filter));
+         g_autoptr (GtkCustomSorter) sorter = gtk_custom_sorter_new (sort_computer_items, self, NULL);
+         g_autoptr (GtkCustomSorter) sections_sorter = gtk_custom_sorter_new (sort_computer_sections, self, NULL);
+ 

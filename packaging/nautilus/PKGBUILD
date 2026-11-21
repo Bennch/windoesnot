@@ -1,9 +1,9 @@
 # Files (Nautilus) with a "This PC" entry in the sidebar, directly below Home (opens computer:///).
-# Upstream 51.1 plus five patches (sidebar row, German translation, drive order at computer:///, hideable sidebar places and Ctrl+click for a new tab, categorised drives view, This PC as the default start page); replaces the distribution's nautilus package.
+# Upstream 51.1 plus five patches (sidebar row, German translation, drive order at computer:///, hideable sidebar places and Ctrl+click for a new tab, categorised drives view, This PC as the default start page, the system disk shown once); replaces the distribution's nautilus package.
 # Follow the distribution: when nautilus moves to a new version, update pkgver, the tarball, the checksums and re-check the patches.
 pkgname=windoesnot-nautilus
 pkgver=51.1
-pkgrel=6
+pkgrel=7
 pkgdesc="Files with a 'This PC' sidebar entry (Nautilus with a small WinDoesNot patch)"
 url="https://apps.gnome.org/Nautilus/"
 arch=(x86_64)
@@ -16,14 +16,15 @@ depends=(
 makedepends=(appstream blueprint-compiler gobject-introspection glib2-devel meson)
 provides=("nautilus=$pkgver")
 conflicts=(nautilus)
-source=("nautilus-$pkgver.tar.xz" this-pc-sidebar.patch this-pc-german.patch this-pc-sort.patch sidebar-places-and-ctrl-click.patch computer-view.patch start-page.patch)
+source=("nautilus-$pkgver.tar.xz" this-pc-sidebar.patch this-pc-german.patch this-pc-sort.patch sidebar-places-and-ctrl-click.patch computer-view.patch start-page.patch system-disk.patch)
 sha256sums=('a703bc152d18d161d9dab957e2390a36e6246bb5c24de7b15c9624fcfa2f2816'
             'f6061fd5446b81c2e2a15e81e937afee76d27f0a792dbc6f6a87f230b7426a18'
             '09aadd09e81b903252e0d566e513883c5b8d4f211f35e443f4bac200feacf28b'
             'af7571bafd1ee7bb663f8308f515767983237776a25ff6f6c0a19e86f1c29d31'
             '1959fa44fba5d2aa560ca952f007ae71171ba96686c3d6555a409b0d80791b54'
             '2464176ee7cd0cad0597d3362db7427eb9adee634a6f3fec1f2e0cfa91601b7a'
-            '8bda30db519e8f5d418ec484dde89d4362d08762cd65bb823b6f3069986f49d1')
+            '8bda30db519e8f5d418ec484dde89d4362d08762cd65bb823b6f3069986f49d1'
+            'cf6507c2d84b2b101b87141010256d6fd6726728dfe5a78c740c1a4e3da5b1b3')
 
 prepare() {
   cd nautilus-$pkgver
@@ -33,6 +34,7 @@ prepare() {
   patch -Np1 -i ../sidebar-places-and-ctrl-click.patch
   patch -Np1 -i ../computer-view.patch
   patch -Np1 -i ../start-page.patch
+  patch -Np1 -i ../system-disk.patch
 }
 
 build() {

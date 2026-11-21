@@ -121,8 +121,11 @@ def disks_from_lsblk(data):
                 unmounted += node.get('size') or 0
         removable = bool(disk.get('rm') or disk.get('hotplug')) or disk.get('tran') in ('usb', 'mmc')
         category = 'optical' if disk.get('type') == 'rom' else ('removable' if removable else 'internal')
+        # The system disk holds the root filesystem ('/'): Files shows it once, as the root item (see system_label)
+        system = any('/' in (node.get('mountpoints') or []) for node in walk([disk]))
         if name:
-            result[name] = {'entry': ('usage', size, free) if size else (('unmounted', unmounted) if unmounted else ('empty',)), 'category': category}
+            result[name] = {'entry': ('usage', size, free) if size else (('unmounted', unmounted) if unmounted else ('empty',)), 'category': category,
+                            'system': system}
     return result
 
 
@@ -197,6 +200,32 @@ def view_info(name, de, disks=None):
     return '', ''
 
 
+def cached_disks():
+    import time
+    if time.monotonic() - _cache['at'] > 3:
+        _cache.update(at=time.monotonic(), disks=disks_from_lsblk(lsblk()))
+    return _cache['disks']
+
+
+def system_disk_name(disks):
+    """Vendor + model of the disk that holds '/', or None (live system, or a disk Files does not name)."""
+    return next((name for name, info in disks.items() if info.get('system')), None)
+
+
+def system_label(disks, de):
+    """Name of the root item at computer:/// when it stands for the system disk: '<disk> (System disk)', else ''."""
+    name = system_disk_name(disks)
+    return f'{name} (Systemplatte)' if name and de else (f'{name} (System disk)' if name else '')
+
+
+def hide_for(name, disks):
+    """'1' for the drive item of the system disk: the root item carries its name, a second entry cannot be mounted."""
+    if name.endswith('.drive'):
+        info = disks.get(name[:-len('.drive')])
+        return '1' if info and info.get('system') else ''
+    return ''
+
+
 def text_for(name, de, disks=None):
     return item_info(name, de, disks)[0]
 
@@ -220,5 +249,8 @@ if Nautilus is not None:
                 percent, space = view_info(file.get_name(), german())
                 file.add_string_attribute('wdn_percent', percent)   # fill bar and free space of the categorised view
                 file.add_string_attribute('wdn_space', space)
+                disks = cached_disks()
+                file.add_string_attribute('wdn_label', system_label(disks, german()) if file.get_name() == 'root.link' else '')
+                file.add_string_attribute('wdn_hide', hide_for(file.get_name(), disks))
             except Exception:
                 pass

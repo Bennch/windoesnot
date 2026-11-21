@@ -44,4 +44,11 @@ assert col.view_info('Generic USB3.2.drive', False, full) == ('95', '3 GB free o
 assert col.view_info('Samsung SSD 980 PRO 1TB.drive', True, full) == ('', 'nicht eingehängt  ·  930 GB')
 assert col.view_info('ASUS SDRW-08D2S-U.drive', True, full) == ('', 'kein Medium') and col.view_info('x.txt', True, full) == ('', '')
 assert col.usage_parts(0, 0) == ('', '')
+# the system disk is shown once: the root item carries its name, its drive item is hidden
+assert col.system_disk_name(full) == 'WD Blue SN580 2TB'
+assert col.system_label(full, True) == 'WD Blue SN580 2TB (Systemplatte)' and col.system_label(full, False) == 'WD Blue SN580 2TB (System disk)'
+assert col.hide_for('WD Blue SN580 2TB.drive', full) == '1', 'the drive of the system disk is hidden'
+assert col.hide_for('Samsung SSD 980 PRO 1TB.drive', full) == '' and col.hide_for('root.link', full) == '' and col.hide_for('nas.mount', full) == ''
+live = {'ASUS SDRW-08D2S-U': {'entry': ('empty',), 'category': 'optical', 'system': False}}
+assert col.system_disk_name(live) is None and col.system_label(live, True) == '', 'a live system keeps the plain name of the root item'
 print('PASS: This PC usage column (fill bar, percent, free space, unmounted and empty drives, system partitions ignored)')
