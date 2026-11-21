@@ -1649,19 +1649,12 @@ PanelWindow {
 
                         Behavior on color { ColorAnimation { duration: 150 } }
 
-                        Image {
+                        // Icons that would vanish on the bar (near-black on dark, white on light) are lifted or lowered
+                        TrayIconImage {
                             anchors.centerIn: parent
                             source: modelData.icon
-                            width: 20
-                            height: 20
-                            sourceSize.width: 20
-                            sourceSize.height: 20
-                            fillMode: Image.PreserveAspectFit
-                            smooth: true
-                            antialiasing: true
-                            mipmap: true
-                            layer.enabled: true
-                            layer.smooth: true
+                            iconSize: 20
+                            darkBar: settingsMenu.darkMode
                         }
 
                         Timer {
