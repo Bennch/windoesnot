@@ -160,6 +160,19 @@ bool CHyprBar::gripHit(Vector2D* local) {
 }
 
 void CHyprBar::onMouseButton(Event::SCallbackInfo& info, IPointer::SButtonEvent e) {
+    // A press on a bar button is swallowed and the button acts at once. Minimizing hands the focus to another window, so the
+    // release no longer passes inputIsValid() and would never reach handleUpEvent(): m_bCancelledDown stayed set and cancelled the
+    // next release in this window after it was restored. The client then never saw "button up" and kept dragging (a Firefox tab
+    // stuck to the pointer). Swallow that release (the client never saw the press) and clear the state.
+    if (e.state != WL_POINTER_BUTTON_STATE_PRESSED && m_bCancelledDown && !inputIsValid()) {
+        info.cancelled   = true;
+        m_bCancelledDown = false;
+        m_bDragPending   = false;
+        m_bResizePending = false;
+        m_bGripPending   = false;
+        return;
+    }
+
     if (!inputIsValid())
         return;
 
