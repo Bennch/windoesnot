@@ -15,7 +15,11 @@
         "rEFInd-Installationen starten zuerst den normalen Kernel, LTS bleibt im Menü.",
         "GRUB zeigt beim Start keine „Loading Linux“-Zeilen mehr.",
         "Snappen und Einstellungen: Aufrufe an den Fenstermanager haben ein Zeitlimit; ein zweiter Klick auf Update zeigt den offenen Dialog.",
-        "Einstellungen: Die Firewall-Karte ist weg (die Firewall gehört zur Netzwerk-App)."
+        "Einstellungen: Die Firewall-Karte ist weg (die Firewall gehört zur Netzwerk-App).",
+        "Barrierefreiheit: neue Seite in den Einstellungen mit Lupe (Super + Plus, Super + Minus, Super + Esc), Bildschirmtastatur (Super + Strg + O), Farbfiltern (Graustufen, Umkehren, hoher Kontrast, Rot-, Grün- und Blauschwäche), Größe von Mauszeiger und Text sowie weniger Animationen.",
+        "Bluetooth: Im Fenster der Taskleiste kannst du ein Standardgerät festlegen (zweiter Teil am Verbinden-Knopf); es verbindet sich nach der Anmeldung von selbst.",
+        "Super + E öffnet ein neues Dateifenster; in den Einstellungen unter Apps kannst du stattdessen einen Tab im offenen Fenster wählen.",
+        "Behoben: Bildschirmfoto aus dem Startmenü zeigte das Startmenü im Bild; das Teilen-Fenster springt nach dem Öffnen nicht mehr."
       ],
       "en": [
         "Backup like Time Machine on a Mac: Settings, Backups. Save your personal folder to an external drive or a NAS (SMB), hourly, daily, weekly or by hand. Browse earlier states and bring back single files or folders; the current file goes to the trash. Unchanged files take no extra space.",
@@ -28,7 +32,11 @@
         "rEFInd installations start the standard kernel first, LTS stays in the menu.",
         "GRUB no longer prints the “Loading Linux” lines while starting.",
         "Snapping and Settings: calls to the window manager have a time limit; a second click on Update shows the open dialog.",
-        "Settings: the firewall card is gone (the firewall belongs to the Network app)."
+        "Settings: the firewall card is gone (the firewall belongs to the Network app).",
+        "Accessibility: a new Settings page with a magnifier (Super + Plus, Super + Minus, Super + Esc), an on-screen keyboard (Super + Ctrl + O), colour filters (grayscale, invert, high contrast, red, green and blue weakness), mouse pointer and text size, and reduced animations.",
+        "Bluetooth: in the taskbar window you can choose a default device (second part of the Connect button); it connects by itself after login.",
+        "Super + E opens a new file window; in Settings under Apps you can choose a tab in the open window instead.",
+        "Fixed: a screenshot taken from the start menu showed the start menu; the sharing window no longer jumps after opening."
       ]
     },
     {
