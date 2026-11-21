@@ -3052,6 +3052,8 @@ class MonitorWindow:
                 # Icons im Rechteck selektieren
                 selected_count = 0
                 for icon in self.icons:
+                    if not icon.get_visible():
+                        continue   # hidden by the hotkey (or otherwise not shown): never selectable
                     # Icon Bounding Box
                     icon_x = icon.x
                     icon_y = icon.y
@@ -3583,7 +3585,10 @@ class MonitorWindow:
         for icon in self.icons:
             if icon is self.trash_icon or icon.spec.get("is_trash") or getattr(icon, "_being_transferred", False):
                 continue
+            if hidden and icon.selected:
+                icon.set_selected(False)   # a hidden icon must not leave a selection highlight behind
             icon.set_visible(not hidden)
+        self.selection_area.queue_draw()
 
     def update_trash_visibility(self, show_trash):
         """Zeigt oder versteckt den Papierkorb."""
