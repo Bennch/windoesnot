@@ -1441,7 +1441,8 @@ PanelWindow {
                 }
             }
             MouseArea {
-                id: weatherSlot3Area; anchors.fill: parent; hoverEnabled: true
+                id: weatherSlot3Area; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.LeftButton | Qt.RightButton
+                onClicked: function(mouse) { if (mouse.button === Qt.RightButton) quickSettingsContextMenu.openFor("weather", weatherSlot3Area) }
                 property bool dragActive: false; property point dragStartPos; property int dragThreshold: 10
                 drag.target: dragActive ? weatherSlot3Container : null; drag.axis: Drag.XAxis
                 onEntered: weatherSlot3.hovered = true; onExited: weatherSlot3.hovered = false
@@ -1502,7 +1503,7 @@ PanelWindow {
                 }
             }
             MouseArea {
-                id: weatherSlot4Area; anchors.fill: parent; hoverEnabled: true
+                id: weatherSlot4Area; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.LeftButton | Qt.RightButton
                 property bool dragActive: false; property point dragStartPos; property int dragThreshold: 10
                 drag.target: dragActive ? weatherSlot4Container : null; drag.axis: Drag.XAxis
                 onEntered: weatherSlot4.hovered = true; onExited: weatherSlot4.hovered = false
@@ -1549,7 +1550,7 @@ PanelWindow {
             anchors.fill: parent
             z: -1
             acceptedButtons: Qt.RightButton
-            onClicked: {
+            onClicked: function(mouse) { if (mouse.button === Qt.RightButton) { quickSettingsContextMenu.openFor("weather", weatherSlot4Area); return } if (mouse.button === Qt.RightButton) { quickSettingsContextMenu.openFor("weather", weatherSlot4Area); return }
                 startMenu.visible = false
                 settingsMenu.visible = false
                 audioWindow.visible = false
@@ -2313,7 +2314,7 @@ PanelWindow {
                         }
                     }
                     MouseArea {
-                        id: weatherSlot0Area; anchors.fill: parent; hoverEnabled: true
+                        id: weatherSlot0Area; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.LeftButton | Qt.RightButton
                         property bool dragActive: false; property point dragStartPos; property int dragThreshold: 10
                         drag.target: dragActive ? weatherSlot0 : null; drag.axis: Drag.XAxis
                         onEntered: weatherSlot0.hovered = true; onExited: weatherSlot0.hovered = false
@@ -2367,7 +2368,7 @@ PanelWindow {
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                     onEntered: startButton.hovered = true
                     onExited: startButton.hovered = false
-                    onClicked: function(mouse) {
+                    onClicked: function(mouse) { if (mouse.button === Qt.RightButton) { quickSettingsContextMenu.openFor("weather", weatherSlot0Area); return }
                         if (mouse.button === Qt.RightButton) {
                             settingsMenu.visible = false
                             audioWindow.visible = false
@@ -2447,7 +2448,7 @@ PanelWindow {
                         }
                     }
                     MouseArea {
-                        id: weatherSlot1Area; anchors.fill: parent; hoverEnabled: true
+                        id: weatherSlot1Area; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.LeftButton | Qt.RightButton
                         property bool dragActive: false; property point dragStartPos; property int dragThreshold: 10
                         drag.target: dragActive ? weatherSlot1 : null; drag.axis: Drag.XAxis
                         onEntered: weatherSlot1.hovered = true; onExited: weatherSlot1.hovered = false
@@ -2506,7 +2507,7 @@ PanelWindow {
                     hoverEnabled: true
                     onEntered: settingsButton.hovered = true
                     onExited: settingsButton.hovered = false
-                    onClicked: {
+                    onClicked: function(mouse) { if (mouse.button === Qt.RightButton) { quickSettingsContextMenu.openFor("weather", weatherSlot1Area); return }
                         startMenu.visible = false
                         audioWindow.visible = false
                         bluetoothWindow.visible = false
@@ -2549,7 +2550,7 @@ PanelWindow {
                         }
                     }
                     MouseArea {
-                        id: weatherSlot2Area; anchors.fill: parent; hoverEnabled: true
+                        id: weatherSlot2Area; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.LeftButton | Qt.RightButton
                         property bool dragActive: false; property point dragStartPos; property int dragThreshold: 10
                         drag.target: dragActive ? weatherSlot2 : null; drag.axis: Drag.XAxis
                         onEntered: weatherSlot2.hovered = true; onExited: weatherSlot2.hovered = false
@@ -2603,7 +2604,7 @@ PanelWindow {
                     hoverEnabled: true
                     onEntered: searchTaskbarButton.hovered = true
                     onExited:  searchTaskbarButton.hovered = false
-                    onClicked: {
+                    onClicked: function(mouse) { if (mouse.button === Qt.RightButton) { quickSettingsContextMenu.openFor("weather", weatherSlot2Area); return }
                         startMenu.visible = false
                         settingsMenu.visible = false
                         powerMenu.visible = false
