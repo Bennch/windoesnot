@@ -21,7 +21,7 @@ built on [CachyOS](https://cachyos.org), [Hyprland](https://hypr.land) and
 </div>
 
 > [!WARNING]
-> **Public preview: 0.1.0-29.** [Download the ISO](https://windoesnot.me/en/download/).
+> **Public preview: VERSION.** [Download the ISO](https://windoesnot.me/en/download/).
 > The live system and installer are tested in UEFI virtual machines and on a 2010 laptop
 > (BIOS boot, install next to existing data). Secure Boot and AMD graphics are still untested.
 > Expect rough edges and breaking changes.
@@ -70,11 +70,11 @@ Arch news shown before system updates.
 
 ## First-run welcome
 
-The first start offers quick access to Store, Device Manager, Settings, Files,
-your default browser and Terminal. At the top you set resolution, zoom and pointer
-speed. The installed system's setup summary stays below the shortcuts.
+The first start offers a checklist for connecting to a network, checking updates,
+setting up backups and exploring keyboard shortcuts. The welcome window also
+provides access to common applications and setup information.
 
-![First-run welcome with essential app shortcuts, dark appearance](docs/screenshots/welcome-dark.png)
+![First-run welcome checklist, dark appearance](docs/screenshots/welcome-dark.png)
 
 [Light appearance](docs/screenshots/welcome-light.png) ·
 [WinDoesNot Device Manager](https://github.com/Bennch/windoesnot-device-manager)
