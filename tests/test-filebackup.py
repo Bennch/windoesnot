@@ -101,5 +101,17 @@ finally:
 assert result['ok'] and result['received'] == [2, 3, 4], result
 assert sorted(p.name for p in into.iterdir()) == ['restore-4'], sorted(p.name for p in into.iterdir())
 import shutil; shutil.rmtree(work)
+
+# run_rsync drains stderr while the process runs: 300 KB of warnings before any progress used to block rsync on a full pipe
+import signal
+signal.signal(signal.SIGALRM, lambda *a: (_ for _ in ()).throw(AssertionError('run_rsync hangs when stderr fills its pipe')))
+signal.alarm(20)
+fb.run_rsync(['sh', '-c', 'i=0; while [ $i -lt 6000 ]; do echo "file has vanished: \"/some/long/path/that/disappears/during/the/backup/$i\"" >&2; i=$((i+1)); done; echo "  1,024 100%  0.00kB/s"; exit 24'])
+signal.alarm(0)
+try:
+    fb.run_rsync(['sh', '-c', 'i=0; while [ $i -lt 6000 ]; do echo "boom $i" >&2; i=$((i+1)); done; exit 11'])
+    raise SystemExit('a real rsync error must raise')
+except fb.BackupError as error:
+    assert str(error) == 'boom 5999', str(error)
 import shutil; shutil.rmtree(tmp)
 print('PASS: filebackup engine')

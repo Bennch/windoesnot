@@ -13,6 +13,7 @@ that `windoesnot-filebackup-mount` (pkexec) writes once.
 """
 import datetime
 import fcntl
+import collections
 import json
 import os
 from pathlib import Path
@@ -20,6 +21,7 @@ import re
 import shutil
 import socket
 import subprocess
+import threading
 import time
 
 CONFIG_DIR = Path(os.environ.get('XDG_CONFIG_HOME', Path.home() / '.config')) / 'windoesnot'
@@ -340,6 +342,14 @@ def source_name(source):
 
 def run_rsync(args, progress=None, mirror=False):
     process = subprocess.Popen(['nice', '-n', '10', 'ionice', '-c', '3'] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
+    # stderr is drained while rsync runs: thousands of "file has vanished" lines fill the pipe, rsync then blocks on writing and
+    # never finishes while we wait for its stdout (found by the final test with files disappearing during a Flatpak download)
+    error_lines = collections.deque(maxlen=50)
+    def drain():
+        for line in process.stderr:
+            error_lines.append(line)
+    drainer = threading.Thread(target=drain, daemon=True)
+    drainer.start()
     last = ''
     for chunk in iter(lambda: process.stdout.readline(), ''):
         match = re.search(r'(\d+)%', chunk)
@@ -351,7 +361,8 @@ def run_rsync(args, progress=None, mirror=False):
                 if progress:
                     progress(percent)
     process.wait()
-    errors = process.stderr.read()
+    drainer.join(timeout=5)
+    errors = ''.join(error_lines)
     if process.returncode not in (0, 23, 24):   # 23/24: some files vanished or could not be read: still a usable point
         raise BackupError(errors.strip().splitlines()[-1] if errors.strip() else 'rsync failed (%d)' % process.returncode)
     if process.returncode in (23, 24):
