@@ -1442,13 +1442,13 @@ PanelWindow {
             }
             MouseArea {
                 id: weatherSlot3Area; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.LeftButton | Qt.RightButton
-                onClicked: function(mouse) { if (mouse.button === Qt.RightButton) quickSettingsContextMenu.openFor("weather", weatherSlot3Area) }
                 property bool dragActive: false; property point dragStartPos; property int dragThreshold: 10
                 drag.target: dragActive ? weatherSlot3Container : null; drag.axis: Drag.XAxis
                 onEntered: weatherSlot3.hovered = true; onExited: weatherSlot3.hovered = false
                 onPressed: function(mouse) { if (mouse.button === Qt.LeftButton) { dragStartPos = Qt.point(mouse.x, mouse.y); dragActive = false; weatherSlot3Container.isBeingDragged = false; mouse.accepted = true } }
                 onPositionChanged: function(mouse) { if (!dragActive && mouse.buttons === Qt.LeftButton) { if (Math.abs(mouse.x - dragStartPos.x) > dragThreshold || Math.abs(mouse.y - dragStartPos.y) > dragThreshold) { dragActive = true; weatherSlot3Container.isBeingDragged = true } } }
                 onReleased: function(mouse) {
+                    if (mouse.button === Qt.RightButton) { dragActive = false; quickSettingsContextMenu.openFor("weather", weatherSlot3Area); return }
                     var wasDragging = dragActive; dragActive = false; weatherSlot3Container.isBeingDragged = false
                     if (wasDragging) {
                         var cDropX = weatherSlot3Area.mapToItem(taskbarContainer, mouse.x, mouse.y).x
@@ -1510,6 +1510,7 @@ PanelWindow {
                 onPressed: function(mouse) { if (mouse.button === Qt.LeftButton) { dragStartPos = Qt.point(mouse.x, mouse.y); dragActive = false; weatherSlot4Container.isBeingDragged = false; mouse.accepted = true } }
                 onPositionChanged: function(mouse) { if (!dragActive && mouse.buttons === Qt.LeftButton) { if (Math.abs(mouse.x - dragStartPos.x) > dragThreshold || Math.abs(mouse.y - dragStartPos.y) > dragThreshold) { dragActive = true; weatherSlot4Container.isBeingDragged = true } } }
                 onReleased: function(mouse) {
+                    if (mouse.button === Qt.RightButton) { dragActive = false; quickSettingsContextMenu.openFor("weather", weatherSlot4Area); return }
                     var wasDragging = dragActive; dragActive = false; weatherSlot4Container.isBeingDragged = false
                     if (wasDragging) {
                         var cDropX = weatherSlot4Area.mapToItem(taskbarContainer, mouse.x, mouse.y).x
@@ -1550,7 +1551,7 @@ PanelWindow {
             anchors.fill: parent
             z: -1
             acceptedButtons: Qt.RightButton
-            onClicked: function(mouse) { if (mouse.button === Qt.RightButton) { quickSettingsContextMenu.openFor("weather", weatherSlot4Area); return } if (mouse.button === Qt.RightButton) { quickSettingsContextMenu.openFor("weather", weatherSlot4Area); return }
+            onClicked: {
                 startMenu.visible = false
                 settingsMenu.visible = false
                 audioWindow.visible = false
@@ -2321,6 +2322,7 @@ PanelWindow {
                         onPressed: function(mouse) { if (mouse.button === Qt.LeftButton) { dragStartPos = Qt.point(mouse.x, mouse.y); dragActive = false; weatherSlot0Container.isBeingDragged = false; mouse.accepted = true } }
                         onPositionChanged: function(mouse) { if (!dragActive && mouse.buttons === Qt.LeftButton) { if (Math.abs(mouse.x - dragStartPos.x) > dragThreshold || Math.abs(mouse.y - dragStartPos.y) > dragThreshold) { dragActive = true; weatherSlot0Container.isBeingDragged = true } } }
                         onReleased: function(mouse) {
+                    if (mouse.button === Qt.RightButton) { dragActive = false; quickSettingsContextMenu.openFor("weather", weatherSlot0Area); return }
                             var wasDragging = dragActive; dragActive = false; weatherSlot0Container.isBeingDragged = false
                             if (wasDragging) {
                                 var cDrop0 = weatherSlot0Area.mapToItem(taskbarContainer, mouse.x, mouse.y).x
@@ -2368,7 +2370,7 @@ PanelWindow {
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                     onEntered: startButton.hovered = true
                     onExited: startButton.hovered = false
-                    onClicked: function(mouse) { if (mouse.button === Qt.RightButton) { quickSettingsContextMenu.openFor("weather", weatherSlot0Area); return }
+                    onClicked: function(mouse) {
                         if (mouse.button === Qt.RightButton) {
                             settingsMenu.visible = false
                             audioWindow.visible = false
@@ -2455,6 +2457,7 @@ PanelWindow {
                         onPressed: function(mouse) { if (mouse.button === Qt.LeftButton) { dragStartPos = Qt.point(mouse.x, mouse.y); dragActive = false; weatherSlot1Container.isBeingDragged = false; mouse.accepted = true } }
                         onPositionChanged: function(mouse) { if (!dragActive && mouse.buttons === Qt.LeftButton) { if (Math.abs(mouse.x - dragStartPos.x) > dragThreshold || Math.abs(mouse.y - dragStartPos.y) > dragThreshold) { dragActive = true; weatherSlot1Container.isBeingDragged = true } } }
                         onReleased: function(mouse) {
+                    if (mouse.button === Qt.RightButton) { dragActive = false; quickSettingsContextMenu.openFor("weather", weatherSlot1Area); return }
                             var wasDragging = dragActive; dragActive = false; weatherSlot1Container.isBeingDragged = false
                             if (wasDragging) {
                                 var cDrop1 = weatherSlot1Area.mapToItem(taskbarContainer, mouse.x, mouse.y).x
@@ -2507,7 +2510,7 @@ PanelWindow {
                     hoverEnabled: true
                     onEntered: settingsButton.hovered = true
                     onExited: settingsButton.hovered = false
-                    onClicked: function(mouse) { if (mouse.button === Qt.RightButton) { quickSettingsContextMenu.openFor("weather", weatherSlot1Area); return }
+                    onClicked: {
                         startMenu.visible = false
                         audioWindow.visible = false
                         bluetoothWindow.visible = false
@@ -2557,6 +2560,7 @@ PanelWindow {
                         onPressed: function(mouse) { if (mouse.button === Qt.LeftButton) { dragStartPos = Qt.point(mouse.x, mouse.y); dragActive = false; weatherSlot2Container.isBeingDragged = false; mouse.accepted = true } }
                         onPositionChanged: function(mouse) { if (!dragActive && mouse.buttons === Qt.LeftButton) { if (Math.abs(mouse.x - dragStartPos.x) > dragThreshold || Math.abs(mouse.y - dragStartPos.y) > dragThreshold) { dragActive = true; weatherSlot2Container.isBeingDragged = true } } }
                         onReleased: function(mouse) {
+                    if (mouse.button === Qt.RightButton) { dragActive = false; quickSettingsContextMenu.openFor("weather", weatherSlot2Area); return }
                             var wasDragging = dragActive; dragActive = false; weatherSlot2Container.isBeingDragged = false
                             if (wasDragging) {
                                 var cDrop2 = weatherSlot2Area.mapToItem(taskbarContainer, mouse.x, mouse.y).x
@@ -2604,7 +2608,7 @@ PanelWindow {
                     hoverEnabled: true
                     onEntered: searchTaskbarButton.hovered = true
                     onExited:  searchTaskbarButton.hovered = false
-                    onClicked: function(mouse) { if (mouse.button === Qt.RightButton) { quickSettingsContextMenu.openFor("weather", weatherSlot2Area); return }
+                    onClicked: {
                         startMenu.visible = false
                         settingsMenu.visible = false
                         powerMenu.visible = false
@@ -3253,7 +3257,6 @@ FloatingWindow {
         } else if (kind === "audio") {
             items.push({ kind: "openAudio", label: en ? "Open Audio" : "Audio öffnen" })
         } else if (kind === "weather") {
-            items.push({ kind: "openWeather", label: en ? "Open Weather" : "Wetter öffnen" })
             items.push({ kind: "weatherSettings", label: en ? "Weather settings" : "Wettereinstellungen" })
         } else if (kind === "clock") {
             // Right click on the clock: straight to the calendar settings (no tray entry here)
@@ -3316,9 +3319,6 @@ FloatingWindow {
             // Opens the Network app itself, not the quick panel.
             visible = false
             run("windoesnot-open-network")
-        } else if (kind === "openWeather") {
-            visible = false
-            if (contextIconItem) panelWindow.openWeatherPopup(contextIconItem)
         } else if (kind === "weatherSettings") {
             // Settings > Apps, scrolled to the weather switch; same hand-over as the calendar settings
             visible = false
