@@ -16,10 +16,18 @@ with tempfile.TemporaryDirectory() as t:
     run('/tmp'); assert (t / 'out').read_text().strip() == '/tmp', 'direct calls are unchanged'
     # start page: "This PC" replaces the home folder for the Super+E launch, never for a folder that was asked for
     assert run('--start-page', 'get').stdout.strip() == 'home'
-    comp = t / 'bin/windoesnot-computer'; comp.write_text('#!/bin/sh\necho computer > "$STUB_OUT"\n'); comp.chmod(0o755)
+    gio = t / 'bin/gio'; gio.write_text('#!/bin/sh\necho "$*" >> "$STUB_OUT.gio"\n'); gio.chmod(0o755)
     assert run('--start-page', 'set', 'computer').returncode == 0 and run('--start-page', 'get').stdout.strip() == 'computer'
     assert run('--start-page', 'set', 'bogus').returncode == 2
-    run('--launch'); assert (t / 'out').read_text().strip() == 'computer'
-    run('--launch', '/tmp'); assert (t / 'out').read_text().strip() == '--new-window /tmp' or (t / 'out').read_text().strip() == '/tmp', (t / 'out').read_text()
-    run('--start-page', 'set', 'home'); run('--launch'); assert (t / 'out').read_text().strip() in ('', '--new-window'), 'back to the home folder'
+    bookmarks = t / 'cfg/gtk-3.0/bookmarks'
+    assert bookmarks.read_text().count('computer:///') == 1, 'one sidebar bookmark, added once'
+    run('--start-page', 'set', 'computer'); assert bookmarks.read_text().count('computer:///') == 1
+    assert 'metadata::nautilus-list-view-visible-columns name WinDoesNot::usage' in (t / 'out.gio').read_text()
+    run('--open-mode', 'set', 'window')
+    run('--launch'); assert (t / 'out').read_text().strip() == '--new-window computer:///', (t / 'out').read_text()
+    run('--launch', '/tmp'); assert (t / 'out').read_text().strip() == '--new-window /tmp', (t / 'out').read_text()
+    run('--open-mode', 'set', 'tab'); run('--launch'); assert (t / 'out').read_text().strip() == 'computer:///'
+    run('--open-mode', 'set', 'window')
+    run('--start-page', 'set', 'home'); run('--launch'); assert (t / 'out').read_text().strip() == '--new-window', 'back to the home folder'
+    assert 'computer:///' not in bookmarks.read_text(), 'the bookmark goes away with the choice'
 print('PASS: file manager open mode (window by default, tab when chosen, stored, direct calls unchanged)')

@@ -1296,7 +1296,7 @@ var strings = {
     "fileManager.mode.tab": "Tab im offenen Fenster",
     "fileManager.startPage": "Super + E startet mit",
     "fileManager.start.home": "Persönlicher Ordner",
-    "fileManager.start.computer": "Dieser PC (alle Laufwerke)",
+    "fileManager.start.computer": "Dieser PC (Laufwerke mit Füllstand)",
     "fileManager.hint": "Gilt für Super+E, wenn schon ein Dateifenster offen ist. Ohne offenes Fenster öffnet sich immer ein neues.",
     "a11y.magnifier": "Lupe",
     "a11y.zoomReset": "Zurücksetzen",

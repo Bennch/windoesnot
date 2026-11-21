@@ -8,6 +8,20 @@ set -euo pipefail
 #   windoesnot-file-manager --start-page get|set home|computer   (what Super+E opens: the home folder or "This PC" with all drives)
 mode_file=${XDG_CONFIG_HOME:-$HOME/.config}/windoesnot/file-manager-open-mode
 start_file=${XDG_CONFIG_HOME:-$HOME/.config}/windoesnot/file-manager-start-page
+bookmark_name=$([[ ${LANG:-} == de* ]] && echo 'Dieser PC' || echo 'This PC')
+bookmarks_file=${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/bookmarks
+# "This PC" is the drive list at computer:/// shown with Files' own sidebar; the usage column comes from the extension
+# windoesnot-computer.py. The folder's view (columns) and a sidebar bookmark are set for the user, idempotent.
+prepare_computer() {
+    command -v gio >/dev/null 2>&1 || return 0
+    gio set -t stringv computer:/// metadata::nautilus-list-view-visible-columns name WinDoesNot::usage >/dev/null 2>&1 || true
+    gio set -t stringv computer:/// metadata::nautilus-list-view-column-order name WinDoesNot::usage type size date_modified >/dev/null 2>&1 || true
+}
+add_bookmark() {
+    mkdir -p -- "$(dirname "$bookmarks_file")"
+    grep -q '^computer:///' "$bookmarks_file" 2>/dev/null || printf 'computer:/// %s\n' "$bookmark_name" >>"$bookmarks_file"
+}
+remove_bookmark() { [[ -f $bookmarks_file ]] && sed -i '/^computer:\/\/\/ /d' "$bookmarks_file" || true; }
 read_start() { local m; m=$(cat "$start_file" 2>/dev/null || true); [[ $m == computer ]] && echo computer || echo home; }
 read_mode() { local m; m=$(cat "$mode_file" 2>/dev/null || true); [[ $m == tab ]] && echo tab || echo window; }
 case ${1:-} in
@@ -22,13 +36,15 @@ case ${1:-} in
         case ${2:-get} in
             get) read_start; exit 0 ;;
             set) [[ ${3:-} == home || ${3:-} == computer ]] || { echo "usage: --start-page set home|computer" >&2; exit 2; }
-                 mkdir -p -- "$(dirname "$start_file")"; printf '%s\n' "$3" >"$start_file"; exit 0 ;;
+                 mkdir -p -- "$(dirname "$start_file")"; printf '%s\n' "$3" >"$start_file"
+                 if [[ $3 == computer ]]; then prepare_computer; add_bookmark; else remove_bookmark; fi
+                 exit 0 ;;
             *) echo "usage: --start-page get|set home|computer" >&2; exit 2 ;;
         esac ;;
     --launch)
         shift
-        # No folder given and "This PC" chosen: open the drive overview instead of the home folder
-        if [[ $# -eq 0 && $(read_start) == computer ]] && command -v windoesnot-computer >/dev/null 2>&1; then exec windoesnot-computer; fi
+        # No folder given and "This PC" chosen: open the drive list instead of the home folder
+        if [[ $# -eq 0 && $(read_start) == computer ]]; then prepare_computer; set -- computer:///; fi
         if [[ $(read_mode) == window ]]; then set -- --new-window "$@"; fi ;;
 esac
 
