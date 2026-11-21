@@ -9,6 +9,15 @@ set -euo pipefail
 mode_file=${XDG_CONFIG_HOME:-$HOME/.config}/windoesnot/file-manager-open-mode
 start_file=${XDG_CONFIG_HOME:-$HOME/.config}/windoesnot/file-manager-start-page
 bookmark_name=$([[ ${LANG:-} == de* ]] && echo 'Dieser PC' || echo 'This PC')
+#   windoesnot-file-manager --sidebar available|get|show <place>|hide <place>   (places: this-pc recent starred network trash; needs windoesnot-nautilus)
+sidebar_schema=org.gnome.nautilus.preferences
+sidebar_key=sidebar-hidden-places
+sidebar_hidden() { gsettings get "$sidebar_schema" "$sidebar_key" 2>/dev/null | grep -o "'[a-z-]*'" | tr -d "'" || true; }
+sidebar_write() {
+    local items=("$@") out="" item
+    for item in "${items[@]}"; do out+="${out:+, }'$item'"; done
+    gsettings set "$sidebar_schema" "$sidebar_key" "[$out]"
+}
 bookmarks_file=${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/bookmarks
 # "This PC" is the drive list at computer:/// shown with Files' own sidebar; the usage column comes from the extension
 # windoesnot-computer.py. The folder's view (columns) and a sidebar bookmark are set for the user, idempotent.
@@ -33,6 +42,19 @@ case ${1:-} in
             set) [[ ${3:-} == tab || ${3:-} == window ]] || { echo "usage: --open-mode set tab|window" >&2; exit 2; }
                  mkdir -p -- "$(dirname "$mode_file")"; printf '%s\n' "$3" >"$mode_file"; exit 0 ;;
             *) echo "usage: --open-mode get|set tab|window" >&2; exit 2 ;;
+        esac ;;
+    --sidebar)
+        case ${2:-get} in
+            available) gsettings list-keys "$sidebar_schema" 2>/dev/null | grep -qx "$sidebar_key"; exit $? ;;
+            get) sidebar_hidden | paste -sd' ' -; exit 0 ;;
+            show|hide)
+                [[ ${3:-} =~ ^(this-pc|recent|starred|network|trash)$ ]] || { echo "usage: --sidebar show|hide this-pc|recent|starred|network|trash" >&2; exit 2; }
+                mapfile -t current < <(sidebar_hidden)
+                kept=()
+                for item in "${current[@]}"; do [[ -n $item && $item != "$3" ]] && kept+=("$item"); done
+                [[ $2 == hide ]] && kept+=("$3")
+                sidebar_write "${kept[@]}"; exit 0 ;;
+            *) echo "usage: --sidebar available|get|show <place>|hide <place>" >&2; exit 2 ;;
         esac ;;
     --start-page)
         case ${2:-get} in

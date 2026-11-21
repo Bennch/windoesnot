@@ -14,6 +14,8 @@ Column {
     readonly property bool dark: !settingsMenu || settingsMenu.darkMode
     property string mode: "window"
     property string startPage: "home"
+    property var hiddenPlaces: []
+    property bool sidebarAvailable: false
     property bool loaded: false
     width: parent ? parent.width : 650
     spacing: 14
@@ -21,7 +23,7 @@ Column {
     readonly property var startPages: ["home", "computer"]
 
     function tr(key) { return Lang.get("fileManager." + key, _lang) }
-    Component.onCompleted: { readProc.running = true; readStartProc.running = true }
+    Component.onCompleted: { readProc.running = true; readStartProc.running = true; sidebarAvailProc.running = true }
 
     Process {
         id: readProc
@@ -36,6 +38,23 @@ Column {
         onExited: function(code) { var m = readStartOut.text.trim(); if (m === "home" || m === "computer") page.startPage = m }
     }
     Process { id: writeStartProc }
+    // Built-in places of the sidebar (Recent, Starred, Network, Trash) can be hidden; needs the adapted Files (windoesnot-nautilus)
+    Process {
+        id: sidebarAvailProc
+        command: ["windoesnot-file-manager", "--sidebar", "available"]
+        onExited: function(code) { page.sidebarAvailable = (code === 0); if (code === 0) sidebarReadProc.running = true }
+    }
+    Process {
+        id: sidebarReadProc
+        command: ["windoesnot-file-manager", "--sidebar", "get"]
+        stdout: StdioCollector { id: sidebarOut }
+        onExited: function(code) { page.hiddenPlaces = sidebarOut.text.trim() === "" ? [] : sidebarOut.text.trim().split(/\s+/) }
+    }
+    Process { id: sidebarWriteProc; onExited: sidebarReadProc.running = true }
+    function setPlace(name, show) {
+        sidebarWriteProc.command = ["windoesnot-file-manager", "--sidebar", show ? "show" : "hide", name]
+        sidebarWriteProc.running = true
+    }
     function setStartPage(value) { page.startPage = value; writeStartProc.command = ["windoesnot-file-manager", "--start-page", "set", value]; writeStartProc.running = true }
     Process { id: writeProc }
     function setMode(value) { page.mode = value; writeProc.command = ["windoesnot-file-manager", "--open-mode", "set", value]; writeProc.running = true }
@@ -68,4 +87,18 @@ Column {
         }
     }
     Text { width: parent.width; text: page.tr("hint"); wrapMode: Text.WordWrap; font.pixelSize: UiI.UiScale.px(12); color: page.dark ? "#888" : "#777" }
+    Text { text: page.tr("sidebar"); font.pixelSize: UiI.UiScale.px(14); color: page.dark ? "#aaa" : "#555"; topPadding: 6 }
+    Repeater {
+        model: ["recent", "starred", "network", "trash"]
+        delegate: Tools.SystemToolsToggle {
+            required property string modelData
+            width: page.width
+            settingsMenu: page.settingsMenu
+            text: page.tr("place." + modelData)
+            checked: page.hiddenPlaces.indexOf(modelData) < 0
+            enabled: page.sidebarAvailable
+            onToggled: page.setPlace(modelData, checked)
+        }
+    }
+    Text { visible: !page.sidebarAvailable; width: parent.width; text: page.tr("sidebarMissing"); wrapMode: Text.WordWrap; font.pixelSize: UiI.UiScale.px(12); color: page.dark ? "#888" : "#777" }
 }

@@ -33,4 +33,14 @@ with tempfile.TemporaryDirectory() as t:
     run('--open-mode', 'set', 'window')
     run('--start-page', 'set', 'home'); run('--launch'); assert (t / 'out').read_text().strip() == '--new-window', 'back to the home folder'
     assert 'computer:///' not in bookmarks.read_text(), 'the bookmark goes away with the choice'
+    # sidebar places: hide/show through gsettings (the stub keeps the value in a file)
+    gs = t / 'bin/gsettings'
+    gs.write_text('#!/bin/sh\nF="$STUB_OUT.gs"\ncase "$1" in\n list-keys) echo sidebar-hidden-places;;\n get) cat "$F" 2>/dev/null || echo "@as []";;\n set) echo "$4" > "$F";;\nesac\n'); gs.chmod(0o755)
+    assert run('--sidebar', 'available').returncode == 0 and run('--sidebar', 'get').stdout.strip() == ''
+    assert run('--sidebar', 'hide', 'recent').returncode == 0 and run('--sidebar', 'hide', 'network').returncode == 0
+    assert run('--sidebar', 'get').stdout.split() == ['recent', 'network'], run('--sidebar', 'get').stdout
+    run('--sidebar', 'hide', 'recent'); assert sorted(run('--sidebar', 'get').stdout.split()) == ['network', 'recent'], 'hiding twice does not duplicate'
+    run('--sidebar', 'show', 'recent'); assert run('--sidebar', 'get').stdout.split() == ['network']
+    run('--sidebar', 'show', 'network'); assert run('--sidebar', 'get').stdout.strip() == ''
+    assert run('--sidebar', 'hide', 'bogus').returncode == 2
 print('PASS: file manager open mode (window by default, tab when chosen, stored, direct calls unchanged)')
