@@ -372,7 +372,9 @@ ShellRoot {
             Scope {
                 id: perScreen
                 required property var modelData
-                ScreenWindow { screen: perScreen.modelData; controller: ctl }
+                // ScreenWindow has its own property named ctl: `controller: ctl` inside it would bind to itself (null).
+                readonly property var theController: ctl
+                ScreenWindow { screen: perScreen.modelData; controller: perScreen.theController }
                 RecordPill { screen: perScreen.modelData; controller: ctl }
             }
         }

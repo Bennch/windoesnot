@@ -308,7 +308,7 @@ def sidecar_path(png):
 
 
 def _hyprctl_json(runner, what):
-    result = runner(['hyprctl', '-j', what], capture_output=True, text=True, timeout=5, check=False)
+    result = runner(['hyprctl', '-j', what], capture_output=True, text=True, timeout=15, check=False)
     if getattr(result, 'returncode', 1) != 0:
         raise CaptureError(f'hyprctl {what} failed')
     try:
