@@ -89,7 +89,7 @@ FloatingWindow {
         var loaders = { desktop: desktopLoader, monitors: monitorsLoader, background: backgroundSettingsLoader,
                         appearance: appearanceLoader, alignment: alignmentLoader, input: inputLoader, accessibility: accessibilityLoader,
                         power: powerLoader, apps: appsLoader, maintenance: maintenanceLoader,
-                        backups: backupsLoader, updates: updatesLoader, info: infoLoader }
+                        backups: backupsLoader, security: securityLoader, updates: updatesLoader, info: infoLoader }
         var loader = loaders[currentCategory]
         return loader ? loader.item : null
     }
@@ -1183,7 +1183,7 @@ FloatingWindow {
             return enabled ? "dark" : "light"
         }
         function setCategory(category: string): string {
-            var valid = ["desktop", "background", "appearance", "alignment", "input", "accessibility", "power", "apps", "maintenance", "backups", "updates"]
+            var valid = ["desktop", "background", "appearance", "alignment", "input", "accessibility", "power", "apps", "maintenance", "backups", "security", "updates"]
             if (valid.indexOf(category) < 0) return "unsupported"
             settingsMenu.currentCategory = category
             return category
@@ -2540,6 +2540,7 @@ FloatingWindow {
                             ListElement { category: "apps";       labelKey: "nav.apps";       icon: "img/Win11-dark/actions/symbolic/view-app-grid-symbolic.svg" }
                             ListElement { category: "maintenance"; labelKey: "nav.maintenance"; icon: "img/Win11-dark/categories/symbolic/preferences-system-symbolic.svg" }
                             ListElement { category: "backups";    labelKey: "nav.backups";    icon: "img/Win11-dark/places/symbolic/folder-documents-symbolic.svg" }
+                            ListElement { category: "security";   labelKey: "nav.security";   icon: "img/Win11-dark/places/symbolic/folder-locked-symbolic.svg" }
                             ListElement { category: "updates";    labelKey: "nav.updates";    icon: "img/Win11-dark/actions/symbolic/system-update-symbolic.svg" }
                             ListElement { category: "info";       labelKey: "nav.info";       icon: "img/Win11-dark/actions/symbolic/link-symbolic.svg" }
                         }
@@ -2662,6 +2663,7 @@ FloatingWindow {
                             if (settingsMenu.currentCategory === "maintenance") return Lang.get("header.maintenance", uiLanguage)
                             if (settingsMenu.currentCategory === "backups") return Lang.get("header.backups", uiLanguage)
                             if (settingsMenu.currentCategory === "monitors") return Lang.get("header.monitors", uiLanguage)
+                            if (settingsMenu.currentCategory === "security") return Lang.get("header.security", uiLanguage)
                             if (settingsMenu.currentCategory === "updates") return Lang.get("header.updates", uiLanguage)
                             if (settingsMenu.currentCategory === "info") return Lang.get("header.info", uiLanguage)
                             return Lang.get("nav.settings", uiLanguage)
@@ -2740,6 +2742,7 @@ FloatingWindow {
                                 if (settingsMenu.currentCategory === "maintenance") return maintenanceLoader.item ? maintenanceLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "backups") return backupsLoader.item ? backupsLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "monitors") return monitorsLoader.item ? monitorsLoader.item.height + padding : height
+                                if (settingsMenu.currentCategory === "security") return securityLoader.item ? securityLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "updates") return updatesLoader.item ? updatesLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "info") return infoLoader.item ? infoLoader.item.height + padding : height
                                 if (settingsMenu.currentCategory === "background") return backgroundSettingsLoader.item ? backgroundSettingsLoader.item.implicitHeight + padding : height
@@ -2875,6 +2878,17 @@ FloatingWindow {
                             asynchronous: false
                             Component.onCompleted: if (active) setSource("settings/MonitorsCategory.qml", {"settingsMenu": settingsMenu})
                             onActiveChanged: if (active) setSource("settings/MonitorsCategory.qml", {"settingsMenu": settingsMenu})
+                        }
+
+                        // Security overview
+                        Loader {
+                            id: securityLoader
+                            active: settingsMenu.currentCategory === "security" && settingsMenu.visible
+                            visible: settingsMenu.currentCategory === "security"
+                            width: parent.width
+                            asynchronous: false
+                            Component.onCompleted: if (active) setSource("settings/SecurityCenterCategory.qml", {"settingsMenu": settingsMenu})
+                            onActiveChanged: if (active) setSource("settings/SecurityCenterCategory.qml", {"settingsMenu": settingsMenu})
                         }
 
                         // Update Settings

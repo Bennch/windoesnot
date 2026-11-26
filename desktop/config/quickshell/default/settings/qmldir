@@ -24,6 +24,7 @@ FileManagerSettings 1.0 FileManagerSettings.qml
 AccessibilityCategory 1.0 AccessibilityCategory.qml
 PowerCategory 1.0 PowerCategory.qml
 PrinterCategory 1.0 PrinterCategory.qml
+SecurityCenterCategory 1.0 SecurityCenterCategory.qml
 SharedFolders 1.0 SharedFolders.qml
 ShellSettings 1.0 ShellSettings.qml
 StartOrbSettings 1.0 StartOrbSettings.qml
