@@ -12,7 +12,7 @@ var strings = {
     "shortcuts.files": "Dateien öffnen",
     "shortcuts.floating": "Schwebendes Fenster umschalten",
     "shortcuts.start": "Startmenü öffnen",
-    "shortcuts.monitor": "Systemüberwachung öffnen",
+    "shortcuts.monitor": "Task-Manager öffnen",
     "shortcuts.settings": "Einstellungen öffnen",
     "shortcuts.lock": "Bildschirm sperren",
     "shortcuts.searchAction": "Suche öffnen",

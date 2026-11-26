@@ -7050,7 +7050,7 @@ FloatingWindow {
                     onExited: parent.hovered = false
                     onClicked: {
                         powerMenu.visible = false; powerSubMenu.visible = false
-                        Qt.createQmlObject('import Quickshell.Io; Process { command: ["bash", "-c", "gnome-system-monitor & disown"]; running: true }', powerMenu)
+                        Qt.createQmlObject('import Quickshell.Io; Process { command: ["bash", "-c", "windoesnot-taskmanager & disown"]; running: true }', powerMenu)
                     }
                 }
             }

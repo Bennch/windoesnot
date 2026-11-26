@@ -1,0 +1,288 @@
+#!/usr/bin/env python3
+"""Task Manager: applications and processes, CPU, memory, disk and network. Ends only the user's own tasks."""
+import collections
+import importlib.util
+import os
+from pathlib import Path
+import sys
+import threading
+
+import gi
+gi.require_version('Gtk', '4.0')
+gi.require_version('Adw', '1')
+from gi.repository import Adw, GLib, Gtk, Gdk
+
+BACKEND = Path('/usr/lib/windoesnot/taskmgr.py')
+if not BACKEND.is_file():
+    BACKEND = Path(__file__).resolve().parent.parent / 'lib/windoesnot/taskmgr.py'
+spec = importlib.util.spec_from_file_location('taskmgr', BACKEND)
+taskmgr = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(taskmgr)
+
+GERMAN = (os.environ.get('LANG') or '').startswith('de')
+HISTORY = 60
+INTERVAL_MS = 2000
+def tr(de, en): return de if GERMAN else en
+def size(value): return f'{value / 1073741824:.1f} GiB' if value >= 1073741824 else f'{value / 1048576:.0f} MiB'
+def rate(value): return f'{value / 1048576:.1f} MiB/s' if value >= 1048576 else f'{value / 1024:.0f} KiB/s'
+def duration(seconds):
+    days, rest = divmod(int(seconds), 86400)
+    hours, rest = divmod(rest, 3600)
+    return (f'{days} d ' if days else '') + f'{hours:02d}:{rest // 60:02d}'
+
+CSS = b'''
+window, window.background { background: #202020; color: #eeeeee; }
+label { color: #eeeeee; }
+.dim { color: #aaaaaa; }
+.accent { color: #fe6f2d; }
+.card { background: #141414; border: 1px solid #3a3a3a; border-radius: 10px; padding: 14px; }
+row.tm-row { border-bottom: 1px solid #2c2c2c; padding: 6px 10px; }
+row.tm-row:selected { background: #3a2a20; }
+.tm-head label { font-weight: 700; color: #aaaaaa; }
+progressbar trough { background: #3a3a3a; min-height: 6px; border-radius: 3px; }
+progressbar progress { background: #fe6f2d; min-height: 6px; border-radius: 3px; }
+button.destructive-action { background: #fe6f2d; color: #202020; }
+'''
+
+
+class Graph(Gtk.DrawingArea):
+    """Sparkline of the last HISTORY values; `limit` None scales to the largest value."""
+    def __init__(self, limit=100.0, height=90):
+        super().__init__(content_height=height, hexpand=True)
+        self.values = collections.deque([0.0] * HISTORY, maxlen=HISTORY)
+        self.limit = limit
+        self.set_draw_func(self.draw)
+
+    def push(self, value):
+        self.values.append(value)
+        self.queue_draw()
+
+    def draw(self, area, cr, width, height):
+        cr.set_source_rgb(0.08, 0.08, 0.08); cr.rectangle(0, 0, width, height); cr.fill()
+        top = self.limit or max(max(self.values), 1.0)
+        step = width / (HISTORY - 1)
+        points = [(i * step, height - min(v / top, 1.0) * (height - 2) - 1) for i, v in enumerate(self.values)]
+        cr.move_to(0, height)
+        for x, y in points: cr.line_to(x, y)
+        cr.line_to(width, height); cr.close_path()
+        cr.set_source_rgba(0.996, 0.435, 0.176, 0.25); cr.fill_preserve()
+        cr.set_source_rgb(0.996, 0.435, 0.176); cr.set_line_width(1.5); cr.stroke()
+
+
+class Row(Gtk.ListBoxRow):
+    def __init__(self, key):
+        super().__init__()
+        self.key = key
+        self.group = None
+        self.add_css_class('tm-row')
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        head = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        self.name = Gtk.Label(xalign=0, hexpand=True, ellipsize=3)
+        self.count = Gtk.Label(xalign=1, width_chars=4); self.count.add_css_class('dim')
+        self.cpu = Gtk.Label(xalign=1, width_chars=7)
+        self.memory = Gtk.Label(xalign=1, width_chars=10)
+        for widget in (self.name, self.count, self.cpu, self.memory): head.append(widget)
+        self.details = Gtk.Label(xalign=0, wrap=True, selectable=False); self.details.add_css_class('dim')
+        self.revealer = Gtk.Revealer(child=self.details)
+        outer.append(head); outer.append(self.revealer)
+        self.set_child(outer)
+
+    def update(self, group, procs):
+        self.group = group
+        self.name.set_text(group['name'])
+        self.count.set_text(str(len(group['pids'])))
+        self.cpu.set_text(f"{group['cpu']:.1f} %")
+        self.memory.set_text(size(group['memory']))
+        lines = [f"{p['pid']}  {p['name']}  {p['cpu']:.1f} %  {size(p['memory'])}  {p['user']}" for p in procs[:12]]
+        if len(procs) > 12: lines.append(f'… +{len(procs) - 12}')
+        self.details.set_text('\n'.join(lines))
+
+
+class Window(Adw.ApplicationWindow):
+    def __init__(self, app):
+        super().__init__(application=app, title=tr('Task-Manager', 'Task Manager'), default_width=860, default_height=640)
+        self.sampler = taskmgr.Sampler(lang='de' if GERMAN else 'en')
+        self.lock = threading.Lock()
+        self.busy = False
+        self.rows = {}
+        self.sort = 'cpu'
+        self.query = ''
+        self.processes = {}
+        stack = Adw.ViewStack()
+        stack.add_titled(self.build_processes(), 'processes', tr('Prozesse', 'Processes'))
+        stack.add_titled(self.build_performance(), 'performance', tr('Leistung', 'Performance'))
+        header = Adw.HeaderBar(title_widget=Adw.ViewSwitcher(stack=stack, policy=Adw.ViewSwitcherPolicy.WIDE))
+        toolbar = Adw.ToolbarView()
+        toolbar.add_top_bar(header)
+        toolbar.set_content(stack)
+        self.set_content(toolbar)
+        self.refresh()
+        GLib.timeout_add(INTERVAL_MS, self.refresh)
+
+    def build_processes(self):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8, margin_top=12, margin_bottom=12, margin_start=16, margin_end=16)
+        bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        self.search = Gtk.SearchEntry(hexpand=True, placeholder_text=tr('Suchen …', 'Search …'))
+        self.search.connect('search-changed', self.search_changed)
+        self.sorter = Gtk.DropDown.new_from_strings([tr('Nach CPU', 'By CPU'), tr('Nach Speicher', 'By memory'), tr('Nach Name', 'By name')])
+        self.sorter.connect('notify::selected', self.sort_changed)
+        self.end_button = Gtk.Button(label=tr('Task beenden', 'End task'), sensitive=False)
+        self.end_button.add_css_class('destructive-action')
+        self.end_button.connect('clicked', self.confirm_end)
+        for widget in (self.search, self.sorter, self.end_button): bar.append(widget)
+        page.append(bar)
+        head = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12, margin_start=10, margin_end=10)
+        head.add_css_class('tm-head')
+        head.append(Gtk.Label(label=tr('Name', 'Name'), xalign=0, hexpand=True))
+        for text, chars in ((tr('Proz.', 'Proc.'), 4), ('CPU', 7), (tr('Speicher', 'Memory'), 10)):
+            head.append(Gtk.Label(label=text, xalign=1, width_chars=chars))
+        page.append(head)
+        self.list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.SINGLE)
+        self.list.set_sort_func(self.sort_func)
+        self.list.set_filter_func(self.filter_func)
+        self.list.connect('row-selected', self.selected)
+        scroll = Gtk.ScrolledWindow(vexpand=True)
+        scroll.set_child(self.list)
+        page.append(scroll)
+        self.status = Gtk.Label(xalign=0, wrap=True); self.status.add_css_class('dim')
+        page.append(self.status)
+        return page
+
+    def build_performance(self):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=12, margin_bottom=12, margin_start=16, margin_end=16)
+        self.graphs = {}
+        self.captions = {}
+        for key, title, limit in (('cpu', 'CPU', 100.0), ('memory', tr('Arbeitsspeicher', 'Memory'), 100.0),
+                                  ('disk', tr('Datenträger', 'Disk'), None), ('net', tr('Netzwerk', 'Network'), None)):
+            card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4); card.add_css_class('card')
+            caption = Gtk.Label(xalign=0); caption.add_css_class('accent')
+            graph = Graph(limit)
+            card.append(caption); card.append(graph)
+            page.append(card)
+            self.graphs[key] = graph; self.captions[key] = (caption, title)
+        self.cores = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, max_children_per_line=8, homogeneous=True)
+        page.append(self.cores)
+        self.core_bars = []
+        self.uptime = Gtk.Label(xalign=0); self.uptime.add_css_class('dim')
+        page.append(self.uptime)
+        scroll = Gtk.ScrolledWindow(vexpand=True)
+        scroll.set_child(page)
+        return scroll
+
+    # sampling happens in a worker thread; widgets are only touched from the main loop
+    def refresh(self):
+        if not self.busy:
+            self.busy = True
+            threading.Thread(target=self.work, daemon=True).start()
+        return True
+
+    def work(self):
+        try:
+            with self.lock:
+                snapshot = self.sampler.sample()
+        except Exception as error:
+            snapshot = {'error': str(error)}
+        GLib.idle_add(self.apply, snapshot)
+
+    def apply(self, snapshot):
+        self.busy = False
+        if 'error' in snapshot:
+            self.status.set_text(snapshot['error']); return False
+        self.processes = {p['pid']: p for p in snapshot['processes']}
+        seen = set()
+        for group in snapshot['groups']:
+            seen.add(group['key'])
+            row = self.rows.get(group['key'])
+            if not row:
+                row = self.rows[group['key']] = Row(group['key'])
+                self.list.append(row)
+            members = sorted((self.processes[pid] for pid in group['pids']), key=lambda p: -p['cpu'])
+            row.update(group, members)
+        for key in set(self.rows) - seen:
+            self.list.remove(self.rows.pop(key))
+        self.list.invalidate_sort(); self.list.invalidate_filter()
+        self.selected(self.list, self.list.get_selected_row())
+        self.status.set_text(tr(f"{len(snapshot['groups'])} Anwendungen, {len(self.processes)} Prozesse", f"{len(snapshot['groups'])} applications, {len(self.processes)} processes"))
+        system = snapshot['system']
+        used = 100.0 * system['memory_used'] / max(system['memory_total'], 1)
+        self.graphs['cpu'].push(system['cpu']); self.graphs['memory'].push(used)
+        self.graphs['disk'].push(system['disk_read'] + system['disk_write']); self.graphs['net'].push(system['net_down'] + system['net_up'])
+        text = {'cpu': f"{system['cpu']:.0f} %", 'memory': f"{size(system['memory_used'])} / {size(system['memory_total'])}  ({used:.0f} %)  Swap {size(system['swap_used'])} / {size(system['swap_total'])}",
+                'disk': f"{tr('Lesen', 'Read')} {rate(system['disk_read'])}   {tr('Schreiben', 'Write')} {rate(system['disk_write'])}",
+                'net': f"↓ {rate(system['net_down'])}   ↑ {rate(system['net_up'])}"}
+        for key, (caption, title) in self.captions.items(): caption.set_text(f'{title}   {text[key]}')
+        if len(self.core_bars) != len(system['cores']):
+            while (child := self.cores.get_first_child()): self.cores.remove(child)
+            self.core_bars = [Gtk.ProgressBar() for _ in system['cores']]
+            for bar in self.core_bars: self.cores.append(bar)
+        for bar, value in zip(self.core_bars, system['cores']): bar.set_fraction(min(value / 100.0, 1.0))
+        self.uptime.set_text(tr('Laufzeit ', 'Uptime ') + duration(system['uptime']))
+        return False
+
+    # list behaviour
+    def sort_func(self, a, b):
+        x, y = a.group, b.group
+        if not x or not y: return 0
+        key = {'cpu': lambda g: (-g['cpu'], g['name'].lower()), 'memory': lambda g: (-g['memory'], g['name'].lower()), 'name': lambda g: (g['name'].lower(),)}[self.sort]
+        return (key(x) > key(y)) - (key(x) < key(y))
+
+    def filter_func(self, row):
+        if not self.query: return True
+        text = self.query.lower()
+        return bool(row.group) and (text in row.group['name'].lower() or any(text in self.processes[pid]['name'].lower() or text in self.processes[pid]['command'].lower() or text == str(pid) for pid in row.group['pids'] if pid in self.processes))
+
+    def search_changed(self, entry):
+        self.query = entry.get_text().strip()
+        self.list.invalidate_filter()
+
+    def sort_changed(self, *_):
+        self.sort = ('cpu', 'memory', 'name')[self.sorter.get_selected()]
+        self.list.invalidate_sort()
+
+    def selected(self, _, row):
+        for other in self.rows.values(): other.revealer.set_reveal_child(other is row)
+        self.end_button.set_sensitive(bool(row and row.group and row.group['own']))
+
+    # ending tasks: the confirmation names the application; the backend refuses anything that is not the user's own
+    def confirm_end(self, *_):
+        row = self.list.get_selected_row()
+        if not row or not row.group: return
+        group = row.group
+        dialog = Gtk.Dialog(title=tr('Task beenden?', 'End task?'), transient_for=self, modal=True)
+        dialog.add_button(tr('Abbrechen', 'Cancel'), Gtk.ResponseType.CANCEL)
+        dialog.add_button(tr('Task beenden', 'End task'), Gtk.ResponseType.OK)
+        box = dialog.get_content_area(); box.set_margin_top(16); box.set_margin_bottom(16); box.set_margin_start(16); box.set_margin_end(16)
+        box.append(Gtk.Label(label=tr(f"„{group['name']}“ mit {len(group['pids'])} Prozess(en) beenden? Nicht gespeicherte Daten gehen verloren.",
+                                     f"End “{group['name']}” with {len(group['pids'])} process(es)? Unsaved data will be lost."), wrap=True, xalign=0))
+        def response(_, code):
+            dialog.destroy()
+            if code == Gtk.ResponseType.OK: self.end_group(group)
+        dialog.connect('response', response)
+        dialog.present()
+
+    def end_group(self, group):
+        targets = [(pid, self.processes[pid]['start']) for pid in group['pids'] if pid in self.processes]
+        self.status.set_text(tr('Wird beendet …', 'Ending …'))
+        def work():
+            results = [self.sampler.end_task(pid, start=start) for pid, start in targets]
+            refused = [r for r in results if r not in ('ended', 'killed', 'gone')]
+            GLib.idle_add(self.ended, refused)
+        threading.Thread(target=work, daemon=True).start()
+
+    def ended(self, refused):
+        if refused: self.status.set_text(tr('Nicht beendet: ', 'Not ended: ') + ', '.join(sorted(set(refused))))
+        self.refresh()
+        return False
+
+
+class App(Adw.Application):
+    def __init__(self): super().__init__(application_id='me.windoesnot.TaskManager')
+    def do_activate(self):
+        Adw.StyleManager.get_default().set_color_scheme(Adw.ColorScheme.FORCE_DARK)
+        provider = Gtk.CssProvider(); provider.load_from_data(CSS)
+        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        self.window = self.props.active_window or Window(self)
+        self.window.present()
+
+if __name__ == '__main__':
+    raise SystemExit(App().run(sys.argv))

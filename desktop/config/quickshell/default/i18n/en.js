@@ -12,7 +12,7 @@ var strings = {
     "shortcuts.files": "Open files",
     "shortcuts.floating": "Toggle floating window",
     "shortcuts.start": "Open Start menu",
-    "shortcuts.monitor": "Open system monitor",
+    "shortcuts.monitor": "Open Task Manager",
     "shortcuts.settings": "Open settings",
     "shortcuts.lock": "Lock screen",
     "shortcuts.searchAction": "Open search",
