@@ -109,6 +109,12 @@ if not verify and not isolated then
     -- (aquamarine #360, Hyprland #16175). Mesa software rendering is the
     -- workaround reported to work (Omarchy #8113). Only with VMware's vendor ID.
     if gpuVendors["0x15ad"] then hl.env("LIBGL_ALWAYS_SOFTWARE", "1") end
+    -- Emulated GPUs without accelerated GL (QEMU/virtio 0x1af4, QEMU std 0x1234, QXL 0x1b36, VMware 0x15ad): GTK4 apps
+    -- rendered through GL/Vulkan there draw no text at all (seen with virtio-vga in QEMU: Calculator, Task Manager).
+    -- The Cairo renderer draws everything correctly; real GPUs keep the default renderer.
+    if gpuVendors["0x15ad"] or gpuVendors["0x1af4"] or gpuVendors["0x1234"] or gpuVendors["0x1b36"] then
+        hl.env("GSK_RENDERER", "cairo")
+    end
     if liteMode then
         hl.env("QT_QUICK_BACKEND", "software")
         hl.env("GSK_RENDERER", "cairo")

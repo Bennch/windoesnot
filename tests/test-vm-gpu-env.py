@@ -4,7 +4,8 @@
 Runs the real init.lua with fake sysfs vendor files and records the hl.env
 and hl.config calls. Real-hardware vendors (Intel, AMD, NVIDIA) must not
 change anything; VMware (0x15ad) gets LIBGL_ALWAYS_SOFTWARE=1; virtio
-(0x1af4) keeps its dmabuf quirk.
+(0x1af4) keeps its dmabuf quirk. Emulated GPUs (VMware, virtio, QEMU std, QXL) also get
+GSK_RENDERER=cairo, because GTK4 draws no text through GL/Vulkan there.
 """
 import json
 import os
@@ -54,9 +55,11 @@ io.write(table.concat(json))
 
 CASES = {
     'intel-amd-nvidia-real-hardware': (['0x8086', '0x1002', '0x10de'], [], None),
-    'vmware-vmwgfx': (['0x15ad'], ['LIBGL_ALWAYS_SOFTWARE=1'], None),
-    'vmware-with-second-card': (['0x15ad', '0x8086'], ['LIBGL_ALWAYS_SOFTWARE=1'], None),
-    'virtio-gpu': (['0x1af4'], [], False),
+    'vmware-vmwgfx': (['0x15ad'], ['LIBGL_ALWAYS_SOFTWARE=1', 'GSK_RENDERER=cairo'], None),
+    'vmware-with-second-card': (['0x15ad', '0x8086'], ['LIBGL_ALWAYS_SOFTWARE=1', 'GSK_RENDERER=cairo'], None),
+    'virtio-gpu': (['0x1af4'], ['GSK_RENDERER=cairo'], False),
+    'qemu-std-vga': (['0x1234'], ['GSK_RENDERER=cairo'], None),
+    'qxl': (['0x1b36'], ['GSK_RENDERER=cairo'], None),
     'virtualbox-not-claimed': (['0x80ee'], [], None),
     'no-drm-devices': ([], [], None),
 }
@@ -71,7 +74,7 @@ def run(fixture, vendors, verify=False):
     assert result.returncode == 0, result.stderr
     got = json.loads(result.stdout)
     # Only the variables this change owns; the reference config sets others.
-    got['env'] = [entry for entry in got['env'] if entry.startswith('LIBGL_')]
+    got['env'] = [entry for entry in got['env'] if entry.startswith(('LIBGL_', 'GSK_'))]
     return got
 
 
