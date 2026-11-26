@@ -557,7 +557,19 @@ def _rollback_mounted(top, device, root, number, stamp):
             tr(f'Das alte System bleibt als {backup} erhalten (Rückgängig: recovery.py undo {device} {root}).',
                f'The old system is kept as {backup} (undo: recovery.py undo {device} {root}).'),
             tr('fstab und Kernel stammen aus dem Punkt; Bootloader-Einträge auf der ESP wurden nicht angefasst. Jetzt neu starten.',
-               'fstab and kernel come from the point; bootloader entries on the ESP were not touched. Reboot now.')]
+               'fstab and kernel come from the point; bootloader entries on the ESP were not touched. Reboot now.')] + next_steps()
+
+
+def next_steps():
+    """Shown after a permanent rollback or undo. Bootloader files are not touched from the live session."""
+    return [tr('Nächste Schritte: Neu starten und das wiederhergestellte System booten. Die Bootloader-Einträge (GRUB grub.cfg, '
+               'Limine, rEFInd, systemd-boot-Wiederherstellungspunkte) erzeugen die Hooks des installierten Systems beim nächsten '
+               'Kernel- oder Snapshot-Wechsel oder über das jeweilige Bootloader-Werkzeug neu.',
+               'Next steps: reboot into the restored system. Its own hooks regenerate the bootloader entries (GRUB grub.cfg, '
+               'Limine, rEFInd, systemd-boot restore point entries) on the next kernel or snapshot change, or when you run the '
+               'bootloader tool.'),
+            tr('Wirkt das Boot-Menü veraltet, im wiederhergestellten System ausführen: sudo snapper -c root create (löst die Hooks aus).',
+               'If the boot menu looks stale, run this in the restored system: sudo snapper -c root create (this triggers the hooks).')]
 
 
 def undo(device, root, stamp=None):
@@ -577,7 +589,7 @@ def _undo_mounted(top, device, root, stamp):
         set_default_to(top, root)
     run(['sync'], timeout=120)
     return [tr(f'Das frühere System ist wieder {root}; das bisherige liegt als {root}-undone-{stamp}.',
-               f'The earlier system is {root} again; the one replaced is kept as {root}-undone-{stamp}.')]
+               f'The earlier system is {root} again; the one replaced is kept as {root}-undone-{stamp}.')] + next_steps()
 
 
 def menu_rollback(item):
@@ -602,6 +614,59 @@ def menu_rollback(item):
     return 0
 
 
+BACKUP_RE = re.compile(r'(.+)-before-restore-(\d{8})-(\d{6})')
+
+
+def find_backups(top, device):
+    """Newest '<root>-before-restore-<time>' per root below a mounted top level: the only one `undo` swaps back."""
+    names = sorted(entry.name for entry in top.iterdir() if entry.is_dir() and not entry.is_symlink())
+    found = []
+    for root in sorted({m[1] for m in map(BACKUP_RE.fullmatch, names) if m}):
+        newest = backups_of(names, root)[-1]
+        if root not in names or not os_name(top / newest):
+            continue
+        day, clock = BACKUP_RE.fullmatch(newest).groups()[1:]
+        date = f'{day[:4]}-{day[4:6]}-{day[6:]} {clock[:2]}:{clock[2:4]}:{clock[4:]}'
+        found.append({'device': device, 'root': root, 'backup': newest, 'date': date})
+    return found
+
+
+def scan_backups():
+    found = []
+    for device in block_devices():
+        with mounted(device['path'], 'ro,subvolid=5') as top:
+            if top is not None:
+                found += find_backups(top, device['path'])
+    return found
+
+
+def menu_undo():
+    print(tr('Suche frühere Systeme …', 'Looking for earlier systems …'))
+    items = scan_backups()
+    if not items:
+        print(tr('Keine Sicherung einer Wiederherstellung gefunden.', 'No backup of an earlier restore found.'))
+        return 1
+    for index, item in enumerate(items, 1):
+        print(f"{index:3}  {item['date']}  {item['backup']}  [{item['device']}]")
+    choice = input(tr('Nummer zum Rückgängigmachen (leer = Abbruch): ', 'Number to undo (empty = cancel): ')).strip()
+    if not choice.isdigit() or not 1 <= int(choice) <= len(items):
+        return 0
+    item = items[int(choice) - 1]
+    word = tr('RÜCKGÄNGIG', 'UNDO')
+    print(tr(f'{item["root"]} auf {item["device"]} wird durch das frühere System ({item["date"]}) ersetzt. Das aktuelle System wird nur '
+             f'umbenannt und bleibt erhalten.',
+             f'{item["root"]} on {item["device"]} will be replaced by the earlier system ({item["date"]}). The current system is only '
+             f'renamed and kept.'))
+    if input(tr(f'Zur Bestätigung {word} eintippen: ', f'Type {word} to confirm: ')).strip() != word:
+        return 0
+    try:
+        print('\n'.join(undo(item['device'], item['root'])))
+    except (ValueError, RuntimeError, OSError, subprocess.SubprocessError) as error:
+        print(tr('Nichts wurde geändert: ', 'Nothing was changed: ') + str(getattr(error, 'stderr', None) or error), file=sys.stderr)
+        return 1
+    return 0
+
+
 def status_text(item):
     """Suffix for the menu line: why a restore point cannot start, or what to be aware of."""
     if item['kernel']:
@@ -615,6 +680,13 @@ def status_text(item):
 
 
 def menu():
+    print(tr('1 = Wiederherstellungspunkt starten oder wiederherstellen', '1 = start or restore a restore point'))
+    print(tr('2 = eine Wiederherstellung rückgängig machen', '2 = undo a restore'))
+    top_choice = input(tr('Auswahl (leer = Abbruch): ', 'Choice (empty = cancel): ')).strip()
+    if top_choice == '2':
+        return menu_undo()
+    if top_choice != '1':
+        return 0
     print(tr('Suche Wiederherstellungspunkte …', 'Looking for restore points …'))
     items = scan()
     if not items:

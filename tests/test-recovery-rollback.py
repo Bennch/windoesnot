@@ -156,7 +156,7 @@ with tempfile.TemporaryDirectory(prefix='wdn-rollback-test-') as temporary:
     assert any(a[:3] == ['btrfs', 'subvolume', 'set-default'] and a[3] == '400' for a in seen), seen
     assert (top / '@/etc/marker').read_text() == 'snap' and (top / f'@-before-restore-{STAMP}/etc/marker').read_text() == 'old'
     assert '"restored_point": 7' in (top / '@/var/lib/windoesnot/last-restore.json').read_text()
-    assert len(report) == 3 and STAMP in report[1]
+    assert len(report) == 5 and STAMP in report[1] and 'snapper -c root create' in report[-1]
     assert all(a[0] in ('btrfs', 'sync') for a in seen)
 
 # a kernel that is not in the point (ESP kernels) is refused
@@ -170,5 +170,38 @@ with tempfile.TemporaryDirectory(prefix='wdn-rollback-test-') as temporary:
 # bad devices never reach a mount
 for bad in ('sda', '/dev/../etc/passwd', '/dev/sda; rm', ''):
     refused(recovery.check_device, bad)
+
+# menu: undo entry (scan and undo mocked, input() mocked)
+import builtins, io, contextlib
+def run_menu(answers, backups, undone):
+    answers = iter(answers)
+    builtins.input = lambda prompt='': next(answers)
+    recovery.scan_backups = lambda: backups
+    recovery.undo = lambda device, root: undone.append((device, root)) or ['ok'] + recovery.next_steps()
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        code = recovery.menu()
+    return code, out.getvalue()
+entry = {'device': '/dev/x', 'root': '@', 'backup': '@-before-restore-20261126-101500', 'date': '2026-11-26 10:15:00'}
+done = []
+code, text = run_menu(['2', '1', 'UNDO'], [entry], done)
+assert code == 0 and done == [('/dev/x', '@')] and '2026-11-26 10:15:00' in text and 'snapper -c root create' in text, text
+done = []
+assert run_menu(['2', '1', 'nope'], [entry], done)[0] == 0 and not done
+assert run_menu(['2', ''], [entry], done)[0] == 0 and not done
+assert run_menu(['2'], [], done)[0] == 1 and not done
+assert run_menu([''], [entry], done)[0] == 0
+
+# find_backups: newest per root, only WinDoesNot systems
+with tempfile.TemporaryDirectory(prefix='wdn-rollback-test-') as temporary:
+    top = Path(temporary)
+    for name in ('@', '@-before-restore-20261101-000000', '@-before-restore-20261126-101500', '@-before-restore-20261127-000000', '@home'):
+        (top / name / 'etc').mkdir(parents=True)
+    (top / '@-before-restore-20261126-101500/etc/os-release').write_text('PRETTY_NAME="WinDoesNot"\n')
+    (top / '@-before-restore-20261127-000000/etc/os-release').write_text('PRETTY_NAME="Other"\n')
+    assert recovery.find_backups(top, '/dev/x') == []
+    (top / '@-before-restore-20261127-000000/etc/os-release').write_text('PRETTY_NAME="WinDoesNot"\n')
+    found = recovery.find_backups(top, '/dev/x')
+    assert [f['backup'] for f in found] == ['@-before-restore-20261127-000000'] and found[0]['date'] == '2026-11-27 00:00:00', found
 
 print('PASS: rollback plan, refusals, undo and revert on failure')
