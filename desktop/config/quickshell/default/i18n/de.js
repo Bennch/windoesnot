@@ -22,6 +22,7 @@ var strings = {
     "shortcuts.fullscreen": "Vollbild umschalten",
     "shortcuts.split": "Teilung umschalten",
     "shortcuts.screenshot": "Bildschirmausschnitt aufnehmen",
+    "shortcuts.record": "Bildschirmaufnahme starten/beenden",
     "shortcuts.gameFix": "Spielansicht reparieren",
     "shortcuts.tileFix": "Fensteranordnung reparieren",
     "shortcuts.overview": "Arbeitsflächenübersicht",

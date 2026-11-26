@@ -42,7 +42,7 @@ FloatingWindow {
             var key = match[1], action = match[2], detail = match[3]
             var group = "system"
             if (action.indexOf("window.") === 0 || action === "focus" || action === "layout" || key.indexOf("Tab") >= 0 || key.indexOf("TAB") >= 0) group = "windows"
-            else if (key.indexOf("PRINT") >= 0 || key.indexOf("Brightness") >= 0) group = "screen"
+            else if (key.indexOf("PRINT") >= 0 || key === "SUPER + SHIFT + S" || key === "SUPER + SHIFT + R" || key.indexOf("Brightness") >= 0) group = "screen"
             else if (action === "exec_cmd" || action === "global") group = "apps"
             var description = action
             var cmd = detail.match(/^"([^\"]*)"/)
@@ -60,7 +60,7 @@ FloatingWindow {
                 "SUPER + I": "settings", "SUPER + L": "lock", "SUPER + S": "searchAction",
                 "SUPER + H": "desktop", "SUPER + D": "desktop", "SUPER + N": "notifications",
                 "SUPER + P": "picker", "SUPER + F": "fullscreen", "SUPER + J": "split",
-                "PRINT": "screenshot", "SUPER + PRINT": "screenshot", "SUPER + F12": "gameFix",
+                "PRINT": "screenshot", "SUPER + PRINT": "screenshot", "SUPER + SHIFT + S": "screenshot", "SUPER + SHIFT + R": "record", "SUPER + F12": "gameFix",
                 "SUPER + F11": "tileFix", "SUPER + TAB": "overview", "SUPER + Z": "snap",
                 "ALT + Tab": "nextWindow", "ALT + SHIFT + Tab": "previousWindow",
                 "SUPER + mouse:272": "drag", "SUPER + mouse:273": "resize",

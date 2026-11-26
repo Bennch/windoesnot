@@ -22,6 +22,7 @@ var strings = {
     "shortcuts.fullscreen": "Toggle fullscreen",
     "shortcuts.split": "Toggle split",
     "shortcuts.screenshot": "Capture screen region",
+    "shortcuts.record": "Start/stop screen recording",
     "shortcuts.gameFix": "Fix game display",
     "shortcuts.tileFix": "Fix window tiling",
     "shortcuts.overview": "Workspace overview",

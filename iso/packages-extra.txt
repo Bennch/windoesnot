@@ -168,3 +168,4 @@ cachyos-recovery
 efibootmgr
 kexec-tools
 sushi
+wf-recorder

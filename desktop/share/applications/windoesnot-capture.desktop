@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Capture
+Name[de]=Bildschirmaufnahme
+Comment=Take screenshots and record the screen
+Comment[de]=Bildschirmfotos und Bildschirmaufnahmen erstellen
+Exec=windoesnot-capture
+Icon=accessories-screenshot
+Terminal=false
+Categories=Utility;

@@ -25,6 +25,8 @@ hl.bind("SUPER + F", hl.dsp.window.fullscreen({["mode"]="fullscreen"}), {}) -- l
 hl.bind("SUPER + J", hl.dsp.layout("togglesplit"), {}) -- legacy:288
 hl.bind("PRINT", hl.dsp.exec_cmd("windoesnot-screenshot region"), {}) -- legacy:291
 hl.bind("SUPER + PRINT", hl.dsp.exec_cmd("windoesnot-screenshot region"), {}) -- legacy:292
+hl.bind("SUPER + SHIFT + S", hl.dsp.exec_cmd("windoesnot-capture region"), {})
+hl.bind("SUPER + SHIFT + R", hl.dsp.exec_cmd("windoesnot-capture record-toggle"), {})
 hl.bind("SUPER + F12", hl.dsp.exec_cmd("windoesnot-hyprctl dispatch workspace 10 && sleep 0.3 && windoesnot-hyprctl dispatch workspace previous"), {}) -- legacy:295
 hl.bind("SUPER + F11", hl.dsp.exec_cmd("windoesnot-hyprctl dispatch setfloating && sleep 0.2 && windoesnot-hyprctl dispatch settiled"), {}) -- legacy:298
 hl.bind("SUPER + left", hl.dsp.focus({["direction"]="left"}), {}) -- legacy:301
