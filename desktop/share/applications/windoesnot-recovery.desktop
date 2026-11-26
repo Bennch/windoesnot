@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Start a Restore Point
+Name[de]=Wiederherstellungspunkt starten
+Comment=Start a snapshot of an installed WinDoesNot from the live session
+Comment[de]=Einen Snapshot eines installierten WinDoesNot aus der Live-Sitzung starten
+Exec=sudo /usr/lib/windoesnot/recovery.py menu
+Icon=system-reboot
+Terminal=true
+Categories=System;
