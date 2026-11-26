@@ -38,6 +38,7 @@
 /docs/*
 !/docs/screenshots/
 !/docs/HARDWARE.md
+!/docs/ENCRYPTION-AUDIT.md
 igloo-windoesnot/
 
 # Local only: marketing drafts, reports and videos, internal helper scripts
