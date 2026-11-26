@@ -1,0 +1,10 @@
+[Unit]
+Description=Watch the Snapper snapshots for systemd-boot restore points
+ConditionPathExists=/etc/windoesnot/sdboot-snapshots.conf
+
+[Path]
+PathModified=/.snapshots
+Unit=windoesnot-sdboot-snapshots.service
+
+[Install]
+WantedBy=multi-user.target

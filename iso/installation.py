@@ -258,6 +258,14 @@ def configure_snapshots(bootloader, root):
     elif bootloader == 'refind':
         configure_refind_snapshots(root)
         subprocess.run(['systemctl', 'enable', 'refind-btrfs.service'], check=True, timeout=30)
+    elif bootloader == 'systemd-boot':
+        # systemd-boot has no snapshot support: the snapshot needs the overlay hook in its initramfs, and
+        # sdboot_snapshots.py (pacman hooks + path unit shipped by windoesnot-tools) copies kernel and
+        # initramfs of the newest restore points to the ESP and writes their boot entries.
+        configure_grub_overlay(root)
+        write_target(root, 'etc/windoesnot/sdboot-snapshots.conf', '# Presence enables /usr/lib/windoesnot/sdboot_snapshots.py (max 3 restore points on the ESP).\n')
+        subprocess.run(['systemctl', 'enable', 'windoesnot-sdboot-snapshots.path'], check=True, timeout=30)
+        subprocess.run(['mkinitcpio', '-P'], check=True, timeout=900)
 
 
 
@@ -455,6 +463,9 @@ def finish(bootloader, firmware, mode, root=Path('/'), selected_locale=None):
         configure_snapshots(bootloader, root)
         (root / 'etc/windoesnot-image-build').unlink(missing_ok=True)
         subprocess.run(['snapper', '--no-dbus', '-c', 'root', 'create', '--description', 'WinDoesNot installation'], check=True)
+    if filesystem == 'btrfs' and bootloader == 'systemd-boot':
+        # The initial restore point exists now; its entry is an extra and must never stop the installation.
+        subprocess.run(['/usr/bin/python3', '/usr/lib/windoesnot/sdboot_snapshots.py', 'sync'], check=False, timeout=300)
     if filesystem == 'btrfs' and bootloader == 'grub':
         subprocess.run(['grub-mkconfig', '-o', '/boot/grub/grub.cfg'], check=True)
     if bootloader == 'grub':
