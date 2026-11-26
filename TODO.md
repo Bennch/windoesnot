@@ -51,6 +51,52 @@ Priority principle (from the analysis): reliability before new features. Windows
 | ARM64 | missing | Low priority. Note: the dev machine (M3 Pro) can only run x86_64 images emulated. |
 | Hardware partners, preinstallation | missing | |
 
+## Second input: comparison with WildOS (Debian 13, KDE Plasma 6, Kicksecure)
+
+Checked against this repository on 2026-11-26. The comparison does not start any system, so "not found" below means "not found in the repo", not "does not exist". WildOS has an own app suite and a Windows VM mode; our strengths stay: Windows migration, AI assistant, tiling/floating, Lite mode, AUR, CachyOS performance, four bootloaders, device manager, own audio/graphics/network/Bluetooth apps.
+
+### Merged with the roadmap above (same topic, raise priority)
+- **Windows Mode (P0, new)**: Windows programs as single windows from a KVM/libvirt VM via FreeRDP (WinBoat or similar), taskbar and start menu integration, `.exe`/`.msi` association, auto start and pause, shared folders. Today: `windoesnot-windows-program` (82 lines) only points to Bottles and ProtonDB; the catalog has Bottles, virt-manager, Remmina, Lutris, Heroic, Steam, but no VM integration. Needs a Windows licence and about 16 GB RAM to be useful; GPU-heavy programs stay limited. Combine with the existing migration assistant.
+- **Recovery and reset (P0)**: already in Phase 3. Add: graphical recovery at boot, undo of a rollback, snapshots on ext4 (rsync based; today only Btrfs and Snapper), separately stored kernel and initramfs per restore point (needed for systemd-boot and Limine).
+- **Security Center (P0/P1)**: extends the Phase 3 item. Firewall profiles and updates exist; missing: LUKS2 default check in the installer, recovery key for encryption, Secure Boot status, security levels (standard, strict, maximum), AppArmor profiles, USBGuard, sysctl/kernel hardening, private reporting of vulnerabilities (SECURITY.md). Kicksecure is Debian based and cannot be installed on Arch; copy the ideas, not the packages.
+- **Backups with encryption (P0)**: `filebackup.py` uses rsync. No encryption, no deduplication. Candidate: restic (or borg). Also: start a backup when the drive is attached, back up the Windows VM disk once Windows Mode exists.
+- **Stable and beta channels (P0)**: same as Phase 2 channels.
+
+### New items for desktop comfort (P2)
+| Item | State in repo |
+| --- | --- |
+| Quick Look (preview with the space bar) | not found as a feature; search results are noisy, check `SearchWindow.qml` |
+| Clipboard history with pinned entries, auto clear of sensitive data | history exists (cliphist, search window); pinning and sensitive clearing not found |
+| Keep awake in quick settings | not found |
+| Scheduled Do Not Disturb | switch exists (`NotificationSettings.qml`), schedule not checked |
+| Snap Assist with window suggestions | snap layouts exist; suggestions not found |
+| End a task from the taskbar, switch between windows of one app | not checked |
+| Configurable title bar double click | not found |
+| Different power profiles on battery and on AC | partly (`PowerCategory.qml`, power-profiles-daemon) |
+| Own system dialogs and XDG desktop portal UI | partly (Flatpak permission dialogs); no own portal |
+| Screenshot and screen recording centre | hyprshot exists; recording only through OBS in the catalog |
+| RGB (OpenRGB), cooling monitor | not found, optional |
+
+### Own apps worth building (priority from the input, my notes in brackets)
+High: Task Manager (we ship `gnome-system-monitor`; a Windows-like own one is a real gap), Remote Center (SSH, RDP, SFTP; Remmina is in the catalog), Capture, Report (error report that the user can read before sending; `MaintenanceCategory`/diagnosis report exist).
+Medium: Notes, Archive.
+Low: Mail, PDF, Music, Videos, Office: integrate existing apps (LibreOffice is in the catalog); do not build an own office suite.
+
+### Ecosystem
+Shared UI component library with a gallery (we have QML components, no gallery), SDK and design rules, ISO build via Docker on Windows and macOS (today Linux only; this session needed an Arch container with Rust and the CachyOS keyring, see "Build notes"), interactive tour (welcome assistant exists), OpenRGB, cooling monitor, own notes and archive apps.
+
+### Top five (my order after merging both inputs)
+1. Reliability first: CI, VM tests for rollback on all four bootloaders, Secure Boot. Without this the rest is hard to trust.
+2. Recovery and reset, including the boot menu entry.
+3. Windows Mode.
+4. Security Center and hardening, LUKS2 default, encrypted backups with restic.
+5. Quick Look and the small comfort items (cheap and visible).
+
+## Build notes (found while building the ISO in a cloud container)
+- `tools/fetch-sources.py` clones the Device Manager, Bluetooth, Network and Graphics forks, but not the Audio fork and not the Store; `prepare-profile.py` then stops with "Audio pin not found". Clone them by hand or add them to the script.
+- A build host needs: archiso, python-yaml, librsvg, rust (store vendoring), grub tools, and the CachyOS keyring in the host pacman keyring (`pacman-key --init`, then `--populate cachyos`).
+- The systemd v262.1 tarball for the translated bootloaders can be rebuilt bit-identically from the git tag with `git archive --prefix=systemd-262.1/ v262.1 | gzip -n -6`; the pinned sha256 matches.
+
 ## Already there (do not redo)
 Own shell (Quickshell on Hyprland), own settings, store (pacman, AUR, Flatpak), ISO with Calamares (online and offline, four bootloaders), Windows migration, file backup, AI assistant, device manager, signed component updates, hardware diagnosis, onboarding and help, accessibility, build infrastructure with pinned sources and QEMU tests.
 
