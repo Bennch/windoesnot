@@ -38,3 +38,19 @@ Built with the merged branch (rollback, ESP-kernel snapshots, EAC check, sushi, 
 - `kexec -s -l` with a real kernel and initramfs and a snapshot command line loads (`kexec_loaded` = 1) and unloads.
 - `eac_check.py` runs (VM: no TPM, no IOMMU table, as expected), `sushi`, `cachyos-recovery`, `kexec-tools` are installed.
 Still NOT verified: actually booting into a snapshot (kexec reboot with the installed system's own initramfs and overlay), systemd-boot restore point entries and hooks, Limine snapshot start, the Settings > Backups list and the Kernel page in the GUI (the emulated screen stayed black), the installer path on a real install, Secure Boot.
+
+## Status end of day (2026-11-26) and plan for the first session with a KVM host and real hardware
+Everything below is merged and pushed on `claude/bold-carson-44sqx9`; nothing is merged to `main`, no PRs yet. The offline tests are green except tests that need quickshell, rsvg-convert and similar (49 red, none new). `test-backup-integration.py` is timing-flaky.
+
+Implemented since the first handoff (all unit-tested with fixtures; see TODO.md rows for details): permanent rollback / undo from the live session; snapshot start for systemd-boot and Limine (ESP kernels) and systemd-boot restore-point entries; EAC prerequisite check; Task Manager (`windoesnot-taskmanager`, Ctrl+Shift+Esc); Capture overlay (Print, Super+Shift+S/R; theme from settings.txt; screenshot, region/window/screen, recording); encrypted restic backups engine; branded WinDoesNot recovery entry for all four bootloaders (`iso/recovery_entries.py`); Security Center page (Settings > Security); stable/testing update channels (tools + client + Updates switch); LUKS audit (`docs/ENCRYPTION-AUDIT.md`); `fetch-sources.py` fix; ESP reuse minimum 480 MiB; CI workflow (never run on GitHub); cairo GTK renderer on emulated GPUs.
+
+Seen working in an emulated UEFI VM (virtio-vga, no KVM): live boot entry, scan service, Backups list data, rollback/undo on real Btrfs, kexec load, Task Manager window (with the cairo renderer), Capture overlay end to end incl. region drag, PNG output and recording with the Stop pill.
+
+NOT verified anywhere (do these first on real hardware / KVM):
+1. Boot into a snapshot for real (kexec reboot, overlay hook) on GRUB, systemd-boot, Limine, rEFInd installs; systemd-boot restore point entries/hooks; the new recovery entries per bootloader (assumptions are listed in `iso/recovery_entries.py` and TODO.md).
+2. QML pages never looked at: Settings > Backups (found restore points in the live session), > Kernel (EAC checks), > Security (new), > Updates (channel switch), file backup card (restic engine, one-time key dialog).
+3. Capture overlay: window pick, monitor pick, options popover, clipboard (`wl-copy` timed out in the slow VM), real notifications, multi-monitor, Stop pill inside the recording.
+4. Real GPUs: GTK apps with the normal renderer (the cairo fallback only applies to emulated GPUs).
+5. Secure Boot (nothing built), EAC on a machine with TPM 2.0, LUKS install per `docs/ENCRYPTION-AUDIT.md` (10-step plan), restic to a network target, a real testing-channel publish (needs gpg), the store install-script review (store repo branch `claude/aur-install-script-review`, GTK part never built).
+
+How the ISOs were built here (details in CONTRIBUTING.md 'Build host requirements' and TODO.md 'Build notes'): privileged Arch container, the CachyOS keyring in the host pacman keyring, rust, store/audio/other forks cloned (now done by tools/fetch-sources.py), the systemd v262.1 tarball rebuilt from the git tag (checksum matches). VM test tips: `-device virtio-vga` plus `-device usb-ehci -device usb-tablet` for mouse input via QMP; desktop takes 10-15 minutes under emulation; serial console gives root without password on the live ISO.
