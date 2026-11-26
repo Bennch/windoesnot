@@ -22,11 +22,13 @@ PAGES = {
     'apps': ['AppsCategory', 'ShellSettings', 'VmClipboardSettings'],
     'maintenance': ['SystemCategory', 'AccountCategory', 'MaintenanceCategory', 'KernelCategory'],
     'backups': ['BackupsCategory'],
+    'security': ['SecurityCenterCategory'],
     'updates': ['UpdateCategory'],
     'info': ['InfoCategory', 'AboutCategory', 'HelpCategory'],
 }
 # Settings that live in a panel opened from a page: found under that page.
-EXTRA_KEYS = {'power': ['power.brightness', 'power.nightLight']}
+EXTRA_KEYS = {'power': ['power.brightness', 'power.nightLight'],
+              'security': ['security.title'] + ['security.item.' + n for n in ('firewall', 'updates', 'backups', 'restore_points', 'encryption', 'secure_boot', 'screen_lock', 'password')]}
 # Extra search words for settings people name differently than the label does.
 SYNONYMS = {'power.nightLight': 'nachtlicht nachtmodus blaulicht night light blue light', 'power.brightness': 'dimmen heller dunkler dim', 'background.sddmThemeTitle': 'login sddm anmeldung lockscreen', 'apps.shellTitle': 'bash fish zsh terminal', 'apps.vmClipboardTitle': 'vm vmware qemu spice virtualbox clipboard copy paste kopieren einfügen zwischenablage virtuelle maschine'}
 parser = argparse.ArgumentParser(description=__doc__)
