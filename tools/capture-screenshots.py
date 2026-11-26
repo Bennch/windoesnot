@@ -54,7 +54,7 @@ SCENES = [
     {"id": "store", "label": "Store home", "kind": "launch", "command": ["/usr/bin/windoesnot-store"]},
     {"id": "volume-popup", "label": "Volume popup", "kind": "volume"},
     {"id": "network-popup", "label": "Network popup", "kind": "ipc", "handler": "network"},
-    {"id": "task-manager", "label": "Task manager", "kind": "launch", "command": ["/usr/bin/gnome-system-monitor"]},
+    {"id": "task-manager", "label": "Task manager", "kind": "launch", "command": ["windoesnot-taskmanager"]},
 ]
 
 

@@ -5,8 +5,8 @@ hl.bind("SUPER + M", hl.dsp.exit(), {}) -- legacy:274
 hl.bind("SUPER + E", hl.dsp.exec_cmd("windoesnot-file-manager --launch"), {}) -- legacy:275
 hl.bind("SUPER + V", hl.dsp.window.float({["action"]="toggle"}), {}) -- legacy:276
 hl.bind("SUPER + R", hl.dsp.global("quickshell:toggle-startmenu"), {}) -- legacy:278
-hl.bind("CTRL + ALT + Delete", hl.dsp.exec_cmd("gnome-system-monitor"), {}) -- legacy:279
-hl.bind("CTRL + SHIFT + Escape", hl.dsp.exec_cmd("gnome-system-monitor"), {})
+hl.bind("CTRL + ALT + Delete", hl.dsp.exec_cmd("windoesnot-taskmanager"), {}) -- legacy:279
+hl.bind("CTRL + SHIFT + Escape", hl.dsp.exec_cmd("windoesnot-taskmanager"), {})
 hl.bind("SUPER + I", hl.dsp.global("quickshell:show-settings"), {})
 hl.bind("SUPER + L", hl.dsp.exec_cmd("~/.config/quickshell/default/hyprlock/lock.sh"), {})
 hl.bind("SUPER + S", hl.dsp.exec_cmd("echo 1 > /tmp/qs-search-toggle"), {}) -- legacy:281

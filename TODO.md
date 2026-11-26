@@ -78,7 +78,7 @@ Checked against this repository on 2026-11-26. The comparison does not start any
 | RGB (OpenRGB), cooling monitor | not found, optional |
 
 ### Own apps worth building (priority from the input, my notes in brackets)
-High: Task Manager (we ship `gnome-system-monitor`; a Windows-like own one is a real gap), Remote Center (SSH, RDP, SFTP; Remmina is in the catalog), Capture, Report (error report that the user can read before sending; `MaintenanceCategory`/diagnosis report exist).
+High: Task Manager (DONE first version: `windoesnot-taskmanager`, backend `taskmgr.py` tested with a fake /proc; GTK UI untested here (no gi); Ctrl+Shift+Esc and Ctrl+Alt+Del open it; `gnome-system-monitor` stays installed but unused; open: per-process GPU, startup apps tab, services), Remote Center (SSH, RDP, SFTP; Remmina is in the catalog), Capture, Report (error report that the user can read before sending; `MaintenanceCategory`/diagnosis report exist).
 Medium: Notes, Archive.
 Low: Mail, PDF, Music, Videos, Office: integrate existing apps (LibreOffice is in the catalog); do not build an own office suite.
 
