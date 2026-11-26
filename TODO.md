@@ -35,7 +35,7 @@ Priority principle (from the analysis): reliability before new features. Windows
 | Windows Compatibility Center | partial | `windoesnot-windows-program` opens Windows programs (`desktop/bin`). No management of Wine prefixes or Bottles, no compatibility database. |
 | Security Center | partial | Firewall with profiles, update page, Backups, but no single page. Missing: disk encryption status, Secure Boot status, one overview. |
 | Hardware check before installing | partial | `hwcheck.py` and the Windows-side tools in `windows/` (`WinDoesNotSetup.ps1`, `WinDoesNotStick.*`). Compatibility database missing. |
-| Easy Anti-Cheat | partial | Setup via the CachyOS `eac-setup` (terminal) in Settings > Kernel. TODO: guided setup (TPM, IOMMU, Setup Mode checks in the UI), test on real hardware, decide whether the EAC kernel should be in the ISO. |
+| Easy Anti-Cheat | partial | Setup via the CachyOS `eac-setup` (terminal) in Settings > Kernel. Read-only prerequisite list (UEFI, TPM 2.0, IOMMU table, Secure Boot/Setup Mode, boot manager, snapshot boot, tool installed) in the same page via `eac_check.py`; QML not yet run in Quickshell. TODO: guided setup flow (act on the checks), test on real hardware, decide whether the EAC kernel should be in the ISO. |
 | Gaming Center | missing | Steam, Proton, Lutris, Heroic only appear as catalog entries. |
 | Sync (settings between computers) | missing | Looks like a "later" item; export exists (`ExportSystem.qml`, `export-dotfiles.py`). |
 | Mobile Connect (KDE Connect) | missing | Not found in the repo outside the upstream Calamares netinstall list and a store text. |
