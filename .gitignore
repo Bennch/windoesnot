@@ -37,6 +37,7 @@
 /AGENTS.md
 /docs/*
 !/docs/screenshots/
+!/docs/HARDWARE.md
 igloo-windoesnot/
 
 # Local only: marketing drafts, reports and videos, internal helper scripts
