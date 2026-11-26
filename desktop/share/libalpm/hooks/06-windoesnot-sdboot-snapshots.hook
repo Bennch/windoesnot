@@ -1,0 +1,11 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Type = Package
+Target = *
+
+[Action]
+Description = Saving the kernel of the new restore point for systemd-boot...
+When = PreTransaction
+Exec = /usr/bin/python3 /usr/lib/windoesnot/sdboot_snapshots.py sync

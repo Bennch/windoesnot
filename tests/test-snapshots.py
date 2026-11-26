@@ -45,6 +45,7 @@ class Snapshots(unittest.TestCase):
             root=Path(temp);(root/'etc/snapper/configs').mkdir(parents=True)
             (root/'etc/snapper/configs/root').touch()
             (root/'etc/snap-pac.ini').write_text('[root]\nuserdata = ["custom=keep"]\n[home]\nsnapshot = False\n')
+            (root/'etc/mkinitcpio.conf').write_text('HOOKS=(base systemd)\n')
             with patch.object(installation.subprocess,'run') as run:
                 installation.configure_snapshots('systemd-boot',root)
             arguments=next(c.args[0] for c in run.call_args_list if 'set-config' in c.args[0])
@@ -58,7 +59,12 @@ class Snapshots(unittest.TestCase):
             self.assertIn('custom=keep',config['root']['userdata'])
             self.assertIn('windoesnot.package-change=yes',config['root']['userdata'])
             self.assertIn('linux-cachyos',config['root']['important_packages'])
-            self.assertFalse(any('mkinitcpio' in c.args[0] for c in run.call_args_list))
+            # systemd-boot: overlay hook in the initramfs (restore points start read-only) and the entry helper is switched on.
+            self.assertTrue(any('mkinitcpio' in c.args[0] for c in run.call_args_list))
+            self.assertIn(['systemctl','enable','windoesnot-sdboot-snapshots.path'],[c.args[0] for c in run.call_args_list])
+            self.assertTrue((root/'etc/windoesnot/sdboot-snapshots.conf').is_file())
+            self.assertTrue((root/'usr/lib/initcpio/install/windoesnot-snapshot-overlay').is_file())
+            for call in run.call_args_list: self.assertIn('timeout',call.kwargs) if call.args[0][0]=='mkinitcpio' else None
 
     def test_systemd_hook_preserves_existing_hooks_even_when_sourced_twice(self):
         with tempfile.TemporaryDirectory() as temp:

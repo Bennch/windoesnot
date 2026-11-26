@@ -1,0 +1,8 @@
+[Unit]
+Description=Update the systemd-boot restore points
+ConditionPathExists=/etc/windoesnot/sdboot-snapshots.conf
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/lib/windoesnot/sdboot_snapshots.py sync
+TimeoutStartSec=300

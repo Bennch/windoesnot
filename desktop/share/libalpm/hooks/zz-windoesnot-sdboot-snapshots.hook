@@ -1,0 +1,11 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Type = Package
+Target = *
+
+[Action]
+Description = Updating the systemd-boot restore points...
+When = PostTransaction
+Exec = /usr/bin/python3 /usr/lib/windoesnot/sdboot_snapshots.py sync
