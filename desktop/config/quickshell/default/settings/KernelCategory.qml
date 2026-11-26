@@ -260,6 +260,20 @@ Item {
                 onClicked: page.requestKernelChanges()
             }
         }
+        Heading { text: page.tr("kernel.eac") }
+        Note { text: page.tr("kernel.eacHint") }
+        Row {
+            width: parent.width; spacing: 12
+            ActionButton {
+                text: page.tr("kernel.eacSetup")
+                onClicked: { eacTerminal.script = "sudo eac-setup"; eacTerminal.running = true }
+            }
+            ActionButton {
+                text: page.tr("kernel.eacStatus")
+                enabled: !page.state.live
+                onClicked: { eacTerminal.script = "eac-status"; eacTerminal.running = true }
+            }
+        }
         Heading { text: page.tr("kernel.scheduler") }
         Note { text: page.tr("kernel.schedulerHint") }
         Note { visible: page.ready && !page.state.scx.supported; text: page.tr("kernel.noScx") }
@@ -312,6 +326,11 @@ Item {
                 onClicked: page.requestAction("scx-stop", {}, page.tr("kernel.confirmScxStop"))
             }
         }
+    }
+    Process {
+        id: eacTerminal
+        property string script: ""
+        command: ["bash", "-c", 'T=ghostty; command -v "$T" >/dev/null 2>&1 || T=foot; setsid "$T" -e bash -lc "$1; echo; read -rp Enter" >/dev/null 2>&1 &', "terminal", script]
     }
     Tools.SystemToolsConfirm {
         id: confirmation
