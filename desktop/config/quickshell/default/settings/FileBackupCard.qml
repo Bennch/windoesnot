@@ -34,6 +34,8 @@ Item {
     property string pointId: ""
     property string browsePath: ""
     property string restoreRel: ""
+    property string recoveryKey: ""
+    property bool keyCopied: false
     readonly property var status: info.status || ({})
     readonly property bool running: status.state === "running" || runProcess.running || systemProcess.running
     readonly property bool available: info.available === true
@@ -103,6 +105,15 @@ Item {
     function refresh() {
         if (!statusProcess.running) statusProcess.running = true
         if (!drivesProcess.running) drivesProcess.running = true
+    }
+    function showKey(data) {
+        if (!data || !data.recovery_key) return
+        recoveryKey = data.recovery_key; keyCopied = false
+        keyDialog.open()
+    }
+    function copyKey() {
+        if (keyCopyProcess.running || recoveryKey === "") return
+        keyCopyProcess.running = true
     }
     function saveConfig(patch) {
         if (configProcess.running) return
@@ -182,12 +193,12 @@ Item {
     }
     Process {
         id: configProcess
-        stdout: StdioCollector { onStreamFinished: { const data = card.parse(text); if (data && data.error) card.errorText = data.error; card.refresh() } }
+        stdout: StdioCollector { onStreamFinished: { const data = card.parse(text); if (data && data.error) card.errorText = data.error; card.showKey(data); card.refresh() } }
     }
     Process {
         id: runProcess
         command: [card.cli, "run"]
-        stdout: StdioCollector { onStreamFinished: { const data = card.parse(text); if (data && data.error) card.errorText = card.errorMessage(data.error); card.refresh() } }
+        stdout: StdioCollector { onStreamFinished: { const data = card.parse(text); if (data && data.error) card.errorText = card.errorMessage(data.error); card.showKey(data); card.refresh() } }
         onExited: card.refresh()
     }
     Process {
@@ -216,6 +227,13 @@ Item {
         }
     }
     Process {
+        id: keyCopyProcess
+        command: ["wl-copy"]
+        stdinEnabled: true
+        onStarted: { write(card.recoveryKey); stdinEnabled = false }
+        onExited: card.keyCopied = true
+    }
+    Process {
         id: mountProcess
         stdinEnabled: true
         onStarted: { write(smbPassword.text + "\n"); smbPassword.text = "" }
@@ -237,6 +255,41 @@ Item {
         onAccepted: {
             restoreProcess.command = [card.cli, "restore", card.pointId, card.restoreRel]
             restoreProcess.running = true
+        }
+    }
+
+    // The recovery key is shown once; closing the dialog forgets it
+    Popup {
+        id: keyDialog
+        objectName: "fileBackupKeyDialog"
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(520, parent ? parent.width - 32 : 520)
+        height: Math.min(keyBody.implicitHeight + 40, parent ? parent.height - 32 : 600)
+        padding: 20; modal: true; focus: true
+        closePolicy: Popup.NoAutoClose
+        background: Rectangle { radius: card.radius; color: card.dark ? "#222222" : "#ffffff"; border.width: 1; border.color: card.dark ? "#444444" : "#cccccc" }
+        onClosed: { card.recoveryKey = ""; card.keyCopied = false }
+        contentItem: Flickable {
+            contentWidth: width; contentHeight: keyBody.implicitHeight; clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            Column {
+                id: keyBody; width: parent.width; spacing: 16
+                Text { width: parent.width; text: card.tr("keyTitle"); font.pixelSize: UiI.UiScale.px(18); font.bold: true; wrapMode: Text.WordWrap; color: card.dark ? "#ffffff" : "#1a1a1a" }
+                Text { objectName: "fileBackupKeyWarning"; width: parent.width; text: card.tr("keyWarning"); font.pixelSize: UiI.UiScale.px(13); font.bold: true; wrapMode: Text.Wrap; color: card.dark ? "#ff9999" : "#c23838" }
+                TextEdit {
+                    objectName: "fileBackupKeyText"
+                    width: parent.width; readOnly: true; selectByMouse: true; wrapMode: TextEdit.WrapAnywhere
+                    font.pixelSize: UiI.UiScale.px(16); font.family: "monospace"
+                    color: card.dark ? "#ffffff" : "#1a1a1a"
+                    text: card.recoveryKey
+                }
+                Flow {
+                    width: parent.width; spacing: 10
+                    Tools.SystemToolsButton { objectName: "fileBackupKeyCopy"; settingsMenu: card.settingsMenu; text: card.keyCopied ? card.tr("keyCopied") : card.tr("keyCopy"); onClicked: card.copyKey() }
+                    Tools.SystemToolsButton { objectName: "fileBackupKeyDone"; settingsMenu: card.settingsMenu; primary: true; text: card.tr("keyDone"); onClicked: keyDialog.close() }
+                }
+            }
         }
     }
 
@@ -293,6 +346,12 @@ Item {
                     color: card.dark ? "#aaaaaa" : "#555555"
                     text: card.tr("targetIs").replace("%1", card.targetLabel())
                 }
+                Text {
+                    objectName: "fileBackupEngineIs"
+                    width: parent.width; font.pixelSize: UiI.UiScale.px(12); wrapMode: Text.WordWrap
+                    color: card.dark ? "#aaaaaa" : "#555555"
+                    text: card.tr("engineIs").replace("%1", card.tr("engine." + (card.config.engine === "restic" ? "restic" : "rsync")))
+                }
                 Rectangle {
                     visible: card.running
                     width: parent.width; height: 6; radius: 3
@@ -319,6 +378,32 @@ Item {
                     enabled: card.available && !card.running
                     onClicked: card.startBackup()
                 }
+            }
+        }
+
+        // Backup type
+        Heading { text: card.tr("engine") }
+        Box {
+            height: engineColumn.height + 28
+            Column {
+                id: engineColumn
+                x: 16; y: 14; width: parent.width - 32; spacing: 8
+                Flow {
+                    width: parent.width; spacing: 8
+                    Repeater {
+                        model: ["restic", "rsync"]
+                        delegate: Tools.SystemToolsButton {
+                            required property string modelData
+                            objectName: "fileBackupEngine-" + modelData
+                            settingsMenu: card.settingsMenu
+                            primary: (card.config.engine === "restic" ? "restic" : "rsync") === modelData
+                            text: card.tr("engine." + modelData)
+                            enabled: !card.running
+                            onClicked: card.saveConfig({engine: modelData})
+                        }
+                    }
+                }
+                Note { text: card.config.engine === "restic" ? card.tr("engineHintRestic") : card.tr("engineHintRsync") }
             }
         }
 
