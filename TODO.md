@@ -74,7 +74,7 @@ Checked against this repository on 2026-11-26. The comparison does not start any
 | Configurable title bar double click | not found |
 | Different power profiles on battery and on AC | partly (`PowerCategory.qml`, power-profiles-daemon) |
 | Own system dialogs and XDG desktop portal UI | partly (Flatpak permission dialogs); no own portal |
-| Screenshot and screen recording centre | `windoesnot-capture` (region/window/screen, delay, clipboard, wf-recorder recording, Win+Shift+S, Win+Shift+R) exists; untested on a real session (GTK window and Hyprland binds), no region-recording UI polish or monitor picker |
+| Screenshot and screen recording centre | partial | One Quickshell overlay (`quickshell/capture/`, opened by `windoesnot-capture overlay`; Print, Win+Shift+S = Screenshot tab, Win+Shift+R = Record tab, pressing again stops a recording): frozen screen, region (handles, Space moves, live size), window (hover from `hyprctl clients`), monitor, delay, options (clipboard, pointer, audio), Stop pill with timer; follows theme settings (accent, radius, dark/light). Backend `capture.py` tested with fakes (snapshot, crop with scale and negative coordinates, argv, validation). The QML has never run (no quickshell here), nor the recording against real wf-recorder; Win+Print saves the full screen. Missing: selection spanning several monitors, annotation, recording hidden from its own Stop pill |
 | RGB (OpenRGB), cooling monitor | not found, optional |
 
 ### Own apps worth building (priority from the input, my notes in brackets)
