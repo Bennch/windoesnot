@@ -67,6 +67,8 @@ package_windoesnot-desktop() {
     install -Dm644 desktop/share/applications/windoesnot-migrate.desktop "$pkgdir/usr/share/applications/windoesnot-migrate.desktop"
     install -Dm644 desktop/share/applications/windoesnot-capture.desktop "$pkgdir/usr/share/applications/windoesnot-capture.desktop"
     install -Dm644 desktop/share/applications/windoesnot-taskmanager.desktop "$pkgdir/usr/share/applications/windoesnot-taskmanager.desktop"
+    install -Dm644 desktop/config/quickshell/default/img/scalable/utilities-system-monitor.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/windoesnot-taskmanager.svg"
+    install -Dm644 desktop/config/quickshell/default/img/scalable/accessories-screenshot.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/windoesnot-capture.svg"
     install -Dm644 desktop/share/applications/windoesnot-finder.desktop "$pkgdir/usr/share/applications/windoesnot-finder.desktop"
     install -Dm644 desktop/share/applications/windoesnot-recovery.desktop "$pkgdir/usr/share/windoesnot/recovery/windoesnot-recovery.desktop"
     install -Dm644 desktop/share/applications/windoesnot-remove-old-os.desktop "$pkgdir/usr/share/applications/windoesnot-remove-old-os.desktop"
