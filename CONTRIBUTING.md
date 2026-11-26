@@ -29,6 +29,26 @@ being collected; BIOS boot and Secure Boot remain unverified. There is no public
 signed WinDoesNot component-update repository yet. See the current
 [release status](https://windoesnot.me/en/help/release-status/).
 
+## Build host requirements
+
+Only needed if you build the ISO yourself; testing the released ISO needs none of this.
+
+- Linux with archiso (`mkarchiso`), python, python-yaml, git, librsvg and rust (the
+  store sources are vendored with cargo).
+- Boot and image tools: grub tools, squashfs-tools, libisoburn, dosfstools, mtools
+  and erofs-utils.
+- The CachyOS package signing key must be in the host pacman keyring: run
+  `pacman-key --init`, install `cachyos-keyring` from the CachyOS repository, then
+  `pacman-key --populate cachyos`.
+- The pins in `sources.json` must be present as git repositories (store,
+  device-manager, bluetooth, network, audio, graphics). On the working branch
+  `tools/fetch-sources.py` takes care of this.
+- The systemd v262.1 source tarball for the translated bootloaders can be rebuilt
+  bit-identically with
+  `git archive --format=tar --prefix=systemd-262.1/ v262.1 | gzip -n -6`.
+  It must match the sha256 in `iso/boot-language/sources.json`.
+- An x86_64 ISO cannot be built or tested at useful speed on Apple Silicon.
+
 ## Deutsch
 
 WinDoesNot ist eine frühe öffentliche Vorschau. Ein kurzer Test auf deinem Rechner
