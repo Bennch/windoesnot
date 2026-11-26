@@ -2,6 +2,8 @@
 
 [Deutsch](#deutsch)
 
+Security issues: please follow [SECURITY.md](SECURITY.md) and do not open a public issue.
+
 WinDoesNot is an early public preview. A short test on your own hardware is useful;
 you do not need to be a developer or install the system to help.
 
