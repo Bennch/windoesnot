@@ -182,7 +182,7 @@ class OverlayBackendTests(unittest.TestCase):
         self.assertEqual(c.crop_rect('-1080,-200 100x50', bounds, scale), (0, 0, 200, 100))
         self.assertEqual(c.crop_rect('0,0 960x540', bounds, scale), (2160, 400, 1920, 1080))
         self.assertEqual(c.crop_rect('1500,1500 1000x1000', bounds, scale), (5160, 3400, 840, 440))   # clamped to the image
-        self.assertEqual(c.crop_rect('-1100,-300 40x1000', bounds, scale), (0, 0, 40, 1400))        # clamped at the origin
+        self.assertEqual(c.crop_rect('-1100,-300 40x1000', bounds, scale), (0, 0, 40, 1800))        # clamped at the origin
         with self.assertRaises(c.CaptureError): c.crop_rect('5000,5000 10x10', bounds, scale)
         with self.assertRaises(c.CaptureError): c.crop_rect('1,2 3x4; rm', bounds, scale)
 
