@@ -159,3 +159,10 @@ gnome-power-manager
 papers
 
 cachyos-rate-mirrors
+
+gvfs-mtp
+gst-plugin-dav1d
+ghostty-terminfo
+
+cachyos-recovery
+efibootmgr

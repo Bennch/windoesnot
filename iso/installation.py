@@ -400,6 +400,23 @@ def remove_versioned_boot_entries(root):
     return removed
 
 
+RECOVERY_INSTALLER = 'usr/share/libalpm/scripts/cachyos-recovery-installer'
+RECOVERY_IMAGE = 'usr/lib/cachyos-recovery/cachyos-recovery.efi'
+
+
+def install_recovery(firmware, root=Path('/')):
+    """Place the CachyOS recovery image on the ESP; the pacman hook does not run for a copied image."""
+    installer = root / RECOVERY_INSTALLER
+    if firmware != 'efi' or not installer.is_file() or not (root / RECOVERY_IMAGE).is_file():
+        return False
+    try:
+        # A recovery entry is an extra; a full ESP or odd firmware must never abort an installation.
+        return subprocess.run([str(installer), 'install'], check=False, timeout=300).returncode == 0
+    except (OSError, subprocess.SubprocessError) as error:
+        print('Recovery image not installed:', error, file=sys.stderr)
+        return False
+
+
 def finish(bootloader, firmware, mode, root=Path('/'), selected_locale=None):
     validate_choice(bootloader, firmware, mode)
     apply_selected_locale(root, selected_locale)
@@ -445,6 +462,7 @@ def finish(bootloader, firmware, mode, root=Path('/'), selected_locale=None):
         subprocess.run(['/usr/lib/windoesnot/grub_quiet.py', 'filter'], check=False, timeout=30)
     if bootloader == 'limine':
         subprocess.run(['limine-update'], check=True)
+    install_recovery(firmware, root)
     subprocess.run(['/usr/lib/windoesnot/boot_language.py', 'finish'], check=True)
     subprocess.run(['systemctl', 'enable', 'windoesnot-boot-language.path'], check=True, timeout=30)
     (root / 'var/lib/pacman/sync/windoesnot-apps.db').unlink(missing_ok=True)
