@@ -282,6 +282,68 @@ class OverlayBackendTests(unittest.TestCase):
             self.assertEqual(c.main(argv), 1, argv)
 
 
+QML = ROOT / 'desktop/config/quickshell/capture'
+
+
+class OverlayQmlStaticTests(unittest.TestCase):
+    """The QML cannot run here; these checks catch the mistakes that stop it from loading."""
+
+    def test_every_component_is_in_the_qmldir(self):
+        qmldir = (QML / 'components/qmldir').read_text()
+        listed = {line.split()[1] if line.startswith('singleton') else line.split()[0] for line in qmldir.splitlines() if line.strip()}
+        files = {p.stem for p in (QML / 'components').glob('*.qml')}
+        self.assertEqual(listed, files)
+        for line in qmldir.splitlines():
+            self.assertTrue((QML / 'components' / line.split()[-1]).is_file(), line)
+
+    def test_theme_uses_the_shell_settings_keys_and_defaults(self):
+        theme = (QML / 'components/CaptureTheme.qml').read_text()
+        settings = (ROOT / 'desktop/config/quickshell/default/Settings.qml').read_text()
+        self.assertIn('/quickshell/default/settings.txt', theme)
+        for key in ('accentColor', 'borderRadius', 'darkMode'):
+            self.assertIn(f'key === "{key}"', theme)
+            self.assertIn(f'"{key}=" +', settings)          # the shell writes exactly this key
+        self.assertIn('property string accentColor: "#FE6F2D"', settings)
+        self.assertIn('defaultAccent: "#FE6F2D"', theme)
+        self.assertIn('property int borderRadius: 10', settings)
+        self.assertIn('property int borderRadius: 10', theme)
+        self.assertIn('property bool darkMode: true', settings)
+        self.assertIn('property bool darkMode: true', theme)
+
+    def test_components_use_the_theme_not_hard_coded_accent(self):
+        for name in ('CaptureToolbar', 'ScreenWindow', 'RecordPill', 'CapButton'):
+            source = (QML / 'components' / f'{name}.qml').read_text()
+            self.assertIn('CaptureTheme.', source, name)
+            self.assertNotIn('fe6f2d', source.lower(), name)
+
+    def test_strings_have_german_and_english_and_all_keys_exist(self):
+        import re
+        js = (QML / 'components/Strings.js').read_text()
+        tables = {name: set(re.findall(r'^\s*"([\w.]+)":', block, re.M))
+                  for name, block in re.findall(r'var (de|en) = \{(.*?)\n\}', js, re.S)}
+        self.assertEqual(tables['de'], tables['en'])
+        used = set()
+        for path in list((QML / 'components').glob('*.qml')) + [QML / 'shell.qml']:
+            used |= set(re.findall(r'tr\("([\w.]+)"', path.read_text()))
+        used = {k for k in used if not k.endswith('.')} | {'hint.region', 'hint.window', 'hint.screen'}
+        self.assertTrue(used <= tables['en'], used - tables['en'])
+
+    def test_shell_wires_the_cli_contract(self):
+        shell = (QML / 'shell.qml').read_text()
+        for needle in ('"shoot"', '"--snapshot"', '"record-start"', '"record-stop"', '"record-status"', '"--output"', '"--geometry"',
+                       'WINDOESNOT_CAPTURE_TAB', 'WINDOESNOT_CAPTURE_IMAGE', 'WINDOESNOT_CAPTURE_DATA', '[capture]'):
+            self.assertIn(needle, shell)
+        for flag in ('--snapshot', '--geometry', '--output', '--delay', '--settle', '--copy', '--pointer', '--audio'):
+            self.assertTrue(any(flag in spec for spec in c.FLAGS.values()), flag)
+        self.assertIn('Quickshell.Wayland', (QML / 'components/ScreenWindow.qml').read_text())
+
+    def test_packaged_with_the_desktop_config_and_launcher_opens_overlay(self):
+        pkg = (ROOT / 'packaging/PKGBUILD.in').read_text()
+        self.assertIn('cp -a desktop/config desktop/defaults', pkg)      # includes quickshell/capture
+        self.assertIn('quickshell/capture', pkg)
+        self.assertIn("sys.argv[1:] or ['overlay']", (ROOT / 'desktop/bin/windoesnot-capture').read_text())
+
+
 class SourceTests(unittest.TestCase):
     def test_no_shell_and_packaged(self):
         source = (ROOT / 'desktop/lib/windoesnot/capture.py').read_text()

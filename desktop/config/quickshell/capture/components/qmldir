@@ -1,0 +1,6 @@
+singleton CaptureTheme 1.0 CaptureTheme.qml
+CapButton 1.0 CapButton.qml
+ModeIcon 1.0 ModeIcon.qml
+CaptureToolbar 1.0 CaptureToolbar.qml
+ScreenWindow 1.0 ScreenWindow.qml
+RecordPill 1.0 RecordPill.qml

@@ -56,6 +56,7 @@ package_windoesnot-desktop() {
     cd "$srcdir/windoesnot-$pkgver"
     install -d "$pkgdir/usr/share/windoesnot/desktop"
     cp -a desktop/config desktop/defaults "$pkgdir/usr/share/windoesnot/desktop/"
+    # quickshell/capture (the on-demand capture overlay, started by windoesnot-capture overlay) is part of desktop/config above
     printf '%s\n' "$pkgver-$pkgrel" > "$pkgdir/usr/share/windoesnot/desktop/config/windoesnot-release"
     printf '%s\n' "$pkgver-$pkgrel" > "$pkgdir/usr/share/windoesnot/VERSION"
     # What changed per release; Settings > Updates shows it.
