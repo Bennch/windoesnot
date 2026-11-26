@@ -30,3 +30,11 @@ Apple Silicon has no KVM and QEMU's HVF only accelerates arm64 guests, so an x86
 
 ## ESP-based snapshot start (systemd-boot, Limine)
 `recovery.py` locates kernel and initramfs on the ESP of the same disk (snapshot, `windoesnot-restore-<N>.conf`, limine.conf entry, or newest ESP kernel only if its version is in the snapshot's /usr/lib/modules). `desktop/lib/windoesnot/sdboot_snapshots.py` creates the systemd-boot entries. Tests: `tests/test-recovery-snapshots.py`, `tests/test-sdboot-snapshots.py`. Never run on a real ESP or Limine install; the limine-snapper-sync file layout is an assumption (see the docstring of `limine_entries`).
+
+## VM test results (second ISO, 2026-11-26, emulated UEFI, no KVM)
+Built with the merged branch (rollback, ESP-kernel snapshots, EAC check, sushi, undo menu). Checked over the serial console in the live session:
+- GRUB menu shows "Wiederherstellungspunkte von der Festplatte starten"; booting it puts `windoesnot.recovery=1` on the command line, `windoesnot-recovery-scan.service` runs and writes `/run/windoesnot/restore-points.json`, the menu entries appear, `windoesnot-recovery-boot` starts the terminal menu.
+- Real Btrfs on a second disk (subvolumes `@`, `@/.snapshots`, a read-only snapshot): `recovery.py list` finds it; `rollback` makes the snapshot the new `@` (marker file back to the old content), keeps the old root as `@-before-restore-<time>`, moves `.snapshots` into the new root; `undo` swaps back. All real `btrfs` commands and output parsing worked.
+- `kexec -s -l` with a real kernel and initramfs and a snapshot command line loads (`kexec_loaded` = 1) and unloads.
+- `eac_check.py` runs (VM: no TPM, no IOMMU table, as expected), `sushi`, `cachyos-recovery`, `kexec-tools` are installed.
+Still NOT verified: actually booting into a snapshot (kexec reboot with the installed system's own initramfs and overlay), systemd-boot restore point entries and hooks, Limine snapshot start, the Settings > Backups list and the Kernel page in the GUI (the emulated screen stayed black), the installer path on a real install, Secure Boot.
