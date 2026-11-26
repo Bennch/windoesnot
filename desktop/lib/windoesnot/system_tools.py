@@ -21,6 +21,9 @@ import time
 import tomllib
 import uuid
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import update_channel
+
 LANGUAGE_SETUP_API = 1
 LOCALE_GEN = Path("/etc/locale.gen")
 LANGUAGE_LOCALES = ("de_DE.UTF-8", "en_US.UTF-8")
@@ -41,7 +44,9 @@ SHELLS = ('bash', 'fish', 'zsh')
 DB_LOCK = Path('/var/lib/pacman/db.lck')
 MIRRORS_MARKER = Path('/var/lib/windoesnot/mirrors-ranked')
 LITE_MODE_FLAG = Path('/etc/windoesnot/lite-mode')
-REFIND_CONF = Path('/boot/EFI/refind/refind.conf')
+CHANNEL_FILE = update_channel.CHANNEL_FILE
+PACMAN_DROPIN = update_channel.DROPIN_FILE
+REFIND_CONF =Path('/boot/EFI/refind/refind.conf')
 SDDM_THEMES_DIR = Path('/usr/share/sddm/themes')
 SDDM_CONF = Path('/etc/sddm.conf.d/windoesnot.conf')
 SDDM_WALLPAPER_DIR = Path('/var/lib/windoesnot/sddm-wallpaper')
@@ -942,6 +947,10 @@ def validate(action, payload):
     elif action == 'lite-mode-set':
         if set(payload) != {'enabled'} or type(payload['enabled']) is not bool:
             raise ValueError('Invalid lite mode setting')
+    elif action == 'update-channel-set':
+        if set(payload) != {'channel'}:
+            raise ValueError('Invalid update channel setting')
+        update_channel.validate_channel(payload['channel'])
     elif action == 'nearby-ports-set':
         if set(payload) != {'open'} or type(payload['open']) is not bool:
             raise ValueError('Invalid LocalSend port setting')
@@ -1149,6 +1158,8 @@ def apply(action, payload):
         else:
             LITE_MODE_FLAG.unlink(missing_ok=True)
         return {'reboot': True}
+    if action == 'update-channel-set':
+        return update_channel.apply_channel(payload['channel'], CHANNEL_FILE, PACMAN_DROPIN)
     if action == 'locale-set':
         return set_language_locale(payload['locale'])
     if action == 'shell-set':

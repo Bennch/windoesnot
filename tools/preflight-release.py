@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from channel_common import CHANNELS, changelog_blocker
 from update_gate_common import validate as validate_update_gate
 from urllib.request import Request, urlopen
 
@@ -21,6 +22,7 @@ OWN = ('store', 'device-manager', 'bluetooth', 'network', 'audio', 'graphics')
 HIGHLIGHT = ('cachyos-calamares', 'cachyos-live-iso', 'snappy-switcher',
              'LACT', 'easyeffects', 'overskride', 'adw-network',
              'biglinux-driver-manager')
+CHANNEL = 'stable'  # set from --channel in main()
 ORDER = {'PASS': 0, 'SKIP': 0, 'WARN': 1, 'FAIL': 2}
 
 
@@ -153,10 +155,10 @@ def versions(pins, offline):
     version = json.loads((ROOT / 'packaging/version.json').read_text())
     current = f'{version["version"]}-{version["release"]}'
     changelog = json.loads((ROOT / 'packaging/changelog.json').read_text())['releases'][0]
-    results = [item('PASS' if changelog.get('version') == current and not changelog.get('unreleased') else 'FAIL',
-                    f'Changelog: neuester Eintrag {changelog.get("version")} passt zu {current}'
-                    if changelog.get('version') == current and not changelog.get('unreleased')
-                    else f'Changelog: {current} fehlt als veröffentlichbarer neuester Eintrag')]
+    blocker = changelog_blocker(changelog, current, CHANNEL)
+    results = [item('PASS' if blocker is None else 'FAIL',
+                    f'Changelog: neuester Eintrag {changelog.get("version")} passt zu {current} (Kanal {CHANNEL})'
+                    if blocker is None else f'Changelog ({CHANNEL}): {current} nicht veröffentlichbar: {blocker}')]
     if offline:
         return results + [item('SKIP', 'Öffentliches Paket-Repo offline')]
     try:
@@ -411,6 +413,7 @@ def main():
     parser.add_argument('--offline', action='store_true', help='Netzwerkprüfungen überspringen')
     parser.add_argument('--only', help='Prüfnummern, z. B. 1,3,5')
     parser.add_argument('--markdown', type=Path, help='Bericht zusätzlich als Markdown schreiben')
+    parser.add_argument('--channel', choices=CHANNELS, default='stable', help='Ziel-Kanal; unreleased-Changelog nur für testing')
     parser.add_argument('--no-channel', action='store_true', help='Nur ISO-Release, kein Update-Kanal')
     parser.add_argument('--packages', type=Path, help='Exakter Paketordner für den Update-Kanal')
     args = parser.parse_args()
@@ -420,6 +423,8 @@ def main():
         parser.error('--only erwartet kommaseparierte Nummern 1 bis 9')
     if not selected.issubset(set(range(1, 10))):
         parser.error('--only erlaubt nur Nummern 1 bis 9')
+    global CHANNEL
+    CHANNEL = args.channel
     pins = json.loads((ROOT / 'sources.json').read_text())
     lines = [f'# Release-Preflight {datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")}', '']
     failed = False

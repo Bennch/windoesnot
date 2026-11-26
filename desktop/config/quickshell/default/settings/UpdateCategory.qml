@@ -41,6 +41,24 @@ Column {
         aurSetProc.running = true
     }
 
+    // Update channel: /etc/windoesnot/channel holds "stable" (default, file may be missing) or "testing".
+    property bool testingChannel: false
+    property bool settingChannel: false
+    property string channelError: ""
+
+    function setChannel(channel) {
+        if (settingChannel || (channel !== "stable" && channel !== "testing")) return
+        settingChannel = true
+        channelError = ""
+        channelSetProc.command = ["/usr/bin/pkexec", "--disable-internal-agent", "/usr/lib/windoesnot/system_tools.py",
+                                  "update-channel-set", JSON.stringify({channel: channel})]
+        channelSetProc.running = true
+    }
+
+    function readChannel() {
+        if (!channelReadProc.running && !settingChannel) channelReadProc.running = true
+    }
+
     function readAurStatus() {
         if (!aurReadProc.running && !settingAur) aurReadProc.running = true
     }
@@ -120,7 +138,24 @@ Column {
         return n === 1 ? Lang.get("updates.countOne", _lang) : Lang.get("updates.countMany", _lang).replace("{}", n)
     }
 
-    Component.onCompleted: { readAurStatus(); check(false) }
+    Component.onCompleted: { readAurStatus(); readChannel(); check(false) }
+    Process {
+        id: channelReadProc
+        command: ["sh", "-c", 'cat /etc/windoesnot/channel 2>/dev/null; exit 0']
+        stdout: StdioCollector { id: channelReadOutput }
+        onExited: updatesPage.testingChannel = channelReadOutput.text.trim() === "testing"
+    }
+    Process {
+        id: channelSetProc
+        stdout: StdioCollector { id: channelSetOutput }
+        onExited: (code) => {
+            settingChannel = false
+            if (code !== 0) channelError = Lang.get("updates.channelSaveFailed", _lang)
+            readChannel()
+            // Refresh the package databases of the new channel.
+            if (code === 0) check(true)
+        }
+    }
     Timer {
         interval: 3000
         repeat: true
@@ -733,6 +768,58 @@ Column {
                         enabled: !settingAur && !storeMissing
                         cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                         onClicked: setAur(!aurEnabled)
+                    }
+                }
+            }
+        }
+
+        // Early access: the signed "testing" repository carries WinDoesNot builds before they reach stable.
+        Rectangle {
+            width: parent.width
+            height: channelContent.implicitHeight + 32
+            radius: settingsMenu.borderRadius
+            color: cardColor
+            border.width: 1
+            border.color: lineColor
+            Row {
+                id: channelContent
+                x: 16; y: 16; width: parent.width - 32
+                spacing: 15
+                Column {
+                    width: parent.width - 75
+                    spacing: 6
+                    Text { text: Lang.get("updates.channelTitle", _lang); color: textColor; font.pixelSize: UiI.UiScale.px(14); font.bold: true }
+                    Text {
+                        width: parent.width; wrapMode: Text.WordWrap
+                        text: Lang.get("updates.channelHint", _lang)
+                        color: warnColor; font.pixelSize: UiI.UiScale.px(12)
+                    }
+                    Text {
+                        width: parent.width; wrapMode: Text.WordWrap
+                        visible: channelError.length > 0
+                        text: channelError
+                        color: warnColor; font.pixelSize: UiI.UiScale.px(12)
+                    }
+                }
+                Rectangle {
+                    objectName: "channelSwitch"
+                    width: 60; height: 32; radius: 16
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: testingChannel ? accent : (settingsMenu.darkMode ? "#3a3a3a" : "#c0c0c0")
+                    opacity: settingChannel ? 0.5 : 1
+                    Behavior on color { ColorAnimation { duration: 150 } }
+                    Rectangle {
+                        width: 24; height: 24; radius: 12
+                        color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
+                        x: testingChannel ? parent.width - width - 4 : 4
+                        anchors.verticalCenter: parent.verticalCenter
+                        Behavior on x { NumberAnimation { duration: 150 } }
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: !settingChannel
+                        cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onClicked: setChannel(testingChannel ? "stable" : "testing")
                     }
                 }
             }

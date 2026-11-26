@@ -613,6 +613,9 @@ var strings = {
     "updates.aurNoHelper": "Zum Verwenden fehlt ein AUR-Helfer (paru oder yay). Es wird nichts automatisch installiert.",
     "updates.aurReadFailed": "AUR-Einstellung konnte nicht gelesen werden.",
     "updates.aurSaveFailed": "AUR-Einstellung konnte nicht gespeichert werden.",
+    "updates.channelTitle": "Updates mit Vorabzugriff (Testing)",
+    "updates.channelHint": "WinDoesNot-Updates erhalten, bevor sie alle bekommen. Testing-Versionen können Fehler enthalten. Der Wechsel zurück zu Stable stuft bereits installierte Pakete nicht herunter.",
+    "updates.channelSaveFailed": "Der Update-Kanal konnte nicht geändert werden.",
     "updates.aurCheckFailed": "AUR-Updates konnten nicht vollständig geprüft werden. Bitte später erneut versuchen.",
 
     "backups.timerInactive": "Der Zeitgeber ist derzeit nicht aktiv. Anwenden aktiviert den gespeicherten Plan.",

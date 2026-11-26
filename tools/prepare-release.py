@@ -13,6 +13,8 @@ import shutil
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from channel_common import CHANNELS
 
 ROOT = Path(__file__).resolve().parent.parent
 ENDPOINT = "https://7a6c4099b8258fbf6e1938332649c529.r2.cloudflarestorage.com"
@@ -104,6 +106,8 @@ def main():
     parser.add_argument("--date", default=date.today().strftime("%Y.%m.%d"))
     parser.add_argument("--desktop-commit")
     parser.add_argument("--previous", help="version whose out/release-<version> folder supplies README and license notes (default: release number minus one)")
+    parser.add_argument("--channel", choices=CHANNELS, default="stable",
+                        help="stable (default) refuses an unreleased changelog entry; testing allows it and writes to out/release-<version>-testing")
     parser.add_argument("--apply", action="store_true", help="write local release files")
     args = parser.parse_args()
     match = re.fullmatch(r"(\d+(?:\.\d+)+)-(\d+)", args.version)
@@ -115,7 +119,7 @@ def main():
         parser.error("Date must be YYYY.MM.DD")
     old_version = args.previous or f"{match.group(1)}-{int(match.group(2)) - 1}"
     previous = ROOT / "out" / f"release-{old_version}"
-    output = ROOT / "out" / f"release-{args.version}"
+    output = ROOT / "out" / (f"release-{args.version}" + ("" if args.channel == "stable" else f"-{args.channel}"))
     if output.exists():
         fail(f"Release directory already exists: {output}")
     template_path = previous / "README.md"
@@ -152,6 +156,8 @@ def main():
     entry = next((entry for entry in changes if entry["version"] == args.version), None)
     if not entry:
         fail(f"No changelog entry for {args.version}")
+    if entry.get("unreleased") and args.channel != "testing":
+        fail(f"Changelog entry {args.version} is unreleased; use --channel testing or release it first")
     make_readme(template_path.read_text(), old_version, args.version, release_date, commit, iso, dot)
     if args.apply:
         # export-dotfiles.py insists on a new directory and writes its own checksums.
@@ -176,6 +182,7 @@ def main():
     notes += ["", f"ISO SHA256 (English): `{iso['en']['sha256']}`",
               f"ISO SHA256 (German): `{iso['de']['sha256']}`",
               f"Desktop commit: `{commit}`", "",
+              *(["This build is for the testing channel only and may contain bugs.", ""] if args.channel == "testing" else []),
               "This is a pre-release. Real-hardware coverage is still being collected; back up your data.", ""]
 
     names = ["LICENSE-NOTES.txt", "README.md"]
