@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN" "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+<vendor>WinDoesNot</vendor>
+<action id="org.windoesnot.recovery.boot">
+  <description>Start a restore point from an installed system</description><description xml:lang="de">Wiederherstellungspunkt eines installierten Systems starten</description>
+  <message>Authentication is required: Start a restore point (the computer restarts into it)</message>
+  <message xml:lang="de">Bitte bestätigen: Wiederherstellungspunkt starten (der Computer startet damit neu)</message>
+  <icon_name>system-lock-screen</icon_name>
+  <defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin</allow_active></defaults>
+  <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/recovery.py</annotate>
+  <annotate key="org.freedesktop.policykit.exec.argv1">boot</annotate>
+</action>
+</policyconfig>

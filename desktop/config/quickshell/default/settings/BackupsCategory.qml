@@ -178,7 +178,23 @@ Item {
             liveSession = code === 10
             backupsReady = code === 0
             if (backupsReady) refreshSnapshots()
+            if (liveSession) foundReader.running = true
         }
+    }
+    // Live session: restore points of installed systems, found at start by windoesnot-recovery-scan.service
+    property var foundPoints: []
+    Process {
+        id: foundReader
+        command: ["cat", "/run/windoesnot/restore-points.json"]
+        stdout: StdioCollector { id: foundOutput }
+        onExited: (code) => {
+            try { foundPoints = code === 0 ? JSON.parse(foundOutput.text) : [] }
+            catch (error) { foundPoints = [] }
+        }
+    }
+    Process {
+        id: foundBoot
+        onExited: (code) => { if (code !== 0 && code !== 126) statusText = Lang.get("backups.foundFailed", _lang); busy = false }
     }
 
     Column {
@@ -203,6 +219,57 @@ Item {
         color: settingsMenu.darkMode ? "#aaa" : "#555"
         font.pixelSize: UiI.UiScale.px(14)
         wrapMode: Text.WordWrap
+    }
+
+    Column {
+        id: foundColumn
+        y: unavailableNotice.y + unavailableNotice.height + 20
+        visible: liveSession && foundPoints.length > 0
+        width: parent.width
+        spacing: 10
+        Text {
+            width: parent.width
+            text: Lang.get("backups.foundTitle", _lang)
+            font.pixelSize: UiI.UiScale.px(18); font.bold: true
+            color: settingsMenu.darkMode ? "#fff" : "#1a1a1a"
+        }
+        Text {
+            width: parent.width
+            text: Lang.get("backups.foundHint", _lang)
+            wrapMode: Text.WordWrap
+            font.pixelSize: UiI.UiScale.px(14)
+            color: settingsMenu.darkMode ? "#aaa" : "#555"
+        }
+        Repeater {
+            model: foundPoints
+            delegate: Row {
+                required property var modelData
+                width: foundColumn.width
+                spacing: 12
+                Text {
+                    width: parent.width - startButton.width - parent.spacing
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: modelData.date + " · " + modelData.description + "\n" + modelData.system + " · " + modelData.device
+                        + (modelData.kernel ? "" : "\n" + Lang.get("backups.foundNoKernel", _lang))
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: UiI.UiScale.px(14)
+                    color: settingsMenu.darkMode ? "#eee" : "#202020"
+                }
+                Tools.SystemToolsButton {
+                    id: startButton
+                    anchors.verticalCenter: parent.verticalCenter
+                    settingsMenu: backupsCategory.settingsMenu
+                    text: Lang.get("backups.foundStart", _lang)
+                    enabled: !!modelData.kernel && !backupsCategory.busy
+                    onClicked: {
+                        backupsCategory.busy = true
+                        foundBoot.command = ["/usr/bin/pkexec", "--disable-internal-agent", "/usr/lib/windoesnot/recovery.py",
+                            "boot", modelData.device, modelData.subvolume, modelData.kernel]
+                        foundBoot.running = true
+                    }
+                }
+            }
+        }
     }
 
     Column {

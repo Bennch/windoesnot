@@ -1,0 +1,13 @@
+[Unit]
+Description=Look for WinDoesNot restore points on the disks (live session)
+ConditionPathExists=/etc/windoesnot-image-build
+After=systemd-udev-settle.service local-fs.target
+Wants=systemd-udev-settle.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/windoesnot/recovery.py scan-cache
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target

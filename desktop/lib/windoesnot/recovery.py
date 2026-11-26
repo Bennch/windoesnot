@@ -3,7 +3,7 @@
 
 The snapshot's own kernel and initramfs are loaded with kexec and the snapshot is mounted read-only as the
 root (the initramfs adds a RAM overlay, see iso/installation.py). Nothing on the disks is written.
-Usage (root): recovery.py list | recovery.py boot DEVICE SUBVOLUME KERNEL_NAME | recovery.py menu"""
+Usage (root): recovery.py list | recovery.py scan-cache | recovery.py boot DEVICE SUBVOLUME KERNEL_NAME | recovery.py menu"""
 import json
 import os
 from pathlib import Path
@@ -135,6 +135,23 @@ def menu():
     return 0
 
 
+CACHE = Path('/run/windoesnot/restore-points.json')
+ENTRY = Path('/usr/share/windoesnot/recovery/windoesnot-recovery.desktop')
+
+
+def scan_cache():
+    """Live start: remember what was found for the settings window and show the menu entry only if there is something."""
+    items = scan()
+    CACHE.parent.mkdir(parents=True, exist_ok=True)
+    CACHE.write_text(json.dumps(items))
+    CACHE.chmod(0o644)
+    if items and ENTRY.is_file():
+        for target in (Path('/usr/share/applications'), Path('/home/liveuser/Desktop')):
+            if target.is_dir():
+                shutil.copy2(ENTRY, target / ENTRY.name)
+    return 0
+
+
 def main(argv):
     if os.geteuid() != 0:
         raise SystemExit('Run as root')
@@ -143,6 +160,8 @@ def main(argv):
             print(json.dumps(scan()))
         elif argv[:1] == ['boot'] and len(argv) == 4:
             boot(*argv[1:])
+        elif argv == ['scan-cache']:
+            return scan_cache()
         elif argv == ['menu']:
             return menu()
         else:

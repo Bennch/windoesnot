@@ -212,6 +212,10 @@ def main():
         live_localtime.unlink()
     live_localtime.symlink_to('/usr/share/zoneinfo/' + live_zone)
     write(a/'usr/lib/systemd/system/windoesnot-live-language.service', (ROOT/'iso/windoesnot-live-language.service').read_text())
+    write(a/'usr/lib/systemd/system/windoesnot-recovery-scan.service', (ROOT/'iso/windoesnot-recovery-scan.service').read_text())
+    wants=a/'etc/systemd/system/multi-user.target.wants'; wants.mkdir(parents=True,exist_ok=True)
+    (wants/'windoesnot-recovery-scan.service').unlink(missing_ok=True)
+    (wants/'windoesnot-recovery-scan.service').symlink_to('/usr/lib/systemd/system/windoesnot-recovery-scan.service')
     # Passwordless administration belongs only to the disposable live account.
     write(a/'etc/polkit-1/rules.d/49-nopasswd_global.rules', 'polkit.addRule(function(action, subject) {\n    if (subject.user === "liveuser" && subject.isInGroup("wheel")) {\n        return polkit.Result.YES;\n    }\n});\n')
     # Do not start any other graphical session in the live image; boot must never wait for NTP (offline, UTM/VMs).
