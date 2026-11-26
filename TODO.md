@@ -100,6 +100,12 @@ Shared UI component library with a gallery (we have QML components, no gallery),
 ## Already there (do not redo)
 Own shell (Quickshell on Hyprland), own settings, store (pacman, AUR, Flatpak), ISO with Calamares (online and offline, four bootloaders), Windows migration, file backup, AI assistant, device manager, signed component updates, hardware diagnosis, onboarding and help, accessibility, build infrastructure with pinned sources and QEMU tests.
 
+## Requirement: restore point and recovery entry in ALL bootloaders (user request)
+Goal: the same restore point / recovery option in the boot menu of every supported bootloader, on the installed system and on the live ISO.
+- Live ISO: entry exists in GRUB (seen in the built ISO). BIOS (Syslinux) and UEFI systemd-boot entries are generated and checked by `check-profile.py`, not yet seen in a menu.
+- Installed system, today: GRUB (grub-btrfs), Limine (limine-snapper-sync) and rEFInd (refind-btrfs) list snapshots; systemd-boot only gets Snapper and snap-pac, no snapshot entries. Recovery image (CachyOS `cachyos-recovery`) is placed on the ESP for UEFI installs and registered for Limine and EFI; GRUB entry only for BIOS.
+- TODO: snapshot entries for systemd-boot (kernel and initramfs copy per restore point on the ESP, BLS entries, cleanup), one test per bootloader (4 x ext4/Btrfs), our own recovery entry (branded) in all four, BIOS case for GRUB and Limine, Secure Boot signing of the extra files.
+
 ## Next sensible steps
 1. Get the ISO build and a UEFI VM test running on a machine with KVM (see `HANDOFF.md`), then fix what it shows.
 2. Add CI workflows (Phase 1) so the offline tests run on every push.
