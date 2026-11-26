@@ -88,8 +88,8 @@ def run():
                 detail = 'Die Weiterverwendung benötigt „Parallel dazu installieren“. Starte den Installer erneut und wähle diese Option bei der Speicheraufteilung.'
             elif 'Existing Linux boot files would overlap:' in detail:
                 detail = 'Auf der gewählten EFI-Systempartition liegen bereits Linux-Startdateien mit gleichen Namen. Sie wurden nicht überschrieben. Verwende eine separate EFI-Systempartition für WinDoesNot.'
-            elif 'at least 384 MiB free' in detail:
-                detail = 'Die EFI-Systempartition benötigt mindestens 384 MiB freien Platz für die beiden Linux-Kernel und ihre Startdateien. Verwende eine größere oder separate EFI-Systempartition.'
+            elif 'at least 480 MiB free' in detail:
+                detail = 'Die EFI-Systempartition benötigt mindestens 480 MiB freien Platz für die beiden Linux-Kernel und ihre Startdateien. Verwende eine größere oder separate EFI-Systempartition.'
             elif 'Choose the existing menu’s EFI' in detail:
                 detail = 'Wähle die EFI-Systempartition des vorhandenen Menüs und erhalte ihren Inhalt. Die gewählte Partition gehört zu einem anderen Startmenü.'
             elif 'unencrypted installation target' in detail:
