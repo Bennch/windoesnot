@@ -17,6 +17,8 @@ import sys
 BASE = Path('/usr/share/windoesnot')
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'software'))
 from repository import install_packages
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import recovery_entries
 
 BOOT_PACKAGES = {
     'grub': ['grub', 'os-prober'],
@@ -474,6 +476,15 @@ def finish(bootloader, firmware, mode, root=Path('/'), selected_locale=None):
     if bootloader == 'limine':
         subprocess.run(['limine-update'], check=True)
     install_recovery(firmware, root)
+    locale_file = root / 'etc/locale.conf'
+    found = re.search(r'(?m)^LANG=(\S*)', locale_file.read_text() if locale_file.is_file() else '')
+    if recovery_entries.configure(bootloader, firmware, root, selected_locale or (found[1] if found else None)) and bootloader == 'grub':
+        # The drop-in only takes effect in a regenerated grub.cfg; failures here must never stop the installation.
+        try:
+            subprocess.run(['grub-mkconfig', '-o', '/boot/grub/grub.cfg'], check=False, timeout=300)
+            subprocess.run(['/usr/lib/windoesnot/grub_quiet.py', 'filter'], check=False, timeout=30)
+        except (OSError, subprocess.SubprocessError) as error:
+            print('GRUB recovery entry not regenerated:', error, file=sys.stderr)
     subprocess.run(['/usr/lib/windoesnot/boot_language.py', 'finish'], check=True)
     subprocess.run(['systemctl', 'enable', 'windoesnot-boot-language.path'], check=True, timeout=30)
     (root / 'var/lib/pacman/sync/windoesnot-apps.db').unlink(missing_ok=True)
