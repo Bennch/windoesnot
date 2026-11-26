@@ -131,6 +131,18 @@ with tempfile.TemporaryDirectory(prefix='wdn-install-modes-') as temporary:
     assert 'menuentry "WinDoesNot (linux-cachyos)"' in entries
     assert 'menuentry "WinDoesNot (linux-cachyos-lts)"' in entries
 
+    # Branded recovery entry: written for UEFI when the image exists, GRUB regenerated with timeouts, never fatal.
+    import recovery_entries
+    image=root/recovery_entries.IMAGE;image.parent.mkdir(parents=True);image.touch()
+    seen=[]
+    def recovery_run(command,**kwargs):
+        seen.append((command,kwargs.get('timeout')));return SimpleNamespace(returncode=0,stdout='ABCD-1234 ab12\n')
+    with patch.object(installation.subprocess,'check_output',return_value='ext4\n'),patch.object(installation.subprocess,'run',side_effect=recovery_run):
+        installation.finish('grub','efi','offline',root,'de_DE.UTF-8')
+    assert "menuentry 'WinDoesNot Wiederherstellung'" in (root/recovery_entries.GRUB_SCRIPT).read_text()
+    assert (['grub-mkconfig','-o','/boot/grub/grub.cfg'],300) in seen
+    assert all(timeout for command,timeout in seen if command[0] in ('grub-mkconfig',))
+
 print('PASS: bootloader/firmware validation, HTTPS-only snapshot transactions, offline isolation, network failures, base drift rejection, Btrfs-only backups')
 
 # Every Btrfs loader gets transaction snapshots; no other filesystem does.
