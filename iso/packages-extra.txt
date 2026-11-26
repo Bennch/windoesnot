@@ -167,3 +167,4 @@ ghostty-terminfo
 cachyos-recovery
 efibootmgr
 kexec-tools
+sushi
