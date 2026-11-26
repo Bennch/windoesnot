@@ -1,0 +1,37 @@
+# Offline test suite (tools/run-offline-tests.py) on every push / pull request.
+#
+# Runs in an Arch Linux container. Installed: python, python-yaml, librsvg,
+# lua, xdg-user-dirs, git, nodejs. Tests that need tools missing here are
+# skipped or fail by design; known gaps:
+#   - quickshell: not in the official Arch repos (AUR only), so tests that
+#     launch quickshell cannot pass in this job.
+#   - Qt6 development files / g++ (standalone widget tests): not installed,
+#     the *.cpp tests are skipped (WINDOESNOT_SKIP_CPP_TESTS=1).
+#   - sddm-greeter-qt6, upstream/ checkouts (Calamares, live ISO), the signed
+#     repository fixture, the built Store CLI, and VM-only tests are skipped
+#     by run-offline-tests.py itself.
+#   - tests needing a display, D-Bus, qmllint, glslangValidator or root
+#     helpers (blkid, sfdisk, mkntfs, unshare) may fail here.
+# The runner prints each test as RUN/SKIP and a failure list; compare against
+# a baseline before treating a red job as a regression.
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  offline-tests:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    env:
+      WINDOESNOT_SKIP_CPP_TESTS: '1'
+    steps:
+      - name: Install dependencies
+        run: pacman -Syu --noconfirm --needed python python-yaml librsvg lua xdg-user-dirs git nodejs
+      - uses: actions/checkout@v4
+      - name: Trust workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Run offline tests
+        run: python3 tools/run-offline-tests.py

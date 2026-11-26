@@ -289,8 +289,8 @@ def guard(target, plan=None):
         raise RuntimeError('Existing Linux boot files would overlap: ' + ', '.join(conflicts)
                            + '. Use a separate EFI system partition; existing files were not overwritten.')
     usage = os.statvfs(esp)
-    if usage.f_bavail * usage.f_frsize < 384 * 1024 * 1024:
-        raise RuntimeError('The EFI partition needs at least 384 MiB free for both kernels and their startup files. Use a larger or separate EFI partition.')
+    if usage.f_bavail * usage.f_frsize < 480 * 1024 * 1024:
+        raise RuntimeError('The EFI partition needs at least 480 MiB free for both kernels and their startup files. Use a larger or separate EFI partition.')
 
 
 def atomic_write(path, contents, metadata_from=None):
