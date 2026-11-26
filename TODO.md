@@ -74,7 +74,7 @@ Checked against this repository on 2026-11-26. The comparison does not start any
 | Configurable title bar double click | not found |
 | Different power profiles on battery and on AC | partly (`PowerCategory.qml`, power-profiles-daemon) |
 | Own system dialogs and XDG desktop portal UI | partly (Flatpak permission dialogs); no own portal |
-| Screenshot and screen recording centre | hyprshot exists; recording only through OBS in the catalog |
+| Screenshot and screen recording centre | `windoesnot-capture` (region/window/screen, delay, clipboard, wf-recorder recording, Win+Shift+S, Win+Shift+R) exists; untested on a real session (GTK window and Hyprland binds), no region-recording UI polish or monitor picker |
 | RGB (OpenRGB), cooling monitor | not found, optional |
 
 ### Own apps worth building (priority from the input, my notes in brackets)
