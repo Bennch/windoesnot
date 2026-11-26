@@ -18,9 +18,11 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import shutil
 import socket
 import subprocess
+import tempfile
 import threading
 import time
 
@@ -37,7 +39,11 @@ HARDLINK_FS = {'ext2', 'ext3', 'ext4', 'btrfs', 'xfs', 'f2fs', 'ntfs3', 'ntfs', 
 DEFAULT_EXCLUDES = ['.cache/', '.local/share/Trash/', '.local/share/Steam/', '.var/app/*/cache/', 'node_modules/', '.npm/_cacache/',
                     '.cargo/registry/', '.gradle/caches/', '.thumbnails/', 'snap/', '.local/share/containers/', '.local/share/docker/',
                     '*.part', '*.crdownload', '.Trash-*/', 'WinDoesNot-Backup/']
-DEFAULTS = {'version': 1, 'enabled': False, 'target': None, 'sources': ['~'], 'excludes': DEFAULT_EXCLUDES, 'schedule': 'daily',
+ENGINES = ('rsync', 'restic')
+RESTIC_DIR = 'windoesnot-restic'
+PASSWORD_FILE = CONFIG_DIR / 'restic-password'
+HEX_RE = re.compile(r'[0-9a-f]{8,64}')
+DEFAULTS = {'version': 1, 'engine': 'rsync', 'enabled': False, 'target': None, 'sources': ['~'], 'excludes': DEFAULT_EXCLUDES, 'schedule': 'daily',
             'keep': {'hourly': 24, 'daily': 14, 'weekly': 8, 'monthly': 12}, 'minBattery': 30, 'system': False}
 
 
@@ -73,6 +79,8 @@ def save_config(config):
 
 
 def validate_config(config):
+    if config.get('engine', 'rsync') not in ENGINES:
+        raise BackupError('Unknown backup engine')
     if config['schedule'] not in INTERVALS and config['schedule'] != 'manual':
         raise BackupError('Unknown schedule')
     if not isinstance(config['sources'], list) or not config['sources']:
@@ -284,6 +292,8 @@ def rsync_args(config, destination, link_dest=None, backup_dir=None, dry_run=Fal
 
 def run_backup(config=None, progress=None, force=False):
     config = validate_config(config or load_config())
+    if config.get('engine') == 'restic':
+        return run_restic_backup(config, progress, interactive=force)
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     lock = open(LOCK_FILE, 'w')
     try:
@@ -438,6 +448,12 @@ def restore(base, snapshot_id, rel, destination=None, overwrite=True):
             raise BackupError('Choose a file or folder')
         origin = Path.home() if parts[0] == 'home' else Path('/') / parts[0][4:].replace('+', '/')
         target = origin.joinpath(*parts[1:]) if parts[1:] else origin
+    return place(source, target, overwrite)
+
+
+def place(source, target, overwrite=True):
+    """Copy source over target; an existing target goes to the trash first."""
+    source, target = Path(source), Path(target)
     if '..' in target.parts:
         raise BackupError('Invalid destination')
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -453,6 +469,281 @@ def restore(base, snapshot_id, rel, destination=None, overwrite=True):
     if result.returncode not in (0, 23, 24):
         raise BackupError(result.stderr.strip().splitlines()[-1] if result.stderr.strip() else 'restore failed')
     return str(target)
+
+
+# ---------------------------------------------------------------- restic engine (encrypted, deduplicating)
+# Repository: <target>/windoesnot-restic. The password lives only in CONFIG_DIR/restic-password (mode 0600) and is handed
+# to restic through RESTIC_PASSWORD_FILE: never on a command line, never in a log. The recovery key (= that password) is
+# returned once by create_password() so the user can write it down; losing it makes the backup unreadable.
+def restic_repo(base):
+    return Path(base) / RESTIC_DIR
+
+
+def create_password():
+    """Create the password file (0600) when missing and return the recovery key once; None if it already exists."""
+    if PASSWORD_FILE.is_file():
+        return None
+    PASSWORD_FILE.parent.mkdir(parents=True, exist_ok=True)
+    key = '-'.join(secrets.token_hex(2) for _ in range(8))   # 8 groups of 4 hex characters = 128 bit
+    fd = os.open(PASSWORD_FILE, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, 'w') as handle:
+        handle.write(key)
+    return key
+
+
+def set_password(key):
+    """Use an existing recovery key (new computer, repository made elsewhere)."""
+    key = (key or '').strip()
+    if not key or '\n' in key:
+        raise BackupError('Invalid recovery key')
+    PASSWORD_FILE.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(PASSWORD_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    os.fchmod(fd, 0o600)
+    with os.fdopen(fd, 'w') as handle:
+        handle.write(key)
+
+
+def restic_env():
+    env = {k: v for k, v in os.environ.items() if not k.startswith('RESTIC_PASSWORD') and k != 'RESTIC_REPOSITORY'}
+    env['RESTIC_PASSWORD_FILE'] = str(PASSWORD_FILE)
+    env['RESTIC_CACHE_DIR'] = str(CACHE_DIR / 'restic')
+    return env
+
+
+def restic_run(base, *args, timeout=600, readonly=False):
+    if not PASSWORD_FILE.is_file():
+        raise BackupError('The recovery key for the encrypted backup is missing')
+    if shutil.which('restic') is None:
+        raise BackupError('restic is not installed')
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    argv = ['restic', '-r', str(restic_repo(base)), '--quiet'] + (['--no-lock'] if readonly else []) + list(args)
+    try:
+        result = subprocess.run(argv, capture_output=True, text=True, timeout=timeout, env=restic_env())
+    except subprocess.TimeoutExpired:
+        raise BackupError('restic timed out')
+    if result.returncode:
+        lines = [l for l in (result.stderr or '').strip().splitlines() if l.strip()]
+        if result.returncode == 12 or 'wrong password' in (result.stderr or '').lower():   # exit code 12 only exists in newer restic
+            raise BackupError('Wrong recovery key for this encrypted backup')
+        raise BackupError(lines[-1] if lines else 'restic failed (%d)' % result.returncode)
+    return result.stdout
+
+
+def restic_initialized(base):
+    return (restic_repo(base) / 'config').is_file()
+
+
+def restic_init(base):
+    if restic_initialized(base):
+        return False
+    restic_repo(base).parent.mkdir(parents=True, exist_ok=True)
+    restic_run(base, 'init', timeout=300)
+    return True
+
+
+def check_snapshot_id(snapshot_id):
+    if not isinstance(snapshot_id, str) or not HEX_RE.fullmatch(snapshot_id):
+        raise BackupError('Unknown backup point')
+    return snapshot_id
+
+
+def restic_abs(rel):
+    """Browser path ('home/Documents/a.txt', the scheme of the rsync engine) -> absolute path inside HOME; None for the top."""
+    parts = safe_relative(rel or '').parts
+    if not parts:
+        return None
+    if parts[0] != 'home':
+        raise BackupError('Invalid path')
+    home = Path.home()
+    path = home.joinpath(*parts[1:])
+    if '..' in path.parts or (path != home and home not in path.parents):
+        raise BackupError('Invalid path')
+    return path
+
+
+def restic_backup_args(config, base):
+    args = ['backup', '--json', '--host', host_name(), '--tag', 'windoesnot']
+    for pattern in config['excludes']:
+        args.append('--exclude=' + (pattern.rstrip('/') or pattern))
+    args.append('--exclude=' + str(restic_repo(base)))
+    return args + [str(expand(s)) for s in config['sources']]
+
+
+def restic_forget_args(keep):
+    args = ['forget', '--prune', '--group-by', 'host', '--keep-last', '3']   # newest three always stay, like the rsync engine
+    for period in ('hourly', 'daily', 'weekly', 'monthly'):
+        if keep.get(period):
+            args += ['--keep-' + period, str(int(keep[period]))]
+    return args
+
+
+def run_restic_backup(config, progress=None, interactive=False):
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    lock = open(LOCK_FILE, 'w')
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        raise BackupError('A backup is already running')
+    try:
+        base, _ = resolve_target(config['target'])
+        if not os.access(base, os.W_OK):
+            raise BackupError('The target is not writable')
+        recovery_key = None
+        if not PASSWORD_FILE.is_file():
+            if not interactive:   # a silent background run must not create a key nobody has seen
+                raise BackupError('Open the backup settings once to create the recovery key')
+            if restic_initialized(base):
+                raise BackupError('This target already holds an encrypted backup: enter its recovery key first')
+            recovery_key = create_password()
+        write_status(state='running', started=int(time.time()), percent=0, message='', error='', target=target_label(config['target']))
+        restic_init(base)
+        run_restic(base, restic_backup_args(config, base), progress)
+        restic_run(base, *restic_forget_args(config['keep']), timeout=6 * 3600)
+        points = restic_points(base)
+        write_status(state='idle', last_success=int(time.time()), percent=100, message='', error='', mode='restic',
+                     points=len(points), newest=points[0]['time'] if points else '')
+        result = {'ok': True, 'mode': 'restic'}
+        if recovery_key:
+            result['recovery_key'] = recovery_key
+        return result
+    except BackupError as error:
+        write_status(state='idle' if str(error) == 'unavailable' else 'error', error=str(error), percent=0)
+        raise
+    except Exception as error:
+        write_status(state='error', error=str(error), percent=0)
+        raise
+    finally:
+        lock.close()
+
+
+def run_restic(base, args, progress=None, deadline=24 * 3600):
+    process = subprocess.Popen(['nice', '-n', '10', 'ionice', '-c', '3', 'restic', '-r', str(restic_repo(base))] + args,
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1, env=restic_env())
+    timer = threading.Timer(deadline, process.kill)   # hard deadline for the whole run
+    timer.start()
+    error_lines = collections.deque(maxlen=50)
+    drainer = threading.Thread(target=lambda: [error_lines.append(l) for l in process.stderr], daemon=True)
+    drainer.start()
+    last = -1
+    try:
+        for line in process.stdout:
+            try:
+                message = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(message, dict) and message.get('message_type') == 'status':
+                percent = int(float(message.get('percent_done', 0)) * 100)
+                if percent != last:
+                    last = percent
+                    write_status(percent=percent)
+                    if progress:
+                        progress(percent)
+        process.wait(timeout=60)
+    finally:
+        timer.cancel()
+        if process.poll() is None:
+            process.kill()
+            process.wait(timeout=10)
+        drainer.join(timeout=5)
+    if process.returncode == 3:   # some files could not be read: the snapshot exists
+        write_status(message='Some files could not be read and were skipped')
+    elif process.returncode:
+        errors = [l.strip() for l in error_lines if l.strip()]
+        if process.returncode == 12 or any('wrong password' in l.lower() for l in errors):
+            raise BackupError('Wrong recovery key for this encrypted backup')
+        raise BackupError(errors[-1] if errors else 'restic failed (%d)' % process.returncode)
+
+
+def restic_points(base):
+    if not restic_initialized(base):
+        return []
+    data = json.loads(restic_run(base, 'snapshots', '--json', timeout=300, readonly=True) or '[]')
+    result = []
+    for snap in sorted(data, key=lambda s: s.get('time', ''), reverse=True):
+        when = re.sub(r'(\.\d+)?(Z|[+-]\d\d:\d\d)$', '', snap.get('time', ''))
+        result.append({'id': snap['id'], 'time': when[:19], 'kind': 'restic', 'path': ''})
+    return result
+
+
+def restic_browse(base, snapshot_id, rel=''):
+    check_snapshot_id(snapshot_id)
+    folder = restic_abs(rel)
+    if folder is None:   # top level: only the home folder is offered
+        return [{'name': 'home', 'dir': True, 'size': 0, 'modified': 0}]
+    entries = []
+    for line in restic_run(base, 'ls', '--json', snapshot_id, str(folder), timeout=600, readonly=True).splitlines():
+        try:
+            node = json.loads(line)
+        except ValueError:
+            continue
+        path = node.get('path')
+        if node.get('struct_type') != 'node' or not path or Path(path).parent != folder:
+            continue
+        try:
+            modified = int(datetime.datetime.fromisoformat(node.get('mtime', '').replace('Z', '+00:00')).timestamp())
+        except ValueError:
+            modified = 0
+        entries.append({'name': node['name'], 'dir': node.get('type') == 'dir', 'size': int(node.get('size', 0)), 'modified': modified})
+    return sorted(entries, key=lambda e: (not e['dir'], e['name'].lower()))
+
+
+def restic_restore(base, snapshot_id, rel, destination=None, overwrite=True):
+    """Restore one file or folder: into a scratch folder first, then placed like the rsync engine does it
+    (the file it replaces goes to the trash)."""
+    check_snapshot_id(snapshot_id)
+    path = restic_abs(rel)
+    if path is None or path == Path.home():
+        raise BackupError('Choose a file or folder')
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    scratch = Path(tempfile.mkdtemp(prefix='restore-', dir=CACHE_DIR))
+    try:
+        restic_run(base, 'restore', snapshot_id, '--target', str(scratch), '--include', str(path), timeout=6 * 3600)
+        source = scratch / str(path).lstrip('/')
+        if not source.exists() and not source.is_symlink():
+            raise BackupError('Not found in this backup point')
+        return place(source, (Path(destination) / path.name) if destination else path, overwrite)
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+
+
+def restic_delete(base, snapshot_id):
+    restic_run(base, 'forget', '--prune', check_snapshot_id(snapshot_id), timeout=6 * 3600)
+
+
+def restic_check(base):
+    restic_run(base, 'check', timeout=6 * 3600, readonly=True)
+    return {'ok': True}
+
+
+# Engine-neutral entry points used by the CLI: they follow config['engine'].
+def engine_of(config=None):
+    return (config or load_config()).get('engine', 'rsync')
+
+
+def list_points(base, config=None):
+    return restic_points(base) if engine_of(config) == 'restic' else list_snapshots(base)
+
+
+def browse_point(base, snapshot_id, rel='', config=None):
+    return restic_browse(base, snapshot_id, rel) if engine_of(config) == 'restic' else browse(base, snapshot_id, rel)
+
+
+def restore_point(base, snapshot_id, rel, destination=None, overwrite=True, config=None):
+    if engine_of(config) == 'restic':
+        return restic_restore(base, snapshot_id, rel, destination, overwrite)
+    return restore(base, snapshot_id, rel, destination, overwrite)
+
+
+def delete_point(base, snapshot_id, config=None):
+    return restic_delete(base, snapshot_id) if engine_of(config) == 'restic' else delete_snapshot(base, snapshot_id)
+
+
+def prune_points(base, config=None):
+    config = config or load_config()
+    if engine_of(config) == 'restic':
+        restic_run(base, *restic_forget_args(config['keep']), timeout=6 * 3600)
+        return []
+    return prune(base, config['keep'])
 
 
 # ---------------------------------------------------------------- scheduling
@@ -502,10 +793,13 @@ def status_report():
         available = True
     except BackupError:
         pass
-    points = list_snapshots(base) if available else []
-    return {'config': config, 'status': status, 'available': available, 'points': len(points), 'systemAvailable': system_available(),
-            'systemPoints': len(system_list(base)) if available else 0,
-            'due': due(config, status), 'newest': points[0]['time'] if points else ''}
+    restic = config.get('engine') == 'restic'
+    points = list_snapshots(base) if available and not restic else []
+    # restic: the point count is cached by the last run, so polling the status never opens the repository
+    count, newest = (int(status.get('points', 0)), status.get('newest', '')) if restic else (len(points), points[0]['time'] if points else '')
+    return {'config': config, 'status': status, 'available': available, 'points': count, 'systemAvailable': system_available(),
+            'systemPoints': len(system_list(base)) if available else 0, 'hasKey': PASSWORD_FILE.is_file() if restic else False,
+            'due': due(config, status), 'newest': newest}
 
 
 # ---------------------------------------------------------------- system restore points

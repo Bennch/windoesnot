@@ -15,7 +15,7 @@ def out(value):
 
 def main(argv):
     if not argv or argv[0] in ('-h', '--help'):
-        print('usage: windoesnot-filebackup status|drives|config [json]|run|system-export|system-list|daemon|list|browse ID [PATH]|restore ID PATH [DEST]|delete ID|prune')
+        print('usage: windoesnot-filebackup status|drives|config [json]|run|system-export|system-list|daemon|list|browse ID [PATH]|restore ID PATH [DEST]|delete ID|prune|check|set-key (key on stdin)')
         return 0
     command, rest = argv[0], argv[1:]
     try:
@@ -28,9 +28,14 @@ def main(argv):
                 config = fb.load_config()
                 config.update({k: v for k, v in json.loads(rest[0]).items() if k in fb.DEFAULTS and k != 'version'})
                 fb.save_config(fb.validate_config(config))
-            out(fb.load_config())
+            result = fb.load_config()
+            if rest and result.get('engine') == 'restic':
+                key = fb.create_password()   # shown to the user exactly once, never stored anywhere else
+                if key:
+                    result = {**result, 'recovery_key': key}
+            out(result)
         elif command == 'run':
-            result = fb.run_backup()
+            result = fb.run_backup(force=True)
             if fb.load_config().get('system') and fb.system_available():
                 try:
                     base, _ = fb.resolve_target(fb.load_config()['target'])
@@ -43,18 +48,24 @@ def main(argv):
         elif command in ('system-export', 'system-list'):
             base, _ = fb.resolve_target(fb.load_config()['target'])
             out(fb.system_export(base) if command == 'system-export' else fb.system_list(base))
-        elif command in ('list', 'browse', 'restore', 'delete', 'prune'):
+        elif command == 'set-key':
+            fb.set_password(sys.stdin.readline()); out({'ok': True})
+        elif command in ('list', 'browse', 'restore', 'delete', 'prune', 'check'):
             base, _ = fb.resolve_target(fb.load_config()['target'])
             if command == 'list':
-                out(fb.list_snapshots(base))
+                out(fb.list_points(base))
             elif command == 'browse':
-                out(fb.browse(base, rest[0], rest[1] if len(rest) > 1 else ''))
+                out(fb.browse_point(base, rest[0], rest[1] if len(rest) > 1 else ''))
             elif command == 'restore':
-                out({'restored': fb.restore(base, rest[0], rest[1], rest[2] if len(rest) > 2 else None)})
+                out({'restored': fb.restore_point(base, rest[0], rest[1], rest[2] if len(rest) > 2 else None)})
             elif command == 'delete':
-                fb.delete_snapshot(base, rest[0]); out({'ok': True})
+                fb.delete_point(base, rest[0]); out({'ok': True})
+            elif command == 'check':
+                if fb.engine_of() != 'restic':
+                    raise fb.BackupError('Only encrypted backups can be checked')
+                out(fb.restic_check(base))
             else:
-                out({'removed': fb.prune(base, fb.load_config()['keep'])})
+                out({'removed': fb.prune_points(base)})
         else:
             print('unknown command', file=sys.stderr)
             return 2
