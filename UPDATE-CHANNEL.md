@@ -65,6 +65,31 @@ point, or restore all four matching previous WinDoesNot packages together if
 you retained them. Keep native ABI requirements intact. Preserve personal files
 separately; system snapshots are not a backup of your documents.
 
+## Release channels: stable and testing
+
+Two signed repositories exist. **stable** is the default and unchanged: repository
+`windoesnot`, objects under `repo/x86_64/`. **testing** is opt-in early access:
+repository `windoesnot-testing` (database `windoesnot-testing.db.tar.gz`), objects
+under `repo/testing/x86_64/`, same release key, same `SigLevel = Required DatabaseRequired TrustedOnly`.
+Switch with Settings > Updates > "Early access (testing) updates" (choice stored in
+`/etc/windoesnot/channel`, containing `stable` or `testing`). While testing is on,
+the drop-in `/etc/pacman.d/windoesnot.conf` contains only the testing section; the
+stable section is absent. Switching back does not downgrade installed packages.
+Testing may contain bugs.
+
+Maintainer flow, all steps local until you publish by hand:
+
+1. `tools/preflight-release.py --channel testing` (an `unreleased` changelog entry is allowed here;
+   `--channel stable` refuses it). `tools/prepare-release.py --channel testing` writes to `out/release-<version>-testing`.
+2. `tools/build-repository.py --channel testing --sign-key <FPR> ...`, then
+   `tools/publish-repository-r2.py --channel testing ...` (plan first, `--publish` only after review).
+   The one-time client bundle is stable-only.
+3. Promotion testing -> stable: never rebuild. Put the exact signed `*.pkg.tar.zst` and their `.sig`
+   files from the testing repository into a new package folder and run
+   `tools/build-repository.py --channel stable --reuse-signatures --sign-key <FPR> ...`; set the
+   changelog entry to released (remove `unreleased`), run `tools/preflight-release.py --channel stable`,
+   then publish with `--channel stable`. Package files keep their name, checksum and signature.
+
 ## Deutsch
 
 Der Kanal liefert die vier WinDoesNot-Desktop-Pakete und die WinDoesNot-Apps (Geräte-Manager, Bluetooth, Netzwerk, Audio, Grafik, Store) genau so, wie die ISO sie enthält. CachyOS-/Arch-Systempakete
@@ -98,3 +123,22 @@ Andernfalls entfernst du nur die WinDoesNot-Include-Zeile. Bereits installierte
 Pakete bleiben dabei installiert. Für eine Rückkehr zum früheren Systemstand
 nutze einen passenden Wiederherstellungspunkt oder einen vollständig erhaltenen
 älteren Satz aller vier WinDoesNot-Pakete; ABI-Anforderungen bleiben bestehen.
+
+### Kanäle: Stable und Testing
+
+Es gibt zwei signierte Paketquellen. **Stable** ist Standard und unverändert (Repository
+`windoesnot`, Objekte unter `repo/x86_64/`). **Testing** ist freiwilliger Vorabzugriff:
+Repository `windoesnot-testing` (Datenbank `windoesnot-testing.db.tar.gz`), Objekte unter
+`repo/testing/x86_64/`, gleicher Release-Schlüssel und gleiche Signaturpflicht. Umschalten unter
+Einstellungen > Updates > „Updates mit Vorabzugriff (Testing)“; die Wahl steht in
+`/etc/windoesnot/channel` (`stable` oder `testing`). Bei Testing enthält
+`/etc/pacman.d/windoesnot.conf` nur den Testing-Abschnitt, Stable ist abgeschaltet. Der Wechsel zurück
+stuft installierte Pakete nicht herunter. Testing kann Fehler enthalten.
+
+Ablauf für Betreuer (alles lokal, Veröffentlichung nur von Hand): Preflight und Release-Vorbereitung mit
+`--channel testing` (ein `unreleased`-Changelog-Eintrag ist nur hier erlaubt, `--channel stable` lehnt ihn ab),
+Repository mit `build-repository.py --channel testing` bauen und mit `publish-repository-r2.py --channel testing`
+planen und veröffentlichen. Beförderung Testing -> Stable: nie neu bauen. Dieselben signierten Pakete samt `.sig`
+in einen neuen Ordner legen, `build-repository.py --channel stable --reuse-signatures` ausführen, den
+Changelog-Eintrag freigeben, `preflight-release.py --channel stable` laufen lassen und dann mit
+`--channel stable` veröffentlichen.

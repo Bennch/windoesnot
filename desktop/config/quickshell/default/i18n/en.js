@@ -624,6 +624,9 @@ var strings = {
     "updates.aurNoHelper": "An AUR helper (paru or yay) is required. Nothing is installed automatically.",
     "updates.aurReadFailed": "Could not read the AUR preference.",
     "updates.aurSaveFailed": "Could not save the AUR preference.",
+    "updates.channelTitle": "Early access (testing) updates",
+    "updates.channelHint": "Receive WinDoesNot updates before they reach everyone. Testing builds may contain bugs. Switching back to stable does not downgrade packages that are already installed.",
+    "updates.channelSaveFailed": "Could not change the update channel.",
     "updates.aurCheckFailed": "AUR updates could not be fully checked. Please try again later.",
 
     "backups.timerInactive": "The timer is currently inactive. Apply activates the saved schedule.",

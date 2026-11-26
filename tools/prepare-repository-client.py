@@ -8,14 +8,19 @@ import re
 import shutil
 import subprocess
 import tempfile
+import sys
 import time
 from urllib.parse import urlparse
+
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from channel_common import CHANNELS,repo_name
 
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--repository', type=Path, required=True)
 p.add_argument('--fingerprint', required=True, help='Full primary fingerprint obtained independently')
 p.add_argument('--server', required=True, help='HTTPS URL of the directory containing windoesnot.db')
 p.add_argument('--output', type=Path, required=True)
+p.add_argument('--channel',choices=CHANNELS,default='stable')
 p.add_argument('--allow-test-repository', action='store_true')
 a = p.parse_args()
 fingerprint = a.fingerprint.upper()
@@ -62,12 +67,14 @@ with tempfile.TemporaryDirectory(prefix='windoesnot-trust-') as temporary:
     manifest = repo / 'REPOSITORY.json'
     verify(manifest)
     metadata = json.loads(manifest.read_text())
+    if metadata.get('channel','stable') != a.channel:
+        p.error('Repository manifest channel differs from --channel')
     if not metadata['signed'] or metadata['key'] != fingerprint:
         p.error('Inconsistent signed manifest')
     if metadata['private_test_only'] and not a.allow_test_repository:
         p.error('A test repository must never become a production client')
     private_test_client = metadata['private_test_only'] or a.allow_test_repository
-    for name in ('windoesnot.db.tar.gz', 'windoesnot.files.tar.gz'):
+    for name in (repo_name(a.channel) + '.db.tar.gz', repo_name(a.channel) + '.files.tar.gz'):
         verify(repo / name)
     for package in metadata['packages'].values():
         filename = package['filename']
@@ -81,7 +88,7 @@ with tempfile.TemporaryDirectory(prefix='windoesnot-trust-') as temporary:
     shutil.copyfile(key, a.output / 'RELEASE-KEY.asc')
     (a.output / 'RELEASE-KEY.fingerprint').write_text(fingerprint + '\n')
     (a.output / 'windoesnot.conf').write_text(
-        '[windoesnot]\nSigLevel = Required DatabaseRequired TrustedOnly\nServer = ' + a.server.rstrip('/') + '\n'
+        '[' + repo_name(a.channel) + ']\nSigLevel = Required DatabaseRequired TrustedOnly\nServer = ' + a.server.rstrip('/') + '\n'
     )
     (a.output / 'CLIENT.json').write_text(json.dumps({
         'fingerprint': fingerprint, 'server': a.server, 'private_test_only': private_test_client,

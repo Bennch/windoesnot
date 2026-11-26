@@ -8,6 +8,13 @@
     <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
     <annotate key="org.freedesktop.policykit.exec.argv1">lite-mode-set</annotate>
   </action>
+  <action id="org.windoesnot.system.update-channel-set">
+    <description>Change the update channel</description><description xml:lang="de">Update-Kanal ändern</description>
+    <message>Please confirm: Change the update channel</message><message xml:lang="de">Bitte bestätigen: Update-Kanal ändern</message>
+    <icon_name>system-lock-screen</icon_name><defaults><allow_any>no</allow_any><allow_inactive>no</allow_inactive><allow_active>auth_admin_keep</allow_active></defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/windoesnot/system_tools.py</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">update-channel-set</annotate>
+  </action>
   <action id="org.windoesnot.system.kernel-install">
     <description>Install a kernel and update the system</description>
     <description xml:lang="de">Kernel installieren und System aktualisieren</description>

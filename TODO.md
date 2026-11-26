@@ -19,7 +19,7 @@ Priority principle (from the analysis): reliability before new features. Windows
 
 | Item | Status | What exists / what is missing |
 | --- | --- | --- |
-| Stable / Testing / Nightly channels | partial | One signed channel (`UPDATE-CHANNEL.md`, `build-repository.py`, `publish-repository-r2.py`, `preflight-release.py`, `prepare-release.py`). No separate channels found. |
+| Stable / Testing / Nightly channels | partial | Stable (default, unchanged) and testing (`windoesnot-testing`, `repo/testing/x86_64`) exist: `--channel` in build/prepare/preflight/publish tools, unreleased changelog entries only to testing, Settings > Updates switch (`update-channel-set`, `/etc/windoesnot/channel`), promotion by copying the signed packages (`UPDATE-CHANNEL.md`). Not yet: first testing publish, VM test of the switch on a real system, nightly. |
 | Curated rolling release (frozen CachyOS/Arch snapshots) | partial | ISO is built from a pinned snapshot (`sources.json`, repository snapshot in the installer). Installed systems still take system packages straight from CachyOS/Arch. TODO: own mirror or snapshot repo, test then release, security fast path, disk space plan. |
 | Automated release approval and update gate | partial | `test-update-gate.py`, `test-package-abi-guard.py`, `test-update-gate-inventory.py` exist. TODO: connect to CI and the channels. |
 | Boot and update health check | missing | TODO: after an update, check the boot (for example systemd boot-counting) and roll back to the last snapshot on failure. |
