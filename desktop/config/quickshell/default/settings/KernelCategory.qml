@@ -30,7 +30,13 @@ Item {
     width: parent ? parent.width : 650
     height: content.height
 
+    property var eacChecks: []
     function tr(key) { return Lang.get(key, _lang) }
+    function eacLabel(id) {
+        return {uefi: "kernel.eacCheckUefi", tpm2: "kernel.eacCheckTpm2", iommu_table: "kernel.eacCheckIommu",
+            secure_boot: "kernel.eacCheckSecureBoot", boot_manager: "kernel.eacCheckBootManager",
+            not_snapshot_boot: "kernel.eacCheckSnapshot", eac_tools_installed: "kernel.eacCheckTools"}[id] || "kernel.eac"
+    }
     function kernelCategory(name) {
         if (name.indexOf("-lts") >= 0) return tr("kernel.longterm")
         if (name.indexOf("-rt-") >= 0) return tr("kernel.realtime")
@@ -100,7 +106,7 @@ Item {
             .concat(["/usr/lib/windoesnot/system_tools.py", action, JSON.stringify(args)])
         worker.running = true
     }
-    Component.onCompleted: if (autoLoad) runAction("kernel-status", {})
+    Component.onCompleted: if (autoLoad) { runAction("kernel-status", {}); eacCheck.running = true }
     Process {
         id: worker
         property string operation: ""
@@ -262,6 +268,19 @@ Item {
         }
         Heading { text: page.tr("kernel.eac") }
         Note { text: page.tr("kernel.eacHint") }
+        Note { visible: page.eacChecks.length > 0; text: page.tr("kernel.eacCheck") }
+        Column {
+            width: parent.width; spacing: 4
+            Repeater {
+                model: page.eacChecks
+                Text {
+                    width: parent.width
+                    text: (modelData.ok === true ? "✓ " : modelData.ok === false ? "✗ " : "? ") + page.tr(page.eacLabel(modelData.id)) + " (" + modelData.detail + ")"
+                    color: modelData.ok === false ? "#e5534b" : page.secondary
+                    font.pixelSize: UiI.UiScale.px(13); wrapMode: Text.Wrap
+                }
+            }
+        }
         Row {
             width: parent.width; spacing: 12
             ActionButton {
@@ -325,6 +344,15 @@ Item {
                 enabled: page.ready && !page.busy && !page.state.live && (page.state.scx.active || page.state.scx.enabled)
                 onClicked: page.requestAction("scx-stop", {}, page.tr("kernel.confirmScxStop"))
             }
+        }
+    }
+    Process {
+        id: eacCheck
+        command: ["python3", "-I", "/usr/lib/windoesnot/eac_check.py"]
+        stdout: StdioCollector { id: eacCheckOutput }
+        onExited: (code) => {
+            try { page.eacChecks = code === 0 ? JSON.parse(eacCheckOutput.text) : [] }
+            catch (error) { page.eacChecks = [] }
         }
     }
     Process {
