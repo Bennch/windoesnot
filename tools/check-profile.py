@@ -155,6 +155,8 @@ assert ('WinDoesNot-Installationsmedium' if language=='de' else 'WinDoesNot inst
 efi=(p/'efiboot/loader/entries/02-archiso-linux-cachyos.conf').read_text()
 assert ('UEFI-Standard' if language=='de' else 'UEFI Default') in efi
 assert 'DEFAULT wdn-offline' in (p/'syslinux/archiso_sys.cfg').read_text()
+assert grubmenu.count('windoesnot.recovery=1')==1 and bios.count('windoesnot.recovery=1')==1
+assert 'windoesnot.recovery=1' in (p/'efiboot/loader/entries/99-windoesnot-recovery.conf').read_text()
 assert 'subject.user === "liveuser"' in (a/'etc/polkit-1/rules.d/49-nopasswd_global.rules').read_text()
 assert 'rm -f /etc/polkit-1/rules.d/49-nopasswd_global.rules' in (a/'usr/share/windoesnot/iso/finalize-install.sh').read_text()
 # Branded paths must all exist before spending time on an ISO build.

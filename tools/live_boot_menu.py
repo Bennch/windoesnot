@@ -46,3 +46,51 @@ def syslinux_modes(text, language='en'):
     if count != 2:
         raise ValueError('Upstream BIOS layout changed: expected two kernel variants')
     return result.replace('copytoram=auto', 'copytoram=n')
+
+
+RECOVERY_LABEL = {'en': 'Start restore points from disk', 'de': 'Wiederherstellungspunkte von der Festplatte starten'}
+RECOVERY_PARAMETER = 'windoesnot.recovery=1'
+
+
+def grub_recovery(text, language='en'):
+    """Add a menu entry that boots the live system straight into the restore point list."""
+    if language not in RECOVERY_LABEL:
+        raise ValueError('Unsupported language')
+    pattern = re.compile(r'^menuentry "[^"\n]*"[^\n]*--id \'windoesnot-offline\'[^\n]*\{\n.*?^\}', re.M | re.S)
+    match = pattern.search(text)
+    if not match:
+        raise ValueError('Upstream live GRUB layout changed: no stable offline entry')
+    entry = re.sub(r'^menuentry "[^"\n]*"', 'menuentry "' + RECOVERY_LABEL[language] + '"', match[0])
+    entry = entry.replace("--id 'windoesnot-offline'", "--id 'windoesnot-recovery'")
+    entry = re.sub(r'^(\s*linux .*)$', lambda m: re.sub(r' windoesnot\.install=\w+', '', m[1]) + ' ' + RECOVERY_PARAMETER, entry, flags=re.M)
+    return text[:match.end()] + '\n\n' + entry + text[match.end():]
+
+
+def syslinux_recovery(text, language='en'):
+    if language not in RECOVERY_LABEL:
+        raise ValueError('Unsupported language')
+    match = re.search(r'^LABEL wdn-offline\n.*?(?=^LABEL |\Z)', text, re.M | re.S)
+    if not match:
+        raise ValueError('Upstream BIOS layout changed: no stable offline entry')
+    entry = match[0].replace('LABEL wdn-offline', 'LABEL wdn-recovery', 1)
+    entry = re.sub(r'^MENU LABEL .*$', lambda m: 'MENU LABEL ' + RECOVERY_LABEL[language], entry, flags=re.M)
+    entry = re.sub(r'^MENU DEFAULT\n', '', entry, flags=re.M)
+    entry = re.sub(r'^(APPEND .*)$', lambda m: re.sub(r' windoesnot\.install=\w+', '', m[1]) + ' ' + RECOVERY_PARAMETER, entry, flags=re.M)
+    return text[:match.end()].rstrip('\n') + '\n' + entry.rstrip('\n') + '\n' + text[match.end():]
+
+
+def efi_recovery(directory, language='en'):
+    """systemd-boot: copy the first live entry as a recovery entry; returns the new file or None."""
+    from pathlib import Path
+    if language not in RECOVERY_LABEL:
+        raise ValueError('Unsupported language')
+    sources = sorted(path for path in Path(directory).glob('*.conf') if 'recovery' not in path.name)
+    if not sources:
+        return None
+    text = sources[0].read_text()
+    text = re.sub(r'^title .*$', lambda m: 'title ' + RECOVERY_LABEL[language], text, count=1, flags=re.M)
+    text = re.sub(r'^sort-key .*\n', '', text, flags=re.M)
+    text = re.sub(r'^(options .*)$', lambda m: re.sub(r' windoesnot\.install=\w+', '', m[1]) + ' ' + RECOVERY_PARAMETER, text, count=1, flags=re.M)
+    target = Path(directory) / '99-windoesnot-recovery.conf'
+    target.write_text(text)
+    return target

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Live session started from the "restore points" boot entry: open the restore point list once the desktop is up.
+grep -qw 'windoesnot.recovery=1' /proc/cmdline 2>/dev/null || exit 0
+[ -e /etc/windoesnot-image-build ] || exit 0
+for _ in $(seq 60); do
+    socket=$(ls "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"/wayland-[0-9]* 2>/dev/null | grep -v '\.lock$' | head -n1)
+    [ -n "$socket" ] && break
+    sleep 1
+done
+[ -n "${socket:-}" ] || exit 0
+export WAYLAND_DISPLAY="${socket##*/}"
+sleep 5
+terminal=ghostty; command -v "$terminal" >/dev/null 2>&1 || terminal=foot
+exec "$terminal" -e sudo /usr/lib/windoesnot/recovery.py menu

@@ -5,4 +5,8 @@ export XDG_CURRENT_DESKTOP=Hyprland
 export XDG_SESSION_DESKTOP=Hyprland
 export XDG_SESSION_TYPE=wayland
 windoesnot-initialize
+# Live "restore points" boot entry: the list opens by itself once the desktop is up.
+if grep -qw windoesnot.recovery=1 /proc/cmdline 2>/dev/null; then
+    (windoesnot-recovery-boot >/dev/null 2>&1 &)
+fi
 exec /usr/bin/start-hyprland "$@"

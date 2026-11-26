@@ -12,7 +12,7 @@ import shutil
 import subprocess
 import sys
 import yaml
-from live_boot_menu import grub_modes, syslinux_modes
+from live_boot_menu import efi_recovery, grub_modes, grub_recovery, syslinux_modes, syslinux_recovery
 import importlib.util
 _device_spec = importlib.util.spec_from_file_location("device_manager_source", Path(__file__).with_name("prepare-device-manager.py"))
 _device_module = importlib.util.module_from_spec(_device_spec)
@@ -434,6 +434,10 @@ def main():
         if args.language == 'de':
             menu = menu.replace('Legacy Hardware Fallback', 'Ältere Hardware, Ersatzmodus').replace('UEFI Default', 'UEFI-Standard')
         entry.write_text(menu)
+    # Boot entry that opens the list of restore points found on the disks (all three live boot menus).
+    (profile/'grub/grub.cfg').write_text(grub_recovery((profile/'grub/grub.cfg').read_text(), args.language))
+    (profile/'syslinux/archiso_sys-linux.cfg').write_text(syslinux_recovery((profile/'syslinux/archiso_sys-linux.cfg').read_text(), args.language))
+    efi_recovery(profile/'efiboot/loader/entries', args.language)
     for directory,pattern in [('grub',r'^(\s*linux )(.*)$'),('syslinux',r'^(APPEND )(.*)$')]:
         for menu in (profile/directory).glob('*.cfg'):
             menu.write_text(re.sub(pattern,lambda match:match.group(1)+quiet_commandline(match.group(2)),menu.read_text(),flags=re.M))
