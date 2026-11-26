@@ -2,6 +2,27 @@
   "comment": "WinDoesNot changes per desktop package release, newest first. Shown in Settings > Updates; entries marked unreleased are never offered as an update.",
   "releases": [
     {
+      "version": "0.1.0-34",
+      "date": "unreleased",
+      "unreleased": true,
+      "de": [
+        "CachyOS-Wiederherstellungsabbild auf der ESP nach UEFI-Installationen.",
+        "Das Live-System findet Wiederherstellungspunkte auf Datenträgern und kann einen schreibgeschützt starten (Bootmenüeintrag, Liste unter Einstellungen > Sicherungen).",
+        "Easy Anti-Cheat: neuer Abschnitt in Einstellungen > Kernel.",
+        "Store: Die AUR-Prüfung kontrolliert auch das Installationsskript.",
+        "gvfs-mtp, dav1d-Unterstützung und ghostty-Terminfo im Abbild.",
+        "Die ESP wird nur weiterverwendet, wenn mindestens 480 MiB frei sind."
+      ],
+      "en": [
+        "CachyOS recovery image on the ESP after UEFI installations.",
+        "The live session finds restore points on disks and can start one read-only (boot menu entry, list in Settings > Backups).",
+        "Easy Anti-Cheat: new section in Settings > Kernel.",
+        "Store: the AUR review also checks the install script.",
+        "gvfs-mtp, dav1d support and ghostty terminfo in the image.",
+        "Reusing the ESP needs 480 MiB free."
+      ]
+    },
+    {
       "version": "0.1.0-33",
       "date": "2026-11-20",
       "de": [

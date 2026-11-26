@@ -143,6 +143,7 @@ Du möchtest die Vorschau ausprobieren? [Hier steht der kurze Testablauf](CONTRI
 [Melde dein Hardware-Ergebnis](https://github.com/Bennch/windoesnot/issues/new?template=hardware_test.yml)
 oder [beschreibe einen Fehler](https://github.com/Bennch/windoesnot/issues/new?template=bug_report.yml).
 Deutsch und Englisch sind willkommen.
+Was bisher getestet ist, zeigt die [Hardware-Kompatibilitätsmatrix](docs/HARDWARE.md) (englisch).
 
 Fehlermeldungen und Ideen sind willkommen. Das Projekt wird von einer Person mit Hilfe
 von KI-Programmieragenten (Claude Code und Codex) entwickelt.
